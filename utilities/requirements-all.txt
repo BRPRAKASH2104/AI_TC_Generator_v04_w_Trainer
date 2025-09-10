@@ -1,0 +1,112 @@
+# AI Test Case Generator - All Dependencies Combined
+# Python 3.13.7+ required
+# Last updated: 2025-01-31
+#
+# Installation: pip install -r utilities/requirements-all.txt
+# This installs ALL dependencies: production + development + high-performance
+
+# ============================================================================
+# CORE PRODUCTION DEPENDENCIES (Required)
+# ============================================================================
+
+# Data processing and manipulation
+pandas>=2.3.2,<2.4.0                   # Updated for security patches
+
+# HTTP client for Ollama API communication  
+requests>=2.32.3,<2.33.0               # Updated for security patches (CVE fixes)
+
+# YAML configuration and template processing
+PyYAML>=6.0.2,<6.1.0
+
+# Command-line interface framework
+click>=8.2.0,<8.3.0
+
+# Rich terminal formatting and progress display
+rich>=13.9.4,<14.0.0                   # Updated for Python 3.13.7 optimizations
+
+# Excel file format support
+openpyxl>=3.1.5,<3.2.0
+
+# ============================================================================
+# HIGH-PERFORMANCE DEPENDENCIES
+# ============================================================================
+
+# Async HTTP client for concurrent AI calls (3x faster)
+aiohttp>=3.12.15,<4.0.0                # CRITICAL UPDATE: Security patches (CVE fixes)
+
+# Rate limiting for async operations
+asyncio-throttle>=1.0.2,<2.0.0
+
+# System resource monitoring (CPU, memory, disk)
+psutil>=6.1.0,<7.0.0
+
+# XML processing acceleration (30-50% faster)
+lxml>=5.3.2,<6.0.0                     # Updated for security patches
+
+# JSON processing acceleration (2-5x faster)
+ujson>=5.10.1,<6.0.0                   # Updated for Python 3.13.7 compatibility
+
+# Memory optimization and profiling
+pympler>=0.9,<1.0
+
+# ============================================================================
+# DEVELOPMENT AND TESTING TOOLS
+# ============================================================================
+
+# Testing framework with coverage
+pytest>=8.4.2,<9.0.0                   # Updated for Python 3.13.7 fixes
+pytest-cov>=6.0.2,<7.0.0               # Updated for compatibility
+pytest-xdist>=3.6.0,<4.0.0
+pytest-benchmark>=4.0.0,<5.0.0
+
+# Static type checking
+mypy>=1.16.1,<1.17.0                   # Updated for enhanced Python 3.13.7 support
+types-requests>=2.32.3,<3.0.0          # Updated type stubs
+types-PyYAML>=6.0.2,<7.0.0             # Updated type stubs
+
+# Linting and formatting (Rust-based)
+ruff>=0.8.14,<1.0.0                    # Updated for latest Python 3.13.7 syntax support
+
+# ============================================================================
+# SECURITY AND AUDIT TOOLS
+# ============================================================================
+
+# Dependency vulnerability scanning
+pip-audit>=2.9.2,<3.0.0               # Updated for enhanced vulnerability detection
+safety>=3.6.1,<4.0.0                  # Updated (Note: Commercial license required)
+
+# License compliance checking
+pip-licenses>=4.4.0,<5.0.0
+
+# ============================================================================
+# PERFORMANCE ANALYSIS TOOLS
+# ============================================================================
+
+# Memory usage profiling
+memory-profiler>=0.61.0,<1.0.0
+
+# Performance profiling
+py-spy>=0.4.0,<1.0.0
+
+# Line-by-line performance profiling
+line_profiler>=4.1.0,<5.0.0
+
+# ============================================================================
+# INSTALLATION NOTES
+# ============================================================================
+
+# Complete development workflow:
+# 1. pip install -r utilities/requirements-all.txt
+# 2. python utilities/version_check.py --strict
+# 3. ruff check src/
+# 4. mypy src/
+# 5. pytest
+# 6. pip-audit
+# 7. safety check
+
+# High-performance usage:
+# python src/generate_contextual_tests_v003_HighPerformance.py input.reqifz --hp --performance
+
+# Performance profiling:
+# py-spy record -o profile.svg -- python src/generate_contextual_tests_v003_HighPerformance.py input.reqifz --hp
+# memory_profiler src/generate_contextual_tests_v003_HighPerformance.py input.reqifz --hp

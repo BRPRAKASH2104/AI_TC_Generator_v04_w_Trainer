@@ -1,0 +1,12 @@
+# REQIFZ FIles
+.reqifz
+
+# OS
+.DS_Store
+
+# Cache
+__pycache__/
+*.reqifz
+*.json
+*.reqifz
+*.reqifz
