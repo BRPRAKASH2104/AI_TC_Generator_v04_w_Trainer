@@ -1,0 +1,23 @@
+1. Code Structure and Refactoring
+   * Modularize Large Files: The generate_contextual_tests_v003_HighPerformance.py and generate_contextual_tests_v002.py files are very large and contain multiple classes. They should be broken
+     down into smaller, more focused modules. For example, the OllamaClient, HTMLTableParser, TestCaseGenerator, and REQIFArtifactExtractor classes could each be moved to their own files within
+     a src/components or src/core directory.
+   * Create a Unified `main` Entrypoint: Instead of having multiple runnable scripts (v002, v003, etc.), consider creating a single main entrypoint (e.g., main.py). This script could use
+     command-line arguments (like --hp which you already have) to decide which processor (standard or high-performance) to run.
+2. Configuration Management
+   * Eliminate Redundant YAML Loading: In src/config.py, the yaml_config_settings_source function is defined both as a standalone function and as a class method within ConfigManager. The
+     standalone function is not used and can be removed to avoid confusion.
+   * Refine High-Performance Concurrency: In generate_contextual_tests_v003_HighPerformance.py, the AsyncOllamaClient semaphore is hardcoded to 1 to avoid GPU saturation. This is a safe
+     default, but it could be made configurable in config.py to allow users to tune it for their specific hardware (e.g., for multi-GPU setups or for CPU-only inference).
+   * Isolate Sync and Async Clients: The high-performance script includes both an AsyncOllamaClient and a synchronous OllamaClient. The synchronous client appears to be a fallback but isn't used
+      in the main high-performance path. It would be cleaner to have a single, async-focused client in the high-performance script and move the synchronous one to a shared utility module if it's
+      needed elsewhere.
+   * Standardize Logging: The print("🔍 DEBUG...") statements in generate_contextual_tests_v002.py should be fully replaced with calls to the logging system introduced in
+     generate_contextual_tests_v002_w_Logging_WIP.py. This ensures that logging can be controlled consistently via command-line flags.
+   * Robust Ollama Version Check: In src/file_processing_logger.py, the check for the Ollama version runs a subprocess (ollama --version). This can be slow and might fail if ollama is not in
+     the system's PATH. Consider making this check optional or adding more robust error handling around it.
+   * Decouple Training Logic: The generate_contextual_tests_v002_with_training.py script mixes processing logic with training-specific logic. It would be better to keep the core processing
+     scripts clean and have separate, dedicated scripts for managing the training lifecycle (e.g., collect_data.py, train.py, validate_data.py). This aligns better with typical ML project
+     structures.
+   * Flexible Training Data Formatting: In custom_model_trainer.py, the _format_conversation method is hardcoded to a specific ChatML-like format. This could be made more flexible by defining
+     the template in a configuration file, allowing easier adaptation for different model architectures in the future.
