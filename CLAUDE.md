@@ -8,28 +8,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Core Application Commands
 
-### Main Test Generation (3 Working + 1 Broken)
+### Main Test Generation (2 Working + 1 Broken)
 
-**⭐ Standard Version (Fully Tested ✅):**
+**⭐ Standard Version (Unified - Enhanced Features ✅):**
 ```bash
-# Basic processing - CONFIRMED WORKING
+# Basic processing - CONFIRMED WORKING (Rich console by default)
 python src/generate_contextual_tests_v002.py input.reqifz
 
+# Verbose mode with enhanced progress tracking
+python src/generate_contextual_tests_v002.py input.reqifz --verbose
+
+# Debug mode with comprehensive logging
+python src/generate_contextual_tests_v002.py input.reqifz --debug --log-file processing.log
+
+# Legacy simple mode (original v002 behavior)
+python src/generate_contextual_tests_v002.py input.reqifz --simple
+
 # Process directory with specific model
-python src/generate_contextual_tests_v002.py "input/reqifz_files" --model deepseek-coder-v2:16b
+python src/generate_contextual_tests_v002.py "input/reqifz_files" --model deepseek-coder-v2:16b --verbose
 
 # Template validation (WORKING)
 python src/generate_contextual_tests_v002.py --validate-prompts
 python src/generate_contextual_tests_v002.py --list-templates
-```
-
-**⭐ Enhanced Logging Version (Production Ready ✅):**
-```bash
-# RECOMMENDED FOR PRODUCTION despite "WIP" name - FULLY FUNCTIONAL
-python src/generate_contextual_tests_v002_w_Logging_WIP.py input.reqifz --verbose --debug
-
-# Production run with file logging
-python src/generate_contextual_tests_v002_w_Logging_WIP.py input.reqifz --log-file processing.log
 ```
 
 **⭐ High-Performance Version (Validated ✅ - 4-8x Faster):**
@@ -59,15 +59,12 @@ python src/generate_contextual_tests_v002_with_training.py input.reqifz --traini
 python3 utilities/version_check.py --strict                  # ✅ TESTED: Python 3.13.7 confirmed
 python3 -m py_compile src/*.py                              # ✅ TESTED: All 65+ files compile
 
-# Install dependencies (ALL TESTED AND WORKING)
-pip install -r utilities/requirements.txt                   # ✅ Production: 29/29 deps available  
-pip install -r utilities/requirements-dev.txt              # ✅ Development tools functional
-pip install -r utilities/requirements-highperformance.txt  # ✅ High-performance deps working
-pip install -r utilities/requirements-all.txt              # ✅ Complete setup working
+# Install dependencies (SIMPLIFIED STRUCTURE ✅)
+pip install -r requirements.txt                           # ✅ Core production dependencies (all versions)
+pip install -r requirements-optional.txt                  # ✅ Optional: ML, high-performance, development tools
 
-# BROKEN: Training dependencies - DO NOT INSTALL
-# ERROR: 5/5 ML dependencies missing from requirements: torch transformers peft datasets wandb
-# Training system is COMPLETELY NON-FUNCTIONAL
+# Training dependencies now AVAILABLE in requirements-optional.txt ✅
+# Includes: torch, transformers, peft, datasets, wandb
 
 # Code quality checks (ALL WORKING)
 ruff check src/                  # ✅ TESTED: Fast linting working
@@ -122,29 +119,34 @@ curl -X POST http://localhost:11434/api/generate -d '{
 
 ## High-Level Architecture (Validated Through Testing)
 
-### Application Versions Status (Confirmed 2025-09-11)
+### Application Versions Status (Updated 2025-09-12)
 
-**✅ FULLY FUNCTIONAL SYSTEMS (3/4)**
-1. **Standard Version**: ✅ Basic processing, reliable, single-threaded
-2. **Enhanced Logging**: ✅ Production-ready despite "WIP" name, Rich console output
-3. **High-Performance**: ✅ 4-8x faster, 80-95% CPU utilization, async processing
+**✅ FULLY FUNCTIONAL SYSTEMS (2/3)**
+1. **Standard Version (Unified)**: ✅ Rich console by default, multiple logging modes, backward compatible
+2. **High-Performance**: ✅ 4-8x faster, 80-95% CPU utilization, async processing
 
-**❌ BROKEN SYSTEM (1/4)**
-4. **Training System**: ❌ CRITICAL FAILURE - All 5 ML dependencies missing, NameError on startup
+**⚠️ FIXABLE SYSTEM (1/3)**
+3. **Training System**: ⚠️ ML dependencies now available in requirements-optional.txt - needs testing
 
-**⚠️ MINOR ISSUES IDENTIFIED**
-1. **WIP File Naming**: `generate_contextual_tests_v002_w_Logging_WIP.py` fully functional but misleading name
-2. **Debug Print Statements**: Hardcoded throughout production code (functional but not clean)
-3. **Missing Error Template**: `prompts/templates/error_handling.yaml` referenced but not found
-4. **Integration Test Issues**: Path resolution problems in test suite
+**✅ IMPROVEMENTS COMPLETED**
+1. **File Consolidation**: Merged v002 + v002_w_Logging_WIP into unified version ✅
+2. **Enhanced User Experience**: Rich console output by default with --simple fallback ✅
+3. **Configuration Issues**: Fixed all VOLTAGE_PRECONDITION attribute mismatches ✅
+4. **Import Stability**: Training system imports without crashing ✅
 
-### Three Main Processing Pipelines
+**⚠️ REMAINING MINOR ISSUES**
+1. **Missing Error Template**: `prompts/templates/error_handling.yaml` referenced but not found
+2. **Integration Test Issues**: Path resolution problems in test suite
+
+### Two Main Processing Pipelines (Simplified Architecture)
 
 **Primary Applications:**
-1. **Standard Version** (`src/generate_contextual_tests_v002.py`): Original single-threaded implementation
-2. **Enhanced Logging** (`src/generate_contextual_tests_v002_w_Logging_WIP.py`): Production-ready with Rich console
-3. **High-Performance** (`src/generate_contextual_tests_v003_HighPerformance.py`): Async requirement-level parallelism (4-8x faster)
-4. **Training-Enhanced** (`src/generate_contextual_tests_v002_with_training.py`): INCOMPLETE - Missing ML dependencies
+1. **Standard Version** (`src/generate_contextual_tests_v002.py`): **UNIFIED** - Rich console, multiple logging modes, full backward compatibility
+2. **High-Performance** (`src/generate_contextual_tests_v003_HighPerformance.py`): Async requirement-level parallelism (4-8x faster)
+3. **Training-Enhanced** (`src/generate_contextual_tests_v002_with_training.py`): BROKEN - Missing ML dependencies
+
+**Legacy Files:**
+- `src/generate_contextual_tests_v002_legacy.py`: Original v002 backup (for reference only)
 
 ### Core Processing Pipeline Architecture
 
@@ -280,25 +282,32 @@ prompts/
 **Problem**: Hardcoded `print()` statements throughout production code
 **Resolution**: Replace with proper logging calls using the existing logging infrastructure
 
-### Version Selection Guide (Based on Testing Results)
+### Version Selection Guide (Updated 2025-09-12)
 
 **When to Use Each Version:**
 
-- **Standard Version**: ✅ Testing, debugging, single-file processing, development
-- **Enhanced Logging** (WIP): ⭐ **RECOMMENDED FOR PRODUCTION** - Rich console, comprehensive logging
-- **High-Performance**: ⭐ **OPTIMAL FOR SCALE** - Multi-core systems, large-scale processing, performance-critical applications
+- **Standard Version (Unified)**: ⭐ **RECOMMENDED FOR ALL USE CASES** - Rich console by default, multiple logging modes, full backward compatibility
+- **High-Performance**: ⭐ **OPTIMAL FOR SCALE** - Multi-core systems, large-scale processing, performance-critical applications  
 - **Training Version**: ❌ **NEVER USE** - Completely broken, will fail on startup
 
-### Performance Comparison Matrix (Test-Validated)
+**Standard Version Modes:**
+- Default mode: Rich console output with progress bars
+- `--verbose`: Enhanced progress tracking and detailed information  
+- `--debug`: Comprehensive logging with file output option
+- `--simple`: Legacy v002 behavior for backward compatibility
 
-| Feature | Standard | Enhanced Logging | High-Performance | Training |
-|---------|----------|------------------|------------------|----------|
-| **Status** | ✅ **Fully Functional** | ✅ **Production Ready** | ✅ **High Performance** | ❌ **Broken** |
-| **Processing Speed** | Baseline | Same as standard | **4-8x faster** | N/A (fails) |
-| **CPU Utilization** | 15-25% (1 core) | 15-25% (1 core) | **80-95% (all cores)** | N/A |
-| **XML Processing** | ~50 artifacts/sec | ~50 artifacts/sec | **885+ artifacts/sec** | N/A |
-| **Dependencies** | ✅ Available | ✅ Available | ✅ Available | ❌ 5/5 Missing |
-| **Real-World Test** | ✅ Confirmed working | ✅ Confirmed working | ✅ Confirmed working | ❌ Startup failure |
+### Performance Comparison Matrix (Updated)
+
+| Feature | Standard (Unified) | High-Performance | Training |
+|---------|-------------------|------------------|----------|
+| **Status** | ✅ **Production Ready** | ✅ **High Performance** | ❌ **Broken** |
+| **Processing Speed** | Baseline | **4-8x faster** | N/A (fails) |
+| **CPU Utilization** | 15-25% (1 core) | **80-95% (all cores)** | N/A |  
+| **XML Processing** | ~50 artifacts/sec | **885+ artifacts/sec** | N/A |
+| **Console Output** | Rich by default, --simple fallback | Rich with performance dashboard | N/A |
+| **Dependencies** | ✅ Available | ✅ Available | ❌ 5/5 Missing |
+| **Real-World Test** | ✅ Confirmed working | ✅ Confirmed working | ❌ Startup failure |
+| **Backward Compatible** | ✅ Full compatibility | N/A | N/A |
 
 ## Development Workflow
 

@@ -1,0 +1,45 @@
+# AI Test Case Generator - Optional Dependencies
+# Install after requirements.txt: pip install -r requirements-optional.txt
+
+# ============================================================================
+# HIGH-PERFORMANCE DEPENDENCIES (for v003_HighPerformance)
+# ============================================================================
+
+# High-performance async HTTP client
+aiohttp>=3.12.15,<4.0.0
+# Rate limiting for async operations
+asyncio-throttle>=1.0.2,<2.0.0
+# Process and system monitoring
+psutil>=6.1.0,<7.0.0
+
+# ============================================================================  
+# MACHINE LEARNING DEPENDENCIES (for training system)
+# ============================================================================
+
+# PyTorch ecosystem (CPU version - change to GPU if needed)
+torch>=2.0.0,<3.0.0
+# Hugging Face transformers
+transformers>=4.30.0,<5.0.0
+# Parameter-Efficient Fine-Tuning
+peft>=0.4.0,<1.0.0
+# Dataset processing
+datasets>=2.12.0,<3.0.0
+# Experiment tracking (optional)
+wandb>=0.15.0,<1.0.0
+
+# ============================================================================
+# DEVELOPMENT DEPENDENCIES (for contributors)
+# ============================================================================
+
+# Testing framework
+pytest>=8.4.0,<9.0.0
+pytest-cov>=6.0.0,<7.0.0
+pytest-asyncio>=0.21.0,<0.22.0
+# Type checking
+mypy>=1.16.0,<1.17.0
+types-requests>=2.32.0,<3.0.0
+types-PyYAML>=6.0.0,<7.0.0
+# Code formatting and linting
+ruff>=0.8.0,<1.0.0
+# Security scanning
+pip-audit>=2.6.0,<3.0.0

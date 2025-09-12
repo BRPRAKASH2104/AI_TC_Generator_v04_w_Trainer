@@ -1013,7 +1013,7 @@ class AsyncTestCaseGenerator:
             "requirement_id": requirement["id"],
             "table_str": self._format_table_for_prompt(table),
             "row_count": len(table["rows"]),
-            "voltage_precondition": self.config.VOLTAGE_PRECONDITION.replace("\n", "\\n"),
+            "voltage_precondition": self.config.voltage_precondition.replace("\n", "\\n"),
             "info_str": self._format_info_for_prompt(info_list),
             "interface_str": self._format_interfaces_for_prompt(interface_list),
         }
@@ -1091,7 +1091,7 @@ class StreamingTestCaseFormatter:
             "Project Key": self.config.PROJECT_KEY,
             "Assignee": self.config.ASSIGNEE,
             "Description": "",
-            "Action": test.get("action", self.config.VOLTAGE_PRECONDITION),
+            "Action": test.get("action", self.config.voltage_precondition),
             "Data": data_field,
             "Expected Result": test.get("expected_result", "N/A"),
             "Planned Execution": self.config.PLANNED_EXECUTION,

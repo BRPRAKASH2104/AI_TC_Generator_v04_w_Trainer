@@ -1,23 +1,25 @@
 """
-Context-Rich, High-Performance Test Case Generator
+Context-Rich Test Case Generator with Enhanced Logging
 
-Version: Refactored v1.2 - With YAML Prompt Management and XLSX Output
+Version: v1.3 - YAML Prompt Management, XLSX Output, and Rich Console Interface
 
 Improvements:
-- Integrated YAML-based prompt management
-- External template configuration
-- Automatic template selection
-- Maintained 100% backward compatibility
-- Added prompt validation and testing
-- Changed output format from CSV to XLSX
+- Integrated structured logging system with progress indicators
+- Debug and verbose modes controlled by command-line flags
+- Rich console output with colors and progress bars
+- Maintained 100% backward compatibility with existing functionality
+- Enhanced error handling and user feedback
 """
 
 import argparse
 import json
+import logging
 import re
+import sys
 import time
 import xml.etree.ElementTree as ET
 import zipfile
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 
@@ -26,6 +28,11 @@ from typing import Any, NotRequired, TypedDict
 
 import pandas as pd
 import requests
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn, TimeElapsedColumn
+from rich.text import Text
 
 # Import the file processing logger
 from file_processing_logger import FileProcessingLogger
@@ -35,8 +42,6 @@ type JSONResponse = dict[str, str | int | float | bool | None]
 
 
 class RequirementData(TypedDict):
-    """Type definition for requirement data structure."""
-
     id: str
     text: str
     type: str
@@ -44,8 +49,6 @@ class RequirementData(TypedDict):
 
 
 class TestCaseData(TypedDict):
-    """Type definition for test case data structure."""
-
     summary_suffix: str
     action: str
     data: str
@@ -60,18 +63,284 @@ type TestCaseList = list[TestCase]
 
 
 class ArtifactType(StrEnum):
-    """Enumeration of REQIF artifact types."""
-
     HEADING = "Heading"
     INFORMATION = "Information"
     SYSTEM_INTERFACE = "System Interface"
     SYSTEM_REQUIREMENT = "System Requirement"
 
 
-# Import YAML prompt manager
-from yaml_prompt_manager import YAMLPromptManager
+# =================================================================
+# ENHANCED LOGGING SYSTEM
+# =================================================================
 
-# Import configuration (assumes config.py is in the same directory)
+
+class AITestLogger:
+    """
+    Centralized logging system for AI Test Case Generator
+    Provides progress tracking, debug modes, and clean console output
+    """
+
+    def __init__(self, verbose: bool = False, debug: bool = False, log_file: str | None = None):
+        self.console = Console()
+        self.verbose = verbose
+        self.debug_enabled = debug
+        self.progress: Progress | None = None
+        self.current_task: TaskID | None = None
+
+        # Setup logging
+        self._setup_logging(log_file)
+
+        # Setup rich progress bar
+        self._setup_progress()
+
+    def _setup_logging(self, log_file: str | None) -> None:
+        """Setup logging configuration"""
+        # Determine log level
+        if self.debug_enabled:
+            level = logging.DEBUG
+        elif self.verbose:
+            level = logging.INFO
+        else:
+            level = logging.WARNING
+
+        # Create logger
+        self.logger = logging.getLogger("ai_test_generator")
+        self.logger.setLevel(logging.DEBUG)  # Allow all levels to be processed
+
+        # Clear existing handlers
+        self.logger.handlers.clear()
+
+        # Console handler with Rich formatting
+        console_handler = RichHandler(
+            console=self.console,
+            show_path=self.debug_enabled,
+            show_time=self.debug_enabled,
+            rich_tracebacks=True,
+            tracebacks_show_locals=self.debug_enabled,
+        )
+        console_handler.setLevel(level)
+
+        # Create formatters
+        if self.debug_enabled:
+            console_format = "%(name)s: %(message)s"
+        else:
+            console_format = "%(message)s"
+
+        console_handler.setFormatter(logging.Formatter(console_format))
+        self.logger.addHandler(console_handler)
+
+        # File handler if specified
+        if log_file:
+            try:
+                file_handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
+                file_handler.setLevel(logging.DEBUG)
+                file_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                file_handler.setFormatter(logging.Formatter(file_format))
+                self.logger.addHandler(file_handler)
+                self.info(f"Logging to file: {log_file}")
+            except Exception as e:
+                self.warning(f"Could not setup file logging: {e}")
+
+    def _setup_progress(self) -> None:
+        """Setup rich progress bar"""
+        self.progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            console=self.console,
+            expand=True,
+        )
+
+    # Banner and initialization
+    def print_banner(self) -> None:
+        """Print application banner"""
+        banner_text = Text()
+        banner_text.append("AI Test Case Generator v1.3 (Unified)\n", style="bold blue")
+        banner_text.append(
+            "YAML Prompt Management + XLSX Output + Enhanced Logging\n", style="cyan"
+        )
+        banner_text.append("Context-Rich Test Case Generation from REQIFZ Files", style="white")
+
+        panel = Panel(banner_text, title="🚀 Application Started", expand=False)
+        self.console.print(panel)
+
+    def print_configuration_summary(
+        self, model: str, template: str = "auto-select", files: list = None
+    ) -> None:
+        """Print configuration summary"""
+        if self.verbose or self.debug_enabled:
+            self.console.print("\n📋 [bold]Configuration Summary:[/bold]")
+            self.console.print(f"  • Model: [cyan]{model}[/cyan]")
+            self.console.print(f"  • Template: [cyan]{template}[/cyan]")
+            if files and self.debug_enabled:
+                self.console.print(f"  • Files to process: [cyan]{len(files)}[/cyan]")
+                for i, file in enumerate(files, 1):
+                    self.console.print(f"    {i}. {Path(file).name}")
+
+    # Progress tracking
+    def start_progress(self, description: str, total: int | None = None) -> TaskID:
+        """Start a new progress task"""
+        if not self.progress:
+            return None
+
+        self.progress.start()
+        self.current_task = self.progress.add_task(description, total=total)
+        return self.current_task
+
+    def update_progress(
+        self, task_id: TaskID, advance: int = 1, description: str | None = None
+    ) -> None:
+        """Update progress task"""
+        if self.progress and task_id is not None:
+            self.progress.update(task_id, advance=advance, description=description)
+
+    def finish_progress(self) -> None:
+        """Finish progress tracking"""
+        if self.progress:
+            self.progress.stop()
+
+    # Core logging methods
+    def info(self, message: str, **kwargs) -> None:
+        """Log info message (always shown)"""
+        self.console.print(message, **kwargs)
+        self.logger.info(message)
+
+    def success(self, message: str) -> None:
+        """Log success message with green checkmark"""
+        self.console.print(f"✅ {message}", style="green")
+        self.logger.info(f"SUCCESS: {message}")
+
+    def warning(self, message: str) -> None:
+        """Log warning message (always shown)"""
+        self.console.print(f"⚠️  {message}", style="yellow")
+        self.logger.warning(message)
+
+    def error(self, message: str) -> None:
+        """Log error message (always shown)"""
+        self.console.print(f"❌ {message}", style="red bold")
+        self.logger.error(message)
+
+    def debug(self, message: str) -> None:
+        """Log debug message (only in debug mode)"""
+        if self.debug_enabled:
+            self.console.print(f"🔍 DEBUG: {message}", style="dim blue")
+        self.logger.debug(message)
+
+    def verbose_log(self, message: str) -> None:
+        """Log verbose message (in verbose or debug mode)"""
+        if self.verbose or self.debug_enabled:
+            self.console.print(f"📋 {message}", style="dim")
+        self.logger.info(f"VERBOSE: {message}")
+
+    # File processing specific methods
+    def start_file_processing(
+        self, files: list, model_name: str, template: str = "auto-select"
+    ) -> None:
+        """Start file processing with summary"""
+        self.info(f"📁 Found {len(files)} .reqifz file(s) to process")
+        self.info(f"🤖 Using AI model: [cyan]{model_name}[/cyan]")
+        self.print_configuration_summary(model_name, template, files)
+
+    def start_single_file(self, filename: str, index: int, total: int) -> TaskID:
+        """Start processing a single file"""
+        self.info(f"\n[bold][{index}/{total}] Processing: {filename}[/bold]")
+        return self.start_progress(f"Processing {filename}", total=100)
+
+    def log_file_analysis(self, filename: str, objects_found: int, interfaces_found: int) -> None:
+        """Log file analysis results"""
+        self.verbose_log(f"  📊 Found {objects_found} objects in {filename}")
+        self.verbose_log(f"  🔗 Found {interfaces_found} system interface definitions")
+
+    def log_requirement_processing(self, req_id: str, index: int, total: int) -> None:
+        """Log requirement processing"""
+        self.verbose_log(f"  🔍 Analyzing Requirement {index + 1}/{total} (ID: {req_id})")
+
+    def log_ai_generation(self, req_id: str, model_name: str, template_name: str) -> None:
+        """Log AI generation attempt"""
+        self.verbose_log(f"    🤖 Generating test cases for '{req_id}' using {model_name}")
+        if template_name and template_name != "unknown":
+            self.verbose_log(f"    🎯 Using template: {template_name}")
+
+    def log_test_case_results(self, req_id: str, test_count: int) -> None:
+        """Log test case generation results"""
+        if test_count > 0:
+            self.verbose_log(f"    ✅ Generated {test_count} test cases")
+        else:
+            self.warning(f"    ❌ Failed to generate test cases for {req_id}")
+
+    # Ollama API specific methods
+    def log_ollama_call(self, model_name: str, prompt_length: int, is_json: bool = False) -> None:
+        """Log Ollama API call details"""
+        self.debug(
+            f"Ollama API Call: Model={model_name}, Prompt={prompt_length} chars, JSON={is_json}"
+        )
+
+    def log_ollama_error(self, error_type: str, model_name: str, details: str) -> None:
+        """Log Ollama API errors"""
+        self.error(f"Ollama {error_type} with model {model_name}: {details}")
+
+    # Template management methods
+    def log_template_selection(self, template_name: str, auto_selected: bool = False) -> None:
+        """Log template selection"""
+        if auto_selected:
+            self.verbose_log(f"    🎯 Auto-selected template: {template_name}")
+        else:
+            self.info(f"🎯 Using specified template: [cyan]{template_name}[/cyan]")
+
+    def log_template_validation(self, template_file: str, errors: list) -> None:
+        """Log template validation results"""
+        if errors:
+            self.error(f"Template validation failed for {template_file}:")
+            for error in errors:
+                self.error(f"  - {error}")
+        else:
+            self.success(f"Template {template_file} is valid")
+
+    # Output and completion methods
+    def log_output_generation(self, output_path: str, test_count: int) -> None:
+        """Log output file generation"""
+        self.success(f"Generated {test_count} test cases")
+        self.info(f"📄 Saved to: [cyan]{Path(output_path).name}[/cyan]")
+
+    def log_completion_summary(self, files_processed: int, total_tests: int = 0) -> None:
+        """Log final completion summary"""
+        self.console.print("\n🎉 [bold green]Processing Complete![/bold green]")
+        self.console.print(f"📊 Processed {files_processed} file(s)")
+        if total_tests > 0:
+            self.console.print(f"📋 Generated {total_tests} total test cases")
+        self.console.print("📁 Look for files ending with '_YAML.xlsx' in your input directories")
+
+
+# Global logger instance
+_logger_instance: AITestLogger | None = None
+
+
+def get_logger() -> AITestLogger:
+    """Get the global logger instance"""
+    if _logger_instance is None:
+        raise RuntimeError("Logger not initialized. Call setup_logger() first.")
+    return _logger_instance
+
+
+def setup_logger(
+    verbose: bool = False, debug: bool = False, log_file: str | None = None
+) -> AITestLogger:
+    """Setup and return the global logger instance"""
+    global _logger_instance
+    _logger_instance = AITestLogger(verbose=verbose, debug=debug, log_file=log_file)
+    return _logger_instance
+
+
+# Import YAML prompt manager
+try:
+    from yaml_prompt_manager import YAMLPromptManager
+except ImportError as e:
+    print(f"❌ Error: Could not import YAML prompt manager: {e}")
+    sys.exit(1)
+
+# Import configuration
 try:
     from config import ConfigManager, OllamaConfig, StaticTestConfig
 except ImportError:
@@ -108,12 +377,12 @@ except ImportError:
 
 
 # =================================================================
-# OLLAMA API CLIENT
+# OLLAMA API CLIENT WITH LOGGING
 # =================================================================
 
 
 class OllamaClient:
-    """Handles all interactions with Ollama API"""
+    """Handles all interactions with Ollama API with enhanced logging"""
 
     __slots__ = ("config", "proxies", "_session")
 
@@ -125,12 +394,9 @@ class OllamaClient:
         self._session.proxies.update(self.proxies)
 
     def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
-        """Generate response from Ollama model"""
-        print("🔍 DEBUG #1: Calling Ollama API:")
-        print(f"   - Model: '{model_name}'")
-        print(f"   - API URL: {self.config.api_url}")
-        print(f"   - JSON format requested: {is_json}")
-        print(f"   - Prompt length: {len(prompt)} characters")
+        """Generate response from Ollama model with comprehensive logging"""
+        logger = get_logger()
+        logger.log_ollama_call(model_name, len(prompt), is_json)
 
         payload = {
             "model": model_name,
@@ -141,9 +407,9 @@ class OllamaClient:
                 "temperature": self.config.temperature,
                 "num_ctx": self.config.num_ctx,  # Context window size
                 "num_predict": self.config.num_predict,  # Response length limit
-                "top_k": 40,  # Top-k sampling
-                "top_p": 0.9,  # Top-p sampling
-                "repeat_penalty": 1.1,  # Reduce repetition
+                "top_k": 40,
+                "top_p": 0.9,
+                "repeat_penalty": 1.1,
             },
         }
 
@@ -151,7 +417,6 @@ class OllamaClient:
             payload["format"] = "json"
 
         try:
-            print("🔍 DEBUG: Making POST request...")
             response = self._session.post(
                 self.config.api_url,
                 json=payload,
@@ -165,19 +430,17 @@ class OllamaClient:
                 data = {}
             return str(data.get("response", ""))
         except (requests.ConnectionError, requests.Timeout) as e:
-            # Connection issues handling (Python 3.13.7+ compatible)
-            print(f"  -> OLLAMA CONNECTION ERROR with {self.config.host}: {e}")
+            logger.log_ollama_error("CONNECTION ERROR", model_name, str(e))
             return ""
         except requests.HTTPError as e:
-            # Better error context preservation
             status_code = getattr(e.response, "status_code", "unknown")
-            print(f"  -> OLLAMA HTTP ERROR {status_code} with model {model_name}: {e}")
+            logger.log_ollama_error(f"HTTP ERROR {status_code}", model_name, str(e))
             return ""
         except requests.RequestException as e:
-            print(f"  -> OLLAMA REQUEST ERROR with model {model_name}: {e}")
+            logger.log_ollama_error("REQUEST ERROR", model_name, str(e))
             return ""
         except Exception as e:
-            print(f"  -> OLLAMA UNEXPECTED ERROR with model {model_name}: {e}")
+            logger.log_ollama_error("UNEXPECTED ERROR", model_name, str(e))
             return ""
 
 
@@ -362,6 +625,7 @@ class REQIFArtifactExtractor:
         Returns:
             List of artifact dictionaries
         """
+        logger = get_logger()
         all_objects = []
 
         try:
@@ -386,7 +650,8 @@ class REQIFArtifactExtractor:
                         all_objects.append(artifact)
 
         except Exception as e:
-            print(f"  -> ERROR processing XML in '{file_path.name}': {e}")
+            logger.error(f"Error processing XML in '{file_path.name}': {e}")
+            logger.debug(f"Full error details: {str(e)}")
 
         return all_objects
 
@@ -507,12 +772,12 @@ class REQIFArtifactExtractor:
 
 
 # =================================================================
-# TEST CASE GENERATOR - UPDATED WITH YAML PROMPTS
+# TEST CASE GENERATOR WITH YAML PROMPTS AND LOGGING
 # =================================================================
 
 
 class TestCaseGenerator:
-    """Handles generation of test cases using AI models with YAML prompt templates"""
+    """Handles generation of test cases using AI models with YAML prompt templates and enhanced logging"""
 
     def __init__(
         self,
@@ -534,14 +799,12 @@ class TestCaseGenerator:
         info_list: list[dict[str, Any]],
         interface_list: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        """Generate test cases using YAML prompt templates"""
-        print(f"      - Writing test cases for '{requirement['id']}' with {self.model_name}...")
-        print("🔍 DEBUG: generate_tests_with_context called:")
-        print(f"   - self.model_name = '{self.model_name}'")
-        print(f"   - requirement ID = '{requirement['id']}'")
+        """Generate test cases using YAML prompt templates with comprehensive logging"""
+        logger = get_logger()
 
         table = requirement.get("table")
         if not table:
+            logger.debug(f"No table found in requirement {requirement['id']}")
             return []
 
         # Prepare context for prompt template
@@ -550,26 +813,45 @@ class TestCaseGenerator:
             "requirement_id": requirement["id"],
             "table_str": self._format_table_for_prompt(table),
             "row_count": len(table["rows"]),
-            "voltage_precondition": self.config.VOLTAGE_PRECONDITION.replace("\n", "\\n"),
+            "voltage_precondition": self.config.voltage_precondition.replace("\n", "\\n"),
             "info_str": self._format_info_for_prompt(info_list),
             "interface_str": self._format_interfaces_for_prompt(interface_list),
         }
+
+        logger.debug(
+            f"Template variables prepared for {requirement['id']}: "
+            f"rows={len(table['rows'])}, heading='{heading[:50]}...'"
+        )
 
         # Get rendered prompt from YAML template
         try:
             prompt = self.yaml_prompt_manager.get_test_prompt(**template_variables)
             selected_template = self.yaml_prompt_manager.get_selected_template()
-            print(f"      - Using template: {selected_template}")
+            logger.log_ai_generation(requirement["id"], self.model_name, selected_template)
         except Exception as e:
-            print(f"      - Prompt template error: {e}")
+            logger.error(f"Prompt template error for {requirement['id']}: {e}")
+            logger.debug(f"Template variables that failed: {template_variables}")
             return []
 
         # Call AI model
         response_str = self.ollama_client.generate_response(self.model_name, prompt, is_json=True)
 
+        if not response_str:
+            logger.warning(f"Empty response from Ollama for {requirement['id']}")
+            return []
+
         # Parse response
         parsed_json = self.json_parser.extract_json_from_response(response_str)
-        return parsed_json.get("test_cases", []) if parsed_json else []
+        test_cases = parsed_json.get("test_cases", []) if parsed_json else []
+
+        if not test_cases and parsed_json:
+            logger.debug(
+                f"No test_cases key found in response for {requirement['id']}. "
+                f"Available keys: {list(parsed_json.keys())}"
+            )
+
+        logger.log_test_case_results(requirement["id"], len(test_cases))
+        return test_cases
 
     def _format_table_for_prompt(self, table: dict[str, Any]) -> str:
         """Format table data for inclusion in prompt"""
@@ -639,7 +921,7 @@ class TestCaseFormatter:
             "Project Key": self.config.PROJECT_KEY,
             "Assignee": self.config.ASSIGNEE,
             "Description": "",
-            "Action": test.get("action", self.config.VOLTAGE_PRECONDITION),
+            "Action": test.get("action", self.config.voltage_precondition),
             "Data": data_field,
             "Expected Result": test.get("expected_result", "N/A"),
             "Planned Execution": self.config.PLANNED_EXECUTION,
@@ -651,12 +933,12 @@ class TestCaseFormatter:
 
 
 # =================================================================
-# FILE PROCESSOR ORCHESTRATOR - UPDATED FOR XLSX
+# FILE PROCESSOR ORCHESTRATOR WITH ENHANCED LOGGING
 # =================================================================
 
 
 class REQIFZFileProcessor:
-    """Main orchestrator for processing REQIFZ files with YAML prompt management and XLSX output"""
+    """Main orchestrator for processing REQIFZ files with YAML prompt management, XLSX output, and enhanced logging"""
 
     def __init__(
         self,
@@ -664,7 +946,9 @@ class REQIFZFileProcessor:
         config_manager: ConfigManager | None = None,
         yaml_prompt_manager: YAMLPromptManager | None = None,
     ):
-        print(f"🔍 DEBUG: REQIFZFileProcessor initialized with model: '{model_name}'")
+        logger = get_logger()
+        logger.debug(f"Initializing REQIFZFileProcessor with model: '{model_name}'")
+
         self.model_name = model_name
         self.config_manager = config_manager or ConfigManager()
         self.yaml_prompt_manager = yaml_prompt_manager or YAMLPromptManager()
@@ -679,112 +963,134 @@ class REQIFZFileProcessor:
         )
         self.formatter = TestCaseFormatter(self.config_manager.static_test)
 
-    def process_file(self, reqifz_file: Path) -> None:
+        logger.debug("REQIFZFileProcessor initialization complete")
+
+    def process_file(self, reqifz_file: Path, file_index: int = 1, total_files: int = 1) -> int:
         """
         Process a single REQIFZ file and generate test cases in XLSX format
 
         Args:
             reqifz_file: Path to the REQIFZ file to process
+            file_index: Current file index (for progress tracking)
+            total_files: Total number of files (for progress tracking)
+
+        Returns:
+            Number of test cases generated
         """
-        print(f"\n===== Processing File: {reqifz_file.name} =====")
+        logger = get_logger()
+
+        # Start file processing progress
+        logger.start_single_file(reqifz_file.name, file_index, total_files)
 
         # Generate output file path
         output_xlsx_path = self._generate_output_path(reqifz_file)
 
         # Initialize processing logger
-        logger = FileProcessingLogger(
+        processing_logger = FileProcessingLogger(
             reqifz_file=reqifz_file.name,
             input_path=str(reqifz_file),
             output_file=str(output_xlsx_path),
-            version="v002_Standard",
+            version="v002_unified",
             ai_model=self.model_name,
         )
 
         try:
+            logger.debug(f"Output path: {output_xlsx_path}")
+
             # Phase 1: XML Parsing
-            logger.start_phase("xml_parsing")
+            processing_logger.start_phase("xml_parsing")
             all_objects = self.extractor.extract_all_artifacts(reqifz_file)
-            logger.end_phase("xml_parsing")
+            processing_logger.end_phase("xml_parsing")
 
             if not all_objects:
-                print("  -> No objects found in the file. Skipping.")
-                logger.add_warning("No objects found in REQIFZ file")
-                logger.end_processing(success=False)
-                logger.save_log()
-                return
+                logger.warning(f"No objects found in {reqifz_file.name}. Skipping.")
+                processing_logger.add_warning("No objects found in REQIFZ file")
+                processing_logger.end_processing(success=False)
+                processing_logger.save_log()
+                return 0
 
             # Update artifact counts
-            logger.total_artifacts_found = len(all_objects)
+            processing_logger.total_artifacts_found = len(all_objects)
             for obj in all_objects:
                 artifact_type = obj.get("type", "Unknown")
-                logger.artifacts_by_type[artifact_type] = (
-                    logger.artifacts_by_type.get(artifact_type, 0) + 1
+                processing_logger.artifacts_by_type[artifact_type] = (
+                    processing_logger.artifacts_by_type.get(artifact_type, 0) + 1
                 )
 
             # Separate artifacts by type
             system_interfaces, processing_list = self._separate_artifacts(all_objects)
-            print(
-                f"  -> Found {len(system_interfaces)} 'System Interface' definitions "
-                f"to use as a global dictionary."
-            )
+            logger.log_file_analysis(reqifz_file.name, len(all_objects), len(system_interfaces))
 
             # Count requirements to be processed
             requirements_to_process = [
                 obj for obj in processing_list if obj.get("type") == "System Requirement"
             ]
-            logger.requirements_processed_total = len(requirements_to_process)
+            processing_logger.requirements_processed_total = len(requirements_to_process)
 
             # Phase 2: AI Generation
-            logger.start_phase("ai_generation")
+            processing_logger.start_phase("ai_generation")
             master_test_list = self._process_artifacts_with_logging(
-                processing_list, system_interfaces, logger
+                processing_list, system_interfaces, processing_logger
             )
-            logger.end_phase("ai_generation")
+            processing_logger.end_phase("ai_generation")
 
             # Phase 3: Excel Output
-            logger.start_phase("excel_output")
-            self._save_test_cases(master_test_list, output_xlsx_path, reqifz_file.name)
-            logger.end_phase("excel_output")
+            processing_logger.start_phase("excel_output")
+            test_count = len(master_test_list)
+            if master_test_list:
+                logger.debug(f"Saving {test_count} test cases to Excel file")
+                try:
+                    df = pd.DataFrame(master_test_list)
+                    df.to_excel(output_xlsx_path, index=False, engine="openpyxl")
+                    logger.log_output_generation(str(output_xlsx_path), test_count)
+                except Exception as e:
+                    logger.error(f"Failed to save Excel file: {e}")
+                    processing_logger.add_warning(f"Excel save failed: {str(e)}")
+                    processing_logger.end_processing(success=False)
+                    processing_logger.save_log()
+                    return 0
+            else:
+                logger.warning(f"No test cases generated for {reqifz_file.name}")
+                processing_logger.add_warning("No test cases generated")
+                processing_logger.end_processing(success=False)
+                processing_logger.save_log()
+                return 0
+            processing_logger.end_phase("excel_output")
 
             # Record template used
-            logger.template_used = self.yaml_prompt_manager.get_selected_template()
+            processing_logger.template_used = self.yaml_prompt_manager.get_selected_template()
 
             # Mark as successful
-            logger.end_processing(success=True)
+            processing_logger.end_processing(success=True)
+
+            return test_count
 
         except Exception as e:
-            print(f"Error processing file: {e}")
-            logger.add_warning(f"Processing failed: {str(e)}")
-            logger.end_processing(success=False)
-
+            logger.error(f"Error processing file {reqifz_file.name}: {e}")
+            logger.debug(f"Full error details: {str(e)}")
+            processing_logger.add_warning(f"Processing failed: {str(e)}")
+            processing_logger.end_processing(success=False)
+            return 0
         finally:
-            # Always save the log
-            log_path = logger.save_log()
+            logger.finish_progress()
+            # Always save the processing log
+            log_path = processing_logger.save_log()
             if log_path:
-                print(f"📄 Processing log saved: {Path(log_path).name}")
-
-            # Update system metrics one final time
-            logger.update_system_metrics()
+                logger.debug(f"Processing log saved: {Path(log_path).name}")
+            processing_logger.update_system_metrics()
 
     def _generate_output_path(self, reqifz_file: Path) -> Path:
         """Generate output XLSX file path with fixed timestamp format"""
-        from datetime import datetime
-
-        print("🔍 DEBUG: _generate_output_path called:")
-        print(f"   - self.model_name = '{self.model_name}'")
-        print(f"   - reqifz_file = '{reqifz_file}'")
+        logger = get_logger()
 
         safe_model_name = self.model_name.replace(":", "_").replace(".", "_")
-        print(f"   - safe_model_name = '{safe_model_name}'")
-
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        print(f"   - timestamp = '{timestamp}'")
 
         output_path = reqifz_file.with_name(
             f"{reqifz_file.stem}_TCD_{safe_model_name}_{timestamp}.xlsx"
         )
-        print(f"   - Generated output_path = '{output_path}'")
 
+        logger.debug(f"Generated output path: model={safe_model_name}, timestamp={timestamp}")
         return output_path
 
     def _separate_artifacts(
@@ -799,32 +1105,99 @@ class REQIFZFileProcessor:
         ]
         return system_interfaces, processing_list
 
-    def _process_artifacts_with_logging(
+    def _process_artifacts(
         self,
         processing_list: list[dict[str, Any]],
         system_interfaces: list[dict[str, Any]],
-        logger: FileProcessingLogger,
     ) -> list[dict[str, Any]]:
-        """Process artifacts and generate test cases with comprehensive logging"""
+        """Process artifacts and generate test cases with enhanced progress tracking"""
+        logger = get_logger()
         master_test_list = []
         issue_id_counter = 1
         current_heading = "No Heading"
         info_since_heading = []
 
-        for i, obj in enumerate(processing_list):
-            # Update system metrics periodically
-            if i % 10 == 0:
-                logger.update_system_metrics()
+        # Count requirements for progress tracking
+        requirements_count = len(
+            [
+                obj
+                for obj in processing_list
+                if obj.get("type") == ArtifactType.SYSTEM_REQUIREMENT and obj.get("table")
+            ]
+        )
 
+        logger.debug(
+            f"Processing {len(processing_list)} artifacts, {requirements_count} with tables"
+        )
+
+        for i, obj in enumerate(processing_list):
             if obj.get("type") == ArtifactType.HEADING:
                 current_heading = obj["text"]
                 info_since_heading = []
-                print(f"\n  -> Context set to HEADING: '{obj['id']}'")
+                logger.verbose_log(f"  📍 Context set to HEADING: '{obj['id']}'")
                 continue
 
             if obj.get("type") == ArtifactType.INFORMATION:
                 info_since_heading.append(obj)
-                print(f"  -> Storing INFO: '{obj['id']}'")
+                logger.verbose_log(f"  📝 Storing INFO: '{obj['id']}'")
+                continue
+
+            if obj.get("type") == ArtifactType.SYSTEM_REQUIREMENT and obj.get("table"):
+                test_cases, issue_id_counter = self._process_requirement(
+                    obj,
+                    current_heading,
+                    info_since_heading,
+                    system_interfaces,
+                    i,
+                    len(processing_list),
+                    issue_id_counter,
+                )
+                master_test_list.extend(test_cases)
+                info_since_heading = []  # Clear info after processing requirement
+
+        logger.debug(f"Generated total of {len(master_test_list)} test cases")
+        return master_test_list
+
+    def _process_artifacts_with_logging(
+        self,
+        processing_list: list[dict[str, Any]],
+        system_interfaces: list[dict[str, Any]],
+        processing_logger: FileProcessingLogger,
+    ) -> list[dict[str, Any]]:
+        """Process artifacts and generate test cases with comprehensive logging"""
+        logger = get_logger()
+        master_test_list = []
+        issue_id_counter = 1
+        current_heading = "No Heading"
+        info_since_heading = []
+
+        # Count requirements for progress tracking
+        requirements_count = len(
+            [
+                obj
+                for obj in processing_list
+                if obj.get("type") == ArtifactType.SYSTEM_REQUIREMENT and obj.get("table")
+            ]
+        )
+
+        logger.debug(
+            f"Processing {len(processing_list)} artifacts, {requirements_count} with tables"
+        )
+
+        for i, obj in enumerate(processing_list):
+            # Update system metrics periodically
+            if i % 10 == 0:
+                processing_logger.update_system_metrics()
+
+            if obj.get("type") == ArtifactType.HEADING:
+                current_heading = obj["text"]
+                info_since_heading = []
+                logger.verbose_log(f"  📍 Context set to HEADING: '{obj['id']}'")
+                continue
+
+            if obj.get("type") == ArtifactType.INFORMATION:
+                info_since_heading.append(obj)
+                logger.verbose_log(f"  📝 Storing INFO: '{obj['id']}'")
                 continue
 
             if obj.get("type") == ArtifactType.SYSTEM_REQUIREMENT and obj.get("table"):
@@ -841,25 +1214,30 @@ class REQIFZFileProcessor:
                     )
 
                     # Record successful processing
-                    logger.requirements_successful += 1
+                    processing_logger.requirements_successful += 1
                     response_time = time.time() - start_time
-                    logger.add_ai_response_time(response_time)
+                    processing_logger.add_ai_response_time(response_time)
 
                     # Count test case types
                     positive_count = sum(
                         1 for tc in test_cases if tc.get("Components", "").find("[Positive]") != -1
                     )
                     negative_count = len(test_cases) - positive_count
-                    logger.increment_test_cases(positive=positive_count, negative=negative_count)
+                    processing_logger.increment_test_cases(
+                        positive=positive_count, negative=negative_count
+                    )
 
                     master_test_list.extend(test_cases)
-                    info_since_heading = []
+                    info_since_heading = []  # Clear info after processing requirement
 
                 except Exception as e:
                     # Record failure
-                    logger.add_requirement_failure(obj.get("id", "unknown"), str(e))
-                    print(f"  -> Error processing requirement {obj.get('id', 'unknown')}: {e}")
+                    processing_logger.add_requirement_failure(obj.get("id", "unknown"), str(e))
+                    logger.error(
+                        f"  ❌ Error processing requirement {obj.get('id', 'unknown')}: {e}"
+                    )
 
+        logger.debug(f"Generated total of {len(master_test_list)} test cases")
         return master_test_list
 
     def _process_requirement(
@@ -872,26 +1250,35 @@ class REQIFZFileProcessor:
         total: int,
         issue_id_counter: int,
     ) -> tuple[list[dict[str, Any]], int]:
-        """Process a single requirement and generate test cases"""
-        print(f"  --- Analyzing Requirement {index + 1}/{total} (ID: {requirement['id']}) ---")
+        """Process a single requirement and generate test cases with detailed logging"""
+        logger = get_logger()
+        logger.log_requirement_processing(requirement["id"], index, total)
 
         generated_tests = self.test_generator.generate_tests_with_context(
             requirement, heading, info_list, interface_list
         )
 
         if not generated_tests:
-            print("      - AI failed to generate test cases for this table.")
+            logger.debug(f"No test cases generated for {requirement['id']}")
             return [], issue_id_counter
-
-        print(f"      - Successfully generated {len(generated_tests)} test cases from the table.")
 
         formatted_tests = []
         for test in generated_tests:
             if not isinstance(test, dict):
-                print(
-                    f"      - WARNING: AI returned an invalid item (not a dictionary). "
-                    f"Item was: '{test}'"
+                logger.warning(
+                    f"AI returned invalid test case format for {requirement['id']}: {type(test)}"
                 )
+                logger.debug(f"Invalid test case content: {test}")
+                continue
+
+            # Validate test case has required fields
+            required_fields = ["summary_suffix", "action", "data", "expected_result"]
+            missing_fields = [field for field in required_fields if field not in test]
+            if missing_fields:
+                logger.warning(
+                    f"Test case missing required fields {missing_fields} for {requirement['id']}"
+                )
+                logger.debug(f"Test case content: {test}")
                 continue
 
             formatted_case = self.formatter.format_test_case(
@@ -900,42 +1287,39 @@ class REQIFZFileProcessor:
             formatted_tests.append(formatted_case)
             issue_id_counter += 1
 
+        logger.debug(
+            f"Successfully formatted {len(formatted_tests)} test cases for {requirement['id']}"
+        )
         return formatted_tests, issue_id_counter
-
-    def _save_test_cases(
-        self, master_test_list: list[dict[str, Any]], output_path: Path, filename: str
-    ) -> None:
-        """Save test cases to XLSX file"""
-        if master_test_list:
-            print(f"\nSaving {len(master_test_list)} total test cases to '{output_path.name}'...")
-            df = pd.DataFrame(master_test_list)
-            df.to_excel(output_path, index=False, engine="openpyxl")
-            print("✅ Success!")
-        else:
-            print(f"\nNo test cases were generated for the entire file '{filename}'.")
 
 
 # =================================================================
-# COMMAND LINE INTERFACE - UPDATED
+# COMMAND LINE INTERFACE WITH ENHANCED LOGGING OPTIONS
 # =================================================================
 
 
 class CommandLineInterface:
-    """Handles command line argument parsing and file discovery"""
+    """Handles command line argument parsing and file discovery with logging options"""
 
     @staticmethod
     def parse_arguments() -> argparse.Namespace:
-        """Parse command line arguments"""
+        """Parse command line arguments with enhanced logging options"""
         parser = argparse.ArgumentParser(
-            description="Context-Aware Test Case Generator with YAML Prompt Management and XLSX Output",
+            description="Context-Aware Test Case Generator with YAML Prompt Management, XLSX Output, and Enhanced Logging",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples:
-  %(prog)s input.reqifz                              # Process with auto-selected templates
-  %(prog)s /path/to/reqifz/files/ --model llama3.1:8b    # Use specific model
-  %(prog)s input.reqifz --template driver_information_default  # Use specific template
+  %(prog)s input.reqifz                              # Process with default settings
+  %(prog)s /path/to/reqifz/files/ --model llama3.1:8b --verbose    # Verbose output
+  %(prog)s input.reqifz --template driver_information_default --debug  # Debug mode
   %(prog)s input.reqifz --list-templates             # List available templates
-  %(prog)s --validate-prompts                        # Validate prompt templates
+  %(prog)s --validate-prompts --debug                # Validate with debug output
+
+Logging Options:
+  --verbose, -v         Enable verbose output with progress details
+  --debug               Enable detailed debug output and logging
+  --log-file FILE       Save detailed logs to specified file
+  --simple              Use simple console output (legacy v002 mode)
 
 Prompt Management:
   --template TEMPLATE        Use specific prompt template
@@ -981,7 +1365,19 @@ Output Format:
             action="store_true",
             help="Reload prompt templates (useful during development)",
         )
-        parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+        parser.add_argument(
+            "--verbose",
+            "-v",
+            action="store_true",
+            help="Enable verbose output with additional progress information",
+        )
+        parser.add_argument(
+            "--debug", action="store_true", help="Enable detailed debug output and logging"
+        )
+        parser.add_argument("--log-file", type=str, help="Save detailed logs to specified file")
+        parser.add_argument(
+            "--simple", action="store_true", help="Use simple console output (legacy v002 mode)"
+        )
         return parser.parse_args()
 
     @staticmethod
@@ -995,6 +1391,8 @@ Output Format:
         Returns:
             List of REQIFZ file paths to process
         """
+        logger = get_logger()
+
         if not input_path.exists():
             raise FileNotFoundError(f"The path '{input_path}' does not exist.")
 
@@ -1003,6 +1401,9 @@ Output Format:
         if input_path.is_file():
             if input_path.suffix.lower() == ".reqifz":
                 files_to_process.append(input_path)
+                logger.debug(f"Single file mode: {input_path.name}")
+            else:
+                raise ValueError(f"File '{input_path.name}' is not a .reqifz file")
         elif input_path.is_dir():
             # Use new walk() method for better performance (Python 3.13.7+)
             try:
@@ -1012,23 +1413,27 @@ Output Format:
                     for file_path in file_paths
                     if file_path.suffix.lower() == ".reqifz"
                 ]
+                logger.debug(f"Directory mode: found {len(files_to_process)} .reqifz files")
             except AttributeError:
                 # Fallback for older Python versions (shouldn't happen in 3.13.7+)
                 files_to_process = list(input_path.rglob("*.reqifz"))
+                logger.debug(
+                    f"Directory mode (fallback): found {len(files_to_process)} .reqifz files"
+                )
 
         if not files_to_process:
             raise ValueError("No .reqifz files found to process.")
 
-        return files_to_process
+        return sorted(files_to_process)  # Sort for consistent processing order
 
 
 # =================================================================
-# APPLICATION FACTORY - UPDATED
+# APPLICATION FACTORY WITH LOGGING INTEGRATION
 # =================================================================
 
 
 class ApplicationFactory:
-    """Factory class for creating application components"""
+    """Factory class for creating application components with logging integration"""
 
     @staticmethod
     def create_config_manager(config_file_path: str | None = None) -> ConfigManager:
@@ -1041,6 +1446,7 @@ class ApplicationFactory:
         Returns:
             Configured ConfigManager instance
         """
+        logger = get_logger()
         config_manager = ConfigManager()
 
         if config_file_path and Path(config_file_path).exists():
@@ -1052,17 +1458,17 @@ class ApplicationFactory:
                 # Update config if update_from_dict method exists
                 if hasattr(config_manager, "update_from_dict"):
                     config_manager.update_from_dict(custom_config)
-                print(f"Loaded custom configuration from: {config_file_path}")
+                logger.verbose_log(f"Loaded custom configuration from: {config_file_path}")
             except Exception as e:
-                print(f"Warning: Failed to load custom config file: {e}")
-                print("Using default configuration.")
+                logger.warning(f"Failed to load custom config file: {e}")
+                logger.info("Using default configuration.")
 
         return config_manager
 
     @staticmethod
     def create_yaml_prompt_manager(prompt_config_file: str | None = None) -> YAMLPromptManager:
         """
-        Create YAML prompt manager
+        Create YAML prompt manager with logging
 
         Args:
             prompt_config_file: Path to prompt configuration file
@@ -1070,8 +1476,16 @@ class ApplicationFactory:
         Returns:
             Configured YAMLPromptManager instance
         """
+        logger = get_logger()
         config_file = prompt_config_file or "prompts/config/prompt_config.yaml"
-        return YAMLPromptManager(config_file)
+
+        try:
+            manager = YAMLPromptManager(config_file)
+            logger.debug(f"Created YAML prompt manager with config: {config_file}")
+            return manager
+        except Exception as e:
+            logger.error(f"Failed to create YAML prompt manager: {e}")
+            raise
 
     @staticmethod
     def create_processor(
@@ -1090,20 +1504,15 @@ class ApplicationFactory:
         Returns:
             Configured REQIFZFileProcessor instance
         """
+        logger = get_logger()
+        logger.debug(f"Creating processor with model: {model_name}")
+
         return REQIFZFileProcessor(model_name, config_manager, yaml_prompt_manager)
 
 
 # =================================================================
-# MAIN APPLICATION - UPDATED FOR XLSX
+# UTILITY FUNCTIONS
 # =================================================================
-
-
-def print_banner():
-    """Print application banner"""
-    print("=" * 70)
-    print("  AI Test Case Generator v1.2 (YAML Prompt Management + XLSX)")
-    print("  Context-Rich Test Case Generation from REQIFZ Files")
-    print("=" * 70)
 
 
 def validate_model_availability(model_name: str) -> bool:
@@ -1116,23 +1525,33 @@ def validate_model_availability(model_name: str) -> bool:
     Returns:
         True if model is available, False otherwise
     """
+    logger = get_logger()
+    logger.debug(f"Validating model availability: {model_name}")
+
     try:
         response = requests.get("http://127.0.0.1:11434/api/tags", timeout=5)
         if response.status_code == 200:
             try:
                 data: dict[str, Any] = response.json()
             except ValueError:
+                logger.debug("Could not parse Ollama API response as JSON")
                 return False
             available_models = [model["name"] for model in data.get("models", [])]
-            return model_name in available_models
+            is_available = model_name in available_models
+            logger.debug(f"Model {model_name} availability: {is_available}")
+            if logger.debug_enabled and not is_available:
+                logger.debug(f"Available models: {available_models}")
+            return is_available
+        logger.debug(f"Ollama API returned status code: {response.status_code}")
         return False
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        logger.debug(f"Could not connect to Ollama API: {e}")
         return False
 
 
 def handle_prompt_management_commands(args) -> int:
     """
-    Handle prompt management commands (list, validate, etc.)
+    Handle prompt management commands with enhanced logging
 
     Args:
         args: Parsed command line arguments
@@ -1140,40 +1559,40 @@ def handle_prompt_management_commands(args) -> int:
     Returns:
         Exit code (0 for success, 1 for error)
     """
+    logger = get_logger()
+
     try:
         # Create prompt manager
         yaml_prompt_manager = ApplicationFactory.create_yaml_prompt_manager(args.prompt_config)
 
         if args.list_templates:
-            print("📋 Available Prompt Templates:")
+            logger.info("📋 Available Prompt Templates:")
             templates = yaml_prompt_manager.list_templates()
             for category, template_list in templates.items():
-                print(f"\n{category.upper()}:")
+                logger.info(f"\n[bold]{category.upper()}:[/bold]")
                 for template_name in template_list:
                     info = yaml_prompt_manager.get_template_info(template_name)
-                    print(f"  • {template_name}")
-                    print(f"    {info.get('description', 'No description')}")
+                    logger.info(f"  • [cyan]{template_name}[/cyan]")
+                    if info.get("description"):
+                        logger.verbose_log(f"    {info['description']}")
                     if info.get("tags"):
-                        print(f"    Tags: {', '.join(info['tags'])}")
+                        logger.verbose_log(f"    Tags: {', '.join(info['tags'])}")
             return 0
 
         if args.validate_prompts:
-            print("🔍 Validating Prompt Templates...")
+            logger.info("🔍 Validating Prompt Templates...")
 
-            # Validate test generation templates - use the actual file paths from config
+            # Validate test generation templates
             test_file = yaml_prompt_manager.config["file_paths"]["test_generation_prompts"]
             test_path = yaml_prompt_manager._resolve_config_path(test_file)
 
             if test_path.exists():
                 errors = yaml_prompt_manager.validate_template_file(str(test_path))
+                logger.log_template_validation(test_file, errors)
                 if errors:
-                    print(f"❌ Found {len(errors)} errors in {test_file}:")
-                    for error in errors:
-                        print(f"   - {error}")
                     return 1
-                print(f"✅ {test_file} is valid")
             else:
-                print(f"⚠️  Template file not found: {test_file}")
+                logger.warning(f"Template file not found: {test_file}")
 
             # Validate error handling templates
             error_file = yaml_prompt_manager.config["file_paths"].get("error_handling_prompts", "")
@@ -1181,43 +1600,52 @@ def handle_prompt_management_commands(args) -> int:
                 error_path = yaml_prompt_manager._resolve_config_path(error_file)
                 if error_path.exists():
                     errors = yaml_prompt_manager.validate_template_file(str(error_path))
+                    logger.log_template_validation(error_file, errors)
                     if errors:
-                        print(f"❌ Found {len(errors)} errors in {error_file}:")
-                        for error in errors:
-                            print(f"   - {error}")
                         return 1
-                    print(f"✅ {error_file} is valid")
                 else:
-                    print(f"⚠️  Error template file not found: {error_file}")
+                    logger.warning(f"Error template file not found: {error_file}")
 
-            print("🎉 All prompt templates are valid!")
+            logger.success("All prompt templates are valid!")
             return 0
 
         if args.reload_prompts:
             yaml_prompt_manager.reload_prompts()
-            print("🔄 Prompt templates reloaded successfully!")
+            logger.success("Prompt templates reloaded successfully!")
             return 0
 
         return 0
 
     except Exception as e:
-        print(f"❌ Error in prompt management: {e}")
+        logger.error(f"Error in prompt management: {e}")
+        logger.debug(f"Full error details: {str(e)}")
         return 1
 
 
-def main():
-    """Main application entry point"""
-    try:
-        print_banner()
+# =================================================================
+# MAIN APPLICATION WITH ENHANCED LOGGING
+# =================================================================
 
-        # Parse command line arguments
+
+def main():
+    """Main application entry point with comprehensive logging"""
+    try:
+        # Parse command line arguments first (before logging setup)
         args = CommandLineInterface.parse_arguments()
 
-        # DEBUG: Print parsed arguments
-        print("🔍 DEBUG: Command line args:")
-        print(f"  - Input path: {args.input_path}")
-        print(f"  - Model: '{args.model}'")
-        print(f"  - Template: {getattr(args, 'template', 'None')}")
+        # Setup logging system FIRST - handle simple mode
+        if args.simple:
+            # Simple mode: disable rich output for legacy behavior
+            logger = setup_logger(verbose=False, debug=False, log_file=None)
+        else:
+            logger = setup_logger(
+                verbose=args.verbose,
+                debug=args.debug,
+                log_file=args.log_file if hasattr(args, "log_file") else None,
+            )
+
+        # Print banner
+        logger.print_banner()
 
         # Handle prompt management commands first
         if args.list_templates or args.validate_prompts or args.reload_prompts:
@@ -1225,8 +1653,8 @@ def main():
 
         # Ensure input path is provided for file processing
         if not args.input_path:
-            print("❌ Error: input_path is required for file processing")
-            print("Use --help for usage information")
+            logger.error("input_path is required for file processing")
+            logger.info("Use --help for usage information")
             return 1
 
         input_path = (
@@ -1235,9 +1663,9 @@ def main():
 
         # Validate model availability
         if not validate_model_availability(args.model):
-            print(f"⚠️  Warning: Model '{args.model}' may not be available in Ollama.")
-            print("   Available models can be checked with: ollama list")
-            print("   Continuing anyway...")
+            logger.warning(f"Model '{args.model}' may not be available in Ollama")
+            logger.info("Available models can be checked with: [cyan]ollama list[/cyan]")
+            logger.info("Continuing anyway...")
 
         # Create configuration manager
         config_manager = ApplicationFactory.create_config_manager()
@@ -1251,47 +1679,68 @@ def main():
 
         # Discover files to process
         files_to_process = CommandLineInterface.discover_files(input_path)
-        print(f"\n📁 Found {len(files_to_process)} .reqifz file(s) to process")
+
+        # Determine template info for logging
+        template_info = args.template if args.template else "auto-select"
+
+        # Log processing start
+        logger.start_file_processing(files_to_process, args.model, template_info)
 
         # Create processor
-        print(f"🔍 DEBUG: Creating processor with model: '{args.model}'")
         processor = ApplicationFactory.create_processor(
             args.model, config_manager, yaml_prompt_manager
         )
 
-        # If specific template requested, force it
+        # If specific template requested, log it
         if args.template:
-            print(f"🎯 Using specified template: {args.template}")
-            # Set the template in the prompt manager (this would need method in YAMLPromptManager)
-            # For now, we'll let it auto-select and warn if different
+            logger.log_template_selection(args.template, auto_selected=False)
 
         # Process each file
+        total_test_cases = 0
+        successful_files = 0
+
         for i, reqifz_file in enumerate(files_to_process, 1):
-            print(f"\n[{i}/{len(files_to_process)}] Processing: {reqifz_file.name}")
-            processor.process_file(reqifz_file)
+            test_count = processor.process_file(reqifz_file, i, len(files_to_process))
+            if test_count > 0:
+                total_test_cases += test_count
+                successful_files += 1
 
-        print(
-            f"\n🎉 Processing complete! Generated test cases for {len(files_to_process)} file(s)."
-        )
-        print(
-            "📄 Look for files ending with '_YAML.xlsx' in the same directory as your input files."
-        )
+        # Log completion summary
+        logger.log_completion_summary(successful_files, total_test_cases)
 
-    except (FileNotFoundError, ValueError) as e:
-        print(f"❌ Error: {e}")
-        return 1
-    except KeyboardInterrupt:
-        print("\n\n⏹️  Process interrupted by user.")
-        return 1
-    except Exception as e:
-        print(f"💥 Unexpected error: {e}")
-        if args.verbose if "args" in locals() else False:
-            import traceback
-
-            traceback.print_exc()
-        return 1
+        if successful_files < len(files_to_process):
+            logger.warning(
+                f"Some files failed to process: {len(files_to_process) - successful_files} failures"
+            )
+            return 1
 
         return 0
+
+    except (FileNotFoundError, ValueError) as e:
+        if "_logger_instance" in globals() and _logger_instance is not None:
+            get_logger().error(str(e))
+        else:
+            print(f"❌ Error: {e}")
+        return 1
+    except KeyboardInterrupt:
+        if "_logger_instance" in globals() and _logger_instance is not None:
+            get_logger().warning("Process interrupted by user")
+        else:
+            print("\n⏹️  Process interrupted by user.")
+        return 1
+    except Exception as e:
+        if "_logger_instance" in globals() and _logger_instance is not None:
+            logger = get_logger()
+            logger.error(f"Unexpected error: {e}")
+            if hasattr(args, "debug") and args.debug:
+                import traceback
+
+                logger.error("Full traceback:")
+                for line in traceback.format_exc().splitlines():
+                    logger.debug(line)
+        else:
+            print(f"💥 Unexpected error: {e}")
+        return 1
 
 
 if __name__ == "__main__":

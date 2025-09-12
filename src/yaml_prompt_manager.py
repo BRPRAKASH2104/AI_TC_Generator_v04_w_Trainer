@@ -8,7 +8,7 @@ It supports automatic template selection, variable substitution, and template va
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -24,11 +24,11 @@ class YAMLPromptManager:
             config_file: Path to prompt configuration file
         """
         self.config_file = self._resolve_config_path(config_file)
-        self.config = {}
-        self.test_prompts = {}
-        self.error_prompts = {}
+        self.config: Dict[str, Any] = {}
+        self.test_prompts: Dict[str, Any] = {}
+        self.error_prompts: Dict[str, Any] = {}
         self.last_selected_template = None
-        self.template_usage_count = {}  # Track template usage for summary
+        self.template_usage_count: Dict[str, int] = {}  # Track template usage for summary
 
         self.load_configuration()
         self.load_all_prompts()
@@ -72,7 +72,7 @@ class YAMLPromptManager:
         # Return original path (will fail gracefully)
         return config_path
 
-    def load_configuration(self):
+    def load_configuration(self) -> None:
         """Load main configuration file"""
         try:
             if self.config_file.exists():
@@ -86,7 +86,7 @@ class YAMLPromptManager:
             print(f"❌ Error loading config: {e}")
             self._set_default_config()
 
-    def _set_default_config(self):
+    def _set_default_config(self) -> None:
         """Set default configuration if config file is missing"""
         self.config = {
             "file_paths": {
@@ -100,7 +100,7 @@ class YAMLPromptManager:
             "auto_selection": {"enabled": True, "fallback_to_default": True},
         }
 
-    def load_all_prompts(self):
+    def load_all_prompts(self) -> None:
         """Load all prompt templates from YAML files"""
         # Load test generation prompts
         test_file = self.config["file_paths"]["test_generation_prompts"]
@@ -134,7 +134,7 @@ class YAMLPromptManager:
                 print(f"⚠️  Could not load error prompts: {e}")
                 self.error_prompts = {}
 
-    def get_test_prompt(self, template_name: str = None, **variables) -> str:
+    def get_test_prompt(self, template_name: Optional[str] = None, **variables) -> str:
         """
         Get a test generation prompt with variable substitution
 

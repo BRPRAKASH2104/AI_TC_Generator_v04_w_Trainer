@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Optional imports - only loaded when training is requested
 try:
@@ -103,7 +103,7 @@ class AutomotiveModelTrainer:
         
         print("✅ Model prepared for LoRA training")
     
-    def prepare_dataset(self, training_file: str) -> Dataset:
+    def prepare_dataset(self, training_file: str) -> Any:
         """Prepare dataset from collected training examples"""
         print(f"📊 Preparing dataset from: {training_file}")
         
@@ -133,7 +133,10 @@ class AutomotiveModelTrainer:
             tokenized["labels"] = tokenized["input_ids"].copy()
             formatted_examples.append(tokenized)
         
-        return Dataset.from_list(formatted_examples)
+        if TRAINING_AVAILABLE:
+            return Dataset.from_list(formatted_examples)
+        else:
+            raise ImportError("Training dependencies not available - Dataset class not imported")
     
     def _format_conversation(self, messages: List[Dict]) -> str:
         """Format ChatML messages into training text"""

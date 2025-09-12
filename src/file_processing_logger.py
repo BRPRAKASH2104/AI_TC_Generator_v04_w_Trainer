@@ -23,11 +23,11 @@ class ProcessingPhase:
     start_time: float | None = None
     end_time: float | None = None
 
-    def start(self):
+    def start(self) -> None:
         """Start timing this phase"""
         self.start_time = time.time()
 
-    def end(self):
+    def end(self) -> None:
         """End timing this phase"""
         self.end_time = time.time()
 
@@ -90,7 +90,7 @@ class FileProcessingLogger:
     status: str = "IN_PROGRESS"
     warnings: list[str] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize logger"""
         self.start_processing()
 
