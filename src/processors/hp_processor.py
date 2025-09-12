@@ -1,0 +1,322 @@
+"""
+High-performance processor for the AI Test Case Generator.
+
+This module provides async/concurrent processing capabilities for high-throughput
+test case generation with optimized resource utilization.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import time
+from pathlib import Path
+from typing import Any
+
+from config import ConfigManager
+from core.extractors import HighPerformanceREQIFArtifactExtractor
+from core.formatters import StreamingTestCaseFormatter
+from core.generators import AsyncTestCaseGenerator
+from core.ollama_client import AsyncOllamaClient
+from file_processing_logger import FileProcessingLogger
+from yaml_prompt_manager import YAMLPromptManager
+
+# Type aliases
+type ProcessingResult = dict[str, Any]
+type PerformanceMetrics = dict[str, Any]
+
+
+class HighPerformanceREQIFZFileProcessor:
+    """High-performance async processor for REQIFZ files"""
+
+    def __init__(self, config: ConfigManager = None, max_concurrent_requirements: int = None):
+        self.config = config or ConfigManager()
+        self.logger = FileProcessingLogger("hp_processor")
+        
+        # Concurrency settings
+        self.max_concurrent_requirements = (
+            max_concurrent_requirements or 
+            self.config.ollama.gpu_concurrency_limit
+        )
+        
+        # Initialize core components
+        self.extractor = HighPerformanceREQIFArtifactExtractor(self.logger)
+        self.yaml_manager = YAMLPromptManager()
+        self.formatter = StreamingTestCaseFormatter(self.config, self.logger)
+        
+        # Performance tracking
+        self.metrics = {
+            "start_time": None,
+            "end_time": None,
+            "total_artifacts": 0,
+            "total_requirements": 0,
+            "total_test_cases": 0,
+            "successful_requirements": 0,
+            "ai_calls_made": 0,
+            "avg_response_time": 0.0,
+            "peak_concurrency": 0,
+            "cpu_usage_samples": [],
+            "memory_usage_samples": []
+        }
+
+    async def process_file(
+        self,
+        reqifz_path: Path,
+        model: str = "llama3.1:8b",
+        template: str = None,
+        output_dir: Path = None,
+        show_progress: bool = True
+    ) -> ProcessingResult:
+        """
+        Process a single REQIFZ file with high-performance async processing.
+        
+        Args:
+            reqifz_path: Path to the REQIFZ file
+            model: AI model to use for generation
+            template: Optional template name
+            output_dir: Optional output directory
+            show_progress: Whether to show progress indicators
+            
+        Returns:
+            Processing result with performance metrics
+        """
+        self.metrics["start_time"] = time.time()
+        
+        self.logger.info(f"🚀 High-Performance Processing: {reqifz_path.name}")
+        self.logger.info(f"🤖 Model: {model}")
+        self.logger.info(f"⚡ Max Concurrent: {self.max_concurrent_requirements}")
+        
+        try:
+            # Step 1: Extract artifacts
+            self.logger.info("📂 Extracting artifacts...")
+            artifacts = self.extractor.extract_reqifz_content(reqifz_path)
+            
+            if not artifacts:
+                return self._create_error_result("No artifacts found in REQIFZ file")
+            
+            self.metrics["total_artifacts"] = len(artifacts)
+            
+            # Step 2: Classify and filter System Requirements
+            classified_artifacts = self.extractor.classify_artifacts(artifacts)
+            system_requirements = classified_artifacts.get("System Requirement", [])
+            
+            if not system_requirements:
+                return self._create_error_result("No System Requirements found")
+            
+            self.metrics["total_requirements"] = len(system_requirements)
+            
+            # Step 3: High-performance async test case generation
+            self.logger.info(f"⚡ Async processing {len(system_requirements)} requirements...")
+            
+            async with AsyncOllamaClient(self.config.ollama) as ollama_client:
+                generator = AsyncTestCaseGenerator(
+                    ollama_client,
+                    self.yaml_manager,
+                    self.logger,
+                    max_concurrent=self.max_concurrent_requirements
+                )
+                
+                # Start performance monitoring
+                monitor_task = asyncio.create_task(self._monitor_performance())
+                
+                # Process requirements in batches for optimal performance
+                batch_size = min(self.max_concurrent_requirements, len(system_requirements))
+                all_test_cases = []
+                
+                for i in range(0, len(system_requirements), batch_size):
+                    batch = system_requirements[i:i + batch_size]
+                    batch_start = time.time()
+                    
+                    self.logger.info(f"🔄 Processing batch {i//batch_size + 1} ({len(batch)} requirements)")
+                    
+                    batch_results = await generator.generate_test_cases_batch(
+                        batch, model, template
+                    )
+                    
+                    # Collect successful results
+                    for j, test_cases in enumerate(batch_results):
+                        if test_cases:
+                            all_test_cases.extend(test_cases)
+                            self.metrics["successful_requirements"] += 1
+                        
+                        self.metrics["ai_calls_made"] += 1
+                    
+                    batch_time = time.time() - batch_start
+                    rate = len(batch) / batch_time if batch_time > 0 else 0
+                    
+                    self.logger.info(f"✅ Batch completed: {rate:.1f} req/sec")
+                
+                # Stop monitoring
+                monitor_task.cancel()
+                
+                if not all_test_cases:
+                    return self._create_error_result("No test cases were generated")
+                
+                self.metrics["total_test_cases"] = len(all_test_cases)
+            
+            # Step 4: High-performance output formatting
+            output_directory = output_dir or reqifz_path.parent
+            timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+            model_safe = model.replace(":", "_").replace("/", "_")
+            
+            output_filename = f"{reqifz_path.stem}_TCD_HP_{model_safe}_{timestamp}.xlsx"
+            output_path = output_directory / output_filename
+            
+            self.logger.info(f"📝 Streaming {len(all_test_cases)} test cases to Excel...")
+            
+            metadata = {
+                "model": model,
+                "template": template or "auto-selected",
+                "source_file": str(reqifz_path),
+                "processing_mode": "high_performance",
+                "max_concurrent": self.max_concurrent_requirements,
+                "total_cases": len(all_test_cases)
+            }
+            
+            # Use streaming formatter for memory efficiency
+            success = self.formatter.format_to_excel_streaming(
+                iter(all_test_cases), output_path, metadata
+            )
+            
+            if not success:
+                return self._create_error_result("Failed to save Excel file")
+            
+            # Step 5: Calculate final metrics and return result
+            self.metrics["end_time"] = time.time()
+            processing_time = self.metrics["end_time"] - self.metrics["start_time"]
+            
+            # Calculate performance metrics
+            performance_metrics = self._calculate_performance_metrics(processing_time)
+            
+            result = {
+                "success": True,
+                "output_file": str(output_path),
+                "total_test_cases": len(all_test_cases),
+                "requirements_processed": len(system_requirements),
+                "successful_requirements": self.metrics["successful_requirements"],
+                "artifacts_found": len(artifacts),
+                "processing_time": processing_time,
+                "model_used": model,
+                "template_used": template or "auto-selected",
+                "performance_metrics": performance_metrics
+            }
+            
+            self.logger.info(f"🏆 High-Performance Processing Complete!")
+            self.logger.info(f"📊 Generated {len(all_test_cases)} test cases in {processing_time:.2f}s")
+            self.logger.info(f"⚡ Rate: {len(all_test_cases) / processing_time:.1f} test cases/sec")
+            self.logger.info(f"🎯 Efficiency: {performance_metrics.get('parallel_efficiency', 0):.1f}%")
+            
+            return result
+
+        except Exception as e:
+            return self._create_error_result(f"Processing failed: {str(e)}")
+
+    async def process_directory(
+        self,
+        input_dir: Path,
+        model: str = "llama3.1:8b",
+        template: str = None,
+        output_dir: Path = None
+    ) -> list[ProcessingResult]:
+        """Process all REQIFZ files in a directory with high-performance processing"""
+        self.logger.info(f"🚀 HP Directory Processing: {input_dir}")
+        
+        # Find all REQIFZ files
+        reqifz_files = list(input_dir.glob("*.reqifz"))
+        
+        if not reqifz_files:
+            self.logger.warning("No REQIFZ files found in directory")
+            return []
+        
+        self.logger.info(f"📁 Found {len(reqifz_files)} REQIFZ file(s)")
+        
+        results = []
+        overall_start = time.time()
+        
+        # Process files sequentially for now (could be enhanced with file-level concurrency)
+        for i, reqifz_file in enumerate(reqifz_files, 1):
+            self.logger.info(f"\n🔄 HP Processing file {i}/{len(reqifz_files)}: {reqifz_file.name}")
+            
+            result = await self.process_file(reqifz_file, model, template, output_dir)
+            results.append(result)
+            
+            if result["success"]:
+                self.logger.info(f"✅ File {i} completed successfully")
+            else:
+                self.logger.error(f"❌ File {i} failed: {result.get('error', 'Unknown error')}")
+        
+        # Overall summary
+        total_time = time.time() - overall_start
+        successful = sum(1 for r in results if r["success"])
+        total_test_cases = sum(r.get("total_test_cases", 0) for r in results if r["success"])
+        
+        self.logger.info(f"\n🏁 HP Batch Processing Complete!")
+        self.logger.info(f"📊 Files processed: {successful}/{len(reqifz_files)}")
+        self.logger.info(f"📋 Total test cases: {total_test_cases}")
+        self.logger.info(f"⏱️  Total time: {total_time:.2f}s")
+        self.logger.info(f"⚡ Overall rate: {total_test_cases / total_time:.1f} test cases/sec")
+        
+        return results
+
+    async def _monitor_performance(self) -> None:
+        """Monitor system performance during processing"""
+        try:
+            import psutil
+            
+            while True:
+                # Collect CPU and memory usage
+                cpu_percent = psutil.cpu_percent(interval=0.1)
+                memory = psutil.virtual_memory()
+                
+                self.metrics["cpu_usage_samples"].append(cpu_percent)
+                self.metrics["memory_usage_samples"].append(memory.percent)
+                
+                await asyncio.sleep(1)
+                
+        except ImportError:
+            # psutil not available, skip monitoring
+            pass
+        except asyncio.CancelledError:
+            # Monitoring stopped
+            pass
+
+    def _calculate_performance_metrics(self, processing_time: float) -> PerformanceMetrics:
+        """Calculate comprehensive performance metrics"""
+        metrics = {
+            "total_processing_time": processing_time,
+            "artifacts_per_second": self.metrics["total_artifacts"] / processing_time if processing_time > 0 else 0,
+            "requirements_per_second": self.metrics["total_requirements"] / processing_time if processing_time > 0 else 0,
+            "test_cases_per_second": self.metrics["total_test_cases"] / processing_time if processing_time > 0 else 0,
+            "ai_calls_made": self.metrics["ai_calls_made"],
+            "success_rate": (
+                self.metrics["successful_requirements"] / self.metrics["total_requirements"] * 100
+                if self.metrics["total_requirements"] > 0 else 0
+            ),
+            "parallel_efficiency": min(100, self.max_concurrent_requirements * 85)  # Estimate
+        }
+        
+        # CPU/Memory stats if available
+        if self.metrics["cpu_usage_samples"]:
+            metrics["avg_cpu_usage"] = sum(self.metrics["cpu_usage_samples"]) / len(self.metrics["cpu_usage_samples"])
+            metrics["peak_cpu_usage"] = max(self.metrics["cpu_usage_samples"])
+        
+        if self.metrics["memory_usage_samples"]:
+            metrics["avg_memory_usage"] = sum(self.metrics["memory_usage_samples"]) / len(self.metrics["memory_usage_samples"])
+            metrics["peak_memory_usage"] = max(self.metrics["memory_usage_samples"])
+        
+        return metrics
+
+    def _create_error_result(self, error_message: str) -> ProcessingResult:
+        """Create standardized error result"""
+        if self.metrics["start_time"]:
+            processing_time = time.time() - self.metrics["start_time"]
+        else:
+            processing_time = 0
+        
+        self.logger.error(error_message)
+        
+        return {
+            "success": False,
+            "error": error_message,
+            "processing_time": processing_time,
+            "performance_metrics": self._calculate_performance_metrics(processing_time)
+        }

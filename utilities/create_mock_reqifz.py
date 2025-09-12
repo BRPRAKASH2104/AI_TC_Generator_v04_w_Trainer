@@ -428,7 +428,7 @@ def create_reqifz_file():
         f.write(REQIF_XML)
 
     # Step 2: Create the .reqifz (ZIP) file
-    reqifz_filename = "automotive_door_window_system.reqifz"
+    reqifz_filename = "input/automotive_door_window_system.reqifz"
 
     with zipfile.ZipFile(reqifz_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
         zipf.write(reqif_filename)

@@ -10,33 +10,14 @@ Updated to use Pydantic for robust validation and settings management.
 
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
-from pydantic import (BaseModel, Field, HttpUrl, model_validator)
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic.v1.utils import deep_update
+from pydantic import BaseModel, Field, HttpUrl, model_validator
 from pydantic.v1.env_settings import SettingsError
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-def yaml_config_settings_source(settings: BaseSettings) -> Dict[str, Any]:
-    """
-    A simple settings source that loads variables from a YAML file
-    at the project's root.
-
-    Here we happen to know that returning an empty dictionary is an acceptable
-    behavior when the YAML file does not exist.
-    """
-    encoding = settings.model_config.get('yaml_file_encoding')
-    yaml_file = settings.model_config.get('yaml_file')
-    if not yaml_file:
-        return {}
-    try:
-        return yaml.safe_load(Path(yaml_file).read_text(encoding=encoding))
-    except FileNotFoundError:
-        return {}
-    except Exception as e:
-        raise SettingsError(f'Error loading YAML file "{yaml_file}": {e}') from e
+# Redundant function removed - using class method in ConfigManager instead
 
 
 
@@ -52,6 +33,10 @@ class OllamaConfig(BaseModel):
     temperature: float = Field(0.0, ge=0.0, le=2.0, description="Model temperature")
     max_retries: int = Field(3, ge=0, description="Maximum number of API retries")
     concurrent_requests: int = Field(4, ge=1, description="Number of concurrent requests")
+
+    # GPU/Hardware-specific concurrency settings
+    gpu_concurrency_limit: int = Field(1, ge=1, description="Concurrent requests for GPU-accelerated inference")
+    cpu_concurrency_limit: int = Field(4, ge=1, description="Concurrent requests for CPU-only inference")
 
     # Ollama v0.11.10+ optimization parameters
     keep_alive: str = Field("30m", description="Keep model loaded in memory")
@@ -113,7 +98,7 @@ class FileProcessingConfig(BaseModel):
     output_encoding: str = "utf-8"
 
     # REQIF processing
-    reqif_namespaces: Dict[str, HttpUrl] = {
+    reqif_namespaces: dict[str, HttpUrl] = {
         "reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd",
         "html": "http://www.w3.org/1999/xhtml",
     }
@@ -152,6 +137,16 @@ class TrainingConfig(BaseModel):
     lora_alpha: int = Field(32, gt=0)
     learning_rate: float = Field(2e-4, gt=0)
     num_train_epochs: int = Field(3, ge=1)
+
+    # Conversation formatting templates (configurable for different model architectures)
+    conversation_format: dict[str, str] = Field(
+        default={
+            'system': '<|system|>\n{content}\n',
+            'user': '<|user|>\n{content}\n',
+            'assistant': '<|assistant|>\n{content}\n'
+        },
+        description="Templates for formatting conversation roles during training"
+    )
 
 
 class LoggingConfig(BaseModel):
@@ -199,7 +194,7 @@ class ConfigManager(BaseSettings):
         )
 
     @classmethod
-    def yaml_config_settings_source(cls, **kwargs) -> Dict[str, Any]:
+    def yaml_config_settings_source(cls, **kwargs) -> dict[str, Any]:
         """
         A simple settings source that loads variables from a YAML file
         at the project's root.

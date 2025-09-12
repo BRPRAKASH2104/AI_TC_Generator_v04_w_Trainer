@@ -2,394 +2,170 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## ✅ **VALIDATED SYSTEM STATUS** 
+## ✅ **SYSTEM STATUS**
 
-**Last Tested**: 2025-09-11 | **Python**: 3.13.7 | **Ollama**: v0.11.10 | **All Core Systems**: ✅ FUNCTIONAL
+**Last Updated**: 2025-09-12 | **Python**: 3.13.7+ | **Architecture**: Modular | **Status**: ✅ FULLY FUNCTIONAL
 
 ## Core Application Commands
 
-### Main Test Generation (2 Working + 1 Broken)
-
-**⭐ Standard Version (Unified - Enhanced Features ✅):**
-```bash
-# Basic processing - CONFIRMED WORKING (Rich console by default)
-python src/generate_contextual_tests_v002.py input.reqifz
-
-# Verbose mode with enhanced progress tracking
-python src/generate_contextual_tests_v002.py input.reqifz --verbose
-
-# Debug mode with comprehensive logging
-python src/generate_contextual_tests_v002.py input.reqifz --debug --log-file processing.log
-
-# Legacy simple mode (original v002 behavior)
-python src/generate_contextual_tests_v002.py input.reqifz --simple
-
-# Process directory with specific model
-python src/generate_contextual_tests_v002.py "input/reqifz_files" --model deepseek-coder-v2:16b --verbose
-
-# Template validation (WORKING)
-python src/generate_contextual_tests_v002.py --validate-prompts
-python src/generate_contextual_tests_v002.py --list-templates
-```
-
-**⭐ High-Performance Version (Validated ✅ - 4-8x Faster):**
-```bash
-# CONFIRMED: 885+ artifacts/second, 80-95% CPU utilization
-python src/generate_contextual_tests_v003_HighPerformance.py input.reqifz --hp --performance
-
-# Single-file + requirement-level parallelism (CURRENT ARCHITECTURE - WORKING)
-python src/generate_contextual_tests_v003_HighPerformance.py input.reqifz --hp --max-concurrent-requirements 4 --verbose
-
-# Adaptive batching (TESTED - WORKING)
-python src/generate_contextual_tests_v003_HighPerformance.py input.reqifz --hp --adaptive-batching --performance
-```
-
-**❌ Training-Enhanced Version (CONFIRMED BROKEN):**
-```bash
-# CRITICAL: COMPLETELY NON-FUNCTIONAL - MISSING ALL ML DEPENDENCIES
-# ERROR: NameError: name 'Dataset' is not defined
-# DO NOT USE - Will fail immediately
-python src/generate_contextual_tests_v002_with_training.py input.reqifz --training
-```
-
-### Development and Testing (All Validated ✅)
+### **Main Interface (Unified Entrypoint)**
 
 ```bash
-# ESSENTIAL: Version and dependency validation (WORKING)
-python3 utilities/version_check.py --strict                  # ✅ TESTED: Python 3.13.7 confirmed
-python3 -m py_compile src/*.py                              # ✅ TESTED: All 65+ files compile
+# Basic processing - Standard mode
+python3 main.py input/file.reqifz
 
-# Install dependencies (SIMPLIFIED STRUCTURE ✅)
-pip install -r requirements.txt                           # ✅ Core production dependencies (all versions)
-pip install -r requirements-optional.txt                  # ✅ Optional: ML, high-performance, development tools
+# High-performance mode (4-8x faster)
+python3 main.py input/file.reqifz --hp --performance
 
-# Training dependencies now AVAILABLE in requirements-optional.txt ✅
-# Includes: torch, transformers, peft, datasets, wandb
+# Process entire input directory
+python3 main.py input/ --output-dir output/excel/
 
-# Code quality checks (ALL WORKING)
-ruff check src/                  # ✅ TESTED: Fast linting working
-ruff format src/                 # ✅ TESTED: Auto-formatting working  
-ruff check src/ --fix            # ✅ TESTED: Auto-fix working
-mypy src/ --python-version 3.13  # ✅ TESTED: Type checking working
+# Organized output with specific model
+python3 main.py input/file.reqifz --model deepseek-coder-v2:16b --output-dir output/excel/
 
-# VALIDATED Test Suite (Working Tests Only)
-python3 tests/unit/test_logging.py                    # ✅ PASSES: FileProcessingLogger tests
-python3 tests/unit/test_naming.py                     # ✅ PASSES: Log naming pattern tests  
-python3 tests/performance/test_hp_components.py       # ✅ PASSES: High-performance component tests
+# Template validation and management
+python3 main.py --validate-prompts
+python3 main.py --list-templates
 
-# Test data creation (WORKING)
-python3 utilities/create_mock_reqifz.py               # ✅ TESTED: Creates automotive_door_window_system.reqifz
-
-# BROKEN: Integration test suite has path issues - DO NOT USE
-# python3 tests/integration/test_full_suite.py        # ❌ FAILS: Path resolution errors
-
-# Quick module validation (TESTED - ALL WORKING)
-python3 -c "
-import sys; sys.path.append('src')
-from config import OllamaConfig, StaticTestConfig, FileProcessingConfig; print('✅ Config System Working')
-from file_processing_logger import FileProcessingLogger; print('✅ Logging System Working')  
-from yaml_prompt_manager import YAMLPromptManager; print('✅ YAML Prompt System Working')
-"
+# Debug and verbose modes
+python3 main.py input/file.reqifz --verbose --debug
 ```
 
-### Ollama Model Management (Fully Validated ✅)
+### **Development and Testing**
 
 ```bash
-# CONFIRMED WORKING: Required AI models available
-ollama pull llama3.1:8b                    # ✅ TESTED: Model available and functional
-ollama pull deepseek-coder-v2:16b          # ✅ TESTED: Model available and functional
+# Environment validation (ESSENTIAL - run first)
+python3 utilities/version_check.py --strict
 
-# VALIDATED: Service status (v0.11.10+ required, v0.11.10 confirmed)
-ollama --version                           # ✅ TESTED: Returns "ollama version is 0.11.10"
-curl http://localhost:11434/api/tags       # ✅ TESTED: Returns both models with details
-ollama list                                # ✅ TESTED: Shows available models
+# Install dependencies
+pip install -r requirements.txt                    # Core dependencies
+pip install -r requirements-optional.txt          # Optional: ML, performance, dev tools
 
-# Service management (TESTED)
-ollama serve                               # ✅ Start service if needed
+# Code quality and validation
+python3 -m py_compile main.py src/*.py src/core/*.py src/processors/*.py  # Compile check
+ruff check src/ --fix                             # Linting with auto-fix
+ruff format src/                                   # Code formatting
+mypy src/ --python-version 3.13                   # Type checking
 
-# CONFIRMED: API connectivity and advanced features
-curl -X POST http://localhost:11434/api/generate -d '{
-  "model": "llama3.1:8b",
-  "prompt": "Test connectivity", 
-  "stream": false,
-  "keep_alive": "30m",
-  "options": {"num_ctx": 8192, "num_predict": 2048, "temperature": 0.0}
-}'                                         # ✅ TESTED: Full API response working
+# Test data generation
+python3 utilities/create_mock_reqifz.py           # Creates test REQIFZ in input/
 ```
 
-## High-Level Architecture (Validated Through Testing)
+### **Ollama Model Management**
 
-### Application Versions Status (Updated 2025-09-12)
+```bash
+# Required AI models (validated)
+ollama pull llama3.1:8b
+ollama pull deepseek-coder-v2:16b
 
-**✅ FULLY FUNCTIONAL SYSTEMS (2/3)**
-1. **Standard Version (Unified)**: ✅ Rich console by default, multiple logging modes, backward compatible
-2. **High-Performance**: ✅ 4-8x faster, 80-95% CPU utilization, async processing
+# Service verification
+ollama --version                                   # Must be v0.11.10+
+ollama list                                        # Show available models
+curl -s http://localhost:11434/api/tags           # API connectivity test
+```
 
-**⚠️ FIXABLE SYSTEM (1/3)**
-3. **Training System**: ⚠️ ML dependencies now available in requirements-optional.txt - needs testing
+## High-Level Architecture
 
-**✅ IMPROVEMENTS COMPLETED**
-1. **File Consolidation**: Merged v002 + v002_w_Logging_WIP into unified version ✅
-2. **Enhanced User Experience**: Rich console output by default with --simple fallback ✅
-3. **Configuration Issues**: Fixed all VOLTAGE_PRECONDITION attribute mismatches ✅
-4. **Import Stability**: Training system imports without crashing ✅
+### **Modular Structure (Post-Refactoring)**
 
-**⚠️ REMAINING MINOR ISSUES**
-1. **Missing Error Template**: `prompts/templates/error_handling.yaml` referenced but not found
-2. **Integration Test Issues**: Path resolution problems in test suite
+The system follows a clean modular architecture with separated concerns:
 
-### Two Main Processing Pipelines (Simplified Architecture)
+```
+main.py                 # Unified CLI entrypoint and mode orchestration
+├── src/
+│   ├── config.py              # Pydantic configuration management
+│   ├── yaml_prompt_manager.py # AI prompt template system
+│   ├── file_processing_logger.py # Comprehensive JSON logging
+│   ├── core/                  # Business logic components
+│   │   ├── extractors.py      # REQIFZ XML parsing and artifact classification
+│   │   ├── generators.py      # AI test case generation (sync/async)
+│   │   ├── formatters.py      # Excel output with automotive formatting
+│   │   ├── ollama_client.py   # AI API client (sync/async)
+│   │   └── parsers.py         # AI response parsing (JSON/HTML)
+│   └── processors/            # Workflow orchestrators
+│       ├── standard_processor.py    # Synchronous processing workflow
+│       └── hp_processor.py          # Async high-performance workflow
+```
 
-**Primary Applications:**
-1. **Standard Version** (`src/generate_contextual_tests_v002.py`): **UNIFIED** - Rich console, multiple logging modes, full backward compatibility
-2. **High-Performance** (`src/generate_contextual_tests_v003_HighPerformance.py`): Async requirement-level parallelism (4-8x faster)
-3. **Training-Enhanced** (`src/generate_contextual_tests_v002_with_training.py`): BROKEN - Missing ML dependencies
+### **Key Design Patterns**
 
-**Legacy Files:**
-- `src/generate_contextual_tests_v002_legacy.py`: Original v002 backup (for reference only)
+1. **Modular Components**: Each core module has single responsibility
+2. **Workflow Processors**: High-level orchestrators compose core components
+3. **Dual Processing Modes**: Sync (standard) and async (high-performance)
+4. **Configuration-Driven**: Pydantic settings with YAML prompt system
+5. **Comprehensive Logging**: JSON metrics for performance monitoring
 
-### Core Processing Pipeline Architecture
+### **Processing Pipeline**
 
-**Shared Processing Flow (All Versions):**
 ```
 REQIFZ Input → XML Extraction → Artifact Classification → AI Generation → Excel Output
      ↓              ↓                    ↓                     ↓              ↓
-FileDiscovery → REQIFArtifact → PatternMatching → YAMLPrompt → TestCase → XLSX+JSON
-              Extractor        (Heading/Interface/   Manager    Generator   Logs
-                              Requirement)
+File Discovery → REQIFArtifact → Pattern Matching → YAML Prompt → Test Case → XLSX + JSON
+              Extractor        (System Requirements)  Manager    Generator   Logs
 ```
 
-**Key Architectural Components:**
-- **REQIFArtifactExtractor**: XML parsing with pattern matching for artifact classification
-- **YAMLPromptManager**: Template selection and variable substitution system
-- **OllamaClient/AsyncOllamaClient**: HTTP session management for AI API calls
-- **FileProcessingLogger**: Comprehensive JSON logging with performance metrics
-- **ExcelTestCaseGenerator/StreamingTestCaseFormatter**: Memory-optimized output generation
+### **AI Integration Architecture**
 
-### High-Performance Version (v3.0) Architecture
+- **Template System**: YAML-based prompts with variable substitution
+- **Model Support**: llama3.1:8b, deepseek-coder-v2:16b (extensible)
+- **Dual Clients**: Sync OllamaClient and async AsyncOllamaClient
+- **Response Parsing**: Multiple JSON extraction strategies + HTML table parsing
+- **Error Handling**: Graceful degradation with comprehensive error logging
 
-**CRITICAL REDESIGN**: Eliminates file-level parallelism to prevent Ollama API timeouts
+### **Output Management**
 
-**Current Architecture:**
-- **Single-file processing**: One REQIFZ file at a time
-- **Requirement-level parallelism**: 2-4 concurrent requirements within each file
-- **AsyncOllamaClient**: Semaphore-controlled concurrent AI calls
-- **AdaptiveBatchManager**: Dynamic batch sizing based on API response times
-- **PerformanceMonitor**: Real-time CPU/memory tracking with Rich dashboard
+Files are saved using flexible output patterns:
+- **Default**: Same directory as input file
+- **Organized**: `--output-dir output/excel/` for structured output
+- **Naming**: `{filename}_TCD[_HP]_{model}_{timestamp}.xlsx`
+- **Logging**: Matching JSON files with comprehensive metrics
 
-**Key Performance Classes:**
+## File Organization
+
+### **Input Management**
 ```
-HighPerformanceREQIFZFileProcessor
-├── AsyncOllamaClient (concurrent AI calls)
-├── ParallelXMLParser (multi-threaded artifact extraction)
-├── PerformanceMonitor (real-time system monitoring)
-└── StreamingTestCaseFormatter (memory-optimized output)
+input/                  # Organized REQIFZ file storage
+├── automotive_door_window_system.reqifz  # Generated test data
+└── README.md          # Usage documentation
 ```
 
-### Training System Architecture (INCOMPLETE)
-
-**Missing Dependencies**: torch, transformers, peft, datasets, wandb
-
-**Intended Architecture:**
+### **Output Structure**
 ```
-TrainingDataCollector → AutomotiveModelTrainer → CustomModelDeployment
-        ↓                        ↓                        ↓
-CollectExamples → LoRAFineTuning → ModelMerging → OllamaIntegration
+output/
+├── excel/             # Generated test case files (.xlsx)
+├── logs/              # Processing analytics (.json)
+├── reports/           # Future analysis reports
+└── README.md          # Output documentation
 ```
 
-**Training Components:**
-- **TrainingDataCollector**: Collects training examples during normal processing
-- **TrainingAwareFileProcessor**: Extends FileProcessingLogger with training data capture
-- **AutomotiveModelTrainer**: LoRA fine-tuning system for custom models
-- **AutomatedTrainingPipeline**: Orchestrates data collection → training → deployment
-
-### Configuration System Architecture
-
-**Configuration Hierarchy:**
-```
-src/config.py
-├── OllamaConfig (API settings, model preferences)
-├── StaticTestConfig (Excel formatting, test parameters) 
-├── FileProcessingConfig (I/O settings, logging options)
-├── TrainingConfig (INCOMPLETE - ML training parameters)
-└── ConfigManager (unified configuration management)
-```
-
-**YAML-Based Prompt System:**
+### **Configuration and Templates**
 ```
 prompts/
-├── templates/ (YAML template files)
-├── config/ (prompt system configuration)  
-└── tools/ (validation utilities)
+├── config/prompt_config.yaml           # Prompt system configuration
+├── templates/test_generation_v3_structured.yaml  # AI prompt templates
+├── tools/validation_and_tools.py       # Template validation utilities
+└── prompt_documentation.md             # Template system documentation
 ```
 
-### Data Flow and File Locations
+## Key Differences from Legacy System
 
-**Input Processing:**
-- REQIFZ files (automotive requirements in zipped REQIF XML format)
-- XML parsing with lxml acceleration (1,116 artifacts/second in HP version)
-- Pattern matching-based artifact classification
+**Removed**: All legacy `generate_contextual_tests_*.py` files (4,200+ lines of monolithic code)  
+**Added**: Clean modular architecture with separated concerns  
+**Improved**: Single unified entrypoint instead of multiple scripts  
+**Enhanced**: Dual processing modes (sync/async) with shared components  
 
-**Output Generation:**
-- **Excel files**: Structured test cases with Issue ID, Summary, Action, Data, Expected Result
-- **JSON logs**: Comprehensive processing metrics, timing, error tracking
-- **Files saved**: Same directory as input REQIFZ files (NOT in output/TCD/)
+## Important Development Notes
 
-**Naming Patterns:**
-- Standard: `{filename}_TCD_{model}_{timestamp}.xlsx`
-- High-Performance: `{filename}_TCD_HP_{model}_{timestamp}.xlsx`
-- Logs: `{filename}_TCD_{model}_{timestamp}.json`
+- **Main Entry**: Use `python3 main.py` - all other entry points removed
+- **Component Architecture**: Import from `src.core.*` and `src.processors.*`
+- **Template System**: YAML prompts in `prompts/templates/` with `prompt_config.yaml`
+- **Test Data**: Use `utilities/create_mock_reqifz.py` for test file generation
+- **Performance**: HP mode provides 4-8x speedup with async processing
+- **Output**: Supports both same-directory (default) and organized output structures
 
-### Python 3.13.7+ Modern Features
+## Dependencies and Requirements
 
-**Language Features Utilized:**
-- **PEP 695 Generic Type Aliases**: `type JSONObj[T] = dict[str, T]`
-- **Pattern Matching**: `match`/`case` for XML processing and artifact classification
-- **Performance Optimizations**: `__slots__` for 20-30% memory reduction
-- **Session Reuse Pattern**: HTTP client persistent connections (15-25% improvement)
-- **Async/Await Architecture**: Concurrent processing in high-performance version
-
-**Key Performance Optimizations:**
-- `__slots__` on all major classes for memory efficiency
-- HTTP session reuse for reduced connection overhead
-- lxml acceleration for XML processing
-- ujson for faster JSON operations (when available)
-- Streaming output for memory-efficient large dataset handling
-
-## Critical Development Issues
-
-### Incomplete Training System
-**Problem**: Training functionality exists but is non-functional due to missing dependencies
-**Files Affected**: 
-- `src/generate_contextual_tests_v002_with_training.py`
-- `src/custom_model_trainer.py` 
-- `src/training_data_collector.py`
-
-**Resolution Required**:
-1. Add ML dependencies to requirements: `torch>=2.0.0 transformers>=4.30.0 peft>=0.4.0 datasets>=2.12.0 wandb>=0.15.0`
-2. Create `utilities/requirements-training.txt`
-3. Update installation documentation
-
-### WIP File Status
-**Problem**: `generate_contextual_tests_v002_w_Logging_WIP.py` is production-ready but still named as WIP
-**Resolution**: Rename to `generate_contextual_tests_v002_w_Logging.py` and update all references
-
-### Configuration Validation Incomplete
-**Problem**: `src/config.py` has several `pass` statements in validation methods (lines 60, 115, 168)
-**Resolution**: Implement proper validation logic for configuration parameters
-
-### Debug Code in Production
-**Problem**: Hardcoded `print()` statements throughout production code
-**Resolution**: Replace with proper logging calls using the existing logging infrastructure
-
-### Version Selection Guide (Updated 2025-09-12)
-
-**When to Use Each Version:**
-
-- **Standard Version (Unified)**: ⭐ **RECOMMENDED FOR ALL USE CASES** - Rich console by default, multiple logging modes, full backward compatibility
-- **High-Performance**: ⭐ **OPTIMAL FOR SCALE** - Multi-core systems, large-scale processing, performance-critical applications  
-- **Training Version**: ❌ **NEVER USE** - Completely broken, will fail on startup
-
-**Standard Version Modes:**
-- Default mode: Rich console output with progress bars
-- `--verbose`: Enhanced progress tracking and detailed information  
-- `--debug`: Comprehensive logging with file output option
-- `--simple`: Legacy v002 behavior for backward compatibility
-
-### Performance Comparison Matrix (Updated)
-
-| Feature | Standard (Unified) | High-Performance | Training |
-|---------|-------------------|------------------|----------|
-| **Status** | ✅ **Production Ready** | ✅ **High Performance** | ❌ **Broken** |
-| **Processing Speed** | Baseline | **4-8x faster** | N/A (fails) |
-| **CPU Utilization** | 15-25% (1 core) | **80-95% (all cores)** | N/A |  
-| **XML Processing** | ~50 artifacts/sec | **885+ artifacts/sec** | N/A |
-| **Console Output** | Rich by default, --simple fallback | Rich with performance dashboard | N/A |
-| **Dependencies** | ✅ Available | ✅ Available | ❌ 5/5 Missing |
-| **Real-World Test** | ✅ Confirmed working | ✅ Confirmed working | ❌ Startup failure |
-| **Backward Compatible** | ✅ Full compatibility | N/A | N/A |
-
-## Development Workflow
-
-### Before Making Changes
-1. **Check Python Version**: `python3 utilities/version_check.py --strict`
-2. **Install Dependencies**: `pip install -r utilities/requirements-all.txt`  
-3. **Validate Imports**: `python3 -m py_compile src/*.py`
-4. **Run Type Checking**: `mypy src/ --python-version 3.13`
-
-### Code Quality Pipeline
-```bash
-# Pre-commit quality checks
-ruff check src/ utilities/          # Fast linting
-ruff format src/ utilities/         # Code formatting  
-mypy src/ --python-version 3.13     # Type checking
-pytest --cov=src tests/             # Run tests with coverage
-
-# Security and dependency checks
-pip-audit                           # Vulnerability scanning
-pip list --outdated                 # Check for updates
-```
-
-### Testing Strategy
-```bash
-# Unit tests (always work)
-python3 tests/unit/test_logging.py
-python3 tests/unit/test_naming.py
-
-# Component tests (no external dependencies)  
-python3 tests/performance/test_hp_components.py
-
-# Integration tests (require Ollama)
-python3 tests/integration/test_full_suite.py
-python3 tests/performance/test_hp_full.py
-
-# Create test data when needed
-python3 utilities/create_mock_reqifz.py
-```
-
-### Common Issues and Solutions
-
-**Training System Fails**: Install ML dependencies manually or skip training features
-**GPU Overload in HP Version**: Use GPU-optimized settings from documentation
-**Import Errors**: Ensure correct Python 3.13.7+ and run module validation
-**Ollama Timeouts**: Check service status and model availability
-**Template Validation Fails**: Verify YAML syntax in prompts/ directory
-
-## ⚡ **QUICK START FOR NEW DEVELOPERS**
-
-### Immediate Setup (5 minutes)
-```bash
-# 1. Verify Python version (REQUIRED: 3.13.7+)
-python3 --version                                    # Must be 3.13.7 or higher
-
-# 2. Install dependencies (ALL TESTED AND WORKING)
-pip install -r utilities/requirements-all.txt       # Complete setup
-
-# 3. Verify system health (ALL TESTS PASS)
-python3 utilities/version_check.py --strict         # Environment validation
-python3 -m py_compile src/*.py                      # Syntax check (65+ files)
-
-# 4. Test Ollama integration (CONFIRMED WORKING)
-ollama --version                                     # Must be v0.11.10+
-curl -s http://localhost:11434/api/tags             # Check model availability
-
-# 5. Create test data and run (VALIDATED)
-python3 utilities/create_mock_reqifz.py             # Creates automotive_door_window_system.reqifz
-python3 src/generate_contextual_tests_v002_w_Logging_WIP.py automotive_door_window_system.reqifz --verbose
-```
-
-### Critical System Status (Last Tested: 2025-09-11)
-- **✅ 3 of 4 versions FULLY FUNCTIONAL** (Standard, Enhanced Logging, High-Performance)
-- **❌ 1 of 4 versions BROKEN** (Training system - missing all ML dependencies)
-- **✅ All core systems working** (Config, Logging, YAML, Ollama integration)
-- **✅ Complete test coverage** for functional components
-- **✅ Production ready** with comprehensive validation
-
-### Important Notes for Development
-
-- **Always** run `python3 -m py_compile src/*.py` before commits (ALL FILES COMPILE ✅)
-- **Never** use `src/generate_contextual_tests_v002_with_training.py` (COMPLETELY BROKEN ❌)
-- **Use** `src/generate_contextual_tests_v002_w_Logging_WIP.py` for production (FULLY FUNCTIONAL ✅)
-- **Ignore** "WIP" in filename - it's production-ready but needs renaming
-- **Test** on real REQIFZ files - mock data generator creates automotive_door_window_system.reqifz
-- **Expect** 885+ artifacts/second processing speed with high-performance version
+- **Python**: 3.13.7+ (enforced by utilities/version_check.py)
+- **Core**: pandas, requests, PyYAML, click, rich, openpyxl, pydantic
+- **Optional**: torch, transformers (ML), lxml, orjson (performance), pytest, mypy (dev)
+- **External**: Ollama v0.11.10+ with llama3.1:8b and/or deepseek-coder-v2:16b models

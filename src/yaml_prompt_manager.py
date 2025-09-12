@@ -8,7 +8,7 @@ It supports automatic template selection, variable substitution, and template va
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
@@ -24,11 +24,11 @@ class YAMLPromptManager:
             config_file: Path to prompt configuration file
         """
         self.config_file = self._resolve_config_path(config_file)
-        self.config: Dict[str, Any] = {}
-        self.test_prompts: Dict[str, Any] = {}
-        self.error_prompts: Dict[str, Any] = {}
+        self.config: dict[str, Any] = {}
+        self.test_prompts: dict[str, Any] = {}
+        self.error_prompts: dict[str, Any] = {}
         self.last_selected_template = None
-        self.template_usage_count: Dict[str, int] = {}  # Track template usage for summary
+        self.template_usage_count: dict[str, int] = {}  # Track template usage for summary
 
         self.load_configuration()
         self.load_all_prompts()
@@ -134,7 +134,7 @@ class YAMLPromptManager:
                 print(f"⚠️  Could not load error prompts: {e}")
                 self.error_prompts = {}
 
-    def get_test_prompt(self, template_name: Optional[str] = None, **variables) -> str:
+    def get_test_prompt(self, template_name: str | None = None, **variables) -> str:
         """
         Get a test generation prompt with variable substitution
 

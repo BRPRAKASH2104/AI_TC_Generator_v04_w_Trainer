@@ -1,0 +1,388 @@
+"""
+Test case formatters for the AI Test Case Generator.
+
+This module provides classes for formatting and outputting test cases to various formats,
+with primary support for Excel/XLSX output with automotive-specific formatting.
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils.dataframe import dataframe_to_rows
+
+# Type aliases for better readability (PEP 695 style)
+type TestCaseList = list[dict[str, Any]]
+type FormattedOutput = dict[str, Any]
+
+
+class TestCaseFormatter:
+    """Formats test cases for output to Excel and other formats"""
+
+    __slots__ = ("config", "logger")
+
+    def __init__(self, config=None, logger=None):
+        self.config = config
+        self.logger = logger
+
+    def format_to_excel(
+        self,
+        test_cases: TestCaseList,
+        output_path: Path,
+        metadata: dict[str, Any] = None
+    ) -> bool:
+        """
+        Format test cases to Excel file with automotive-specific formatting.
+        
+        Args:
+            test_cases: List of test case dictionaries
+            output_path: Path where Excel file should be saved
+            metadata: Additional metadata to include
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Prepare test case data
+            formatted_cases = self._prepare_test_cases_for_excel(test_cases, metadata)
+            
+            if not formatted_cases:
+                if self.logger:
+                    self.logger.warning("No test cases to format")
+                return False
+
+            # Create DataFrame
+            df = pd.DataFrame(formatted_cases)
+            
+            # Create Excel workbook with formatting
+            self._create_formatted_excel(df, output_path, metadata)
+            
+            if self.logger:
+                self.logger.info(f"Formatted {len(formatted_cases)} test cases to {output_path}")
+            
+            return True
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error formatting to Excel: {e}")
+            return False
+
+    def _prepare_test_cases_for_excel(
+        self,
+        test_cases: TestCaseList,
+        metadata: dict[str, Any] = None
+    ) -> list[dict[str, Any]]:
+        """Prepare test cases with automotive-specific formatting"""
+        formatted_cases = []
+        
+        # Get default values from config or use defaults
+        default_values = self._get_default_test_values(metadata)
+        
+        for i, test_case in enumerate(test_cases, 1):
+            formatted_case = {
+                "Issue ID": self._generate_issue_id(test_case, i),
+                "Summary": test_case.get("summary", "Test Case"),
+                "Description": self._build_description(test_case),
+                "Issue Type": default_values["issue_type"],
+                "Status": "To Do",
+                "Project Key": default_values["project_key"],
+                "Assignee": default_values["assignee"],
+                "Test Case Type": default_values["test_case_type"],
+                "Planned Execution": default_values["planned_execution"],
+                "Components": default_values["components"],
+                "Labels": default_values["labels"],
+                "Action": test_case.get("action", "Execute test steps"),
+                "Data": test_case.get("data", "See test description"),
+                "Expected Result": test_case.get("expected_result", "Test passes successfully"),
+                "Precondition": default_values["voltage_precondition"],
+                "Test Type": default_values["test_type"]
+            }
+            
+            formatted_cases.append(formatted_case)
+        
+        return formatted_cases
+
+    def _get_default_test_values(self, metadata: dict[str, Any] = None) -> dict[str, Any]:
+        """Get default values from config or use standard automotive defaults"""
+        defaults = {
+            "issue_type": "Test",
+            "project_key": "TCTOIC",
+            "assignee": "ENGG",
+            "test_case_type": "Feature Functional",
+            "planned_execution": "Manual",
+            "components": "SW_DI_FV",
+            "labels": "AI Generated TCs",
+            "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",
+            "test_type": "PROVEtech"
+        }
+        
+        # Override with config values if available
+        if self.config and hasattr(self.config, 'static_test'):
+            config_test = self.config.static_test
+            defaults.update({
+                "issue_type": getattr(config_test, 'issue_type', defaults["issue_type"]),
+                "project_key": getattr(config_test, 'project_key', defaults["project_key"]),
+                "assignee": getattr(config_test, 'assignee', defaults["assignee"]),
+                "test_case_type": getattr(config_test, 'test_case_type', defaults["test_case_type"]),
+                "planned_execution": getattr(config_test, 'planned_execution', defaults["planned_execution"]),
+                "components": getattr(config_test, 'components', defaults["components"]),
+                "labels": getattr(config_test, 'labels', defaults["labels"]),
+                "voltage_precondition": getattr(config_test, 'voltage_precondition', defaults["voltage_precondition"]),
+                "test_type": getattr(config_test, 'test_type', defaults["test_type"])
+            })
+        
+        # Override with metadata values if provided
+        if metadata:
+            defaults.update(metadata)
+        
+        return defaults
+
+    def _generate_issue_id(self, test_case: dict[str, Any], index: int) -> str:
+        """Generate unique issue ID for test case"""
+        requirement_id = test_case.get("requirement_id", "UNKNOWN")
+        test_id = test_case.get("test_id", f"TC_{index:03d}")
+        
+        # Return test_id if it already includes requirement_id, otherwise combine
+        if requirement_id in test_id:
+            return test_id
+        else:
+            return f"{requirement_id}_{test_id}"
+
+    def _build_description(self, test_case: dict[str, Any]) -> str:
+        """Build comprehensive test description"""
+        parts = []
+        
+        # Add summary if available
+        if test_case.get("summary"):
+            parts.append(f"Summary: {test_case['summary']}")
+        
+        # Add detailed action steps
+        if test_case.get("action"):
+            parts.append(f"Test Steps: {test_case['action']}")
+        
+        # Add data requirements
+        if test_case.get("data"):
+            parts.append(f"Test Data: {test_case['data']}")
+        
+        # Add expected results
+        if test_case.get("expected_result"):
+            parts.append(f"Expected Result: {test_case['expected_result']}")
+        
+        # Add generation metadata
+        if test_case.get("generation_time"):
+            parts.append(f"Generated in {test_case['generation_time']:.2f}s")
+        
+        return "\n\n".join(parts) if parts else "AI-generated test case"
+
+    def _create_formatted_excel(
+        self,
+        df: pd.DataFrame,
+        output_path: Path,
+        metadata: dict[str, Any] = None
+    ) -> None:
+        """Create Excel file with professional formatting"""
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Create workbook and worksheet
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Test Cases"
+        
+        # Add data to worksheet
+        for r in dataframe_to_rows(df, index=False, header=True):
+            ws.append(r)
+        
+        # Apply formatting
+        self._apply_excel_formatting(ws)
+        
+        # Add metadata sheet if provided
+        if metadata:
+            self._add_metadata_sheet(wb, metadata)
+        
+        # Save workbook
+        wb.save(output_path)
+
+    def _apply_excel_formatting(self, worksheet) -> None:
+        """Apply professional formatting to Excel worksheet"""
+        # Header formatting
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+        
+        # Column widths
+        column_widths = {
+            'A': 15,  # Issue ID
+            'B': 50,  # Summary
+            'C': 60,  # Description
+            'D': 12,  # Issue Type
+            'E': 10,  # Status
+            'F': 12,  # Project Key
+            'G': 12,  # Assignee
+            'H': 20,  # Test Case Type
+            'I': 15,  # Planned Execution
+            'J': 15,  # Components
+            'K': 20,  # Labels
+            'L': 40,  # Action
+            'M': 30,  # Data
+            'N': 50,  # Expected Result
+            'O': 20,  # Precondition
+            'P': 15   # Test Type
+        }
+        
+        for col_letter, width in column_widths.items():
+            worksheet.column_dimensions[col_letter].width = width
+        
+        # Data row formatting
+        data_alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+        
+        for row in worksheet.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = data_alignment
+
+    def _add_metadata_sheet(self, workbook: Workbook, metadata: dict[str, Any]) -> None:
+        """Add metadata information to separate sheet"""
+        ws = workbook.create_sheet("Metadata")
+        
+        # Add generation info
+        ws.append(["Generation Information", ""])
+        ws.append(["Generated At", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+        ws.append(["Model Used", metadata.get("model", "Unknown")])
+        ws.append(["Template", metadata.get("template", "Default")])
+        ws.append(["Total Test Cases", metadata.get("total_cases", 0)])
+        
+        # Add any additional metadata
+        ws.append(["", ""])
+        ws.append(["Additional Information", ""])
+        for key, value in metadata.items():
+            if key not in ["model", "template", "total_cases"]:
+                ws.append([key, str(value)])
+
+    def export_to_json(
+        self,
+        test_cases: TestCaseList,
+        output_path: Path,
+        metadata: dict[str, Any] = None
+    ) -> bool:
+        """Export test cases to JSON format"""
+        try:
+            output_data = {
+                "metadata": metadata or {},
+                "generated_at": datetime.now().isoformat(),
+                "test_cases": test_cases,
+                "total_count": len(test_cases)
+            }
+            
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with output_path.open('w', encoding='utf-8') as f:
+                json.dump(output_data, f, indent=2, ensure_ascii=False)
+            
+            if self.logger:
+                self.logger.info(f"Exported {len(test_cases)} test cases to JSON: {output_path}")
+            
+            return True
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error exporting to JSON: {e}")
+            return False
+
+
+class StreamingTestCaseFormatter(TestCaseFormatter):
+    """Memory-efficient formatter for large test case sets"""
+
+    def format_to_excel_streaming(
+        self,
+        test_cases_iterator,
+        output_path: Path,
+        metadata: dict[str, Any] = None,
+        chunk_size: int = 100
+    ) -> bool:
+        """Format test cases to Excel using streaming approach for memory efficiency"""
+        try:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Test Cases"
+            
+            # Write headers first
+            headers = [
+                "Issue ID", "Summary", "Description", "Issue Type", "Status",
+                "Project Key", "Assignee", "Test Case Type", "Planned Execution",
+                "Components", "Labels", "Action", "Data", "Expected Result",
+                "Precondition", "Test Type"
+            ]
+            ws.append(headers)
+            
+            # Apply header formatting
+            self._apply_excel_formatting(ws)
+            
+            # Process test cases in chunks
+            total_processed = 0
+            chunk = []
+            
+            for test_case in test_cases_iterator:
+                chunk.append(test_case)
+                
+                if len(chunk) >= chunk_size:
+                    self._write_chunk_to_excel(ws, chunk, metadata, total_processed)
+                    total_processed += len(chunk)
+                    chunk = []
+            
+            # Write remaining chunk
+            if chunk:
+                self._write_chunk_to_excel(ws, chunk, metadata, total_processed)
+                total_processed += len(chunk)
+            
+            # Add metadata sheet
+            if metadata:
+                metadata["total_cases"] = total_processed
+                self._add_metadata_sheet(wb, metadata)
+            
+            # Save workbook
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            wb.save(output_path)
+            
+            if self.logger:
+                self.logger.info(f"Streamed {total_processed} test cases to {output_path}")
+            
+            return True
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error in streaming format: {e}")
+            return False
+
+    def _write_chunk_to_excel(
+        self,
+        worksheet,
+        chunk: TestCaseList,
+        metadata: dict[str, Any],
+        start_index: int
+    ) -> None:
+        """Write a chunk of test cases to Excel worksheet"""
+        formatted_chunk = self._prepare_test_cases_for_excel(chunk, metadata)
+        
+        for formatted_case in formatted_chunk:
+            row_data = [
+                formatted_case["Issue ID"], formatted_case["Summary"],
+                formatted_case["Description"], formatted_case["Issue Type"],
+                formatted_case["Status"], formatted_case["Project Key"],
+                formatted_case["Assignee"], formatted_case["Test Case Type"],
+                formatted_case["Planned Execution"], formatted_case["Components"],
+                formatted_case["Labels"], formatted_case["Action"],
+                formatted_case["Data"], formatted_case["Expected Result"],
+                formatted_case["Precondition"], formatted_case["Test Type"]
+            ]
+            worksheet.append(row_data)
