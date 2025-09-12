@@ -46,6 +46,13 @@ openpyxl>=3.1.5,<3.2.0
 # Provides: .xlsx file read/write capabilities
 # Performance: Reduced memory usage for large files
 
+# Configuration management and validation
+pydantic>=2.0.0,<3.0.0
+
+# Settings management for pydantic
+pydantic-settings>=2.0.0,<3.0.0
+
+
 # ============================================================================
 # BUILT-IN MODULES (Verify availability)
 # ============================================================================

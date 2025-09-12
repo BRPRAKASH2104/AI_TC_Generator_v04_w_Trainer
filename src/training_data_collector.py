@@ -34,8 +34,6 @@ class TrainingExample:
 class TrainingDataCollector:
     """Collects training data during normal processing for future model fine-tuning"""
     
-    __slots__ = ('output_dir', 'examples', 'session_id', 'collection_enabled')
-    
     def __init__(self, output_dir: str = "training_data", collection_enabled: bool = True):
         self.output_dir = Path(output_dir)
         self.examples: List[TrainingExample] = []
@@ -249,7 +247,7 @@ class TrainingAwareFileProcessor(FileProcessingLogger):
     ) -> None:
         """Log test case generation and collect for training"""
         # Regular logging
-        super().add_test_cases(len(generated_output.get("test_cases", [])))
+        super().increment_test_cases(len(generated_output.get("test_cases", [])))
         
         # Training data collection
         if success:
