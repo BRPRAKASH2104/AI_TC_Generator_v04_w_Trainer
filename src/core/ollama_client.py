@@ -15,7 +15,7 @@ import aiohttp
 import requests
 
 if TYPE_CHECKING:
-    from ..config import OllamaConfig
+    from config import OllamaConfig
 
 # Type aliases for better readability (PEP 695 style)
 type JSONResponse = dict[str, Any]
@@ -27,7 +27,7 @@ class OllamaClient:
     __slots__ = ("config", "proxies", "_session")
 
     def __init__(self, config: OllamaConfig = None):
-        from ..config import OllamaConfig
+        from config import OllamaConfig
         self.config = config or OllamaConfig()
         self.proxies = {"http": None, "https": None}
         # Reuse session for better performance (Python 3.13.7+ optimization)
@@ -91,7 +91,7 @@ class AsyncOllamaClient:
     __slots__ = ("config", "session", "semaphore")
 
     def __init__(self, config: OllamaConfig = None):
-        from ..config import OllamaConfig
+        from config import OllamaConfig
         self.config = config or OllamaConfig()
         self.session: aiohttp.ClientSession | None = None
         # Configurable GPU/CPU-aware concurrency limit

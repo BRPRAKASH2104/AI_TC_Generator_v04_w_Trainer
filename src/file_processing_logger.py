@@ -259,6 +259,19 @@ class FileProcessingLogger:
             "warnings": self.warnings,
         }
 
+    def info(self, message: str):
+        """Print info message (simple console logging)"""
+        print(f"ℹ️  {message}")
+    
+    def warning(self, message: str):
+        """Print warning message and add to warnings list"""
+        print(f"⚠️  {message}")
+        self.add_warning(message)
+    
+    def error(self, message: str):
+        """Print error message"""
+        print(f"❌ {message}")
+
     def save_log(self, output_dir: str | None = None):
         """Save processing log to JSON file with same naming pattern as Excel output"""
         try:

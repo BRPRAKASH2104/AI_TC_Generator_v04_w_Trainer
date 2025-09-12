@@ -28,18 +28,14 @@ class REQIFZFileProcessor:
 
     def __init__(self, config: ConfigManager = None):
         self.config = config or ConfigManager()
-        self.logger = FileProcessingLogger("standard_processor")
+        self.logger = None  # Will be initialized per file
         
-        # Initialize core components
-        self.extractor = REQIFArtifactExtractor(self.logger)
+        # Initialize core components (without logger for now)
+        self.extractor = None  # Will be initialized per file
         self.ollama_client = OllamaClient(self.config.ollama)
         self.yaml_manager = YAMLPromptManager()
-        self.generator = TestCaseGenerator(
-            self.ollama_client, 
-            self.yaml_manager, 
-            self.logger
-        )
-        self.formatter = TestCaseFormatter(self.config, self.logger)
+        self.generator = None  # Will be initialized per file  
+        self.formatter = None  # Will be initialized per file
 
     def process_file(
         self,
@@ -61,6 +57,21 @@ class REQIFZFileProcessor:
             Processing result with statistics and file paths
         """
         start_time = time.time()
+        
+        # Initialize file-specific logger and components
+        self.logger = FileProcessingLogger(
+            reqifz_file=reqifz_path.name,
+            input_path=str(reqifz_path.parent)
+        )
+        
+        # Initialize components with logger
+        self.extractor = REQIFArtifactExtractor(self.logger)
+        self.generator = TestCaseGenerator(
+            self.ollama_client, 
+            self.yaml_manager, 
+            self.logger
+        )
+        self.formatter = TestCaseFormatter(self.config, self.logger)
         
         self.logger.info(f"🔍 Processing: {reqifz_path.name}")
         self.logger.info(f"🤖 Model: {model}")
@@ -238,15 +249,15 @@ class REQIFZFileProcessor:
             # Test YAML manager
             templates = self.yaml_manager.test_prompts
             if not templates:
-                self.logger.error("No prompt templates available")
+                print("❌ No prompt templates available")
                 return False
             
             # Test Ollama connection (basic check)
             # Could add actual API call here if needed
             
-            self.logger.info("✅ Environment validation passed")
+            print("✅ Environment validation passed")
             return True
             
         except Exception as e:
-            self.logger.error(f"Environment validation failed: {e}")
+            print(f"❌ Environment validation failed: {e}")
             return False

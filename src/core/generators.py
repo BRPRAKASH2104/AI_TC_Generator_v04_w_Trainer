@@ -18,6 +18,7 @@ from core.parsers import FastJSONResponseParser, JSONResponseParser
 type TestCaseData = dict[str, Any]
 type TestCaseList = list[TestCaseData]
 type RequirementData = dict[str, Any]
+type ProcessingResult = TestCaseList | dict[str, Any]  # Can be test cases or error info
 
 
 class TestCaseGenerator:
@@ -199,7 +200,7 @@ class AsyncTestCaseGenerator:
         requirements: list[RequirementData],
         model: str,
         template_name: str = None
-    ) -> list[TestCaseList]:
+    ) -> list[ProcessingResult]:
         """
         Generate test cases for multiple requirements concurrently.
         
@@ -209,7 +210,7 @@ class AsyncTestCaseGenerator:
             template_name: Optional template name
             
         Returns:
-            List of test case lists (one per requirement)
+            List of processing results (test cases or error objects)
         """
         tasks = []
         
@@ -222,26 +223,47 @@ class AsyncTestCaseGenerator:
         # Execute all tasks concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Filter out exceptions and return successful results
-        successful_results = []
+        # Process results and return structured information
+        processed_results = []
         for i, result in enumerate(results):
+            req_id = requirements[i].get("id", "UNKNOWN")
+            
             if isinstance(result, Exception):
+                # Create structured error object
+                error_info = {
+                    "error": True,
+                    "requirement_id": req_id,
+                    "error_type": type(result).__name__,
+                    "error_message": str(result),
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "test_cases": []  # Empty test cases for failed requirement
+                }
+                
                 if self.logger:
-                    req_id = requirements[i].get("id", "UNKNOWN")
                     self.logger.error(f"Failed to generate test cases for {req_id}: {result}")
-                successful_results.append([])  # Empty list for failed requirement
+                    self.logger.add_requirement_failure(req_id, str(result))
+                
+                processed_results.append(error_info)
             else:
-                successful_results.append(result)
+                # Successful result - could be test cases or error info from method
+                if isinstance(result, dict) and result.get("error"):
+                    # Error info from async method
+                    processed_results.append(result)
+                else:
+                    # Successful test cases
+                    processed_results.append(result)
         
-        return successful_results
+        return processed_results
 
     async def _generate_test_cases_for_requirement_async(
         self,
         requirement: RequirementData,
         model: str,
         template_name: str = None
-    ) -> TestCaseList:
-        """Generate test cases for a single requirement asynchronously"""
+    ) -> ProcessingResult:
+        """Generate test cases for a single requirement asynchronously with enhanced error handling"""
+        req_id = requirement.get('id', 'UNKNOWN')
+        
         async with self.semaphore:  # Limit concurrent requests
             try:
                 # Build prompt (reuse sync logic)
@@ -253,12 +275,34 @@ class AsyncTestCaseGenerator:
                     prompt = sync_generator._build_default_prompt(requirement)
 
                 if self.logger:
-                    self.logger.debug(f"Async generating test cases for {requirement.get('id', 'UNKNOWN')}")
+                    self.logger.info(f"Async generating test cases for {req_id}")
 
                 # Generate AI response asynchronously
                 start_time = time.time()
                 response = await self.client.generate_response(model, prompt, is_json=True)
                 generation_time = time.time() - start_time
+
+                # Record AI response time for metrics
+                if self.logger:
+                    self.logger.add_ai_response_time(generation_time)
+
+                # Handle empty or invalid response
+                if not response or not response.strip():
+                    error_info = {
+                        "error": True,
+                        "requirement_id": req_id,
+                        "error_type": "EmptyResponse",
+                        "error_message": "AI model returned empty response",
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "generation_time": generation_time,
+                        "test_cases": []
+                    }
+                    
+                    if self.logger:
+                        self.logger.warning(f"Empty response for {req_id}")
+                        self.logger.add_requirement_failure(req_id, "Empty AI response")
+                    
+                    return error_info
 
                 # Parse JSON response
                 test_cases_data = self.json_parser.extract_json_from_response(response)
@@ -266,22 +310,82 @@ class AsyncTestCaseGenerator:
                 if test_cases_data and "test_cases" in test_cases_data:
                     test_cases = test_cases_data["test_cases"]
                     
-                    # Add metadata
+                    if not test_cases:
+                        error_info = {
+                            "error": True,
+                            "requirement_id": req_id,
+                            "error_type": "NoTestCases",
+                            "error_message": "AI response contained empty test_cases array",
+                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                            "generation_time": generation_time,
+                            "test_cases": []
+                        }
+                        
+                        if self.logger:
+                            self.logger.warning(f"Empty test cases array for {req_id}")
+                            self.logger.add_requirement_failure(req_id, "Empty test cases array")
+                        
+                        return error_info
+                    
+                    # Add metadata to test cases
                     for i, test_case in enumerate(test_cases):
-                        test_case["requirement_id"] = requirement.get("id", "UNKNOWN")
+                        test_case["requirement_id"] = req_id
                         test_case["generation_time"] = generation_time
-                        test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i+1:03d}"
+                        test_case["test_id"] = f"{req_id}_TC_{i+1:03d}"
+                        test_case["model_used"] = model
+                        test_case["template_used"] = template_name or "default"
                     
                     if self.logger:
-                        self.logger.info(f"Generated {len(test_cases)} test cases for {requirement.get('id', 'UNKNOWN')}")
+                        self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
                     
                     return test_cases
                 else:
+                    # JSON parsing failed or invalid structure
+                    error_info = {
+                        "error": True,
+                        "requirement_id": req_id,
+                        "error_type": "InvalidJSONResponse",
+                        "error_message": "Could not parse test_cases from AI response",
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "generation_time": generation_time,
+                        "raw_response": response[:200] + "..." if len(response) > 200 else response,
+                        "test_cases": []
+                    }
+                    
                     if self.logger:
-                        self.logger.warning(f"No test cases generated for {requirement.get('id', 'UNKNOWN')}")
-                    return []
+                        self.logger.warning(f"Invalid JSON response for {req_id}: {response[:100]}...")
+                        self.logger.add_requirement_failure(req_id, "Invalid JSON response format")
+                    
+                    return error_info
 
-            except Exception as e:
+            except asyncio.TimeoutError as e:
+                error_info = {
+                    "error": True,
+                    "requirement_id": req_id,
+                    "error_type": "TimeoutError",
+                    "error_message": f"AI request timed out: {str(e)}",
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "test_cases": []
+                }
+                
                 if self.logger:
-                    self.logger.error(f"Error in async generation for {requirement.get('id', 'UNKNOWN')}: {e}")
-                return []
+                    self.logger.error(f"⏱️  Timeout error for {req_id}: {e}")
+                    self.logger.add_requirement_failure(req_id, f"Timeout: {str(e)}")
+                
+                return error_info
+                
+            except Exception as e:
+                error_info = {
+                    "error": True,
+                    "requirement_id": req_id,
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "test_cases": []
+                }
+                
+                if self.logger:
+                    self.logger.error(f"💥 Unexpected error for {req_id}: {e}")
+                    self.logger.add_requirement_failure(req_id, str(e))
+                
+                return error_info

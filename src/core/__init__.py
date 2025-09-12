@@ -5,11 +5,11 @@ This package contains the fundamental building blocks for processing REQIFZ file
 and generating test cases using Ollama AI models.
 """
 
-from .extractors import HighPerformanceREQIFArtifactExtractor, REQIFArtifactExtractor
-from .formatters import StreamingTestCaseFormatter, TestCaseFormatter
-from .generators import AsyncTestCaseGenerator, TestCaseGenerator
-from .ollama_client import AsyncOllamaClient, OllamaClient
-from .parsers import FastJSONResponseParser, HTMLTableParser, JSONResponseParser
+from core.extractors import HighPerformanceREQIFArtifactExtractor, REQIFArtifactExtractor
+from core.formatters import StreamingTestCaseFormatter, TestCaseFormatter
+from core.generators import AsyncTestCaseGenerator, TestCaseGenerator
+from core.ollama_client import AsyncOllamaClient, OllamaClient
+from core.parsers import FastJSONResponseParser, HTMLTableParser, JSONResponseParser
 
 __all__ = [
     "OllamaClient",

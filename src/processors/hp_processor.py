@@ -30,7 +30,7 @@ class HighPerformanceREQIFZFileProcessor:
 
     def __init__(self, config: ConfigManager = None, max_concurrent_requirements: int = None):
         self.config = config or ConfigManager()
-        self.logger = FileProcessingLogger("hp_processor")
+        self.logger = None  # Will be initialized per file
         
         # Concurrency settings
         self.max_concurrent_requirements = (
@@ -38,10 +38,10 @@ class HighPerformanceREQIFZFileProcessor:
             self.config.ollama.gpu_concurrency_limit
         )
         
-        # Initialize core components
-        self.extractor = HighPerformanceREQIFArtifactExtractor(self.logger)
+        # Initialize core components (without logger for now)
+        self.extractor = None  # Will be initialized per file
         self.yaml_manager = YAMLPromptManager()
-        self.formatter = StreamingTestCaseFormatter(self.config, self.logger)
+        self.formatter = None  # Will be initialized per file
         
         # Performance tracking
         self.metrics = {
@@ -80,6 +80,16 @@ class HighPerformanceREQIFZFileProcessor:
             Processing result with performance metrics
         """
         self.metrics["start_time"] = time.time()
+        
+        # Initialize file-specific logger and components
+        self.logger = FileProcessingLogger(
+            reqifz_file=reqifz_path.name,
+            input_path=str(reqifz_path.parent)
+        )
+        
+        # Initialize components with logger
+        self.extractor = HighPerformanceREQIFArtifactExtractor(self.logger)
+        self.formatter = StreamingTestCaseFormatter(self.config, self.logger)
         
         self.logger.info(f"🚀 High-Performance Processing: {reqifz_path.name}")
         self.logger.info(f"🤖 Model: {model}")
@@ -132,13 +142,38 @@ class HighPerformanceREQIFZFileProcessor:
                         batch, model, template
                     )
                     
-                    # Collect successful results
-                    for j, test_cases in enumerate(batch_results):
-                        if test_cases:
-                            all_test_cases.extend(test_cases)
-                            self.metrics["successful_requirements"] += 1
-                        
+                    # Process batch results with enhanced error tracking
+                    for j, result in enumerate(batch_results):
                         self.metrics["ai_calls_made"] += 1
+                        
+                        if isinstance(result, dict) and result.get("error"):
+                            # Handle structured error information
+                            req_id = result.get("requirement_id", "UNKNOWN")
+                            error_type = result.get("error_type", "Unknown")
+                            error_msg = result.get("error_message", "No details")
+                            
+                            self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
+                            
+                            # Record failure with detailed information
+                            if hasattr(self.logger, 'add_requirement_failure'):
+                                self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
+                        
+                        elif isinstance(result, list) and result:
+                            # Successful test cases
+                            all_test_cases.extend(result)
+                            self.metrics["successful_requirements"] += 1
+                            
+                            # Log success for specific requirement
+                            if result and isinstance(result[0], dict):
+                                req_id = result[0].get("requirement_id", "UNKNOWN")
+                                self.logger.info(f"✅ {req_id}: Generated {len(result)} test cases")
+                        
+                        else:
+                            # Empty result (legacy fallback)
+                            req_id = batch[j].get("id", "UNKNOWN") if j < len(batch) else "UNKNOWN"
+                            self.logger.warning(f"⚠️  {req_id}: No test cases generated (empty result)")
+                            if hasattr(self.logger, 'add_requirement_failure'):
+                                self.logger.add_requirement_failure(req_id, "Empty result returned")
                     
                     batch_time = time.time() - batch_start
                     rate = len(batch) / batch_time if batch_time > 0 else 0
@@ -187,17 +222,38 @@ class HighPerformanceREQIFZFileProcessor:
             # Calculate performance metrics
             performance_metrics = self._calculate_performance_metrics(processing_time)
             
+            # Calculate error summary
+            failed_requirements = len(system_requirements) - self.metrics["successful_requirements"]
+            error_summary = {
+                "total_failures": failed_requirements,
+                "failure_rate": (failed_requirements / len(system_requirements) * 100) if system_requirements else 0,
+                "detailed_failures": []
+            }
+            
+            # Extract detailed failure information from logger if available
+            if hasattr(self.logger, 'failure_details'):
+                error_summary["detailed_failures"] = [
+                    {
+                        "requirement_id": failure.requirement_id,
+                        "error": failure.error,
+                        "timestamp": failure.timestamp
+                    }
+                    for failure in self.logger.failure_details
+                ]
+
             result = {
                 "success": True,
                 "output_file": str(output_path),
                 "total_test_cases": len(all_test_cases),
                 "requirements_processed": len(system_requirements),
                 "successful_requirements": self.metrics["successful_requirements"],
+                "failed_requirements": failed_requirements,
                 "artifacts_found": len(artifacts),
                 "processing_time": processing_time,
                 "model_used": model,
                 "template_used": template or "auto-selected",
-                "performance_metrics": performance_metrics
+                "performance_metrics": performance_metrics,
+                "error_summary": error_summary
             }
             
             self.logger.info(f"🏆 High-Performance Processing Complete!")
