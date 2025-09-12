@@ -1,0 +1,155 @@
+# =================================================================
+# CLI Configuration for AI Test Case Generator
+# File: config/cli_config.yaml
+# =================================================================
+
+# Default CLI settings - these override built-in defaults
+cli_defaults:
+  # Processing settings
+  mode: "standard"              # standard|hp|training
+  model: "llama3.1:8b"         # Default AI model
+  template: null               # Use auto-selection
+  max_concurrent: 4            # For HP mode
+  
+  # Input/Output settings
+  input_directory: "input/"    # Default input directory
+  output_directory: null       # null = same as input directory
+  
+  # Logging and output control
+  verbose: false               # Verbose output
+  debug: false                 # Debug mode
+  performance: false           # Performance metrics (HP mode)
+
+# =================================================================
+# Named Presets - Common Configuration Combinations
+# =================================================================
+
+presets:
+  # Development preset - verbose output, debugging enabled
+  development:
+    mode: "standard"
+    model: "llama3.1:8b"
+    verbose: true
+    debug: true
+    max_concurrent: 2           # Lower concurrency for debugging
+    
+  # Production preset - high performance, minimal logging
+  production:
+    mode: "hp"
+    model: "deepseek-coder-v2:16b"
+    max_concurrent: 8
+    performance: true           # Show metrics for monitoring
+    verbose: false
+    debug: false
+    
+  # Testing preset - balanced settings for CI/CD
+  testing:
+    mode: "standard"
+    model: "llama3.1:8b"
+    verbose: true
+    debug: false
+    max_concurrent: 2
+    
+  # High-speed preset - maximum performance
+  turbo:
+    mode: "hp"
+    model: "llama3.1:8b"       # Faster model for speed
+    max_concurrent: 12
+    performance: true
+    verbose: false
+
+  # Accuracy preset - focus on quality over speed  
+  accurate:
+    mode: "standard"
+    model: "deepseek-coder-v2:16b"  # Better model for accuracy
+    verbose: true
+    debug: true
+    template: "driver_information_default"
+
+# =================================================================
+# Environment-Specific Overrides
+# =================================================================
+
+environments:
+  # Local development environment
+  local:
+    verbose: true
+    debug: true
+    max_concurrent: 2
+    performance: false
+    
+  # Continuous Integration environment
+  ci_cd:
+    mode: "standard"           # Consistent, reliable processing
+    verbose: false             # Minimal output for logs
+    debug: false
+    max_concurrent: 4
+    performance: false
+    
+  # Staging environment
+  staging:
+    mode: "hp"
+    model: "llama3.1:8b"
+    max_concurrent: 6
+    verbose: true              # More logging for staging validation
+    performance: true
+    
+  # Production environment
+  production:
+    mode: "hp"
+    model: "deepseek-coder-v2:16b"
+    max_concurrent: 8
+    verbose: false             # Minimal production logging
+    debug: false
+    performance: false         # No performance overhead in prod
+
+# =================================================================
+# Model-Specific Default Settings
+# =================================================================
+
+model_configs:
+  "llama3.1:8b":
+    timeout: 300               # 5 minutes
+    temperature: 0.0
+    recommended_concurrent: 6
+    
+  "deepseek-coder-v2:16b":
+    timeout: 600               # 10 minutes (larger model)
+    temperature: 0.0
+    recommended_concurrent: 3   # More resource intensive
+
+# =================================================================
+# Team/Project Specific Settings
+# =================================================================
+
+project_settings:
+  # Project name for logging and identification
+  project_name: "AI_TC_Generator_v04"
+  
+  # Default file patterns
+  input_patterns: 
+    - "*.reqifz"
+    - "*.xml"
+  
+  # Output naming conventions
+  output_naming:
+    excel_suffix: "_TCD"
+    json_log_suffix: "_processing_log"
+    timestamp_format: "%Y%m%d_%H%M%S"
+
+# =================================================================
+# Validation and Safety Settings
+# =================================================================
+
+validation:
+  # Template validation
+  validate_templates_on_startup: true
+  require_template_validation: false
+  
+  # Input file validation  
+  validate_input_files: true
+  require_ollama_connection: true
+  
+  # Output validation
+  validate_output_format: true
+  backup_existing_outputs: false

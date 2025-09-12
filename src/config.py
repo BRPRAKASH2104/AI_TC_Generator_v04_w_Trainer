@@ -8,6 +8,7 @@ including settings for Ollama API, static test case parameters, and file process
 Updated to use Pydantic for robust validation and settings management.
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -163,6 +164,30 @@ class LoggingConfig(BaseModel):
     log_template_usage: bool = True
 
 
+class CLIConfig(BaseModel):
+    """Configuration for CLI defaults and behavior"""
+
+    # Processing mode defaults
+    mode: str = Field("standard", pattern="^(standard|hp|training)$", description="Default processing mode")
+    model: str = Field("llama3.1:8b", description="Default AI model")
+    template: str | None = Field(None, description="Default template name")
+    max_concurrent: int = Field(4, ge=1, le=16, description="Default max concurrent requests")
+
+    # I/O defaults
+    input_directory: Path = Field(Path("input/"), description="Default input directory")
+    output_directory: Path | None = Field(None, description="Default output directory (None = same as input)")
+
+    # Logging defaults
+    verbose: bool = Field(False, description="Default verbose mode")
+    debug: bool = Field(False, description="Default debug mode")
+    performance: bool = Field(False, description="Default performance metrics")
+
+    # Configuration collections
+    presets: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Named configuration presets")
+    environments: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Environment-specific configs")
+    model_configs: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Model-specific settings")
+
+
 class ConfigManager(BaseSettings):
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
@@ -175,6 +200,7 @@ class ConfigManager(BaseSettings):
     file_processing: FileProcessingConfig = Field(default_factory=FileProcessingConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    cli: CLIConfig = Field(default_factory=CLIConfig)
 
     @classmethod
     def settings_customise_sources(
@@ -267,6 +293,119 @@ class ConfigManager(BaseSettings):
         print(f"  • Monitor Performance: {self.logging.monitor_performance}")
 
         print("=" * 50)
+
+    def load_cli_config(self, cli_config_path: Path | str | None = None) -> None:
+        """Load CLI configuration from file and merge with current settings"""
+        config_paths = [
+            cli_config_path,  # Explicitly provided path
+            Path("config/cli_config.yaml"),  # Project config
+            Path.home() / ".config" / "ai_tc_generator" / "config.yaml",  # User config
+        ]
+        
+        for config_path in config_paths:
+            if config_path and Path(config_path).exists():
+                try:
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        config_data = yaml.safe_load(f)
+                    
+                    # Update CLI configuration
+                    if "cli_defaults" in config_data:
+                        cli_data = config_data["cli_defaults"]
+                        # Merge with existing CLI config
+                        for key, value in cli_data.items():
+                            if hasattr(self.cli, key):
+                                setattr(self.cli, key, value)
+                    
+                    # Load presets, environments, and model configs
+                    if "presets" in config_data:
+                        self.cli.presets.update(config_data["presets"])
+                    if "environments" in config_data:
+                        self.cli.environments.update(config_data["environments"])
+                    if "model_configs" in config_data:
+                        self.cli.model_configs.update(config_data["model_configs"])
+                        
+                    print(f"✅ Loaded CLI config from: {config_path}")
+                    return
+                    
+                except Exception as e:
+                    print(f"⚠️  Warning: Could not load CLI config from {config_path}: {e}")
+                    continue
+        
+        print("ℹ️  Using default CLI configuration (no config file found)")
+
+    def get_preset_config(self, preset_name: str) -> dict[str, Any]:
+        """Get named preset configuration"""
+        if preset_name in self.cli.presets:
+            return self.cli.presets[preset_name].copy()
+        else:
+            available = list(self.cli.presets.keys())
+            print(f"❌ Preset '{preset_name}' not found. Available presets: {available}")
+            return {}
+
+    def get_environment_config(self, env_name: str) -> dict[str, Any]:
+        """Get environment-specific configuration"""
+        if env_name in self.cli.environments:
+            return self.cli.environments[env_name].copy()
+        else:
+            available = list(self.cli.environments.keys())
+            print(f"❌ Environment '{env_name}' not found. Available environments: {available}")
+            return {}
+
+    def apply_cli_overrides(self, **kwargs) -> dict[str, Any]:
+        """Apply CLI configuration with environment variables and overrides"""
+        # Start with CLI defaults
+        effective_config = {
+            "mode": self.cli.mode,
+            "model": self.cli.model,
+            "template": self.cli.template,
+            "max_concurrent": self.cli.max_concurrent,
+            "verbose": self.cli.verbose,
+            "debug": self.cli.debug,
+            "performance": self.cli.performance,
+        }
+        
+        # Apply environment variables (AI_TG_* prefix)
+        env_mapping = {
+            "AI_TG_MODE": "mode",
+            "AI_TG_MODEL": "model", 
+            "AI_TG_TEMPLATE": "template",
+            "AI_TG_MAX_CONCURRENT": "max_concurrent",
+            "AI_TG_VERBOSE": "verbose",
+            "AI_TG_DEBUG": "debug",
+            "AI_TG_PERFORMANCE": "performance",
+        }
+        
+        for env_var, config_key in env_mapping.items():
+            if env_value := os.getenv(env_var):
+                if config_key in ["verbose", "debug", "performance"]:
+                    effective_config[config_key] = env_value.lower() in ("true", "1", "yes", "on")
+                elif config_key == "max_concurrent":
+                    try:
+                        effective_config[config_key] = int(env_value)
+                    except ValueError:
+                        print(f"⚠️  Invalid {env_var} value: {env_value}")
+                else:
+                    effective_config[config_key] = env_value
+        
+        # Apply direct kwargs (highest priority)
+        effective_config.update({k: v for k, v in kwargs.items() if v is not None})
+        
+        return effective_config
+
+    def show_effective_config(self, **overrides) -> None:
+        """Display the effective configuration with all overrides applied"""
+        config = self.apply_cli_overrides(**overrides)
+        
+        print("\n🔧 EFFECTIVE CLI CONFIGURATION")
+        print("=" * 40)
+        print(f"  Mode: {config['mode']}")
+        print(f"  Model: {config['model']}")
+        print(f"  Template: {config['template'] or 'auto-select'}")
+        print(f"  Max Concurrent: {config['max_concurrent']}")
+        print(f"  Verbose: {config['verbose']}")
+        print(f"  Debug: {config['debug']}")
+        print(f"  Performance: {config['performance']}")
+        print("=" * 40)
 
 
 # Global configuration instance
