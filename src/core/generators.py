@@ -198,57 +198,74 @@ class AsyncTestCaseGenerator:
         template_name: str = None
     ) -> list[ProcessingResult]:
         """
-        Generate test cases for multiple requirements concurrently.
-        
+        Generate test cases for multiple requirements concurrently with intelligent batching.
+
+        This method implements several performance optimizations:
+        1. Creates async tasks for each requirement to enable true concurrent processing
+        2. Uses asyncio.gather() with return_exceptions=True to handle failures gracefully
+        3. Processes results in a structured way to maintain consistency
+        4. Implements proper error categorization and structured error objects
+
         Args:
             requirements: List of requirements to process
-            model: AI model to use
-            template_name: Optional template name
-            
+            model: AI model to use for generation
+            template_name: Optional template name for prompt formatting
+
         Returns:
-            List of processing results (test cases or error objects)
+            List of processing results (successful test cases or structured error objects)
+            Each result maintains the same interface regardless of success/failure
         """
+        # Phase 1: Create async tasks for concurrent execution
+        # We create all tasks upfront to maximize parallelism potential
         tasks = []
-        
+
         for requirement in requirements:
+            # Each task will be executed concurrently, subject to semaphore limiting
             task = self._generate_test_cases_for_requirement_async(
                 requirement, model, template_name
             )
             tasks.append(task)
-        
-        # Execute all tasks concurrently
+
+        # Phase 2: Execute all tasks concurrently with exception handling
+        # asyncio.gather() allows us to wait for all tasks while catching exceptions
+        # return_exceptions=True ensures that exceptions don't cancel other tasks
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # Process results and return structured information
+
+        # Phase 3: Process and normalize results for consistent output structure
+        # This ensures all downstream code gets a predictable format regardless of success/failure
         processed_results = []
         for i, result in enumerate(results):
             req_id = requirements[i].get("id", "UNKNOWN")
-            
+
             if isinstance(result, Exception):
-                # Create structured error object
+                # Handle exceptions that bubbled up from asyncio.gather()
+                # These are typically network errors, timeouts, or unexpected failures
                 error_info = {
                     "error": True,
                     "requirement_id": req_id,
                     "error_type": type(result).__name__,
                     "error_message": str(result),
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "test_cases": []  # Empty test cases for failed requirement
+                    "test_cases": []  # Consistent interface: always provide test_cases list
                 }
-                
+
+                # Log the failure for debugging and metrics
                 if self.logger:
                     self.logger.error(f"Failed to generate test cases for {req_id}: {result}")
                     self.logger.add_requirement_failure(req_id, str(result))
-                
+
                 processed_results.append(error_info)
             else:
-                # Successful result - could be test cases or error info from method
+                # Handle successful results or controlled error responses
                 if isinstance(result, dict) and result.get("error"):
-                    # Error info from async method
+                    # This is a structured error object returned by the async method
+                    # (e.g., empty response, JSON parsing failure, etc.)
                     processed_results.append(result)
                 else:
-                    # Successful test cases
+                    # This is a successful result containing test cases
+                    # The result should already be in the correct format from the async method
                     processed_results.append(result)
-        
+
         return processed_results
 
     async def _generate_test_cases_for_requirement_async(
@@ -257,32 +274,58 @@ class AsyncTestCaseGenerator:
         model: str,
         template_name: str = None
     ) -> ProcessingResult:
-        """Generate test cases for a single requirement asynchronously with enhanced error handling"""
+        """
+        Generate test cases for a single requirement asynchronously with comprehensive error handling.
+
+        This method implements a sophisticated async processing pipeline:
+        1. Semaphore-controlled concurrency to prevent API overload
+        2. Prompt generation with template system integration
+        3. Async AI API communication with timing metrics
+        4. Multi-layered response validation and error categorization
+        5. Structured error objects that maintain consistent interfaces
+
+        Args:
+            requirement: Requirement data containing id, type, heading, text, etc.
+            model: AI model identifier for generation
+            template_name: Optional template for prompt customization
+
+        Returns:
+            Either a list of test cases (success) or structured error object (failure)
+            Both maintain the same interface with test_cases field for consistency
+        """
         req_id = requirement.get('id', 'UNKNOWN')
-        
-        async with self.semaphore:  # Limit concurrent requests
+
+        # Semaphore controls concurrent API requests to prevent overwhelming the AI service
+        # This is critical for maintaining stable performance under high load
+        async with self.semaphore:
             try:
-                # Build prompt (reuse sync logic)
+                # Phase 1: Prompt Construction
+                # We reuse the synchronous prompt building logic to maintain consistency
+                # between sync and async processing paths
                 sync_generator = TestCaseGenerator(None, self.yaml_manager, self.logger)
-                
+
                 if self.yaml_manager:
+                    # Use template system for structured, customizable prompts
                     prompt = sync_generator._build_prompt_from_template(requirement, template_name)
                 else:
+                    # Fallback to default prompt if template system unavailable
                     prompt = sync_generator._build_default_prompt(requirement)
 
                 if self.logger:
                     self.logger.info(f"Async generating test cases for {req_id}")
 
-                # Generate AI response asynchronously
+                # Phase 2: AI Response Generation
+                # Time the AI call for performance metrics and SLA monitoring
                 start_time = time.time()
                 response = await self.client.generate_response(model, prompt, is_json=True)
                 generation_time = time.time() - start_time
 
-                # Record AI response time for metrics
+                # Record timing metrics for performance analysis and optimization
                 if self.logger:
                     self.logger.add_ai_response_time(generation_time)
 
-                # Handle empty or invalid response
+                # Phase 3: Response Validation - Empty Response Check
+                # Handle cases where AI returns empty or whitespace-only responses
                 if not response or not response.strip():
                     error_info = {
                         "error": True,
@@ -291,21 +334,23 @@ class AsyncTestCaseGenerator:
                         "error_message": "AI model returned empty response",
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                         "generation_time": generation_time,
-                        "test_cases": []
+                        "test_cases": []  # Maintain consistent interface
                     }
-                    
+
                     if self.logger:
                         self.logger.warning(f"Empty response for {req_id}")
                         self.logger.add_requirement_failure(req_id, "Empty AI response")
-                    
+
                     return error_info
 
-                # Parse JSON response
+                # Phase 4: JSON Parsing and Structure Validation
+                # Use fast JSON parser optimized for AI responses
                 test_cases_data = self.json_parser.extract_json_from_response(response)
-                
+
                 if test_cases_data and "test_cases" in test_cases_data:
                     test_cases = test_cases_data["test_cases"]
-                    
+
+                    # Validate that we actually got test cases, not just an empty array
                     if not test_cases:
                         error_info = {
                             "error": True,
@@ -316,27 +361,34 @@ class AsyncTestCaseGenerator:
                             "generation_time": generation_time,
                             "test_cases": []
                         }
-                        
+
                         if self.logger:
                             self.logger.warning(f"Empty test cases array for {req_id}")
                             self.logger.add_requirement_failure(req_id, "Empty test cases array")
-                        
+
                         return error_info
-                    
-                    # Add metadata to test cases
+
+                    # Phase 5: Test Case Enrichment and Metadata Addition
+                    # Add traceability and metadata to each generated test case
                     for i, test_case in enumerate(test_cases):
+                        # Ensure traceability back to source requirement
                         test_case["requirement_id"] = req_id
                         test_case["generation_time"] = generation_time
+
+                        # Generate unique test case ID with consistent format
                         test_case["test_id"] = f"{req_id}_TC_{i+1:03d}"
+
+                        # Track which model and template were used for debugging
                         test_case["model_used"] = model
                         test_case["template_used"] = template_name or "default"
-                    
+
                     if self.logger:
                         self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
-                    
+
                     return test_cases
                 else:
-                    # JSON parsing failed or invalid structure
+                    # Phase 6: JSON Parsing Failure Handling
+                    # Handle cases where JSON parsing failed or structure is invalid
                     error_info = {
                         "error": True,
                         "requirement_id": req_id,
@@ -344,17 +396,20 @@ class AsyncTestCaseGenerator:
                         "error_message": "Could not parse test_cases from AI response",
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                         "generation_time": generation_time,
+                        # Include truncated raw response for debugging (avoid logging sensitive data)
                         "raw_response": response[:200] + "..." if len(response) > 200 else response,
                         "test_cases": []
                     }
-                    
+
                     if self.logger:
                         self.logger.warning(f"Invalid JSON response for {req_id}: {response[:100]}...")
                         self.logger.add_requirement_failure(req_id, "Invalid JSON response format")
-                    
+
                     return error_info
 
             except asyncio.TimeoutError as e:
+                # Handle timeout errors specifically - these are common in async processing
+                # and should be handled gracefully without crashing the entire batch
                 error_info = {
                     "error": True,
                     "requirement_id": req_id,
@@ -363,14 +418,17 @@ class AsyncTestCaseGenerator:
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "test_cases": []
                 }
-                
+
                 if self.logger:
                     self.logger.error(f"⏱️  Timeout error for {req_id}: {e}")
                     self.logger.add_requirement_failure(req_id, f"Timeout: {str(e)}")
-                
+
                 return error_info
-                
+
             except Exception as e:
+                # Catch-all for any other unexpected errors during processing
+                # This ensures the async batch processing continues even if individual
+                # requirements fail due to network issues, API errors, etc.
                 error_info = {
                     "error": True,
                     "requirement_id": req_id,
@@ -379,9 +437,9 @@ class AsyncTestCaseGenerator:
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "test_cases": []
                 }
-                
+
                 if self.logger:
                     self.logger.error(f"💥 Unexpected error for {req_id}: {e}")
                     self.logger.add_requirement_failure(req_id, str(e))
-                
+
                 return error_info

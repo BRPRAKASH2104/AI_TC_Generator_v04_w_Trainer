@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 from pydantic_settings import SettingsError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -29,6 +29,10 @@ class OllamaConfig(BaseModel):
     host: str = Field("127.0.0.1", description="Ollama host")
     port: int = Field(11434, ge=1, le=65535, description="Ollama port")
     timeout: int = Field(600, gt=0, description="API timeout in seconds")
+
+    # Security settings - using environment variables for sensitive data
+    api_key: str | None = Field(None, description="API key for authentication (use AI_TG_API_KEY env var)")
+    auth_token: str | None = Field(None, description="Auth token for API access (use AI_TG_AUTH_TOKEN env var)")
 
     # Model settings
     temperature: float = Field(0.0, ge=0.0, le=2.0, description="Model temperature")
@@ -119,6 +123,87 @@ class FileProcessingConfig(BaseModel):
     excel_index: bool = False
 
 
+class SecretsConfig(BaseModel):
+    """Configuration for secrets and sensitive data management"""
+
+    # API credentials - loaded from environment variables
+    ollama_api_key: str | None = Field(None, description="Ollama API key")
+    external_api_key: str | None = Field(None, description="External AI service API key")
+    database_password: str | None = Field(None, description="Database password")
+    encryption_key: str | None = Field(None, description="Encryption key for sensitive data")
+
+    # Cloud service credentials
+    aws_access_key_id: str | None = Field(None, description="AWS access key ID")
+    aws_secret_access_key: str | None = Field(None, description="AWS secret access key")
+    azure_client_id: str | None = Field(None, description="Azure client ID")
+    azure_client_secret: str | None = Field(None, description="Azure client secret")
+
+    # Webhook and integration secrets
+    webhook_secret: str | None = Field(None, description="Webhook validation secret")
+    github_token: str | None = Field(None, description="GitHub personal access token")
+    slack_token: str | None = Field(None, description="Slack bot token")
+
+    # Security settings
+    enable_encryption: bool = Field(False, description="Enable encryption for sensitive data")
+    secrets_expiry_hours: int = Field(24, ge=1, le=168, description="Hours after which secrets should be refreshed")
+
+    def model_post_init(self, __context) -> None:
+        """Load secrets from environment variables after initialization"""
+        # Mapping of field names to environment variable names
+        env_mapping = {
+            "ollama_api_key": "AI_TG_OLLAMA_API_KEY",
+            "external_api_key": "AI_TG_EXTERNAL_API_KEY",
+            "database_password": "AI_TG_DATABASE_PASSWORD",
+            "encryption_key": "AI_TG_ENCRYPTION_KEY",
+            "aws_access_key_id": "AWS_ACCESS_KEY_ID",
+            "aws_secret_access_key": "AWS_SECRET_ACCESS_KEY",
+            "azure_client_id": "AZURE_CLIENT_ID",
+            "azure_client_secret": "AZURE_CLIENT_SECRET",
+            "webhook_secret": "AI_TG_WEBHOOK_SECRET",
+            "github_token": "AI_TG_GITHUB_TOKEN",
+            "slack_token": "AI_TG_SLACK_TOKEN",
+        }
+
+        # Load values from environment variables
+        for field_name, env_var in env_mapping.items():
+            env_value = os.getenv(env_var)
+            if env_value:
+                setattr(self, field_name, env_value)
+
+    def get_masked_summary(self) -> dict[str, str]:
+        """Get a summary of secrets with masked values for logging"""
+        summary = {}
+        for field_name, value in self.model_dump().items():
+            if field_name.endswith("_hours") or field_name.startswith("enable_"):
+                summary[field_name] = str(value)
+            elif value is not None:
+                # Mask sensitive values
+                if len(str(value)) > 8:
+                    summary[field_name] = f"{str(value)[:4]}***{str(value)[-2:]}"
+                else:
+                    summary[field_name] = "***"
+            else:
+                summary[field_name] = "not_set"
+        return summary
+
+    def validate_required_secrets(self, required_secrets: list[str]) -> tuple[bool, list[str]]:
+        """
+        Validate that required secrets are present
+
+        Args:
+            required_secrets: List of required secret field names
+
+        Returns:
+            Tuple of (all_present, missing_secrets)
+        """
+        missing_secrets = []
+        for secret_name in required_secrets:
+            if not getattr(self, secret_name, None):
+                missing_secrets.append(secret_name)
+
+        return len(missing_secrets) == 0, missing_secrets
+
+
 class TrainingConfig(BaseModel):
     """Configuration for training and model customization"""
 
@@ -167,6 +252,8 @@ class LoggingConfig(BaseModel):
 class CLIConfig(BaseModel):
     """Configuration for CLI defaults and behavior"""
 
+    model_config = ConfigDict(protected_namespaces=())
+
     # Processing mode defaults
     mode: str = Field("standard", pattern="^(standard|hp|training)$", description="Default processing mode")
     model: str = Field("llama3.1:8b", description="Default AI model")
@@ -198,6 +285,7 @@ class ConfigManager(BaseSettings):
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
     static_test: StaticTestConfig = Field(default_factory=StaticTestConfig)
     file_processing: FileProcessingConfig = Field(default_factory=FileProcessingConfig)
+    secrets: SecretsConfig = Field(default_factory=SecretsConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     cli: CLIConfig = Field(default_factory=CLIConfig)
@@ -292,6 +380,14 @@ class ConfigManager(BaseSettings):
         print(f"  • Log to File: {self.logging.log_to_file}")
         print(f"  • Monitor Performance: {self.logging.monitor_performance}")
 
+        print("\n🔐 SECRETS MANAGEMENT:")
+        secrets_summary = self.secrets.get_masked_summary()
+        for key, value in secrets_summary.items():
+            if not key.endswith("_hours") and not key.startswith("enable_"):
+                print(f"  • {key.replace('_', ' ').title()}: {value}")
+        print(f"  • Encryption Enabled: {self.secrets.enable_encryption}")
+        print(f"  • Secrets Expiry: {self.secrets.secrets_expiry_hours}h")
+
         print("=" * 50)
 
     def load_cli_config(self, cli_config_path: Path | str | None = None) -> None:
@@ -351,61 +447,156 @@ class ConfigManager(BaseSettings):
             print(f"❌ Environment '{env_name}' not found. Available environments: {available}")
             return {}
 
-    def apply_cli_overrides(self, **kwargs) -> dict[str, Any]:
-        """Apply CLI configuration with environment variables and overrides"""
-        # Start with CLI defaults
-        effective_config = {
-            "mode": self.cli.mode,
-            "model": self.cli.model,
-            "template": self.cli.template,
-            "max_concurrent": self.cli.max_concurrent,
-            "verbose": self.cli.verbose,
-            "debug": self.cli.debug,
-            "performance": self.cli.performance,
-        }
-        
+    def apply_cli_overrides(self, **kwargs) -> "ConfigManager":
+        """
+        Apply CLI configuration with environment variables and overrides.
+
+        This method creates a new ConfigManager instance with the overrides applied,
+        providing a single source of truth for configuration throughout the application.
+
+        Args:
+            **kwargs: CLI arguments to override (model, template, max_concurrent, etc.)
+
+        Returns:
+            New ConfigManager instance with overrides applied
+        """
+        # Start with current configuration
+        config_dict = self.model_dump()
+
         # Apply environment variables (AI_TG_* prefix)
         env_mapping = {
-            "AI_TG_MODE": "mode",
-            "AI_TG_MODEL": "model", 
-            "AI_TG_TEMPLATE": "template",
-            "AI_TG_MAX_CONCURRENT": "max_concurrent",
-            "AI_TG_VERBOSE": "verbose",
-            "AI_TG_DEBUG": "debug",
-            "AI_TG_PERFORMANCE": "performance",
+            "AI_TG_MODEL": ("ollama", "synthesizer_model"),
+            "AI_TG_TEMPLATE": ("cli", "template"),
+            "AI_TG_MAX_CONCURRENT": ("ollama", "concurrent_requests"),
+            "AI_TG_VERBOSE": ("cli", "verbose"),
+            "AI_TG_DEBUG": ("cli", "debug"),
+            "AI_TG_PERFORMANCE": ("cli", "performance"),
+            "AI_TG_LOG_LEVEL": ("logging", "log_level"),
+            "AI_TG_TIMEOUT": ("ollama", "timeout"),
+            "AI_TG_TEMPERATURE": ("ollama", "temperature"),
+            "AI_TG_OLLAMA_HOST": ("ollama", "host"),
+            "AI_TG_OLLAMA_PORT": ("ollama", "port"),
+            "AI_TG_ENCRYPTION": ("secrets", "enable_encryption"),
         }
-        
-        for env_var, config_key in env_mapping.items():
+
+        for env_var, (section, key) in env_mapping.items():
             if env_value := os.getenv(env_var):
-                if config_key in ["verbose", "debug", "performance"]:
-                    effective_config[config_key] = env_value.lower() in ("true", "1", "yes", "on")
-                elif config_key == "max_concurrent":
+                if key in ["verbose", "debug", "performance"]:
+                    config_dict[section][key] = env_value.lower() in ("true", "1", "yes", "on")
+                elif key in ["max_concurrent", "concurrent_requests", "timeout"]:
                     try:
-                        effective_config[config_key] = int(env_value)
+                        config_dict[section][key] = int(env_value)
+                    except ValueError:
+                        print(f"⚠️  Invalid {env_var} value: {env_value}")
+                elif key == "temperature":
+                    try:
+                        config_dict[section][key] = float(env_value)
                     except ValueError:
                         print(f"⚠️  Invalid {env_var} value: {env_value}")
                 else:
-                    effective_config[config_key] = env_value
-        
+                    config_dict[section][key] = env_value
+
         # Apply direct kwargs (highest priority)
-        effective_config.update({k: v for k, v in kwargs.items() if v is not None})
-        
-        return effective_config
+        cli_overrides = {}
+        ollama_overrides = {}
+
+        # Map CLI arguments to configuration sections
+        if "model" in kwargs and kwargs["model"] is not None:
+            ollama_overrides["synthesizer_model"] = kwargs["model"]
+        if "template" in kwargs and kwargs["template"] is not None:
+            cli_overrides["template"] = kwargs["template"]
+        if "max_concurrent" in kwargs and kwargs["max_concurrent"] is not None:
+            ollama_overrides["concurrent_requests"] = kwargs["max_concurrent"]
+        if "verbose" in kwargs and kwargs["verbose"] is not None:
+            cli_overrides["verbose"] = kwargs["verbose"]
+        if "debug" in kwargs and kwargs["debug"] is not None:
+            cli_overrides["debug"] = kwargs["debug"]
+        if "performance" in kwargs and kwargs["performance"] is not None:
+            cli_overrides["performance"] = kwargs["performance"]
+        if "config" in kwargs and kwargs["config"] is not None:
+            # Load additional config file if specified
+            try:
+                additional_config = yaml.safe_load(Path(kwargs["config"]).read_text())
+                # Deep merge additional config
+                self._deep_merge_dict(config_dict, additional_config)
+            except Exception as e:
+                print(f"⚠️  Warning: Could not load config file {kwargs['config']}: {e}")
+
+        # Apply the overrides to respective sections
+        if cli_overrides:
+            config_dict["cli"].update(cli_overrides)
+        if ollama_overrides:
+            config_dict["ollama"].update(ollama_overrides)
+
+        # Create new ConfigManager instance with updated configuration
+        return ConfigManager.model_validate(config_dict)
+
+    @staticmethod
+    def _deep_merge_dict(base_dict: dict[str, Any], update_dict: dict[str, Any]) -> None:
+        """Deep merge update_dict into base_dict"""
+        for key, value in update_dict.items():
+            if key in base_dict and isinstance(base_dict[key], dict) and isinstance(value, dict):
+                ConfigManager._deep_merge_dict(base_dict[key], value)
+            else:
+                base_dict[key] = value
 
     def show_effective_config(self, **overrides) -> None:
         """Display the effective configuration with all overrides applied"""
-        config = self.apply_cli_overrides(**overrides)
-        
+        effective_config = self.apply_cli_overrides(**overrides)
+
         print("\n🔧 EFFECTIVE CLI CONFIGURATION")
         print("=" * 40)
-        print(f"  Mode: {config['mode']}")
-        print(f"  Model: {config['model']}")
-        print(f"  Template: {config['template'] or 'auto-select'}")
-        print(f"  Max Concurrent: {config['max_concurrent']}")
-        print(f"  Verbose: {config['verbose']}")
-        print(f"  Debug: {config['debug']}")
-        print(f"  Performance: {config['performance']}")
+        print(f"  Mode: {effective_config.cli.mode}")
+        print(f"  Model: {effective_config.ollama.synthesizer_model}")
+        print(f"  Template: {effective_config.cli.template or 'auto-select'}")
+        print(f"  Max Concurrent: {effective_config.ollama.concurrent_requests}")
+        print(f"  Verbose: {effective_config.cli.verbose}")
+        print(f"  Debug: {effective_config.cli.debug}")
+        print(f"  Performance: {effective_config.cli.performance}")
+        print(f"  Timeout: {effective_config.ollama.timeout}s")
+        print(f"  Temperature: {effective_config.ollama.temperature}")
         print("=" * 40)
+
+    def validate_secrets_for_mode(self, mode: str) -> tuple[bool, list[str]]:
+        """
+        Validate that required secrets are available for a specific operational mode
+
+        Args:
+            mode: Operational mode (e.g., 'cloud', 'external_api', 'training')
+
+        Returns:
+            Tuple of (all_present, missing_secrets)
+        """
+        required_secrets_by_mode = {
+            "cloud": ["aws_access_key_id", "aws_secret_access_key"],
+            "azure": ["azure_client_id", "azure_client_secret"],
+            "external_api": ["external_api_key"],
+            "training": ["encryption_key"],
+            "webhooks": ["webhook_secret"],
+            "integrations": ["github_token", "slack_token"],
+        }
+
+        required = required_secrets_by_mode.get(mode, [])
+        return self.secrets.validate_required_secrets(required)
+
+    def get_secrets_status(self) -> dict[str, Any]:
+        """Get comprehensive secrets status for monitoring and debugging"""
+        secrets_summary = self.secrets.get_masked_summary()
+
+        # Count configured vs unconfigured secrets
+        configured_count = sum(1 for v in secrets_summary.values()
+                             if v not in ["not_set", "False"] and not v.startswith("enable_"))
+        total_secrets = len([k for k in secrets_summary.keys()
+                           if not k.endswith("_hours") and not k.startswith("enable_")])
+
+        return {
+            "secrets_configured": configured_count,
+            "total_secrets_available": total_secrets,
+            "encryption_enabled": self.secrets.enable_encryption,
+            "secrets_expiry_hours": self.secrets.secrets_expiry_hours,
+            "secrets_summary": secrets_summary,
+            "configuration_health": "healthy" if configured_count > 0 else "minimal"
+        }
 
 
 # Global configuration instance

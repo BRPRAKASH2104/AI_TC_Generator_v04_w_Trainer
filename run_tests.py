@@ -14,9 +14,6 @@ def run_tests():
     print("🧪 Running AI Test Case Generator Test Suite")
     print("=" * 60)
     
-    # Add src to path
-    sys.path.insert(0, str(Path(__file__).parent / "src"))
-    
     # Run pytest with coverage
     cmd = [
         "python3", "-m", "pytest",
@@ -55,6 +52,9 @@ def run_specific_test(test_path):
         return False
 
 if __name__ == "__main__":
+    # Add src to path for direct execution
+    sys.path.insert(0, str(Path(__file__).parent / "src"))
+
     if len(sys.argv) > 1:
         # Run specific test
         test_path = sys.argv[1]
@@ -62,5 +62,5 @@ if __name__ == "__main__":
     else:
         # Run all tests
         success = run_tests()
-    
+
     sys.exit(0 if success else 1)
