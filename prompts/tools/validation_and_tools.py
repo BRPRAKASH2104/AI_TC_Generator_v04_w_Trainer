@@ -7,7 +7,6 @@ Tools for validating YAML prompt templates and testing prompt rendering
 """
 
 import sys
-import yaml
 from pathlib import Path
 sys.path.append('src')
 

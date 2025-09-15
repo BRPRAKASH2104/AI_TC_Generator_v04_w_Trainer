@@ -173,7 +173,7 @@ def _run_standard_mode(
         
         console.print(f"🔍 Input: [cyan]{input_file.name}[/cyan]")
         console.print(f"🤖 Model: [cyan]{model}[/cyan]")
-        console.print(f"🏗️  Architecture: [cyan]Modular Standard Processor[/cyan]")
+        console.print("🏗️  Architecture: [cyan]Modular Standard Processor[/cyan]")
         
         # Process single file or directory
         if input_file.is_file():
@@ -217,7 +217,7 @@ def _run_hp_mode(
         console.print(f"🚀 Input: [cyan]{input_file.name}[/cyan]")
         console.print(f"🤖 Model: [cyan]{model}[/cyan]")
         console.print(f"⚡ Concurrency: [cyan]{processor.max_concurrent_requirements}[/cyan]")
-        console.print(f"🏗️  Architecture: [cyan]Modular HP Async Processor[/cyan]")
+        console.print("🏗️  Architecture: [cyan]Modular HP Async Processor[/cyan]")
         
         # Run async processing
         if input_file.is_file():

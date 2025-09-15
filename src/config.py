@@ -15,7 +15,7 @@ from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, HttpUrl, model_validator
-from pydantic.v1.env_settings import SettingsError
+from pydantic_settings import SettingsError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Redundant function removed - using class method in ConfigManager instead

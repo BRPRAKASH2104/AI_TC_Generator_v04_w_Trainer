@@ -27,7 +27,7 @@ class YAMLPromptManager:
         self.config: dict[str, Any] = {}
         self.test_prompts: dict[str, Any] = {}
         self.error_prompts: dict[str, Any] = {}
-        self.last_selected_template = None
+        self.last_selected_template: str | None = None
         self.template_usage_count: dict[str, int] = {}  # Track template usage for summary
 
         self.load_configuration()
@@ -174,7 +174,7 @@ class YAMLPromptManager:
         final_variables = self._apply_defaults(template_data, variables)
 
         # Substitute variables in template
-        template_str = template_data["template"]
+        template_str = template_data.get("template") or template_data.get("prompt")
         rendered_prompt = self._substitute_variables(template_str, final_variables)
 
         return rendered_prompt
@@ -195,7 +195,8 @@ class YAMLPromptManager:
     def _auto_select_template(self, variables: dict[str, Any]) -> str:
         """Automatically select appropriate template based on context"""
         if not self.config.get("auto_selection", {}).get("enabled", True):
-            return self.config["defaults"]["template_selection"]
+            defaults = self.config.get("defaults", {})
+            return defaults.get("template_selection", "default")
 
         heading = variables.get("heading", "").lower()
         req_id = variables.get("requirement_id", "").upper()
@@ -208,7 +209,8 @@ class YAMLPromptManager:
                 data = yaml.safe_load(f)
                 selection_rules = data.get("prompt_selection", {})
         except Exception:
-            return self.config["defaults"]["template_selection"]
+            defaults = self.config.get("defaults", {})
+            return defaults.get("template_selection", "default")
 
         # Check heading keywords
         heading_rules = selection_rules.get("heading_keywords", {})
@@ -235,8 +237,13 @@ class YAMLPromptManager:
 
     def _validate_variables(self, template_data: dict[str, Any], variables: dict[str, Any]):
         """Validate that required variables are provided"""
-        template_vars = template_data.get("variables", {})
-        required = template_vars.get("required", [])
+        template_vars = template_data.get("variables", [])
+
+        # Handle both old format (list) and new format (dict with required key)
+        if isinstance(template_vars, list):
+            required = template_vars
+        else:
+            required = template_vars.get("required", [])
 
         missing = [var for var in required if var not in variables]
         if missing:
@@ -247,7 +254,12 @@ class YAMLPromptManager:
     ) -> dict[str, Any]:
         """Apply default values for optional variables"""
         template_vars = template_data.get("variables", {})
-        defaults = template_vars.get("defaults", {})
+
+        # Handle both old format (list) and new format (dict with defaults key)
+        if isinstance(template_vars, list):
+            defaults = {}
+        else:
+            defaults = template_vars.get("defaults", {})
 
         final_variables = variables.copy()
         for var, default_value in defaults.items():

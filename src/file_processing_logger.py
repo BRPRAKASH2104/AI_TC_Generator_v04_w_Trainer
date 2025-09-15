@@ -259,15 +259,20 @@ class FileProcessingLogger:
             "warnings": self.warnings,
         }
 
+    def debug(self, message: str):
+        """Print debug message (only in verbose mode)"""
+        # For now, treat debug same as info
+        print(f"🔍 {message}")
+
     def info(self, message: str):
         """Print info message (simple console logging)"""
         print(f"ℹ️  {message}")
-    
+
     def warning(self, message: str):
         """Print warning message and add to warnings list"""
         print(f"⚠️  {message}")
         self.add_warning(message)
-    
+
     def error(self, message: str):
         """Print error message"""
         print(f"❌ {message}")

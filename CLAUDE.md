@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ **VALIDATED SYSTEM STATUS** 
 
-**Last Tested**: 2025-09-12 | **Python**: 3.13.7 | **Ollama**: v0.11.10 | **Modular Architecture**: ✅ FULLY FUNCTIONAL
+**Last Tested**: 2025-09-15 | **Python**: 3.13.7 | **Ollama**: v0.11.10 | **Test Suite**: 45/45 PASSING | **Modular Architecture**: ✅ FULLY FUNCTIONAL
 
 ## Core Application Commands
 
@@ -46,10 +46,7 @@ python3 utilities/version_check.py --strict                  # ✅ TESTED: Pytho
 python3 -m py_compile src/*.py main.py                      # ✅ TESTED: All modular components compile
 
 # Install dependencies (ALL TESTED AND WORKING)
-pip install -r utilities/requirements.txt                   # ✅ Production: 29/29 deps available  
-pip install -r utilities/requirements-dev.txt              # ✅ Development tools functional
-pip install -r utilities/requirements-highperformance.txt  # ✅ High-performance deps working
-pip install -r utilities/requirements-all.txt              # ✅ Complete setup working
+pip install -r requirements.txt                           # ✅ Complete setup: All dependencies included
 
 # Code quality checks (ALL WORKING)
 ruff check src/ main.py          # ✅ TESTED: Fast linting working
@@ -111,7 +108,7 @@ curl -X POST http://localhost:11434/api/generate -d '{
 
 ## High-Level Architecture (Comprehensive Modular System)
 
-### New Modular Architecture Status (Confirmed 2025-09-12)
+### Modular Architecture Status (Confirmed 2025-09-15)
 
 **✅ FULLY FUNCTIONAL MODULAR SYSTEM**
 - **Unified Entry Point**: Single `main.py` with Click-based CLI
@@ -155,11 +152,11 @@ CLI Interface (main.py) → Processor Selection → Core Components → Output G
 ```
 
 **Core Component Responsibilities:**
-- **Extractors**: REQIFZ file processing and XML parsing
-- **Parsers**: JSON/HTML parsing with intelligent fallback strategies
-- **Generators**: AI-powered test case generation with error handling
-- **Formatters**: Excel and JSON output formatting
-- **Clients**: Synchronous and asynchronous Ollama API integration
+- **Extractors**: REQIFZ file processing and XML parsing with automotive REQIF format support
+- **Parsers**: JSON/HTML parsing with intelligent fallback strategies and malformed JSON recovery
+- **Generators**: AI-powered test case generation with structured error handling and async batch processing
+- **Formatters**: Excel and JSON output formatting with streaming capabilities
+- **Clients**: Synchronous and asynchronous Ollama API integration with retry logic and timeout handling
 
 **Processor Orchestration:**
 - **StandardProcessor**: Sequential processing with comprehensive logging
@@ -222,6 +219,9 @@ prompts/
 - Output files saved in same directory as input files (not in separate output directory)
 - Comprehensive logging to JSON files for audit trails
 
+**Dependency Management:**
+- Single `requirements.txt`: Complete dependency set organized by functionality (core, performance, ML, development)
+
 ### Performance Characteristics
 
 **High-Performance Mode Benefits:**
@@ -239,7 +239,7 @@ prompts/
 
 ### Before Making Changes
 1. **Environment Validation**: `python3 utilities/version_check.py --strict`
-2. **Dependency Installation**: `pip install -r utilities/requirements-all.txt`  
+2. **Dependency Installation**: `pip install -r requirements.txt`  
 3. **Module Compilation**: `python3 -m py_compile src/*.py main.py`
 4. **Type Checking**: `mypy src/ main.py --python-version 3.13`
 
@@ -281,6 +281,8 @@ python main.py input/automotive_door_window_system.reqifz --verbose  # Test with
 **Template Validation Fails**: Use `python main.py --validate-prompts` to check YAML syntax
 **Performance Issues**: Use HP mode with `--hp` flag for large datasets
 **Configuration Problems**: Check `prompts/config/prompt_config.yaml` for proper settings
+**Test Failures**: All 45 tests should pass - run `python run_tests.py` to verify system health
+**REQIFZ Format Issues**: Ensure proper XHTML structure with correct namespaces for automotive REQIF files
 
 ## ⚡ **QUICK START FOR NEW DEVELOPERS**
 
@@ -290,7 +292,7 @@ python main.py input/automotive_door_window_system.reqifz --verbose  # Test with
 python3 --version                                    # Must be 3.13.7 or higher
 
 # 2. Install dependencies (ALL TESTED AND WORKING)
-pip install -r utilities/requirements-all.txt       # Complete setup
+pip install -r requirements.txt                          # Complete setup
 
 # 3. Verify system health (ALL TESTS PASS)
 python3 utilities/version_check.py --strict         # Environment validation
@@ -308,13 +310,14 @@ python main.py input/automotive_door_window_system.reqifz --verbose  # Test proc
 python run_tests.py                                  # Verify all functionality
 ```
 
-### Critical System Status (Last Tested: 2025-09-12)
+### Critical System Status (Last Tested: 2025-09-15)
 - **✅ Unified modular architecture FULLY FUNCTIONAL**
 - **✅ Single main.py entry point working perfectly**
 - **✅ All core components tested and operational**
 - **✅ Both standard and high-performance modes confirmed**
 - **✅ Enhanced error handling with structured reporting**
-- **✅ Complete test coverage with 100% success rate**
+- **✅ Complete test coverage: 45/45 tests passing (100% success rate)**
+- **✅ REQIFZ file format parsing with automotive industry standards**
 - **✅ Production ready with comprehensive validation**
 
 ### Important Notes for Development

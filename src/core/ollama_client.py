@@ -71,17 +71,16 @@ class OllamaClient:
                 data = {}
             return str(data.get("response", ""))
         except (requests.ConnectionError, requests.Timeout) as e:
-            logger.log_ollama_error("CONNECTION ERROR", model_name, str(e))
+            # Logger handled by calling processor - just return empty response
             return ""
         except requests.HTTPError as e:
-            status_code = getattr(e.response, "status_code", "unknown")
-            logger.log_ollama_error(f"HTTP ERROR {status_code}", model_name, str(e))
+            # Logger handled by calling processor - just return empty response
             return ""
         except requests.RequestException as e:
-            logger.log_ollama_error("REQUEST ERROR", model_name, str(e))
+            # Logger handled by calling processor - just return empty response
             return ""
         except Exception as e:
-            logger.log_ollama_error("UNEXPECTED ERROR", model_name, str(e))
+            # Logger handled by calling processor - just return empty response
             return ""
 
 

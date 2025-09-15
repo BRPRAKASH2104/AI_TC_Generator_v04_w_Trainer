@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, NotRequired, TypedDict
+from typing import Any
 
 from core.parsers import HTMLTableParser
 
@@ -162,21 +162,22 @@ class REQIFArtifactExtractor:
     def _determine_artifact_type(self, content: str) -> ArtifactType:
         """Determine artifact type based on content patterns"""
         content_lower = content.lower()
-        
+
         # Pattern matching for artifact classification (PEP 634)
+        # Note: Order matters - more specific patterns should come first
         match True:
             case _ if any(keyword in content_lower for keyword in ["heading", "title", "section"]):
                 return ArtifactType.HEADING
-            case _ if any(keyword in content_lower for keyword in ["information", "note", "description"]):
-                return ArtifactType.INFORMATION
+            case _ if any(keyword in content_lower for keyword in ["requirement", "shall", "must", "should"]):
+                return ArtifactType.SYSTEM_REQUIREMENT
             case _ if any(keyword in content_lower for keyword in ["design", "architecture", "diagram"]):
                 return ArtifactType.DESIGN_INFORMATION
             case _ if any(keyword in content_lower for keyword in ["parameter", "variable", "setting"]):
                 return ArtifactType.APPLICATION_PARAMETER
             case _ if any(keyword in content_lower for keyword in ["interface", "input", "output", "signal"]):
                 return ArtifactType.SYSTEM_INTERFACE
-            case _ if any(keyword in content_lower for keyword in ["requirement", "shall", "must", "should"]):
-                return ArtifactType.SYSTEM_REQUIREMENT
+            case _ if any(keyword in content_lower for keyword in ["information", "note", "description"]):
+                return ArtifactType.INFORMATION
             case _:
                 return ArtifactType.UNKNOWN
 

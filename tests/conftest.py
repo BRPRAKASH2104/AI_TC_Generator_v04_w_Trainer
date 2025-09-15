@@ -120,7 +120,7 @@ def sample_test_cases():
 def temp_reqifz_file(tmp_path):
     """Create a temporary REQIFZ file for testing."""
     reqifz_content = """<?xml version="1.0" encoding="UTF-8"?>
-<REQ-IF xmlns="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">
+<REQ-IF xmlns="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd" xmlns:html="http://www.w3.org/1999/xhtml">
     <THE-HEADER>
         <REQ-IF-HEADER>
             <COMMENT>Test REQIF file</COMMENT>
@@ -142,10 +142,11 @@ def temp_reqifz_file(tmp_path):
                                 <ATTRIBUTE-DEFINITION-STRING-REF>TYPE</ATTRIBUTE-DEFINITION-STRING-REF>
                             </DEFINITION>
                         </ATTRIBUTE-VALUE-STRING>
-                        <ATTRIBUTE-VALUE-XHTML THE-VALUE="&lt;div&gt;The system shall validate user input&lt;/div&gt;">
-                            <DEFINITION>
-                                <ATTRIBUTE-DEFINITION-XHTML-REF>DESCRIPTION</ATTRIBUTE-DEFINITION-XHTML-REF>
+                        <ATTRIBUTE-VALUE-XHTML>
+                            <DEFINITION LONG-NAME="ReqIF.Text">
+                                <ATTRIBUTE-DEFINITION-XHTML-REF>req-text</ATTRIBUTE-DEFINITION-XHTML-REF>
                             </DEFINITION>
+                            <THE-VALUE><html:div>The system shall validate user input</html:div></THE-VALUE>
                         </ATTRIBUTE-VALUE-XHTML>
                     </VALUES>
                 </SPEC-OBJECT>

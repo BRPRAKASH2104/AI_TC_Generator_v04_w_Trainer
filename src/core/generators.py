@@ -105,13 +105,9 @@ class TestCaseGenerator:
 
             # Use template manager to get formatted prompt
             if template_name:
-                return self.yaml_manager.get_test_prompt_with_variables(template_name, **variables)
+                return self.yaml_manager.get_test_prompt(template_name, **variables)
             else:
-                return self.yaml_manager.get_test_prompt_by_content(
-                    heading=variables["heading"],
-                    requirement_id=variables["requirement_id"],
-                    **variables
-                )
+                return self.yaml_manager.get_test_prompt(**variables)
 
         except Exception as e:
             if self.logger:

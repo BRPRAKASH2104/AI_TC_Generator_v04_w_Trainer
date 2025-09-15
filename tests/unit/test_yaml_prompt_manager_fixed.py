@@ -124,10 +124,10 @@ class TestYAMLPromptManagerFixed:
                 
                 templates = manager.list_templates()
                 
-                assert "test_prompts" in templates
-                assert "error_prompts" in templates
-                assert "template1" in str(templates["test_prompts"])
-                assert "template2" in str(templates["test_prompts"])
+                assert "test_generation" in templates
+                assert "error_handling" in templates
+                assert "template1" in templates["test_generation"]
+                assert "template2" in templates["test_generation"]
 
     def test_get_template_info(self):
         """Test getting template information."""

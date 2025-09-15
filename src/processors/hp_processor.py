@@ -256,7 +256,7 @@ class HighPerformanceREQIFZFileProcessor:
                 "error_summary": error_summary
             }
             
-            self.logger.info(f"🏆 High-Performance Processing Complete!")
+            self.logger.info("🏆 High-Performance Processing Complete!")
             self.logger.info(f"📊 Generated {len(all_test_cases)} test cases in {processing_time:.2f}s")
             self.logger.info(f"⚡ Rate: {len(all_test_cases) / processing_time:.1f} test cases/sec")
             self.logger.info(f"🎯 Efficiency: {performance_metrics.get('parallel_efficiency', 0):.1f}%")
@@ -305,7 +305,7 @@ class HighPerformanceREQIFZFileProcessor:
         successful = sum(1 for r in results if r["success"])
         total_test_cases = sum(r.get("total_test_cases", 0) for r in results if r["success"])
         
-        self.logger.info(f"\n🏁 HP Batch Processing Complete!")
+        self.logger.info("\n🏁 HP Batch Processing Complete!")
         self.logger.info(f"📊 Files processed: {successful}/{len(reqifz_files)}")
         self.logger.info(f"📋 Total test cases: {total_test_cases}")
         self.logger.info(f"⏱️  Total time: {total_time:.2f}s")

@@ -172,7 +172,7 @@ class REQIFZFileProcessor:
                 "template_used": template or "auto-selected"
             }
             
-            self.logger.info(f"🎉 Processing complete!")
+            self.logger.info("🎉 Processing complete!")
             self.logger.info(f"📊 Generated {len(all_test_cases)} test cases in {processing_time:.2f}s")
             self.logger.info(f"📁 Saved to: {output_path.name}")
             
@@ -197,16 +197,18 @@ class REQIFZFileProcessor:
     ) -> list[ProcessingResult]:
         """
         Process all REQIFZ files in a directory.
-        
+
         Args:
             input_dir: Directory containing REQIFZ files
             model: AI model to use
             template: Optional template name
             output_dir: Optional output directory
-            
+
         Returns:
             List of processing results
         """
+        # Initialize temporary logger for directory processing
+        self.logger = FileProcessingLogger(reqifz_file="directory_processing", input_path=str(input_dir))
         self.logger.info(f"🔍 Scanning directory: {input_dir}")
         
         # Find all REQIFZ files
@@ -236,7 +238,7 @@ class REQIFZFileProcessor:
         total_test_cases = sum(r.get("total_test_cases", 0) for r in results if r["success"])
         total_time = sum(r.get("processing_time", 0) for r in results)
         
-        self.logger.info(f"\n🏁 Batch Processing Complete!")
+        self.logger.info("\n🏁 Batch Processing Complete!")
         self.logger.info(f"📊 Files processed: {successful}/{len(reqifz_files)}")
         self.logger.info(f"📋 Total test cases generated: {total_test_cases}")
         self.logger.info(f"⏱️  Total processing time: {total_time:.2f}s")

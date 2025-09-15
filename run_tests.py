@@ -19,7 +19,7 @@ def run_tests():
     
     # Run pytest with coverage
     cmd = [
-        "python", "-m", "pytest", 
+        "python3", "-m", "pytest",
         "tests/",
         "-v",  # Verbose output
         "--tb=short",  # Short traceback format

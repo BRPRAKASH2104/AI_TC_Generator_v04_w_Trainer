@@ -35,7 +35,7 @@ class TestCaseFormatter:
         self,
         test_cases: TestCaseList,
         output_path: Path,
-        metadata: dict[str, Any] = None
+        metadata: dict[str, Any] | None = None
     ) -> bool:
         """
         Format test cases to Excel file with automotive-specific formatting.
@@ -76,7 +76,7 @@ class TestCaseFormatter:
     def _prepare_test_cases_for_excel(
         self,
         test_cases: TestCaseList,
-        metadata: dict[str, Any] = None
+        metadata: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
         """Prepare test cases with automotive-specific formatting"""
         formatted_cases = []
@@ -184,7 +184,7 @@ class TestCaseFormatter:
         self,
         df: pd.DataFrame,
         output_path: Path,
-        metadata: dict[str, Any] = None
+        metadata: dict[str, Any] | None = None
     ) -> None:
         """Create Excel file with professional formatting"""
         # Ensure output directory exists
@@ -273,7 +273,7 @@ class TestCaseFormatter:
         self,
         test_cases: TestCaseList,
         output_path: Path,
-        metadata: dict[str, Any] = None
+        metadata: dict[str, Any] | None = None
     ) -> bool:
         """Export test cases to JSON format"""
         try:
@@ -307,7 +307,7 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
         self,
         test_cases_iterator,
         output_path: Path,
-        metadata: dict[str, Any] = None,
+        metadata: dict[str, Any] | None = None,
         chunk_size: int = 100
     ) -> bool:
         """Format test cases to Excel using streaming approach for memory efficiency"""
