@@ -73,26 +73,30 @@ class REQIFArtifactExtractor:
         """Parse REQIF XML content and extract artifacts"""
         try:
             root = ET.fromstring(xml_content)
-            
+
             # REQIF namespaces
             namespaces = {
                 "reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd",
                 "html": "http://www.w3.org/1999/xhtml",
             }
-            
+
+            # Build all necessary mappings
+            spec_type_map = self._build_spec_type_mapping(root, namespaces)
+            foreign_id_map = self._build_foreign_id_mapping(root, namespaces)
+
             artifacts = []
-            
+
             # Find all spec objects (artifacts)
             spec_objects = root.findall(".//reqif:SPEC-OBJECT", namespaces)
-            
+
             for spec_obj in spec_objects:
-                artifact = self._extract_spec_object(spec_obj, namespaces)
+                artifact = self._extract_spec_object(spec_obj, namespaces, spec_type_map, foreign_id_map)
                 if artifact:
                     artifacts.append(artifact)
-            
+
             if self.logger:
                 self.logger.info(f"Extracted {len(artifacts)} artifacts from REQIF")
-                
+
             return artifacts
 
         except ET.ParseError as e:
@@ -100,7 +104,60 @@ class REQIFArtifactExtractor:
                 self.logger.error(f"XML parsing error: {e}")
             return []
 
-    def _extract_spec_object(self, spec_obj: ET.Element, namespaces: dict[str, str]) -> RequirementData | None:
+    def _build_spec_type_mapping(self, root: ET.Element, namespaces: dict[str, str]) -> dict[str, str]:
+        """Build a mapping of SPEC-OBJECT-TYPE identifiers to their LONG-NAME values"""
+        spec_type_map = {}
+
+        # Find all SPEC-OBJECT-TYPE elements
+        spec_types = root.findall(".//reqif:SPEC-OBJECT-TYPE", namespaces)
+
+        for spec_type in spec_types:
+            identifier = spec_type.get("IDENTIFIER")
+            long_name = spec_type.get("LONG-NAME")
+
+            if identifier and long_name:
+                spec_type_map[identifier] = long_name
+
+        if self.logger:
+            self.logger.debug(f"Found {len(spec_type_map)} SPEC-OBJECT-TYPE definitions")
+
+        return spec_type_map
+
+    def _build_foreign_id_mapping(self, root: ET.Element, namespaces: dict[str, str]) -> dict[str, str]:
+        """Build mapping from SPEC-OBJECT-TYPE IDs to their ReqIF.ForeignID attribute identifiers"""
+        foreign_id_map = {}
+
+        for spec_type in root.findall(".//reqif:SPEC-OBJECT-TYPE", namespaces):
+            type_id = spec_type.get("IDENTIFIER")
+            foreign_id_def = spec_type.find(
+                ".//reqif:ATTRIBUTE-DEFINITION-STRING[@LONG-NAME='ReqIF.ForeignID']",
+                namespaces,
+            )
+            if foreign_id_def is not None:
+                foreign_id_map[type_id] = foreign_id_def.get("IDENTIFIER")
+
+        if self.logger:
+            self.logger.debug(f"Found {len(foreign_id_map)} ReqIF.ForeignID attribute definitions")
+
+        return foreign_id_map
+
+    def _extract_foreign_id(self, values_container, target_foreign_id_ref: str, default_id: str) -> str:
+        """Extract foreign ID from VALUES container"""
+        if not target_foreign_id_ref:
+            return default_id
+
+        for attr_value in values_container.findall("reqif:ATTRIBUTE-VALUE-STRING", {"reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd"}):
+            definition_ref_node = attr_value.find(
+                "reqif:DEFINITION/reqif:ATTRIBUTE-DEFINITION-STRING-REF",
+                {"reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd"}
+            )
+            if (definition_ref_node is not None and
+                definition_ref_node.text == target_foreign_id_ref):
+                return attr_value.get("THE-VALUE", default_id)
+
+        return default_id
+
+    def _extract_spec_object(self, spec_obj: ET.Element, namespaces: dict[str, str], spec_type_map: dict[str, str] = None, foreign_id_map: dict[str, str] = None) -> RequirementData | None:
         """Extract a single spec object as an artifact"""
         try:
             artifact = {
@@ -110,6 +167,28 @@ class REQIFArtifactExtractor:
                 "heading": "",
                 "table": None,
             }
+
+            # Determine object type and get type reference for foreign ID extraction
+            spec_object_type_ref = None
+            type_element = spec_obj.find(".//reqif:TYPE", namespaces)
+            if type_element is not None:
+                type_ref_element = type_element.find(".//reqif:SPEC-OBJECT-TYPE-REF", namespaces)
+                if type_ref_element is not None and spec_type_map:
+                    spec_object_type_ref = type_ref_element.text
+                    type_name = spec_type_map.get(spec_object_type_ref, "")
+
+                    # Map REQIF type names to our ArtifactType enum
+                    artifact["type"] = self._map_reqif_type_to_artifact_type(type_name)
+
+            # Extract VALUES container for both foreign ID and content extraction
+            values_container = spec_obj.find("reqif:VALUES", namespaces)
+            if values_container is not None:
+                # Extract foreign ID if available - THIS IS THE KEY FIX
+                if foreign_id_map and spec_object_type_ref:
+                    target_foreign_id_ref = foreign_id_map.get(spec_object_type_ref)
+                    if target_foreign_id_ref:
+                        foreign_id = self._extract_foreign_id(values_container, target_foreign_id_ref, artifact["id"])
+                        artifact["id"] = foreign_id  # Use foreign ID instead of internal ID
 
             # Extract attribute values
             values = spec_obj.findall(".//reqif:ATTRIBUTE-VALUE-XHTML", namespaces)
@@ -129,10 +208,12 @@ class REQIFArtifactExtractor:
                         if html_elements:
                             content = self._extract_xhtml_content(the_value)
 
-                            # Determine artifact type and content based on attribute reference
+                            # Determine artifact content based on attribute reference
                             if "text" in attr_name.lower() or "info" in attr_name.lower():
                                 artifact["text"] = content
-                                artifact["type"] = self._determine_artifact_type(content)
+                                # If type is still unknown, try content-based classification as fallback
+                                if artifact["type"] == ArtifactType.UNKNOWN:
+                                    artifact["type"] = self._determine_artifact_type(content)
                             elif "heading" in attr_name.lower() or "name" in attr_name.lower():
                                 artifact["heading"] = content
                                 if artifact["type"] == ArtifactType.UNKNOWN:
@@ -178,6 +259,27 @@ class REQIFArtifactExtractor:
         content = " ".join(content.split())
 
         return content
+
+    def _map_reqif_type_to_artifact_type(self, reqif_type_name: str) -> ArtifactType:
+        """Map REQIF SPEC-OBJECT-TYPE LONG-NAME to our ArtifactType enum"""
+        type_name_lower = reqif_type_name.lower()
+
+        # Direct mapping based on REQIF type names
+        match type_name_lower:
+            case name if "system requirement" in name:
+                return ArtifactType.SYSTEM_REQUIREMENT
+            case name if "heading" in name:
+                return ArtifactType.HEADING
+            case name if "information" in name:
+                return ArtifactType.INFORMATION
+            case name if "design information" in name or "design" in name:
+                return ArtifactType.DESIGN_INFORMATION
+            case name if "application parameter" in name or "parameter" in name:
+                return ArtifactType.APPLICATION_PARAMETER
+            case name if "system interface" in name or "interface" in name:
+                return ArtifactType.SYSTEM_INTERFACE
+            case _:
+                return ArtifactType.UNKNOWN
 
     def _determine_artifact_type(self, content: str) -> ArtifactType:
         """Determine artifact type based on content patterns"""
@@ -281,6 +383,10 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
                 "html": "http://www.w3.org/1999/xhtml",
             }
 
+            # Build SPEC-OBJECT-TYPE mapping and foreign ID mapping
+            spec_type_map = self._build_spec_type_mapping(root, namespaces)
+            foreign_id_map = self._build_foreign_id_mapping(root, namespaces)
+
             # Step 2: Find all spec objects
             spec_objects = root.findall(".//reqif:SPEC-OBJECT", namespaces)
 
@@ -298,12 +404,12 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
             # For small numbers of spec objects, use sequential processing to avoid overhead
             if len(spec_objects) < 10:
                 for spec_obj in spec_objects:
-                    artifact = self._extract_spec_object(spec_obj, namespaces)
+                    artifact = self._extract_spec_object(spec_obj, namespaces, spec_type_map, foreign_id_map)
                     if artifact:
                         artifacts.append(artifact)
             else:
                 # Use ThreadPoolExecutor for concurrent processing of spec objects
-                artifacts = self._process_spec_objects_concurrent(spec_objects, namespaces)
+                artifacts = self._process_spec_objects_concurrent(spec_objects, namespaces, spec_type_map, foreign_id_map)
 
             if self.logger:
                 self.logger.info(f"Extracted {len(artifacts)} artifacts from REQIF using parallel processing")
@@ -320,13 +426,14 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
             # Fallback to sequential processing if parallel processing fails
             return super()._parse_reqif_xml(xml_content)
 
-    def _process_spec_objects_concurrent(self, spec_objects, namespaces) -> ArtifactList:
+    def _process_spec_objects_concurrent(self, spec_objects, namespaces, spec_type_map: dict[str, str] = None, foreign_id_map: dict[str, str] = None) -> ArtifactList:
         """
         Process spec objects concurrently using ThreadPoolExecutor.
 
         Args:
             spec_objects: List of spec object XML elements
             namespaces: XML namespaces for parsing
+            spec_type_map: Mapping of SPEC-OBJECT-TYPE IDs to names
 
         Returns:
             List of extracted artifacts
@@ -340,7 +447,7 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit batch processing tasks
             future_to_batch = {
-                executor.submit(self._process_spec_object_batch, batch, namespaces): batch_idx
+                executor.submit(self._process_spec_object_batch, batch, namespaces, spec_type_map, foreign_id_map): batch_idx
                 for batch_idx, batch in enumerate(batches)
             }
 
@@ -363,7 +470,7 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
                     try:
                         batch = batches[batch_idx]
                         for spec_obj in batch:
-                            artifact = self._extract_spec_object(spec_obj, namespaces)
+                            artifact = self._extract_spec_object(spec_obj, namespaces, spec_type_map, foreign_id_map)
                             if artifact:
                                 artifacts.append(artifact)
                     except Exception as fallback_e:
@@ -372,13 +479,14 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
 
         return artifacts
 
-    def _process_spec_object_batch(self, spec_objects_batch, namespaces) -> ArtifactList:
+    def _process_spec_object_batch(self, spec_objects_batch, namespaces, spec_type_map: dict[str, str] = None, foreign_id_map: dict[str, str] = None) -> ArtifactList:
         """
         Process a batch of spec objects sequentially within a single thread.
 
         Args:
             spec_objects_batch: Batch of spec object XML elements
             namespaces: XML namespaces for parsing
+            spec_type_map: Mapping of SPEC-OBJECT-TYPE IDs to names
 
         Returns:
             List of extracted artifacts from this batch
@@ -387,7 +495,7 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
 
         for spec_obj in spec_objects_batch:
             try:
-                artifact = self._extract_spec_object(spec_obj, namespaces)
+                artifact = self._extract_spec_object(spec_obj, namespaces, spec_type_map, foreign_id_map)
                 if artifact:
                     batch_artifacts.append(artifact)
             except Exception as e:

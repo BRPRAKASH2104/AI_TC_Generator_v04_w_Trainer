@@ -6,56 +6,158 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Last Tested**: 2025-09-15 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+ | **Test Suite**: 76+ PASSING | **Package**: v1.4.0 | **Architecture**: ✅ PRODUCTION READY
 
-## Core Application Commands
+## 📚 Documentation Quick Navigation
 
-### Modern Package Installation (RECOMMENDED ✅)
+| Section | What You'll Find |
+|---------|------------------|
+| **[🚀 Quick Start Guide](#-quick-start-guide)** | Installation options and first steps |
+| **[📋 CLI Command Reference](#-cli-command-reference)** | Complete command-line interface guide |
+| **[🧪 Development & Testing](#-development--testing-guide)** | Development setup and testing commands |
+| **[🤖 AI Model Setup](#-ai-model-setup-ollama)** | Ollama installation and configuration |
 
-**🚀 Quick Start - Package Installation:**
+### ⚡ Most Common Commands
+
+**For New Users:**
 ```bash
-# Development setup (recommended for contributors)
-pip install -e .[dev]          # Editable install with all dev tools
-ai-tc-generator input/automotive_door_window_system.reqifz --verbose
+# 1. Install
+pip install -e .[dev]
 
-# Production installation (from PyPI when available)
-pip install ai-tc-generator
-ai-tc-generator input.reqifz
+# 2. Process files
+ai-tc-generator input/your_file.reqifz --verbose
 
-# Specialized installations
+# 3. Fast processing
+ai-tc-generator input/directory/ --hp
+```
+
+**For Developers:**
+```bash
+# 1. Run tests
+python run_tests.py
+
+# 2. Check code quality
+ruff check src/ main.py --fix
+
+# 3. Development mode
+python main.py input/file.reqifz --debug
+```
+
+## 🚀 Quick Start Guide
+
+### Installation Options
+
+**Option 1: Development Setup (RECOMMENDED for contributors)**
+```bash
+pip install -e .[dev]          # Editable install with all development tools
+```
+
+**Option 2: Production Setup (when available on PyPI)**
+```bash
+pip install ai-tc-generator    # Standard installation
+```
+
+**Option 3: Specialized Installations**
+```bash
 pip install -e .[security]     # + Security scanning tools
 pip install -e .[training]     # + ML training dependencies
 pip install -e .[all]          # All optional dependencies
 ```
 
-**🎯 Available Commands After Installation:**
-```bash
-# Primary command-line interfaces
-ai-tc-generator input.reqifz              # Main CLI tool
-ai-tc-gen input.reqifz --hp               # Short alias
+## 📋 CLI Command Reference
 
-# All CLI options available
-ai-tc-generator --help                    # Full help
-ai-tc-generator --validate-prompts        # Template validation
-ai-tc-generator --list-templates          # Show available templates
+### Basic Usage Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `ai-tc-generator <file>` | Process single REQIFZ file | `ai-tc-generator input/door_system.reqifz` |
+| `ai-tc-generator <directory>` | Process all REQIFZ files in directory | `ai-tc-generator input/` |
+| `ai-tc-gen <file>` | Short alias for ai-tc-generator | `ai-tc-gen input/door_system.reqifz` |
+
+### Information & Help Commands
+
+| Command | Description |
+|---------|-------------|
+| `ai-tc-generator --help` | Show all available options |
+| `ai-tc-generator --version` | Show version information |
+| `ai-tc-generator --list-templates` | List available prompt templates |
+| `ai-tc-generator --validate-prompts` | Validate YAML template syntax |
+
+### Processing Mode Options
+
+| Flag | Description | Usage Example |
+|------|-------------|---------------|
+| `--hp` | High-performance mode (2.5x faster) | `ai-tc-generator input/ --hp` |
+| `--verbose` | Detailed logging output | `ai-tc-generator input/ --verbose` |
+| `--debug` | Debug mode with extra details | `ai-tc-generator input/ --debug` |
+| `--performance` | Show performance metrics | `ai-tc-generator input/ --hp --performance` |
+
+### AI Model Configuration
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--model <name>` | Specify AI model to use | `--model deepseek-coder-v2:16b` |
+| `--template <name>` | Use specific prompt template | `--template advanced_v3` |
+| `--max-concurrent <num>` | Set concurrent workers (HP mode) | `--max-concurrent 4` |
+| `--timeout <seconds>` | Set AI request timeout | `--timeout 300` |
+
+### Common Usage Examples
+
+**Basic Processing:**
+```bash
+# Process single file with default settings
+ai-tc-generator input/automotive_door_window_system.reqifz
+
+# Process directory with verbose output
+ai-tc-generator input/2025_09_12_S220 --verbose
 ```
 
-### Direct Execution (Development Alternative ✅)
+**High-Performance Processing:**
+```bash
+# Fast processing with performance metrics
+ai-tc-generator input/ --hp --performance
 
-**⚡ Legacy Direct Execution (when not using package):**
+# High-performance with custom workers
+ai-tc-generator input/ --hp --max-concurrent 4
+```
+
+**Advanced Options:**
+```bash
+# Custom model with verbose output
+ai-tc-generator input/ --model deepseek-coder-v2:16b --verbose
+
+# Debug mode with custom template
+ai-tc-generator input/door_system.reqifz --debug --template advanced_v3
+```
+
+**Template Management:**
+```bash
+# Validate prompt templates
+ai-tc-generator --validate-prompts
+
+# List available templates
+ai-tc-generator --list-templates
+```
+
+## 🛠️ Development Mode (Direct Execution)
+
+**When package is not installed, use direct execution:**
+
+| Command | Description |
+|---------|-------------|
+| `python main.py <file>` | Basic processing |
+| `python main.py <file> --hp` | High-performance mode |
+| `python main.py --validate-prompts` | Validate templates |
+| `python main.py --list-templates` | List templates |
+
+**Development Examples:**
 ```bash
 # Standard processing
 python main.py input/automotive_door_window_system.reqifz
 
-# High-performance mode (2.5x faster, optimal with 2 workers)
-python main.py input/automotive_door_window_system.reqifz --hp --performance
+# High-performance with metrics
+python main.py input/ --hp --performance --verbose
 
-# Template management
-python main.py --validate-prompts        # Validate YAML templates
-python main.py --list-templates          # List available templates
-
-# Advanced usage
-python main.py input/ --model deepseek-coder-v2:16b --verbose
-python main.py input.reqifz --hp --max-concurrent 4 --debug
-python main.py input.reqifz --training   # ML training mode (experimental)
+# Advanced configuration
+python main.py input/ --model deepseek-coder-v2:16b --max-concurrent 4 --debug
 ```
 
 **🏗️ Modular Architecture Benefits:**
@@ -64,68 +166,110 @@ python main.py input.reqifz --training   # ML training mode (experimental)
 - **Enhanced Error Handling**: Structured error reporting with detailed categorization
 - **Comprehensive Testing**: Full pytest-based test suite with 100% success rate
 
-### Development and Testing (Production Ready ✅)
+## 🧪 Development & Testing Guide
 
-**🧪 Essential Development Commands:**
+### Environment Setup
+
+| Task | Command | Purpose |
+|------|---------|---------|
+| **Check Python Version** | `python3 utilities/version_check.py --strict` | Verify Python 3.13.7+ |
+| **Install Dev Environment** | `pip install -e .[dev]` | Install with all dev tools |
+| **Verify Installation** | `python3 -c "import src; print(f'v{src.__version__}')"` | Check package import |
+| **Syntax Check** | `python3 -m py_compile src/*.py main.py` | Validate syntax |
+
+### Code Quality & Linting
+
+| Task | Command | Description |
+|------|---------|-------------|
+| **Check Code Style** | `ruff check src/ main.py utilities/` | Fast linting |
+| **Auto-format Code** | `ruff format src/ main.py utilities/` | Format code |
+| **Fix Issues** | `ruff check src/ main.py --fix` | Auto-fix problems |
+| **Type Checking** | `mypy src/ main.py --python-version 3.13` | Static type analysis |
+
+### Testing Commands
+
+**Quick Testing:**
 ```bash
-# Environment validation
-python3 utilities/version_check.py --strict    # Verify Python 3.13.7+
-python3 -m py_compile src/*.py main.py         # Syntax validation
-
-# Package installation and validation
-pip install -e .[dev]                          # RECOMMENDED: Dev environment
-python3 -c "import src; print(f'v{src.__version__} {src.__architecture__}')"
-
-# Build and distribution
-python -m build                                # Build wheel and source
-twine check dist/*                             # Validate package metadata
-
-# Code quality and validation
-ruff check src/ main.py utilities/           # Fast linting
-ruff format src/ main.py utilities/          # Auto-formatting
-ruff check src/ main.py --fix                # Auto-fix issues
-mypy src/ main.py --python-version 3.13     # Type checking
-
-# Testing (comprehensive suite)
-python run_tests.py                          # ALL TESTS: Complete suite
-python -m pytest tests/ -v --cov=src        # Detailed output with coverage
-python -m pytest tests/core/ -v             # Core component tests
-python -m pytest tests/integration/ -v      # Integration tests
-
-# Individual test components
-python -m pytest tests/core/test_parsers.py -v        # JSON/HTML parsers
-python -m pytest tests/core/test_generators.py -v     # Test case generation
-python -m pytest tests/integration/test_end_to_end.py -v  # Full workflows
-python -m pytest tests/integration/test_edge_cases.py -v  # Error handling
-
-# Test data and validation
-python3 utilities/create_mock_reqifz.py      # Generate test REQIFZ file
-python3 -c "import src; print(f'✅ v{src.__version__} ready')"  # Quick validation
+python run_tests.py                    # Run complete test suite (recommended)
 ```
 
-### Ollama Model Management (Fully Validated ✅)
+**Detailed Testing:**
+```bash
+# Full test suite with coverage
+python -m pytest tests/ -v --cov=src
+
+# Test specific components
+python -m pytest tests/core/ -v                           # Core components
+python -m pytest tests/integration/ -v                    # Integration tests
+python -m pytest tests/core/test_parsers.py -v           # JSON/HTML parsers
+python -m pytest tests/core/test_generators.py -v        # Test generation
+python -m pytest tests/integration/test_end_to_end.py -v # Full workflows
+```
+
+### Build & Distribution
+
+| Task | Command | Purpose |
+|------|---------|---------|
+| **Build Package** | `python -m build` | Create wheel and source dist |
+| **Validate Package** | `twine check dist/*` | Check package metadata |
+| **Generate Test Data** | `python3 utilities/create_mock_reqifz.py` | Create test REQIFZ file |
+
+### Quick Validation Checks
 
 ```bash
-# CONFIRMED WORKING: Required AI models available
-ollama pull llama3.1:8b                    # ✅ TESTED: Model available and functional
-ollama pull deepseek-coder-v2:16b          # ✅ TESTED: Model available and functional
+# Verify everything is working
+python3 -c "import src; print(f'✅ v{src.__version__} ready')"
 
-# VALIDATED: Service status (v0.11.10+ required, v0.11.10 confirmed)
-ollama --version                           # ✅ TESTED: Returns "ollama version is 0.11.10"
-curl http://localhost:11434/api/tags       # ✅ TESTED: Returns both models with details
-ollama list                                # ✅ TESTED: Shows available models
+# Test with sample data
+ai-tc-generator input/automotive_door_window_system.reqifz --verbose
+```
 
-# Service management (TESTED)
-ollama serve                               # ✅ Start service if needed
+## 🤖 AI Model Setup (Ollama)
 
-# CONFIRMED: API connectivity and advanced features
+### Required Models Installation
+
+| Model | Command | Purpose |
+|-------|---------|---------|
+| **LLaMA 3.1 8B** | `ollama pull llama3.1:8b` | Default model for test generation |
+| **DeepSeek Coder** | `ollama pull deepseek-coder-v2:16b` | Advanced coding-focused model |
+
+### Service Management
+
+| Task | Command | Description |
+|------|---------|-------------|
+| **Check Version** | `ollama --version` | Verify Ollama v0.11.10+ installed |
+| **Start Service** | `ollama serve` | Start Ollama service |
+| **List Models** | `ollama list` | Show installed models |
+| **Check API** | `curl http://localhost:11434/api/tags` | Test API connectivity |
+
+### Troubleshooting
+
+**If models aren't working:**
+```bash
+# 1. Check service is running
+ollama list
+
+# 2. Test basic connectivity
+curl http://localhost:11434/api/tags
+
+# 3. If service isn't running
+ollama serve
+
+# 4. Re-pull models if needed
+ollama pull llama3.1:8b
+ollama pull deepseek-coder-v2:16b
+```
+
+**Advanced API Test:**
+```bash
+# Test full API functionality
 curl -X POST http://localhost:11434/api/generate -d '{
   "model": "llama3.1:8b",
-  "prompt": "Test connectivity", 
+  "prompt": "Test connectivity",
   "stream": false,
   "keep_alive": "30m",
   "options": {"num_ctx": 8192, "num_predict": 2048, "temperature": 0.0}
-}'                                         # ✅ TESTED: Full API response working
+}'
 ```
 
 ## High-Level Architecture (Comprehensive Modular System)
