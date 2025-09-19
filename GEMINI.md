@@ -73,7 +73,7 @@ python main.py <path_to_reqifz_file> --hp
 The project uses `pytest` for testing. A convenience script `run_tests.py` is provided to run the test suite with coverage reporting.
 
 ```bash
-python run_tests.py
+python tests/run_tests.py
 ```
 
 This will run all tests in the `tests/` directory and generate a coverage report in the `htmlcov/` directory.

@@ -1,0 +1,139 @@
+# AI Test Case Generator - Profile Configuration
+#
+# Models:
+#   Llama31   = llama3.1:8b
+#   Deepseek  = deepseek-coder-v2:16b
+#   Qwen      = qwen2.5-coder:14b
+#
+# Templates:
+#   Default       = default template
+#   Telltale      = telltale-specific template
+#   ECU           = automotive ECU template
+#   Infotainment  = automotive infotainment template
+#   FlightControl = aerospace flight control
+#   Safety        = safety-critical systems
+#   Protocol      = communication protocols
+#   Validation    = validation testing
+#
+# Modes:
+#   DEFAULT   = Standard mode
+#   HP        = High-Performance mode
+#   DEBUG     = Debug mode with extra logging
+#   VERBOSE   = Verbose output mode
+
+profiles:
+  # =================================================================
+  # INTEGRATED CIRCUITS (IC) PROFILES
+  # =================================================================
+
+  Llama31.Standard:
+    description: "IC project with Llama3.1, default template, standard mode"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "default-v2"
+    max_concurrent: 0
+    timeout: 300
+    verbose: false
+    debug: false
+
+  Llama31.HP:
+    description: "IC project with Llama3.1, default template, high-performance mode"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 4
+    timeout: 300
+    performance: true
+    verbose: false
+
+  Llama31.HP.Verbose:
+    description: "IC project with Llama3.1, default template, high-performance mode"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 4
+    timeout: 300
+    performance: true
+    verbose: true
+
+  Deepseek.Telltale:
+    description: "IC project with DeepSeek, Telltale template, standard mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "telltale-v3"
+    max_concurrent: 2
+    timeout: 600
+    verbose: false
+
+  IC.Deepseek.Telltale.HP:
+    description: "IC project with DeepSeek, Telltale template, high-performance mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "telltale-v3"
+    max_concurrent: 6
+    timeout: 600
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "IC_TT"
+      test_type: "telltale-validation"
+      components: "ic-telltale-systems"
+
+  IC.Llama31.Validation.DEBUG:
+    description: "IC validation with Llama3.1, debug mode for troubleshooting"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "validation-comprehensive-v2"
+    max_concurrent: 1
+    timeout: 900
+    verbose: true
+    debug: true
+
+# =================================================================
+# ENVIRONMENTS
+# =================================================================
+
+environments:
+  local-development:
+    description: "Local development environment"
+    ollama:
+      host: "127.0.0.1"
+      port: 11434
+      timeout: 300
+
+# =================================================================
+# MODEL CONFIGURATIONS
+# =================================================================
+
+model_configurations:
+  "llama3.1:8b":
+    description: "Fast general-purpose model for quick iterations"
+    keep_alive: "15m"
+    num_ctx: 4096
+    num_predict: 2048
+    temperature: 0.0
+
+  "deepseek-coder-v2:16b":
+    description: "Advanced coding model for complex requirements"
+    keep_alive: "45m"
+    num_ctx: 8192
+    num_predict: 3072
+    temperature: 0.1
+
+  "qwen2.5-coder:14b":
+    description: "Alternative coding model with balanced performance"
+    keep_alive: "30m"
+    num_ctx: 6144
+    num_predict: 2560
+    temperature: 0.05
+
+# =================================================================
+# METADATA
+# =================================================================
+
+meta:
+  version: "1.0"
+  created: "2025-09-16"
+  description: "AI Test Case Generator profile configuration"
+  format: "Project.Model.Template.Mode"
+  contact: "engineering@company.com"

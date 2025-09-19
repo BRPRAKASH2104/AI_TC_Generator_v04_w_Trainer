@@ -1,0 +1,504 @@
+# AI Test Case Generator - Profile Configuration
+# Format: <Project>.<Model>.<Template>.<Mode>
+#
+# Project Codes:
+#   IC    = Integrated Circuits
+#   AUTO  = Automotive
+#   AERO  = Aerospace
+#   TELE  = Telecommunications
+#   MED   = Medical Devices
+#   DEV   = Development
+#   PROD  = Production
+#   TEST  = Testing
+#
+# Model Codes:
+#   Llama31   = llama3.1:8b
+#   Deepseek  = deepseek-coder-v2:16b
+#   Qwen      = qwen2.5-coder:14b
+#
+# Template Codes:
+#   Default       = default template
+#   Telltale      = telltale-specific template
+#   ECU           = automotive ECU template
+#   Infotainment  = automotive infotainment template
+#   FlightControl = aerospace flight control
+#   Safety        = safety-critical systems
+#   Protocol      = communication protocols
+#   Validation    = validation testing
+#
+# Mode Codes:
+#   (none)    = Standard mode
+#   HP        = High-Performance mode
+#   DEBUG     = Debug mode with extra logging
+#   VERBOSE   = Verbose output mode
+
+profiles:
+  # =================================================================
+  # INTEGRATED CIRCUITS (IC) PROFILES
+  # =================================================================
+
+  IC.Llama31.Default:
+    description: "IC project with Llama3.1, default template, standard mode"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "default-v2"
+    max_concurrent: 2
+    timeout: 300
+    verbose: false
+    debug: false
+    static_test:
+      project_key: "IC"
+      test_type: "functional"
+      components: "integrated-circuits"
+
+  IC.Llama31.Default.HP:
+    description: "IC project with Llama3.1, default template, high-performance mode"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 4
+    timeout: 300
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "IC"
+      test_type: "functional"
+      components: "integrated-circuits"
+
+  IC.Deepseek.Telltale:
+    description: "IC project with DeepSeek, Telltale template, standard mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "telltale-v3"
+    max_concurrent: 2
+    timeout: 600
+    verbose: false
+    static_test:
+      project_key: "IC_TT"
+      test_type: "telltale-validation"
+      components: "ic-telltale-systems"
+
+  IC.Deepseek.Telltale.HP:
+    description: "IC project with DeepSeek, Telltale template, high-performance mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "telltale-v3"
+    max_concurrent: 6
+    timeout: 600
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "IC_TT"
+      test_type: "telltale-validation"
+      components: "ic-telltale-systems"
+
+  IC.Llama31.Validation.DEBUG:
+    description: "IC validation with Llama3.1, debug mode for troubleshooting"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "validation-comprehensive-v2"
+    max_concurrent: 1
+    timeout: 900
+    verbose: true
+    debug: true
+    static_test:
+      project_key: "IC_VAL"
+      test_type: "validation"
+      components: "ic-validation"
+
+  # =================================================================
+  # AUTOMOTIVE (AUTO) PROFILES
+  # =================================================================
+
+  AUTO.Llama31.ECU:
+    description: "Automotive ECU testing with Llama3.1, standard mode"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "automotive-ecu-v3"
+    max_concurrent: 2
+    timeout: 400
+    verbose: false
+    static_test:
+      project_key: "ECU"
+      test_type: "hardware-validation"
+      components: "ecu-core-systems"
+      labels: "ecu, automotive, hardware"
+
+  AUTO.Llama31.ECU.HP:
+    description: "Automotive ECU testing with Llama3.1, high-performance mode"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "automotive-ecu-v3"
+    max_concurrent: 4
+    timeout: 400
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "ECU"
+      test_type: "hardware-validation"
+      components: "ecu-core-systems"
+      labels: "ecu, automotive, hardware"
+
+  AUTO.Deepseek.Infotainment:
+    description: "Automotive infotainment with DeepSeek, standard mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "automotive-infotainment-v2"
+    max_concurrent: 3
+    timeout: 500
+    verbose: false
+    static_test:
+      project_key: "INFOTAIN"
+      test_type: "feature-functional"
+      components: "software-infotainment"
+      labels: "infotainment, automotive, software"
+
+  AUTO.Deepseek.Infotainment.HP:
+    description: "Automotive infotainment with DeepSeek, high-performance mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "automotive-infotainment-v2"
+    max_concurrent: 6
+    timeout: 500
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "INFOTAIN"
+      test_type: "feature-functional"
+      components: "software-infotainment"
+      labels: "infotainment, automotive, software"
+
+  AUTO.Deepseek.Safety.HP:
+    description: "Automotive safety systems with DeepSeek, high-performance mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "automotive-safety-critical-v3"
+    max_concurrent: 4
+    timeout: 800
+    performance: true
+    verbose: true
+    static_test:
+      project_key: "SAFETY"
+      test_type: "safety-critical"
+      components: "automotive-safety-systems"
+      labels: "safety, automotive, critical"
+
+  # =================================================================
+  # AEROSPACE (AERO) PROFILES
+  # =================================================================
+
+  AERO.Deepseek.FlightControl:
+    description: "Aerospace flight control with DeepSeek, standard mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "aerospace-flight-control-v2"
+    max_concurrent: 2
+    timeout: 900
+    verbose: true
+    static_test:
+      project_key: "AERO_FC"
+      test_type: "flight-critical"
+      components: "flight-control-systems"
+      labels: "aerospace, flight-control, critical"
+
+  AERO.Deepseek.FlightControl.HP:
+    description: "Aerospace flight control with DeepSeek, high-performance mode"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "aerospace-flight-control-v2"
+    max_concurrent: 4
+    timeout: 900
+    performance: true
+    verbose: true
+    static_test:
+      project_key: "AERO_FC"
+      test_type: "flight-critical"
+      components: "flight-control-systems"
+      labels: "aerospace, flight-control, critical"
+
+  AERO.Qwen.Navigation.HP:
+    description: "Aerospace navigation systems with Qwen, high-performance mode"
+    model: "qwen2.5-coder:14b"
+    mode: "high-performance"
+    template: "aerospace-navigation-v2"
+    max_concurrent: 4
+    timeout: 700
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "AERO_NAV"
+      test_type: "navigation-validation"
+      components: "navigation-systems"
+      labels: "aerospace, navigation, validation"
+
+  # =================================================================
+  # TELECOMMUNICATIONS (TELE) PROFILES
+  # =================================================================
+
+  TELE.Llama31.Protocol:
+    description: "Telecommunications protocol testing with Llama3.1"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "telecommunications-protocol-v2"
+    max_concurrent: 3
+    timeout: 400
+    verbose: false
+    static_test:
+      project_key: "TELE_PROTO"
+      test_type: "protocol-validation"
+      components: "communication-protocols"
+      labels: "telecommunications, protocol, validation"
+
+  TELE.Deepseek.Protocol.HP:
+    description: "Telecommunications protocol testing with DeepSeek, high-performance"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "telecommunications-protocol-v2"
+    max_concurrent: 6
+    timeout: 400
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "TELE_PROTO"
+      test_type: "protocol-validation"
+      components: "communication-protocols"
+      labels: "telecommunications, protocol, validation"
+
+  # =================================================================
+  # MEDICAL DEVICES (MED) PROFILES
+  # =================================================================
+
+  MED.Deepseek.Safety:
+    description: "Medical device safety testing with DeepSeek"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "medical-device-safety-v3"
+    max_concurrent: 2
+    timeout: 1200
+    verbose: true
+    static_test:
+      project_key: "MED_SAFETY"
+      test_type: "medical-safety"
+      components: "medical-device-systems"
+      labels: "medical, safety, fda-compliance"
+
+  MED.Deepseek.Safety.HP:
+    description: "Medical device safety testing with DeepSeek, high-performance"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "medical-device-safety-v3"
+    max_concurrent: 3
+    timeout: 1200
+    performance: true
+    verbose: true
+    static_test:
+      project_key: "MED_SAFETY"
+      test_type: "medical-safety"
+      components: "medical-device-systems"
+      labels: "medical, safety, fda-compliance"
+
+  # =================================================================
+  # DEVELOPMENT (DEV) PROFILES
+  # =================================================================
+
+  DEV.Llama31.Quick:
+    description: "Quick development testing with Llama3.1"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "development-quick-v1"
+    max_concurrent: 2
+    timeout: 200
+    verbose: true
+    debug: false
+    static_test:
+      project_key: "DEV"
+      test_type: "development"
+      components: "development-testing"
+
+  DEV.Llama31.Quick.HP:
+    description: "Quick development testing with Llama3.1, high-performance"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "development-quick-v1"
+    max_concurrent: 4
+    timeout: 200
+    performance: true
+    verbose: true
+    debug: false
+    static_test:
+      project_key: "DEV"
+      test_type: "development"
+      components: "development-testing"
+
+  DEV.Llama31.Debug.VERBOSE:
+    description: "Development debugging with Llama3.1, verbose output"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "development-debug-v1"
+    max_concurrent: 1
+    timeout: 600
+    verbose: true
+    debug: true
+    static_test:
+      project_key: "DEV_DEBUG"
+      test_type: "development-debug"
+      components: "development-debugging"
+
+  # =================================================================
+  # PRODUCTION (PROD) PROFILES
+  # =================================================================
+
+  PROD.Deepseek.Comprehensive:
+    description: "Production comprehensive testing with DeepSeek"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "production-comprehensive-v3"
+    max_concurrent: 4
+    timeout: 1200
+    verbose: false
+    debug: false
+    static_test:
+      project_key: "PROD"
+      test_type: "production-validation"
+      components: "production-systems"
+      labels: "production, comprehensive, validated"
+
+  PROD.Deepseek.Comprehensive.HP:
+    description: "Production comprehensive testing with DeepSeek, high-performance"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "production-comprehensive-v3"
+    max_concurrent: 8
+    timeout: 1200
+    performance: true
+    verbose: false
+    debug: false
+    static_test:
+      project_key: "PROD"
+      test_type: "production-validation"
+      components: "production-systems"
+      labels: "production, comprehensive, validated"
+
+  PROD.Llama31.Fast.HP:
+    description: "Production fast processing with Llama3.1, high-performance"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "production-fast-v2"
+    max_concurrent: 8
+    timeout: 300
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "PROD_FAST"
+      test_type: "production-fast"
+      components: "production-systems"
+      labels: "production, fast-processing"
+
+# =================================================================
+# ENVIRONMENTS
+# =================================================================
+
+environments:
+  local-development:
+    description: "Local development environment"
+    ollama:
+      host: "127.0.0.1"
+      port: 11434
+      timeout: 300
+
+  docker-container:
+    description: "Docker containerized environment"
+    ollama:
+      host: "ollama-service"
+      port: 11434
+      timeout: 600
+
+  ci-pipeline:
+    description: "CI/CD pipeline environment"
+    ollama:
+      host: "ci-ollama.internal"
+      port: 11434
+      timeout: 180
+      concurrent_requests: 8
+
+  staging-environment:
+    description: "Staging environment for pre-production testing"
+    ollama:
+      host: "staging-ollama.company.com"
+      port: 11434
+      timeout: 600
+    static_test:
+      assignee: "qa-team"
+      labels: "staging, pre-production"
+
+  production-environment:
+    description: "Production environment"
+    ollama:
+      host: "prod-ollama.company.com"
+      port: 11434
+      timeout: 900
+      concurrent_requests: 2
+    static_test:
+      assignee: "production-team"
+      labels: "production, validated, approved"
+
+# =================================================================
+# MODEL CONFIGURATIONS
+# =================================================================
+
+model_configurations:
+  "llama3.1:8b":
+    description: "Fast general-purpose model for quick iterations"
+    keep_alive: "15m"
+    num_ctx: 4096
+    num_predict: 2048
+    temperature: 0.0
+
+  "deepseek-coder-v2:16b":
+    description: "Advanced coding model for complex requirements"
+    keep_alive: "45m"
+    num_ctx: 8192
+    num_predict: 3072
+    temperature: 0.1
+
+  "qwen2.5-coder:14b":
+    description: "Alternative coding model with balanced performance"
+    keep_alive: "30m"
+    num_ctx: 6144
+    num_predict: 2560
+    temperature: 0.05
+
+# =================================================================
+# METADATA
+# =================================================================
+
+meta:
+  version: "1.0"
+  created: "2025-09-16"
+  description: "AI Test Case Generator profile configuration"
+  format: "Project.Model.Template.Mode"
+  contact: "engineering@company.com"
+
+# =================================================================
+# USAGE EXAMPLES
+# =================================================================
+#
+# Basic usage:
+#   ai-tc-generator input/file.reqifz --profile IC.Llama31.Default
+#   ai-tc-generator input/file.reqifz --profile AUTO.Deepseek.ECU.HP
+#   ai-tc-generator input/file.reqifz --profile DEV.Llama31.Quick.HP
+#
+# With environment:
+#   ai-tc-generator input/file.reqifz --profile PROD.Deepseek.Comprehensive.HP --env production-environment
+#
+# Override specific parameters:
+#   ai-tc-generator input/file.reqifz --profile IC.Deepseek.Telltale.HP --max-concurrent 8
+#   ai-tc-generator input/file.reqifz --profile AUTO.Llama31.ECU --verbose
+#
+# List available profiles:
+#   ai-tc-generator --list-profiles
+#
+# Show specific profile details:
+#   ai-tc-generator --show-profile IC.Deepseek.Telltale.HP
+#
+# =================================================================

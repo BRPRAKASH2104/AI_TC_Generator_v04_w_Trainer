@@ -32,7 +32,7 @@ ai-tc-generator input/directory/ --hp
 **For Developers:**
 ```bash
 # 1. Run tests
-python run_tests.py
+python tests/run_tests.py
 
 # 2. Check code quality
 ruff check src/ main.py --fix
@@ -190,7 +190,8 @@ python main.py input/ --model deepseek-coder-v2:16b --max-concurrent 4 --debug
 
 **Quick Testing:**
 ```bash
-python run_tests.py                    # Run complete test suite (recommended)
+python tests/run_tests.py                    # Run complete test suite (recommended)
+python tests/run_tests.py tests/core/test_specific.py  # Run specific test file
 ```
 
 **Detailed Testing:**
@@ -303,8 +304,10 @@ curl -X POST http://localhost:11434/api/generate -d '{
 │   └── yaml_prompt_manager.py     # YAML template management and validation
 ├── tests/                         # Comprehensive test suite (76+ tests)
 │   ├── conftest.py               # Shared fixtures and test configuration
+│   ├── run_tests.py              # Test runner script
 │   ├── core/                     # Unit tests for individual components
 │   └── integration/              # End-to-end and edge case testing
+├── docs/                         # Documentation and guides
 ├── prompts/                      # AI prompt templates and configuration
 └── utilities/                    # Development tools and test data generation
 ```
@@ -421,7 +424,7 @@ ruff format src/ main.py utilities/    # Code formatting
 mypy src/ main.py --python-version 3.13  # Type checking
 
 # Comprehensive testing
-python run_tests.py                    # Complete test suite
+python tests/run_tests.py                    # Complete test suite
 python -m pytest tests/ -v --cov=src  # With coverage reporting
 
 # Security and dependency checks
@@ -432,7 +435,7 @@ pip list --outdated                    # Check for updates
 ### Testing Strategy
 ```bash
 # Complete test suite (RECOMMENDED)
-python run_tests.py                               # ✅ All tests with summary
+python tests/run_tests.py                               # ✅ All tests with summary
 
 # Granular testing
 python -m pytest tests/core/ -v                  # Core component tests
@@ -450,7 +453,7 @@ python main.py input/automotive_door_window_system.reqifz --verbose  # Test with
 **Ollama Connection**: Verify service with `ollama list` and ensure models are available
 **Template Issues**: Run `ai-tc-generator --validate-prompts` to check YAML syntax
 **Performance**: Use `--hp` mode for faster processing (2.5x speedup)
-**Test Failures**: All 76+ tests should pass - check with `python run_tests.py`
+**Test Failures**: All 76+ tests should pass - check with `python tests/run_tests.py`
 **REQIFZ Parsing**: Ensure automotive REQIF format with proper XHTML namespaces
 **Package Issues**: Run `python3 -c "import src; print(src.__version__)"` to verify installation
 
@@ -476,7 +479,7 @@ python3 utilities/create_mock_reqifz.py             # Creates automotive_door_wi
 ai-tc-generator input/automotive_door_window_system.reqifz --verbose  # Test with CLI
 
 # 6. Run comprehensive test suite (ENHANCED)
-python run_tests.py                                  # Verify all functionality including new tests
+python tests/run_tests.py                                  # Verify all functionality including new tests
 ```
 
 ### Legacy Direct Execution Setup (Alternative)
@@ -495,7 +498,7 @@ python3 -m py_compile src/*.py main.py              # Syntax check all files
 python main.py input/automotive_door_window_system.reqifz --verbose  # Direct execution
 
 # 5. Run test suite
-python run_tests.py                                  # Verify all functionality
+python tests/run_tests.py                                  # Verify all functionality
 ```
 
 ### System Status (Production Ready - 2025-09-15)
@@ -514,7 +517,7 @@ python run_tests.py                                  # Verify all functionality
 
 - **Use `pip install -e .[dev]`** for proper development environment setup
 - **Prefer `ai-tc-generator`** command over direct `python main.py` execution
-- **Run `python run_tests.py`** before commits - all 76+ tests must pass
+- **Run `python tests/run_tests.py`** before commits - all 76+ tests must pass
 - **Understand the architecture**: `src/core/` contains reusable components, `src/processors/` orchestrates workflows
 - **Test with real data**: Use `input/automotive_door_window_system.reqifz` for integration testing
 - **Performance testing**: Use `--hp --performance` flags to verify optimizations
