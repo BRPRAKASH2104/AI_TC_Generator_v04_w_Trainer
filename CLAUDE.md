@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## ✅ **VALIDATED SYSTEM STATUS**
+## ⚠️ **CURRENT SYSTEM STATUS**
 
-**Last Tested**: 2025-09-15 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+ | **Test Suite**: 76+ PASSING | **Package**: v1.4.0 | **Architecture**: ✅ PRODUCTION READY
+**Last Tested**: 2025-09-28 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+ | **Test Suite**: 67 PASSING, 9 FAILED | **Package**: v1.4.0 | **Architecture**: 🔧 NEEDS ATTENTION
 
 ## 📚 Documentation Quick Navigation
 
@@ -453,9 +453,27 @@ python main.py input/automotive_door_window_system.reqifz --verbose  # Test with
 **Ollama Connection**: Verify service with `ollama list` and ensure models are available
 **Template Issues**: Run `ai-tc-generator --validate-prompts` to check YAML syntax
 **Performance**: Use `--hp` mode for faster processing (2.5x speedup)
-**Test Failures**: All 76+ tests should pass - check with `python tests/run_tests.py`
+**Test Failures**: Currently 9 tests failing - run `python tests/run_tests.py` to see status
 **REQIFZ Parsing**: Ensure automotive REQIF format with proper XHTML namespaces
 **Package Issues**: Run `python3 -c "import src; print(src.__version__)"` to verify installation
+
+### 🚨 Known Issues (2025-09-28)
+
+**Critical Import Issues:**
+- Package import failing: `ModuleNotFoundError: No module named 'processors'`
+- CLI commands may not work due to package installation problems
+- Fix needed in `src/processors/__init__.py` import paths
+
+**Test Failures (9 failing):**
+- Network error condition tests failing (connection simulation issues)
+- Some async/HP mode integration tests failing
+- End-to-end workflow tests having problems
+
+**Priority Fixes Needed:**
+1. Fix import paths in `src/processors/__init__.py`
+2. Debug network error simulation in test suite
+3. Resolve async mock issues causing RuntimeWarnings
+4. Verify CLI entry points work correctly after package fixes
 
 ## ⚡ **QUICK START FOR NEW DEVELOPERS**
 
@@ -501,23 +519,23 @@ python main.py input/automotive_door_window_system.reqifz --verbose  # Direct ex
 python tests/run_tests.py                                  # Verify all functionality
 ```
 
-### System Status (Production Ready - 2025-09-15)
-- **✅ Modern Python packaging**: pyproject.toml with CLI entry points
-- **✅ Package installation**: `pip install -e .[dev]` working
-- **✅ CLI tools**: `ai-tc-generator` and `ai-tc-gen` commands available
-- **✅ Core business logic**: REQIF extraction and System Requirement classification fixed
+### System Status (Development - 2025-09-28)
+- **⚠️ Modern Python packaging**: pyproject.toml with CLI entry points (import issues need fixing)
+- **⚠️ Package installation**: `pip install -e .[dev]` has module import errors
+- **❓ CLI tools**: `ai-tc-generator` and `ai-tc-gen` commands may not work due to import issues
+- **✅ Core business logic**: REQIF extraction and System Requirement classification implemented
 - **✅ Performance optimization**: 2.5x speedup with high-performance mode
-- **✅ Error handling**: Comprehensive edge case coverage and graceful failures
-- **✅ Test coverage**: 76+ tests passing with 100% success rate
+- **⚠️ Error handling**: Some edge cases failing (9 test failures)
+- **⚠️ Test coverage**: 67 tests passing, 9 failing (88% success rate)
 - **✅ Logging system**: Centralized structured logging with JSON output
 - **✅ Configuration**: Pydantic-based config with CLI overrides and secrets management
-- **✅ Production ready**: Full validation and enterprise-grade features
+- **🔧 Development status**: Requires debugging and fixes before production use
 
 ### Key Development Guidelines
 
 - **Use `pip install -e .[dev]`** for proper development environment setup
 - **Prefer `ai-tc-generator`** command over direct `python main.py` execution
-- **Run `python tests/run_tests.py`** before commits - all 76+ tests must pass
+- **Run `python tests/run_tests.py`** before commits - currently 67 tests pass, 9 fail (needs debugging)
 - **Understand the architecture**: `src/core/` contains reusable components, `src/processors/` orchestrates workflows
 - **Test with real data**: Use `input/automotive_door_window_system.reqifz` for integration testing
 - **Performance testing**: Use `--hp --performance` flags to verify optimizations
@@ -552,18 +570,18 @@ python tests/run_tests.py                                  # Verify all function
 4. **Mock Tests**: AI client behavior without external dependencies
 5. **Configuration Tests**: YAML and Pydantic validation
 
-**Critical Test Coverage Status:**
+**Current Test Coverage Status:**
 ```
 ✅ REQIF Extraction & Classification: PASS (14 artifacts → 3 System Requirements)
 ✅ JSON/HTML Parsing with Error Recovery: PASS
 ✅ Test Case Generation (Sync/Async): PASS
 ✅ Excel/JSON Output Formatting: PASS
-✅ High-Performance Concurrent Processing: PASS (2.5x speedup verified)
-✅ Error Handling & Edge Cases: PASS (graceful failures confirmed)
-✅ CLI Integration & Package Installation: PASS
+⚠️ High-Performance Concurrent Processing: PARTIAL (some async tests failing)
+⚠️ Error Handling & Edge Cases: PARTIAL (network error simulations failing)
+⚠️ CLI Integration & Package Installation: PARTIAL (import issues present)
 ✅ Logging & Configuration Systems: PASS
-✅ Memory Efficiency & Scalability: PASS (linear scaling confirmed)
-✅ End-to-End Workflows: PASS (production ready)
+⚠️ Memory Efficiency & Scalability: PARTIAL (need to verify recent changes)
+⚠️ End-to-End Workflows: PARTIAL (some integration tests failing)
 ```
 
 ### Legacy System Migration Complete
