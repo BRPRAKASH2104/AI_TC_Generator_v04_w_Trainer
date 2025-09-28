@@ -1,0 +1,339 @@
+# AI Test Case Generator - Profile Configuration
+# Simplified Format: Model.Mode[.Modifier]
+#
+# Models:
+#   Llama31   = llama3.1:8b
+#   Deepseek  = deepseek-coder-v2:16b
+#   Qwen      = qwen2.5-coder:14b
+#
+# Modes:
+#   Standard  = Standard processing mode
+#   HP        = High-Performance mode
+#
+# Modifiers:
+#   Verbose   = Enable verbose output
+#   Debug     = Enable debug mode
+#   Fast      = Optimized for speed
+#   Quality   = Optimized for quality
+#
+# Templates:
+#   default-v2                = General purpose template
+#   telltale-v3              = Telltale-specific template
+#   validation-comprehensive = Comprehensive validation template
+#   automotive-ecu-v3        = Automotive ECU template
+#   development-quick-v1     = Quick development template
+
+profiles:
+  # =================================================================
+  # LLAMA3.1 MODEL PROFILES
+  # =================================================================
+
+  Llama31.Standard:
+    description: "Llama3.1 standard processing"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "default-v2"
+    max_concurrent: 0
+    timeout: 300
+    verbose: false
+    debug: false
+
+  Llama31.HP:
+    description: "Llama3.1 high-performance processing"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 4
+    timeout: 300
+    performance: true
+    verbose: false
+
+  Llama31.HP.Verbose:
+    description: "Llama3.1 high-performance with verbose output"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 4
+    timeout: 300
+    performance: true
+    verbose: true
+
+  Llama31.HP.Debug:
+    description: "Llama3.1 high-performance with debug mode"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 2
+    timeout: 600
+    performance: true
+    verbose: true
+    debug: true
+
+  Llama31.Standard.Verbose:
+    description: "Llama3.1 standard processing with verbose output"
+    model: "llama3.1:8b"
+    mode: "standard"
+    template: "default-v2"
+    max_concurrent: 0
+    timeout: 300
+    verbose: true
+    debug: false
+
+  Llama31.Fast:
+    description: "Llama3.1 optimized for fast processing"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "development-quick-v1"
+    max_concurrent: 8
+    timeout: 200
+    performance: true
+    verbose: false
+
+  # =================================================================
+  # DEEPSEEK MODEL PROFILES
+  # =================================================================
+
+  Deepseek.Standard:
+    description: "DeepSeek standard processing"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "default-v2"
+    max_concurrent: 2
+    timeout: 600
+    verbose: false
+    debug: false
+
+  Deepseek.HP:
+    description: "DeepSeek high-performance processing"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 6
+    timeout: 600
+    performance: true
+    verbose: false
+
+  Deepseek.HP.Verbose:
+    description: "DeepSeek high-performance with verbose output"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 6
+    timeout: 600
+    performance: true
+    verbose: true
+
+  Deepseek.Quality:
+    description: "DeepSeek optimized for quality output"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "validation-comprehensive-v2"
+    max_concurrent: 2
+    timeout: 900
+    verbose: true
+    debug: false
+
+  Deepseek.Telltale:
+    description: "DeepSeek with Telltale template"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "telltale-v3"
+    max_concurrent: 2
+    timeout: 600
+    verbose: false
+
+  Deepseek.Telltale.HP:
+    description: "DeepSeek Telltale high-performance"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "telltale-v3"
+    max_concurrent: 6
+    timeout: 600
+    performance: true
+    verbose: false
+
+  Deepseek.Telltale.HP.Verbose:
+    description: "DeepSeek Telltale high-performance with verbose output"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "telltale-v3"
+    max_concurrent: 6
+    timeout: 600
+    performance: true
+    verbose: true
+
+  # =================================================================
+  # QWEN MODEL PROFILES
+  # =================================================================
+
+  Qwen.Standard:
+    description: "Qwen standard processing"
+    model: "qwen2.5-coder:14b"
+    mode: "standard"
+    template: "default-v2"
+    max_concurrent: 3
+    timeout: 500
+    verbose: false
+    debug: false
+
+  Qwen.HP:
+    description: "Qwen high-performance processing"
+    model: "qwen2.5-coder:14b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 5
+    timeout: 500
+    performance: true
+    verbose: false
+
+  Qwen.HP.Verbose:
+    description: "Qwen high-performance with verbose output"
+    model: "qwen2.5-coder:14b"
+    mode: "high-performance"
+    template: "default-v2"
+    max_concurrent: 5
+    timeout: 500
+    performance: true
+    verbose: true
+
+  # =================================================================
+  # SPECIALIZED PROFILES
+  # =================================================================
+
+  Deepseek.Automotive:
+    description: "DeepSeek optimized for automotive requirements"
+    model: "deepseek-coder-v2:16b"
+    mode: "high-performance"
+    template: "automotive-ecu-v3"
+    max_concurrent: 4
+    timeout: 700
+    performance: true
+    verbose: false
+    static_test:
+      project_key: "AUTO"
+      test_type: "automotive-validation"
+      components: "automotive-systems"
+      labels: "automotive, ecu, validation"
+
+  Llama31.Development:
+    description: "Llama3.1 optimized for development workflow"
+    model: "llama3.1:8b"
+    mode: "high-performance"
+    template: "development-quick-v1"
+    max_concurrent: 4
+    timeout: 300
+    performance: true
+    verbose: true
+    debug: false
+
+  Deepseek.Validation:
+    description: "DeepSeek for comprehensive validation testing"
+    model: "deepseek-coder-v2:16b"
+    mode: "standard"
+    template: "validation-comprehensive-v2"
+    max_concurrent: 1
+    timeout: 1200
+    verbose: true
+    debug: true
+
+# =================================================================
+# ENVIRONMENTS
+# =================================================================
+
+environments:
+  local-development:
+    description: "Local development environment"
+    ollama:
+      host: "127.0.0.1"
+      port: 11434
+      timeout: 300
+
+  docker-container:
+    description: "Docker containerized environment"
+    ollama:
+      host: "ollama-service"
+      port: 11434
+      timeout: 600
+
+  ci-pipeline:
+    description: "CI/CD pipeline environment"
+    ollama:
+      host: "ci-ollama.internal"
+      port: 11434
+      timeout: 180
+      concurrent_requests: 8
+
+  production:
+    description: "Production environment"
+    ollama:
+      host: "prod-ollama.company.com"
+      port: 11434
+      timeout: 900
+      concurrent_requests: 2
+
+# =================================================================
+# MODEL CONFIGURATIONS
+# =================================================================
+
+model_configurations:
+  "llama3.1:8b":
+    description: "Fast general-purpose model for quick iterations"
+    keep_alive: "15m"
+    num_ctx: 4096
+    num_predict: 2048
+    temperature: 0.0
+
+  "deepseek-coder-v2:16b":
+    description: "Advanced coding model for complex requirements"
+    keep_alive: "45m"
+    num_ctx: 8192
+    num_predict: 3072
+    temperature: 0.1
+
+  "qwen2.5-coder:14b":
+    description: "Alternative coding model with balanced performance"
+    keep_alive: "30m"
+    num_ctx: 6144
+    num_predict: 2560
+    temperature: 0.05
+
+# =================================================================
+# METADATA
+# =================================================================
+
+meta:
+  version: "1.0"
+  created: "2025-09-16"
+  description: "AI Test Case Generator profile configuration"
+  format: "Model.Mode[.Modifier]"
+  contact: "engineering@company.com"
+
+# =================================================================
+# USAGE EXAMPLES
+# =================================================================
+#
+# Basic usage:
+#   ai-tc-generator input/file.reqifz --profile Llama31.Standard
+#   ai-tc-generator input/file.reqifz --profile Deepseek.HP
+#   ai-tc-generator input/file.reqifz --profile Qwen.HP.Verbose
+#
+# With environment:
+#   ai-tc-generator input/file.reqifz --profile Deepseek.HP --env production
+#   ai-tc-generator input/file.reqifz --profile Llama31.Fast --env ci-pipeline
+#
+# Specialized workflows:
+#   ai-tc-generator input/automotive.reqifz --profile Deepseek.Automotive
+#   ai-tc-generator input/test.reqifz --profile Llama31.Development
+#   ai-tc-generator input/validation.reqifz --profile Deepseek.Validation
+#
+# Override specific parameters:
+#   ai-tc-generator input/file.reqifz --profile Deepseek.HP --max-concurrent 8
+#   ai-tc-generator input/file.reqifz --profile Llama31.Standard --verbose
+#
+# List available profiles:
+#   ai-tc-generator --list-profiles
+#
+# Show specific profile details:
+#   ai-tc-generator --show-profile Deepseek.Telltale.HP
+#
+# =================================================================

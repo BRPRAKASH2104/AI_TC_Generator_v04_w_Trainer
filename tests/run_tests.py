@@ -17,10 +17,10 @@ def run_tests():
     # Run pytest with coverage
     cmd = [
         "python3", "-m", "pytest",
-        "tests/",
+        ".",
         "-v",  # Verbose output
         "--tb=short",  # Short traceback format
-        "--cov=src",  # Coverage for src directory
+        "--cov=../src",  # Coverage for src directory
         "--cov-report=term-missing",  # Show missing lines
         "--cov-report=html:htmlcov",  # HTML coverage report
     ]
@@ -52,8 +52,8 @@ def run_specific_test(test_path):
         return False
 
 if __name__ == "__main__":
-    # Add src to path for direct execution
-    sys.path.insert(0, str(Path(__file__).parent / "src"))
+    # Add src to path for direct execution (from tests/ directory)
+    sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
     if len(sys.argv) > 1:
         # Run specific test

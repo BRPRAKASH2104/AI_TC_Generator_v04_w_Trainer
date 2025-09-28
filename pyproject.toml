@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "ai-tc-generator"
 version = "1.4.0"
 description = "AI-powered test case generator for automotive REQIF requirements"
-readme = "README.md"
+readme = "docs/README.md"
 license = {file = "LICENSE"}
 authors = [
     {name = "AI Test Case Generator Team"},
@@ -102,7 +102,7 @@ include = [
     "/prompts",
     "/utilities",
     "/input",
-    "/README.md",
+    "/docs",
     "/CLAUDE.md",
     "/requirements.txt",
     "/pyproject.toml",
@@ -122,12 +122,17 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-report=xml",
+    "--ignore=src",
 ]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
+norecursedirs = ["src"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::pytest.PytestCollectionWarning",
+]
 
 [tool.coverage.run]
 source = ["src"]
