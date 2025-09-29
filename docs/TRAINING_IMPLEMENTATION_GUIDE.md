@@ -2226,4 +2226,300 @@ python scripts/collect_production_metrics.py --duration 24h
 python scripts/detect_quality_drift.py --baseline baseline_metrics.json
 ```
 
+## 5. Excel-Based Training System (Alternative Approach)
+
+This section describes an alternative Excel-based training implementation that provides enhanced usability for data collection and categorization, along with intelligent requirement relationship linking for improved model inference.
+
+### 5.1 Overview
+
+The Excel-based approach replaces JSON file storage with structured Excel workbooks, enabling:
+- User-friendly review and categorization through Excel sheets
+- Visual management of requirement relationships
+- Enhanced training prompts that leverage requirement dependencies
+- Audit trails through review notes and approval workflows
+
+### 5.2 Excel Workbook Structure
+
+**Primary Training Workbook: `training_data.xlsx`**
+
+#### Sheet 1: Raw_Training_Data
+| Column | Type | Description | Required |
+|--------|------|-------------|----------|
+| requirement_id | Text | Unique requirement identifier | Yes |
+| requirement_text | Text | The original requirement | Yes |
+| requirement_type | Dropdown | System, Software, Functional, Performance, Safety | Yes |
+| category | Dropdown | Good, Bad, Partial (manual categorization) | Yes |
+| test_cases_json | Text | JSON string of generated test cases | Yes |
+| generation_model | Text | Model used (llama3.1:8b, etc.) | Yes |
+| generation_template | Text | Template used | No |
+| quality_score | Number | Automated quality score (0-1) | Yes |
+| human_reviewed | Boolean | Manual review status | Yes |
+| review_notes | Text | Human review comments | No |
+| linked_requirements | Text | Comma-separated related requirement_ids | No |
+| relationship_type | Text | depends_on, similar_to, complements | No |
+| domain | Text | Automotive, Medical, etc. | Yes |
+| subsystem | Text | UI, Engine Control, Safety, etc. | No |
+
+**Data Validation Rules:**
+- Category dropdown: Good, Partial, Bad
+- Requirement_type dropdown: System, Software, Functional, Performance, Safety
+- Relationship_type validation: supports multiple relationship types
+
+#### Additional Sheets
+
+**Sheet 2: Requirement_Relationships**
+| Column | Type | Description |
+|--------|------|-------------|
+| source_requirement_id | Text | Source requirement ID |
+| target_requirement_id | Text | Related requirement ID |
+| relationship_type | Dropdown | depends_on, similar_to, complements, enables, restricts |
+| relationship_description | Text | Explanation of relationship |
+| bidirectional | Boolean | True if relationship works both ways |
+| confidence | Number (0-1) | Strength of relationship |
+
+**Sheet 3: Test_Case_Templates**
+| Column | Type | Description |
+|--------|------|-------------|
+| template_id | Text | Unique template identifier |
+| template_name | Text | Human-readable name |
+| template_description | Text | Template purpose description |
+| applicable_types | Text | Comma-separated requirement types |
+| test_case_structure | Text | JSON schema for expected output |
+
+### 5.3 User Workflow
+
+#### Step 1: Generate Training Data
+```bash
+# Enable Excel export in environment
+export AI_TG_EXPORT_FORMAT=excel
+export AI_TG_EXCEL_WORKBOOK_PATH=./training_data.xlsx
+
+# Run generation to populate Excel file
+python main.py your_reqifz_file.reqifz --export-training-data
+```
+
+#### Step 2: Manual Review and Categorization
+1. **Open `training_data.xlsx`**
+2. **Review each row** in Raw_Training_Data sheet:
+   - Read requirement text
+   - Expand/formula-view JSON test_cases_json column
+   - Evaluate quality and completeness
+3. **Assign Category**:
+   - **Good**: High-quality, accurate, comprehensive test cases
+   - **Partial**: Contains useful elements but needs improvement
+   - **Bad**: Major issues, incorrect coverage, unusable
+4. **Add Review Notes** explaining categorization decision
+
+#### Step 3: Establish Requirement Relationships
+1. **Switch to Requirement_Relationships sheet**
+2. **Identify related requirements** by reviewing requirement similarities
+3. **Create relationship entries**:
+   ```excel
+   source_requirement_id: SYS_001
+   target_requirement_id: SYS_002
+   relationship_type: depends_on
+   relationship_description: Response time requirement enables user experience req
+   bidirectional: FALSE
+   confidence: 0.85
+   ```
+
+#### Step 4: Quality Assurance
+- Use Excel filtering to review categories
+- Apply data validation rules
+- Maintain audit trail through review notes
+- Track review progress with human_reviewed flag
+
+### 5.4 Relationship-Aware Training Enhancement
+
+#### Enhanced Inference System
+The Excel relationship data enables **context-aware training prompts**:
+
+**Example Enhanced Prompt:**
+```
+Given this requirement and its related requirements:
+
+Primary: "System shall provide GPS accuracy within 5 meters"
+Related (depends_on): "System shall acquire GPS signal within 30 seconds"
+Related (complements): "System shall display GPS status to user"
+Similar requirements: "System shall maintain accuracy during movement"
+
+Generate comprehensive test cases that verify the primary requirement
+while considering these relationships and similar patterns.
+```
+
+#### Relationship Processing Module
+```python
+class RequirementRelationshipProcessor:
+    """Processes Excel relationship data for enhanced training."""
+
+    def enhance_training_prompt(self, requirement_id: str, base_prompt: str) -> str:
+        """Add relationship context to training prompts."""
+        relationships = self._get_relationships_from_excel(requirement_id)
+
+        if not relationships:
+            return base_prompt
+
+        context = "\n\nRelated Requirements Context:\n"
+        for rel in relationships:
+            context += f"- {rel['type']}: {rel['description']}\n"
+            context += f"  Related req: {rel['target_text'][:100]}...\n"
+
+        return base_prompt + context
+
+    def build_relationship_graph(self) -> Dict[str, List[Dict]]:
+        """Build graph of requirement relationships for inference."""
+        # Process Excel relationships into graph structure
+        # Enable connected component analysis
+        # Support transitive relationship reasoning
+```
+
+### 5.5 Implementation Modifications
+
+#### Excel Data Handler
+Replace JSON file collector with Excel workbook manager:
+
+```python
+import pandas as pd
+from openpyxl import load_workbook
+
+class ExcelTrainingDataManager:
+    """Manages training data in Excel workbook format."""
+
+    def __init__(self, workbook_path: str):
+        self.workbook_path = Path(workbook_path)
+        self._ensure_workbook_exists()
+
+    def append_training_example(self, example: Dict[str, Any]) -> None:
+        """Append training example to Excel workbook."""
+        try:
+            book = load_workbook(self.workbook_path)
+            sheet = book['Raw_Training_Data']
+
+            # Find next empty row
+            next_row = sheet.max_row + 1
+
+            # Write data to columns
+            sheet.cell(next_row, 1, example['requirement_id'])
+            sheet.cell(next_row, 2, example['requirement_text'])
+            # ... populate other columns ...
+
+            book.save(self.workbook_path)
+
+        except Exception as e:
+            logger.error(f"Error writing to Excel: {e}")
+
+    def get_training_examples_by_category(self, category: str) -> List[Dict]:
+        """Retrieve examples by manual category for training."""
+        df = pd.read_excel(self.workbook_path, sheet_name='Raw_Training_Data')
+
+        filtered = df[df['category'] == category]
+        return filtered.to_dict('records')
+
+    def export_relationship_aware_data(self) -> pd.DataFrame:
+        """Export training data with relationship enrichment."""
+        # Merge training data with relationship information
+        # Create enhanced dataset for relationship-aware training
+```
+
+#### Required Dependencies
+```txt
+# Add to requirements.txt
+pandas>=1.5.0
+openpyxl>=3.0.10
+xlrd>=2.0.1  # For legacy .xls support
+```
+
+### 5.6 Benefits of Excel Approach
+
+1. **Enhanced Usability**
+   - Visual categorization through Excel interface
+   - Easy filtering and review workflows
+   - Familiar spreadsheet environment for domain experts
+
+2. **Relationship-Driven Inference**
+   - Requirements linked for better context understanding
+   - Transitive relationship analysis
+   - Contextual training prompt enhancement
+
+3. **Audit and Compliance**
+   - Clear review trails through notes
+   - Version control through Excel history
+   - Regulatory compliance through documented decisions
+
+4. **Scalability and Management**
+   - Handle hundreds of examples in organized sheets
+   - Automated validation rules
+   - Easy data export for training pipelines
+
+5. **Collaboration Features**
+   - Multi-user review support
+   - Comment threads for discussions
+   - Change tracking and approval workflows
+
+### 5.7 Integration with Existing Training Pipeline
+
+#### Modified Training Script
+```bash
+# Excel-based training preparation
+python scripts/prepare_excel_training_data.py \
+    --workbook training_data.xlsx \
+    --categories good partial \
+    --enrich-relationships \
+    --output training_enhanced.jsonl
+
+# Train with relationship-enhanced data
+python scripts/train_lora.py \
+    --config config/lora_config.json \
+    --relationship-aware
+```
+
+#### Configuration Updates
+```yaml
+# Add to training configuration
+excel_training:
+  workbook_path: "./training_data.xlsx"
+  enable_relationships: true
+  categories_for_training: ["good", "partial"]
+  min_relationship_confidence: 0.7
+  prompt_enhancement_enabled: true
+```
+
+### 5.8 Quality Control Workflows
+
+#### Automated Validation
+- Excel data validation rules for column constraints
+- VBA macros for data integrity checks
+- Automated flagging of inconsistent relationships
+
+#### Manual Review Guidelines
+- **Good Criteria**: Complete coverage, accurate technical content, appropriate safety considerations
+- **Partial Criteria**: Contains useful elements, fixable issues, good structure but incomplete
+- **Bad Criteria**: Major errors, incorrect domain application, unusable format
+
+#### Review Progress Tracking
+- Dashboard sheet showing review statistics
+- Completion percentage calculations
+- Workload distribution metrics
+
+### 5.9 Future Extensions
+
+**Advanced Relationship Analysis:**
+- Natural language processing for automatic relationship detection
+- Graph algorithms for requirement clustering
+- Machine learning to predict relationship strengths
+
+**Collaborative Features:**
+- Web-based Excel integration
+- Review workflow automation
+- Stakeholder notification systems
+
+**Analytics and Reporting:**
+- Training data quality dashboards
+- Reviewer performance metrics
+- Model improvement tracking over time
+
+This Excel-based approach transforms the training data collection from a technical process into a collaborative, user-friendly workflow while significantly enhancing the model's contextual understanding through requirement relationships.
+
+---
+
 This comprehensive implementation guide provides all the necessary components to build a complete training, evaluation, and deployment system for the AI Test Case Generator. Each component is designed to work together while maintaining modularity for independent development and testing.
