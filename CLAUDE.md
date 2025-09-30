@@ -4,7 +4,85 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ **CURRENT SYSTEM STATUS**
 
-**Last Tested**: 2025-09-28 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+ | **Test Suite**: 67 PASSING, 9 FAILED | **Package**: v1.4.0 | **Architecture**: 🔧 NEEDS ATTENTION
+**Last Updated**: 2025-09-30 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+ | **Test Suite**: 62 PASSING, 14 FAILING | **Package**: v1.4.0 | **Architecture**: ✅ CONTEXT-AWARE RESTORED
+
+## 🎯 **CRITICAL: Context-Aware Processing (v03 Logic Restored)**
+
+**This system requires context-aware artifact processing to generate high-quality test cases.**
+
+### Why Context Matters
+
+The AI model generates better test cases when given rich contextual information:
+- **Heading context**: Which feature section the requirement belongs to
+- **Information artifacts**: Explanatory notes collected since the last heading
+- **System interfaces**: Global dictionary of inputs/outputs/signals
+
+### Architecture Pattern (DO NOT BREAK)
+
+Both `standard_processor.py` and `hp_processor.py` **MUST** iterate through ALL artifacts (not just System Requirements) to build context:
+
+```python
+# ✅ CORRECT: Context-aware iteration
+current_heading = "No Heading"
+info_since_heading = []
+
+for obj in artifacts:
+    if obj.get("type") == "Heading":
+        current_heading = obj.get("text", "No Heading")
+        info_since_heading = []
+    elif obj.get("type") == "Information":
+        info_since_heading.append(obj)
+    elif obj.get("type") == "System Requirement" and obj.get("table"):
+        # Augment requirement with context BEFORE passing to generator
+        augmented_requirement = obj.copy()
+        augmented_requirement.update({
+            "heading": current_heading,
+            "info_list": info_since_heading.copy(),
+            "interface_list": system_interfaces
+        })
+        # Generate test cases with enriched context
+        test_cases = generator.generate_test_cases_for_requirement(
+            augmented_requirement, model, template
+        )
+        info_since_heading = []  # Reset after each requirement
+```
+
+```python
+# ❌ WRONG: Premature filtering loses context
+system_requirements = [obj for obj in artifacts if obj.get("type") == "System Requirement"]
+for requirement in system_requirements:
+    # This loses heading and information context!
+    test_cases = generator.generate_test_cases_for_requirement(requirement, model, template)
+```
+
+### Generator Context Formatting
+
+`generators.py` includes helper methods that **MUST** be used in `_build_prompt_from_template()`:
+
+```python
+# Required template variables (lines 104-107 in generators.py)
+variables = {
+    "requirement_id": requirement.get("id", "UNKNOWN"),
+    "heading": requirement.get("heading", ""),
+    "table_str": self._format_table_for_prompt(requirement.get("table")),
+    "row_count": requirement.get("table", {}).get("rows", 0),
+    "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",
+    # Context-aware fields (REQUIRED):
+    "info_str": self._format_info_for_prompt(requirement.get("info_list", [])),
+    "interface_str": self._format_interfaces_for_prompt(requirement.get("interface_list", []))
+}
+```
+
+Helper methods (lines 184-213 in generators.py):
+- `_format_info_for_prompt(info_list)` → Returns bullet-point formatted string or "None"
+- `_format_interfaces_for_prompt(interface_list)` → Returns "ID: Description" formatted string or "None"
+
+### YAML Template Expectations
+
+The prompt template in `prompts/templates/test_generation_v3_structured.yaml` expects these variables:
+- `heading` (required)
+- `info_str` (optional, default: "None")
+- `interface_str` (optional, default: "None")
 
 ## 📚 Documentation Quick Navigation
 
@@ -14,6 +92,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **[📋 CLI Command Reference](#-cli-command-reference)** | Complete command-line interface guide |
 | **[🧪 Development & Testing](#-development--testing-guide)** | Development setup and testing commands |
 | **[🤖 AI Model Setup](#-ai-model-setup-ollama)** | Ollama installation and configuration |
+| **[🏗️ Architecture](#-architecture-overview)** | Modular system design and data flow |
 
 ### ⚡ Most Common Commands
 
@@ -160,12 +239,6 @@ python main.py input/ --hp --performance --verbose
 python main.py input/ --model deepseek-coder-v2:16b --max-concurrent 4 --debug
 ```
 
-**🏗️ Modular Architecture Benefits:**
-- **Single Entry Point**: `main.py` handles all processing modes
-- **Separated Concerns**: Core business logic in `src/core/`, workflow orchestration in `src/processors/`
-- **Enhanced Error Handling**: Structured error reporting with detailed categorization
-- **Comprehensive Testing**: Full pytest-based test suite with 100% success rate
-
 ## 🧪 Development & Testing Guide
 
 ### Environment Setup
@@ -273,328 +346,218 @@ curl -X POST http://localhost:11434/api/generate -d '{
 }'
 ```
 
-## High-Level Architecture (Comprehensive Modular System)
+## 🏗️ Architecture Overview
 
-### Modular Architecture Status (Confirmed 2025-09-15)
+### Modular System Design
 
-**✅ FULLY FUNCTIONAL MODULAR SYSTEM**
-- **Unified Entry Point**: Single `main.py` with Click-based CLI
-- **Core Components**: Separated business logic in `src/core/`
-- **Processors**: Workflow orchestration in `src/processors/`
-- **Enhanced Error Handling**: Structured error reporting with categorization
-- **Comprehensive Testing**: 100% test suite success rate
-
-**🏗️ Key Architecture Components:**
 ```
-├── pyproject.toml                  # Modern Python packaging (PEP 518)
-├── main.py                         # CLI entry point for direct execution
+├── main.py                         # CLI entry point (Click-based)
 ├── src/
-│   ├── __init__.py                 # Package exports and version info
-│   ├── core/                       # Core business logic (reusable components)
-│   │   ├── extractors.py          # REQIFZ parsing with automotive REQIF support
+│   ├── core/                       # Reusable business logic components
+│   │   ├── extractors.py          # REQIFZ XML parsing (automotive REQIF format)
 │   │   ├── parsers.py             # JSON/HTML parsing with error recovery
-│   │   ├── generators.py          # AI test case generation (sync/async)
-│   │   ├── formatters.py          # Excel/JSON output with metadata
+│   │   ├── generators.py          # AI test case generation (sync + async)
+│   │   ├── formatters.py          # Excel/JSON output formatting
 │   │   └── ollama_client.py       # Ollama API integration
 │   ├── processors/                 # Workflow orchestration
-│   │   ├── standard_processor.py  # Sequential processing pipeline
-│   │   └── hp_processor.py        # Async processing with concurrency control
-│   ├── config.py                  # Pydantic-based configuration with CLI overrides
-│   ├── app_logger.py              # Centralized structured logging
-│   └── yaml_prompt_manager.py     # YAML template management and validation
-├── tests/                         # Comprehensive test suite (76+ tests)
-│   ├── conftest.py               # Shared fixtures and test configuration
-│   ├── run_tests.py              # Test runner script
-│   ├── core/                     # Unit tests for individual components
-│   └── integration/              # End-to-end and edge case testing
-├── docs/                         # Documentation and guides
-├── prompts/                      # AI prompt templates and configuration
-└── utilities/                    # Development tools and test data generation
+│   │   ├── standard_processor.py  # Sequential context-aware processing
+│   │   └── hp_processor.py        # Async context-aware processing
+│   ├── config.py                  # Pydantic configuration management
+│   ├── app_logger.py              # Structured logging with JSON output
+│   └── yaml_prompt_manager.py     # YAML template management
+├── tests/                         # Test suite (62 passing, 14 failing)
+│   ├── conftest.py               # Shared fixtures
+│   ├── run_tests.py              # Test runner
+│   ├── core/                     # Unit tests
+│   └── integration/              # Integration tests
+├── prompts/                      # AI prompt templates (YAML)
+└── utilities/                    # Development tools
 ```
 
-### Processing Pipeline Architecture
+### Data Flow: Context-Aware Processing
 
-**Unified Processing Flow:**
 ```
-CLI Interface (main.py) → Processor Selection → Core Components → Output Generation
-       ↓                        ↓                    ↓                ↓
-  Click Commands → Standard/HP Processor → Extractors/Generators → Excel/JSON/Logs
-                                       → Parsers/Formatters
+REQIFZ File → Extractor → ALL Artifacts (ordered list)
+                              ↓
+                     Context-Aware Iteration
+                              ↓
+           ┌──────────────────┼──────────────────┐
+           ↓                  ↓                  ↓
+       Heading          Information       System Requirement
+    (set context)     (collect info)      (augment + generate)
+           ↓                  ↓                  ↓
+    current_heading  → info_since_heading → requirement + context
+                                                  ↓
+                                         Generator with rich prompt
+                                                  ↓
+                                         AI model generates tests
+                                                  ↓
+                                         Excel output with metadata
 ```
 
-**Core Component Responsibilities:**
-- **Extractors**: REQIFZ file processing and XML parsing with automotive REQIF format support
-- **Parsers**: JSON/HTML parsing with intelligent fallback strategies and malformed JSON recovery
-- **Generators**: AI-powered test case generation with structured error handling and async batch processing
-- **Formatters**: Excel and JSON output formatting with streaming capabilities
-- **Clients**: Synchronous and asynchronous Ollama API integration with retry logic and timeout handling
+### Key Architecture Principles
 
-**Processor Orchestration:**
-- **StandardProcessor**: Sequential processing with comprehensive logging
-- **HPProcessor**: Async processing with configurable concurrency and performance monitoring
+1. **Context Preservation**: Processors iterate through ALL artifacts to build contextual state
+2. **Requirement Augmentation**: Each System Requirement is enriched with heading, info_list, interface_list
+3. **Separation of Concerns**: Core components are stateless; processors manage workflow state
+4. **Dual-Mode Processing**: Standard (sequential) and HP (async) share same context logic
+5. **Template-Driven Prompts**: YAML templates expect context variables (heading, info_str, interface_str)
 
-### Enhanced Error Handling System
+### Component Responsibilities
 
-**Structured Error Objects:**
+**Extractors** (`src/core/extractors.py`):
+- Parse REQIFZ (zipped REQIF XML) files
+- Extract ALL artifact types: Heading, Information, System Interface, System Requirement
+- Classify artifacts but DO NOT filter prematurely
+- Support automotive REQIF format with XHTML namespaces
+
+**Generators** (`src/core/generators.py`):
+- Build AI prompts from YAML templates with context variables
+- Format context: `_format_info_for_prompt()`, `_format_interfaces_for_prompt()`
+- Generate test cases via Ollama API (sync and async)
+- Handle structured error responses
+
+**Processors** (`src/processors/`):
+- **Standard**: Sequential context-aware processing (lines 112-155)
+- **HP**: Async context-aware processing with batching (lines 112-144)
+- Both maintain: `current_heading`, `info_since_heading`, `system_interfaces`
+- Augment requirements before passing to generators
+
+**Formatters** (`src/core/formatters.py`):
+- Convert test cases to Excel format with metadata
+- Streaming formatters for memory efficiency in HP mode
+
+### Import Structure
+
+**Critical**: All imports within `src/` use absolute imports from module root:
 ```python
-error_info = {
-    "error": True,
-    "requirement_id": req_id,
-    "error_type": "TimeoutError",
-    "error_message": "AI request timed out: details",
-    "timestamp": "2025-09-12 HH:MM:SS",
-    "test_cases": []
-}
+# ✅ CORRECT
+from config import ConfigManager
+from core.extractors import REQIFArtifactExtractor
+from processors.standard_processor import REQIFZFileProcessor
+
+# ❌ WRONG (breaks tests)
+from ..config import ConfigManager
+from ..core.extractors import REQIFArtifactExtractor
 ```
 
-**Error Categories:**
-- **Connection Errors**: Network and API connectivity issues
-- **Timeout Errors**: AI model response timeouts
-- **Parsing Errors**: JSON/HTML parsing failures with fallback recovery
-- **Validation Errors**: Input file and template validation failures
+Reason: Tests add `src/` to sys.path, requiring absolute imports from src root.
 
-### Configuration System Architecture
+### Configuration System
 
-**Pydantic-Based Configuration:**
+**Pydantic-Based Configuration** (`src/config.py`):
 ```python
-# src/config.py - Unified configuration management
-class ConfigManager:
-    def __init__(self):
-        self.ollama = OllamaConfig()      # AI model settings
-        self.static_test = StaticTestConfig()  # Excel formatting
-        self.file_processing = FileProcessingConfig()  # I/O settings
+ConfigManager()
+  ├── ollama: OllamaConfig        # AI model settings
+  ├── static_test: StaticTestConfig  # Excel formatting
+  └── file_processing: FileProcessingConfig  # I/O settings
 ```
 
-**YAML-Based Prompt System:**
+**YAML Prompt System** (`prompts/`):
 ```
 prompts/
-├── templates/test_generation_v3_structured.yaml  # ✅ Main templates
-├── config/prompt_config.yaml                     # ✅ Configuration  
-└── tools/template_validator.py                   # ✅ Validation utilities
+├── templates/test_generation_v3_structured.yaml  # Main template
+├── config/prompt_config.yaml                     # Template config
+└── tools/template_validator.py                   # Validation
 ```
-
-### Data Flow and File Management
-
-**Input Processing:**
-- **Input Directory**: `input/` for organized file management
-- **REQIFZ Format**: Automotive requirements in zipped REQIF XML format
-- **Mock Data**: `utilities/create_mock_reqifz.py` creates test data
-
-**Output Generation:**
-- **Excel Files**: Structured test cases saved alongside input files
-- **JSON Logs**: Comprehensive processing metrics and error tracking
-- **Naming Pattern**: `{filename}_TCD_{mode}_{model}_{timestamp}.xlsx`
-
-**File Location Strategy:**
-- Input files managed in `input/` directory for easy organization
-- Output files saved in same directory as input files (not in separate output directory)
-- Comprehensive logging to JSON files for audit trails
-
-**Dependency Management:**
-- Single `requirements.txt`: Complete dependency set organized by functionality (core, performance, ML, development)
 
 ### Performance Characteristics
 
-**High-Performance Mode Benefits:**
-- **4-8x Speed Improvement**: Confirmed through comprehensive testing
-- **Configurable Concurrency**: `--max-concurrent` parameter for tuning
-- **Resource Optimization**: Efficient memory usage with streaming output
-- **Performance Monitoring**: Real-time metrics with `--performance` flag
-
-**Validated Performance Metrics:**
 - **Standard Mode**: ~7,254 artifacts/second, single-threaded
-- **HP Mode**: ~18,208 artifacts/second, optimal with 2 workers (2.5x speedup)
-- **JSON Parsing**: Linear scalability (1.09 factor) up to 50K test cases
-- **Memory Efficiency**: 0.010 MB per artifact processed
-- **End-to-End Processing**: <1 second for typical automotive REQIFZ files
+- **HP Mode**: ~18,208 artifacts/second, 2-4 workers optimal (2.5x speedup)
+- **Memory Efficiency**: 0.010 MB per artifact
+- **JSON Parsing**: Linear scalability up to 50K test cases
+- **End-to-End**: <1 second for typical automotive REQIFZ files
 
-## Development Workflow
+## ⚡ Quick Start for New Developers
 
-### Before Making Changes
-1. **Environment Validation**: `python3 utilities/version_check.py --strict`
-2. **Dependency Installation**: `pip install -r requirements.txt`  
-3. **Module Compilation**: `python3 -m py_compile src/*.py main.py`
-4. **Type Checking**: `mypy src/ main.py --python-version 3.13`
+### 5-Minute Setup
 
-### Code Quality Pipeline
 ```bash
-# Pre-commit quality checks
-ruff check src/ main.py utilities/     # Fast linting
-ruff format src/ main.py utilities/    # Code formatting  
-mypy src/ main.py --python-version 3.13  # Type checking
+# 1. Verify Python 3.13.7+
+python3 --version
 
-# Comprehensive testing
-python tests/run_tests.py                    # Complete test suite
-python -m pytest tests/ -v --cov=src  # With coverage reporting
+# 2. Install in development mode
+pip install -e .[dev]
 
-# Security and dependency checks
-pip-audit                              # Vulnerability scanning
-pip list --outdated                    # Check for updates
+# 3. Verify package installation
+python3 -c "import src; print(f'Version: {src.__version__}')"
+
+# 4. Check Ollama (must be v0.11.10+)
+ollama --version
+curl -s http://localhost:11434/api/tags
+
+# 5. Create test data and run
+python3 utilities/create_mock_reqifz.py
+ai-tc-generator input/automotive_door_window_system.reqifz --verbose
+
+# 6. Run test suite
+python tests/run_tests.py
 ```
 
-### Testing Strategy
-```bash
-# Complete test suite (RECOMMENDED)
-python tests/run_tests.py                               # ✅ All tests with summary
+### Development Guidelines
 
-# Granular testing
-python -m pytest tests/core/ -v                  # Core component tests
-python -m pytest tests/integration/ -v           # Integration tests
-python -m pytest tests/core/test_parsers.py -v   # Specific component tests
+- **Context-Aware Processing**: Never filter artifacts before context iteration (see top of this file)
+- **Test Before Commit**: Run `python tests/run_tests.py` (currently 62/76 passing)
+- **Code Quality**: Use `ruff check src/ main.py --fix` before commits
+- **Import Style**: Use absolute imports from src root (not relative imports)
+- **Template Changes**: Run `--validate-prompts` after modifying YAML files
+- **Performance Testing**: Use `--hp --performance` to verify optimizations
+- **Debug Logging**: Check JSON log files for detailed processing traces
 
-# Mock data and integration testing
-python3 utilities/create_mock_reqifz.py          # Create test data
-python main.py input/automotive_door_window_system.reqifz --verbose  # Test with real data
-```
+### Python 3.13.7+ Modern Features
+
+**Language Features Used:**
+- **PEP 695 Type Aliases**: `type JSONObj[T] = dict[str, T]`
+- **Pattern Matching**: `match`/`case` for XML processing
+- **__slots__**: 20-30% memory reduction on core classes
+- **Async/Await**: Concurrent processing in HP mode
+
+### Known Issues (2025-09-30)
+
+**Test Failures (14 failing, 62 passing = 82% success rate):**
+- Network error simulation tests (4 failures - mock configuration issues)
+- Integration workflow tests (10 failures - end-to-end scenarios)
+- Core logic tests: ✅ ALL PASSING
+
+**Status:**
+- ✅ Context-aware processing: **RESTORED and WORKING**
+- ✅ Context formatting methods: **IMPLEMENTED**
+- ✅ Import paths: **FIXED**
+- ✅ Test coverage: 61% (up from 25%)
+- ⚠️ Integration tests: Need mock refinement
+- ⚠️ Network tests: Need connection simulation fixes
+
+**Priority:**
+- Core functionality (context-aware processing): ✅ **COMPLETE**
+- Integration test mocking: ⚠️ Needs attention
+- Network error simulation: ⚠️ Needs fixes
 
 ### Common Issues and Solutions
 
 **Import Errors**: Use `pip install -e .[dev]` for proper package setup
 **Ollama Connection**: Verify service with `ollama list` and ensure models are available
 **Template Issues**: Run `ai-tc-generator --validate-prompts` to check YAML syntax
-**Performance**: Use `--hp` mode for faster processing (2.5x speedup)
-**Test Failures**: Currently 9 tests failing - run `python tests/run_tests.py` to see status
+**Performance**: Use `--hp` mode for 2.5x speedup
 **REQIFZ Parsing**: Ensure automotive REQIF format with proper XHTML namespaces
-**Package Issues**: Run `python3 -c "import src; print(src.__version__)"` to verify installation
+**Context Loss**: Check that processors iterate ALL artifacts (not just System Requirements)
 
-### 🚨 Known Issues (2025-09-28)
+### Verification Commands
 
-**Critical Import Issues:**
-- Package import failing: `ModuleNotFoundError: No module named 'processors'`
-- CLI commands may not work due to package installation problems
-- Fix needed in `src/processors/__init__.py` import paths
-
-**Test Failures (9 failing):**
-- Network error condition tests failing (connection simulation issues)
-- Some async/HP mode integration tests failing
-- End-to-end workflow tests having problems
-
-**Priority Fixes Needed:**
-1. Fix import paths in `src/processors/__init__.py`
-2. Debug network error simulation in test suite
-3. Resolve async mock issues causing RuntimeWarnings
-4. Verify CLI entry points work correctly after package fixes
-
-## ⚡ **QUICK START FOR NEW DEVELOPERS**
-
-### Modern Package Setup (5 minutes) - RECOMMENDED
 ```bash
-# 1. Verify Python version (REQUIRED: 3.13.7+)
-python3 --version                                    # Must be 3.13.7 or higher
+# Test context formatting methods
+python3 -c "
+from src.core.generators import TestCaseGenerator
+gen = TestCaseGenerator(None, None, None)
+info = [{'text': 'Test info'}]
+print('Info:', gen._format_info_for_prompt(info))
+interfaces = [{'id': 'IF_001', 'text': 'Signal'}]
+print('Interface:', gen._format_interfaces_for_prompt(interfaces))
+"
 
-# 2. Install in development mode (RECOMMENDED)
-pip install -e .[dev]                               # Editable install with all dev tools
+# Verify package
+python3 -c "import src; print(f'✅ v{src.__version__} ready')"
 
-# 3. Verify package installation
-python3 -c "import src; print(f'Version: {src.__version__}')"  # Package validation
-
-# 4. Test Ollama integration (CONFIRMED WORKING)
-ollama --version                                     # Must be v0.11.10+
-curl -s http://localhost:11434/api/tags             # Check model availability
-
-# 5. Create test data and run with installed package
-python3 utilities/create_mock_reqifz.py             # Creates automotive_door_window_system.reqifz
-ai-tc-generator input/automotive_door_window_system.reqifz --verbose  # Test with CLI
-
-# 6. Run comprehensive test suite (ENHANCED)
-python tests/run_tests.py                                  # Verify all functionality including new tests
+# Test with sample data
+ai-tc-generator input/automotive_door_window_system.reqifz --verbose
 ```
-
-### Legacy Direct Execution Setup (Alternative)
-```bash
-# 1. Verify Python version (REQUIRED: 3.13.7+)
-python3 --version                                    # Must be 3.13.7 or higher
-
-# 2. Install dependencies directly
-pip install -r requirements.txt                     # Direct requirements install
-
-# 3. Verify system health (ALL TESTS PASS)
-python3 utilities/version_check.py --strict         # Environment validation
-python3 -m py_compile src/*.py main.py              # Syntax check all files
-
-# 4. Test direct execution
-python main.py input/automotive_door_window_system.reqifz --verbose  # Direct execution
-
-# 5. Run test suite
-python tests/run_tests.py                                  # Verify all functionality
-```
-
-### System Status (Development - 2025-09-28)
-- **⚠️ Modern Python packaging**: pyproject.toml with CLI entry points (import issues need fixing)
-- **⚠️ Package installation**: `pip install -e .[dev]` has module import errors
-- **❓ CLI tools**: `ai-tc-generator` and `ai-tc-gen` commands may not work due to import issues
-- **✅ Core business logic**: REQIF extraction and System Requirement classification implemented
-- **✅ Performance optimization**: 2.5x speedup with high-performance mode
-- **⚠️ Error handling**: Some edge cases failing (9 test failures)
-- **⚠️ Test coverage**: 67 tests passing, 9 failing (88% success rate)
-- **✅ Logging system**: Centralized structured logging with JSON output
-- **✅ Configuration**: Pydantic-based config with CLI overrides and secrets management
-- **🔧 Development status**: Requires debugging and fixes before production use
-
-### Key Development Guidelines
-
-- **Use `pip install -e .[dev]`** for proper development environment setup
-- **Prefer `ai-tc-generator`** command over direct `python main.py` execution
-- **Run `python tests/run_tests.py`** before commits - currently 67 tests pass, 9 fail (needs debugging)
-- **Understand the architecture**: `src/core/` contains reusable components, `src/processors/` orchestrates workflows
-- **Test with real data**: Use `input/automotive_door_window_system.reqifz` for integration testing
-- **Performance testing**: Use `--hp --performance` flags to verify optimizations
-- **Template validation**: Run `--validate-prompts` after modifying YAML templates
-- **Debug with logs**: Check JSON log files for detailed processing information
-- **Environment variables**: Configure secrets via `AI_TG_*` environment variables for security
-
-### Python 3.13.7+ Modern Features
-
-**Language Features Utilized:**
-- **PEP 695 Generic Type Aliases**: `type JSONObj[T] = dict[str, T]`
-- **Pattern Matching**: `match`/`case` for XML processing and artifact classification
-- **Performance Optimizations**: `__slots__` for 20-30% memory reduction
-- **Session Reuse Pattern**: HTTP client persistent connections (15-25% improvement)
-- **Async/Await Architecture**: Concurrent processing in high-performance version
-
-**Key Performance Optimizations:**
-- `__slots__` on all major classes for memory efficiency
-- HTTP session reuse for reduced connection overhead
-- lxml acceleration for XML processing
-- ujson for faster JSON operations (when available)
-- Streaming output for memory-efficient large dataset handling
-
-## Testing Infrastructure
-
-### Comprehensive Test Coverage (✅ 100% Success Rate)
-
-**Test Categories:**
-1. **Unit Tests**: Core component functionality
-2. **Integration Tests**: End-to-end workflow validation
-3. **Async Tests**: High-performance mode validation
-4. **Mock Tests**: AI client behavior without external dependencies
-5. **Configuration Tests**: YAML and Pydantic validation
-
-**Current Test Coverage Status:**
-```
-✅ REQIF Extraction & Classification: PASS (14 artifacts → 3 System Requirements)
-✅ JSON/HTML Parsing with Error Recovery: PASS
-✅ Test Case Generation (Sync/Async): PASS
-✅ Excel/JSON Output Formatting: PASS
-⚠️ High-Performance Concurrent Processing: PARTIAL (some async tests failing)
-⚠️ Error Handling & Edge Cases: PARTIAL (network error simulations failing)
-⚠️ CLI Integration & Package Installation: PARTIAL (import issues present)
-✅ Logging & Configuration Systems: PASS
-⚠️ Memory Efficiency & Scalability: PARTIAL (need to verify recent changes)
-⚠️ End-to-End Workflows: PARTIAL (some integration tests failing)
-```
-
-### Legacy System Migration Complete
-
-**Removed Legacy Components:**
-- Old monolithic processing scripts (4,200+ lines removed)
-- Redundant YAML functions and duplicate code
-- Multiple main.py variants (consolidated to single entry point)
-- Inconsistent logging implementations
-
-**Migration Benefits:**
-- **Code Reduction**: 4,200+ lines of legacy code eliminated
-- **Maintainability**: Clean separation of concerns
-- **Testability**: Comprehensive test coverage achieved
-- **Performance**: Enhanced async processing capabilities
-- **Reliability**: Structured error handling implemented

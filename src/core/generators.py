@@ -93,14 +93,17 @@ class TestCaseGenerator:
     def _build_prompt_from_template(self, requirement: RequirementData, template_name: str = None) -> str:
         """Build prompt using YAML template manager"""
         try:
-            # Prepare template variables
+            # Prepare template variables with context information
             variables = {
                 "requirement_id": requirement.get("id", "UNKNOWN"),
                 "heading": requirement.get("heading", ""),
                 "requirement_text": requirement.get("text", ""),
                 "table_str": self._format_table_for_prompt(requirement.get("table")),
                 "row_count": requirement.get("table", {}).get("rows", 0) if requirement.get("table") else 0,
-                "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON"  # Default automotive precondition
+                "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",  # Default automotive precondition
+                # Context-aware fields (v03 restoration)
+                "info_str": self._format_info_for_prompt(requirement.get("info_list", [])),
+                "interface_str": self._format_interfaces_for_prompt(requirement.get("interface_list", []))
             }
 
             # Use template manager to get formatted prompt
@@ -160,23 +163,54 @@ Ensure each test case is detailed and executable."""
 
             # Get headers from first row
             headers = list(rows[0].keys()) if rows else []
-            
+
             # Format as simple table
             formatted = "Table Data:\n"
             formatted += " | ".join(headers) + "\n"
             formatted += "-" * (len(" | ".join(headers))) + "\n"
-            
+
             for row in rows[:10]:  # Limit to first 10 rows
                 values = [str(row.get(header, "")) for header in headers]
                 formatted += " | ".join(values) + "\n"
-            
+
             if len(rows) > 10:
                 formatted += f"... ({len(rows) - 10} more rows)\n"
-            
+
             return formatted
 
         except Exception as e:
             return f"Error formatting table: {e}"
+
+    def _format_info_for_prompt(self, info_list: list[dict[str, Any]]) -> str:
+        """
+        Format information list for inclusion in prompt (v03 restoration)
+
+        Args:
+            info_list: List of information artifacts collected since last heading
+
+        Returns:
+            Formatted string for prompt template
+        """
+        if not info_list:
+            return "None"
+
+        return "\n".join([f"- {info.get('text', '')}" for info in info_list])
+
+    def _format_interfaces_for_prompt(self, interface_list: list[dict[str, Any]]) -> str:
+        """
+        Format system interface list for inclusion in prompt (v03 restoration)
+
+        Args:
+            interface_list: List of system interface artifacts (global context)
+
+        Returns:
+            Formatted string for prompt template
+        """
+        if not interface_list:
+            return "None"
+
+        return "\n".join([f"- {interface.get('id', 'UNKNOWN')}: {interface.get('text', '')}"
+                         for interface in interface_list])
 
 
 class AsyncTestCaseGenerator:

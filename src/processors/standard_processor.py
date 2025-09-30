@@ -90,10 +90,13 @@ class REQIFZFileProcessor:
             
             # Step 2: Classify artifacts by type
             classified_artifacts = self.extractor.classify_artifacts(artifacts)
-            
-            # Step 3: Generate test cases for System Requirements
-            system_requirements = classified_artifacts.get("System Requirement", [])
-            
+
+            # Step 3: Separate system interfaces (global context) from processing list
+            system_interfaces = classified_artifacts.get("System Interface", [])
+
+            # Count system requirements for metrics
+            system_requirements = [obj for obj in artifacts if obj.get("type") == "System Requirement"]
+
             if not system_requirements:
                 self.logger.warning("No System Requirements found for test generation")
                 return {
@@ -101,26 +104,55 @@ class REQIFZFileProcessor:
                     "error": "No System Requirements found",
                     "processing_time": time.time() - start_time
                 }
-            
-            self.logger.info(f"🎯 Generating test cases for {len(system_requirements)} requirements...")
-            
+
+            self.logger.info(f"🎯 Processing {len(artifacts)} artifacts with context-aware iteration...")
+            self.logger.info(f"📋 Found {len(system_requirements)} system requirements to process")
+            self.logger.info(f"🔌 Found {len(system_interfaces)} system interfaces (global context)")
+
+            # Step 4: Context-aware artifact processing (v03 restoration)
             all_test_cases = []
             successful_requirements = 0
-            
-            for requirement in system_requirements:
-                req_id = requirement.get("id", "UNKNOWN")
-                self.logger.info(f"⚡ Processing requirement: {req_id}")
-                
-                test_cases = self.generator.generate_test_cases_for_requirement(
-                    requirement, model, template
-                )
-                
-                if test_cases:
-                    all_test_cases.extend(test_cases)
-                    successful_requirements += 1
-                    self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
-                else:
-                    self.logger.warning(f"⚠️  No test cases generated for {req_id}")
+            current_heading = "No Heading"
+            info_since_heading = []
+
+            for obj in artifacts:
+                # Update context based on artifact type
+                if obj.get("type") == "Heading":
+                    current_heading = obj.get("text", "No Heading")
+                    info_since_heading = []
+                    self.logger.debug(f"📌 Context heading: {current_heading}")
+                    continue
+
+                elif obj.get("type") == "Information":
+                    info_since_heading.append(obj)
+                    self.logger.debug(f"📝 Stored information artifact: {obj.get('id', 'UNKNOWN')}")
+                    continue
+
+                elif obj.get("type") == "System Requirement" and obj.get("table"):
+                    # Augment requirement with collected context
+                    req_id = obj.get("id", "UNKNOWN")
+                    self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {current_heading})")
+
+                    augmented_requirement = obj.copy()
+                    augmented_requirement.update({
+                        "heading": current_heading,
+                        "info_list": info_since_heading.copy(),
+                        "interface_list": system_interfaces
+                    })
+
+                    test_cases = self.generator.generate_test_cases_for_requirement(
+                        augmented_requirement, model, template
+                    )
+
+                    if test_cases:
+                        all_test_cases.extend(test_cases)
+                        successful_requirements += 1
+                        self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
+                    else:
+                        self.logger.warning(f"⚠️  No test cases generated for {req_id}")
+
+                    # Reset information context after processing requirement
+                    info_since_heading = []
             
             if not all_test_cases:
                 return {

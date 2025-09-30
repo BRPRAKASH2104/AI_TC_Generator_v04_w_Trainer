@@ -104,19 +104,54 @@ class HighPerformanceREQIFZFileProcessor:
                 return self._create_error_result("No artifacts found in REQIFZ file")
             
             self.metrics["total_artifacts"] = len(artifacts)
-            
-            # Step 2: Classify and filter System Requirements
+
+            # Step 2: Classify artifacts and separate system interfaces (global context)
             classified_artifacts = self.extractor.classify_artifacts(artifacts)
-            system_requirements = classified_artifacts.get("System Requirement", [])
-            
-            if not system_requirements:
-                return self._create_error_result("No System Requirements found")
-            
-            self.metrics["total_requirements"] = len(system_requirements)
-            
-            # Step 3: High-performance async test case generation
-            self.logger.info(f"⚡ Async processing {len(system_requirements)} requirements...")
-            
+            system_interfaces = classified_artifacts.get("System Interface", [])
+
+            # Step 3: Context-aware artifact processing preparation
+            # Build augmented requirements with context (v03 restoration)
+            augmented_requirements = []
+            current_heading = "No Heading"
+            info_since_heading = []
+
+            self.logger.info(f"🎯 Building context for {len(artifacts)} artifacts...")
+
+            for obj in artifacts:
+                # Update context based on artifact type
+                if obj.get("type") == "Heading":
+                    current_heading = obj.get("text", "No Heading")
+                    info_since_heading = []
+                    self.logger.debug(f"📌 Context heading: {current_heading}")
+                    continue
+
+                elif obj.get("type") == "Information":
+                    info_since_heading.append(obj)
+                    self.logger.debug(f"📝 Stored information artifact: {obj.get('id', 'UNKNOWN')}")
+                    continue
+
+                elif obj.get("type") == "System Requirement" and obj.get("table"):
+                    # Augment requirement with collected context
+                    augmented_requirement = obj.copy()
+                    augmented_requirement.update({
+                        "heading": current_heading,
+                        "info_list": info_since_heading.copy(),
+                        "interface_list": system_interfaces
+                    })
+                    augmented_requirements.append(augmented_requirement)
+
+                    # Reset information context after processing requirement
+                    info_since_heading = []
+
+            if not augmented_requirements:
+                return self._create_error_result("No System Requirements with tables found")
+
+            self.metrics["total_requirements"] = len(augmented_requirements)
+
+            self.logger.info(f"⚡ Async processing {len(augmented_requirements)} context-enriched requirements...")
+            self.logger.info(f"🔌 Using {len(system_interfaces)} system interfaces as global context")
+
+            # Step 4: High-performance async test case generation
             async with AsyncOllamaClient(self.config.ollama) as ollama_client:
                 generator = AsyncTestCaseGenerator(
                     ollama_client,
@@ -124,20 +159,20 @@ class HighPerformanceREQIFZFileProcessor:
                     self.logger,
                     max_concurrent=self.max_concurrent_requirements
                 )
-                
+
                 # Start performance monitoring
                 monitor_task = asyncio.create_task(self._monitor_performance())
-                
-                # Process requirements in batches for optimal performance
-                batch_size = min(self.max_concurrent_requirements, len(system_requirements))
+
+                # Process augmented requirements in batches for optimal performance
+                batch_size = min(self.max_concurrent_requirements, len(augmented_requirements))
                 all_test_cases = []
-                
-                for i in range(0, len(system_requirements), batch_size):
-                    batch = system_requirements[i:i + batch_size]
+
+                for i in range(0, len(augmented_requirements), batch_size):
+                    batch = augmented_requirements[i:i + batch_size]
                     batch_start = time.time()
-                    
+
                     self.logger.info(f"🔄 Processing batch {i//batch_size + 1} ({len(batch)} requirements)")
-                    
+
                     batch_results = await generator.generate_test_cases_batch(
                         batch, model, template
                     )
@@ -223,10 +258,10 @@ class HighPerformanceREQIFZFileProcessor:
             performance_metrics = self._calculate_performance_metrics(processing_time)
             
             # Calculate error summary
-            failed_requirements = len(system_requirements) - self.metrics["successful_requirements"]
+            failed_requirements = len(augmented_requirements) - self.metrics["successful_requirements"]
             error_summary = {
                 "total_failures": failed_requirements,
-                "failure_rate": (failed_requirements / len(system_requirements) * 100) if system_requirements else 0,
+                "failure_rate": (failed_requirements / len(augmented_requirements) * 100) if augmented_requirements else 0,
                 "detailed_failures": []
             }
             
@@ -245,7 +280,7 @@ class HighPerformanceREQIFZFileProcessor:
                 "success": True,
                 "output_file": str(output_path),
                 "total_test_cases": len(all_test_cases),
-                "requirements_processed": len(system_requirements),
+                "requirements_processed": len(augmented_requirements),
                 "successful_requirements": self.metrics["successful_requirements"],
                 "failed_requirements": failed_requirements,
                 "artifacts_found": len(artifacts),

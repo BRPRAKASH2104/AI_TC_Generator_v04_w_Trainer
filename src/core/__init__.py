@@ -13,7 +13,7 @@ from core.parsers import FastJSONResponseParser, HTMLTableParser, JSONResponsePa
 
 __all__ = [
     "OllamaClient",
-    "AsyncOllamaClient", 
+    "AsyncOllamaClient",
     "HTMLTableParser",
     "JSONResponseParser",
     "FastJSONResponseParser",
