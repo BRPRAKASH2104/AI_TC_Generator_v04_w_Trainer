@@ -6,13 +6,15 @@ This project is a Python-based AI test case generator designed for automotive re
 
 The application is built with a modular and maintainable architecture, separating core logic (data extraction, generation, parsing) from high-level processing workflows. It features a unified command-line interface (CLI) that supports multiple operational modes, including a standard mode for reliable processing and a high-performance asynchronous mode for faster results.
 
+A key feature of this application is its **context-aware processing** capability. The system intelligently gathers and utilizes contextual information such as headings, informational notes, and system interfaces from the REQIFZ file to generate more accurate and relevant test cases.
+
 **Key Technologies:**
 
 *   **Programming Language:** Python 3.13+
 *   **AI Integration:** Ollama (with models like `llama3.1:8b` and `deepseek-coder-v2:16b`)
 *   **Core Libraries:**
     *   `click`: For building the command-line interface.
-    *   `pandas`: For data manipulation.
+    *   `pandas` & `openpyxl`: For data manipulation and Excel output.
     *   `requests` & `aiohttp`: For communicating with the Ollama API.
     *   `PyYAML`: For managing prompt templates.
     *   `pydantic`: For configuration management.
@@ -27,17 +29,25 @@ The application is built with a modular and maintainable architecture, separatin
 
 ### 1. Installation
 
-Install the required dependencies using `pip`:
+This project uses `pyproject.toml` to manage dependencies. It is recommended to install the project in editable mode with the development dependencies.
+
+**Recommended Installation:**
 
 ```bash
-pip install -r requirements.txt
+pip install -e .[dev]
 ```
 
-For optional features, you can also install the dependencies from `requirements-optional.txt`:
+This command installs the project in editable mode (`-e`) and includes all development dependencies specified in `pyproject.toml` under the `[project.optional-dependencies]` table.
 
-```bash
-pip install -r requirements-optional.txt
-```
+**Optional Installations:**
+
+*   **Security scanning tools:** `pip install -e .[security]`
+*   **ML training dependencies:** `pip install -e .[training]`
+*   **All optional dependencies:** `pip install -e .[all]`
+
+**Note on `requirements.txt`:**
+
+The `requirements.txt` file is also present in the repository, but it is recommended to use `pyproject.toml` as the single source of truth for dependencies. The `requirements.txt` file may be deprecated in the future.
 
 ### 2. Running the Application
 
@@ -84,4 +94,37 @@ This will run all tests in the `tests/` directory and generate a coverage report
 *   **Testing:** All new code should be accompanied by unit or integration tests in the `tests/` directory.
 *   **Prompts:** AI prompts are defined in YAML files in the `prompts/templates/` directory. When adding new prompts, follow the existing structure.
 *   **Configuration:** Application settings can be modified in `config/cli_config.yaml`. This file includes presets for different environments (e.g., `development`, `production`).
-*   **Dependencies:** All project dependencies are listed in `requirements.txt`.
+*   **Dependencies:** All project dependencies are listed in `pyproject.toml`.
+
+## Architecture Overview
+
+The application is designed with a modular architecture to ensure maintainability and extensibility.
+
+*   **`main.py`:** The CLI entry point, built with `click`.
+*   **`src/`:** The main source code directory.
+    *   **`core/`:** Contains the core business logic components:
+        *   `extractors.py`: Parses REQIFZ files.
+        *   `generators.py`: Generates test cases using AI models.
+        *   `formatters.py`: Formats test cases for output.
+        *   `ollama_client.py`: Communicates with the Ollama API.
+        *   `parsers.py`: Parses JSON and HTML.
+    *   **`processors/`:** Orchestrates the processing workflows:
+        *   `standard_processor.py`: Implements the standard, synchronous processing logic.
+        *   `hp_processor.py`: Implements the high-performance, asynchronous processing logic.
+    *   **`config.py`:** Manages application configuration using `pydantic`.
+    *   **`app_logger.py`:** Provides centralized logging.
+    *   **`yaml_prompt_manager.py`:** Manages YAML-based prompt templates.
+*   **`prompts/`:** Contains the YAML prompt templates.
+*   **`tests/`:** Contains the test suite.
+*   **`utilities/`:** Contains utility scripts.
+
+## Context-Aware Processing
+
+The context-aware processing logic is a key feature of this application. It works as follows:
+
+1.  The `REQIFArtifactExtractor` extracts all artifacts from the REQIFZ file, including headings, information, system interfaces, and system requirements.
+2.  The processor iterates through the artifacts in order, building up a context of the current heading and any informational notes.
+3.  When a system requirement is encountered, it is augmented with the current context (heading, information, and system interfaces).
+4.  The augmented requirement is then passed to the `TestCaseGenerator`, which uses the context to generate more accurate and relevant test cases.
+
+This ensures that the AI model has the necessary context to understand the requirement and generate high-quality test cases.
