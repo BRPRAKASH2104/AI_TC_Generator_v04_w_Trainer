@@ -13,6 +13,7 @@ from typing import Any
 
 from core.ollama_client import AsyncOllamaClient, OllamaClient
 from core.parsers import FastJSONResponseParser, JSONResponseParser
+from core.prompt_builder import PromptBuilder
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseData = dict[str, Any]
@@ -24,12 +25,12 @@ type ProcessingResult = TestCaseList | dict[str, Any]  # Can be test cases or er
 class TestCaseGenerator:
     """Generates test cases from requirements using AI models"""
 
-    __slots__ = ("client", "json_parser", "yaml_manager", "logger")
+    __slots__ = ("client", "json_parser", "prompt_builder", "logger")
 
     def __init__(self, client: OllamaClient, yaml_manager=None, logger=None):
         self.client = client
         self.json_parser = JSONResponseParser()
-        self.yaml_manager = yaml_manager
+        self.prompt_builder = PromptBuilder(yaml_manager)
         self.logger = logger
 
     def generate_test_cases_for_requirement(
@@ -40,21 +41,18 @@ class TestCaseGenerator:
     ) -> TestCaseList:
         """
         Generate test cases for a single requirement.
-        
+
         Args:
             requirement: The requirement data to process
             model: AI model to use for generation
             template_name: Optional specific template to use
-            
+
         Returns:
             List of generated test cases
         """
         try:
-            # Get prompt template
-            if self.yaml_manager:
-                prompt = self._build_prompt_from_template(requirement, template_name)
-            else:
-                prompt = self._build_default_prompt(requirement)
+            # Build prompt using PromptBuilder
+            prompt = self.prompt_builder.build_prompt(requirement, template_name)
 
             if self.logger:
                 self.logger.debug(f"Generating test cases for {requirement.get('id', 'UNKNOWN')}")
@@ -66,19 +64,19 @@ class TestCaseGenerator:
 
             # Parse JSON response
             test_cases_data = self.json_parser.extract_json_from_response(response)
-            
+
             if test_cases_data and "test_cases" in test_cases_data:
                 test_cases = test_cases_data["test_cases"]
-                
+
                 # Add metadata to each test case
                 for i, test_case in enumerate(test_cases):
                     test_case["requirement_id"] = requirement.get("id", "UNKNOWN")
                     test_case["generation_time"] = generation_time
                     test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i+1:03d}"
-                
+
                 if self.logger:
                     self.logger.info(f"Generated {len(test_cases)} test cases for {requirement.get('id', 'UNKNOWN')}")
-                
+
                 return test_cases
             else:
                 if self.logger:
@@ -90,138 +88,16 @@ class TestCaseGenerator:
                 self.logger.error(f"Error generating test cases for {requirement.get('id', 'UNKNOWN')}: {e}")
             return []
 
-    def _build_prompt_from_template(self, requirement: RequirementData, template_name: str = None) -> str:
-        """Build prompt using YAML template manager"""
-        try:
-            # Prepare template variables with context information
-            variables = {
-                "requirement_id": requirement.get("id", "UNKNOWN"),
-                "heading": requirement.get("heading", ""),
-                "requirement_text": requirement.get("text", ""),
-                "table_str": self._format_table_for_prompt(requirement.get("table")),
-                "row_count": requirement.get("table", {}).get("rows", 0) if requirement.get("table") else 0,
-                "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",  # Default automotive precondition
-                # Context-aware fields (v03 restoration)
-                "info_str": self._format_info_for_prompt(requirement.get("info_list", [])),
-                "interface_str": self._format_interfaces_for_prompt(requirement.get("interface_list", []))
-            }
-
-            # Use template manager to get formatted prompt
-            if template_name:
-                return self.yaml_manager.get_test_prompt(template_name, **variables)
-            else:
-                return self.yaml_manager.get_test_prompt(**variables)
-
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"Error building template prompt: {e}, using default")
-            return self._build_default_prompt(requirement)
-
-    def _build_default_prompt(self, requirement: RequirementData) -> str:
-        """Build a default prompt when template system is not available"""
-        req_id = requirement.get("id", "UNKNOWN")
-        heading = requirement.get("heading", "")
-        text = requirement.get("text", "")
-        
-        prompt = f"""Generate comprehensive test cases for the following automotive requirement:
-
-Requirement ID: {req_id}
-Heading: {heading}
-Description: {text}
-
-Please generate test cases in JSON format with the following structure:
-{{
-    "test_cases": [
-        {{
-            "summary": "Brief test case description",
-            "action": "Detailed test steps",
-            "data": "Test data and inputs",
-            "expected_result": "Expected outcome"
-        }}
-    ]
-}}
-
-Focus on:
-- Boundary value testing
-- Positive and negative scenarios
-- Automotive-specific conditions (voltage levels, temperature ranges)
-- Safety and security considerations
-
-Ensure each test case is detailed and executable."""
-
-        return prompt
-
-    def _format_table_for_prompt(self, table_data: dict[str, Any] | None) -> str:
-        """Format table data for inclusion in prompts"""
-        if not table_data or "data" not in table_data:
-            return "No table data available"
-
-        try:
-            rows = table_data["data"]
-            if not rows:
-                return "Empty table"
-
-            # Get headers from first row
-            headers = list(rows[0].keys()) if rows else []
-
-            # Format as simple table
-            formatted = "Table Data:\n"
-            formatted += " | ".join(headers) + "\n"
-            formatted += "-" * (len(" | ".join(headers))) + "\n"
-
-            for row in rows[:10]:  # Limit to first 10 rows
-                values = [str(row.get(header, "")) for header in headers]
-                formatted += " | ".join(values) + "\n"
-
-            if len(rows) > 10:
-                formatted += f"... ({len(rows) - 10} more rows)\n"
-
-            return formatted
-
-        except Exception as e:
-            return f"Error formatting table: {e}"
-
-    def _format_info_for_prompt(self, info_list: list[dict[str, Any]]) -> str:
-        """
-        Format information list for inclusion in prompt (v03 restoration)
-
-        Args:
-            info_list: List of information artifacts collected since last heading
-
-        Returns:
-            Formatted string for prompt template
-        """
-        if not info_list:
-            return "None"
-
-        return "\n".join([f"- {info.get('text', '')}" for info in info_list])
-
-    def _format_interfaces_for_prompt(self, interface_list: list[dict[str, Any]]) -> str:
-        """
-        Format system interface list for inclusion in prompt (v03 restoration)
-
-        Args:
-            interface_list: List of system interface artifacts (global context)
-
-        Returns:
-            Formatted string for prompt template
-        """
-        if not interface_list:
-            return "None"
-
-        return "\n".join([f"- {interface.get('id', 'UNKNOWN')}: {interface.get('text', '')}"
-                         for interface in interface_list])
-
 
 class AsyncTestCaseGenerator:
     """Asynchronous test case generator for high-performance processing"""
 
-    __slots__ = ("client", "json_parser", "yaml_manager", "logger", "semaphore")
+    __slots__ = ("client", "json_parser", "prompt_builder", "logger", "semaphore")
 
     def __init__(self, client: AsyncOllamaClient, yaml_manager=None, logger=None, max_concurrent: int = 4):
         self.client = client
         self.json_parser = FastJSONResponseParser()
-        self.yaml_manager = yaml_manager
+        self.prompt_builder = PromptBuilder(yaml_manager)
         self.logger = logger
         self.semaphore = asyncio.Semaphore(max_concurrent)
 
@@ -334,16 +210,8 @@ class AsyncTestCaseGenerator:
         async with self.semaphore:
             try:
                 # Phase 1: Prompt Construction
-                # We reuse the synchronous prompt building logic to maintain consistency
-                # between sync and async processing paths
-                sync_generator = TestCaseGenerator(None, self.yaml_manager, self.logger)
-
-                if self.yaml_manager:
-                    # Use template system for structured, customizable prompts
-                    prompt = sync_generator._build_prompt_from_template(requirement, template_name)
-                else:
-                    # Fallback to default prompt if template system unavailable
-                    prompt = sync_generator._build_default_prompt(requirement)
+                # Use PromptBuilder for clean, reusable prompt generation
+                prompt = self.prompt_builder.build_prompt(requirement, template_name)
 
                 if self.logger:
                     self.logger.info(f"Async generating test cases for {req_id}")
@@ -389,80 +257,52 @@ class AsyncTestCaseGenerator:
                         error_info = {
                             "error": True,
                             "requirement_id": req_id,
-                            "error_type": "NoTestCases",
-                            "error_message": "AI response contained empty test_cases array",
+                            "error_type": "EmptyTestCasesList",
+                            "error_message": "AI returned empty test cases list",
                             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                             "generation_time": generation_time,
                             "test_cases": []
                         }
 
                         if self.logger:
-                            self.logger.warning(f"Empty test cases array for {req_id}")
-                            self.logger.add_requirement_failure(req_id, "Empty test cases array")
+                            self.logger.warning(f"Empty test cases list for {req_id}")
+                            self.logger.add_requirement_failure(req_id, "Empty test cases list")
 
                         return error_info
 
-                    # Phase 5: Test Case Enrichment and Metadata Addition
-                    # Add traceability and metadata to each generated test case
+                    # Phase 5: Metadata Enrichment
+                    # Add tracking and correlation metadata to each test case
                     for i, test_case in enumerate(test_cases):
-                        # Ensure traceability back to source requirement
                         test_case["requirement_id"] = req_id
                         test_case["generation_time"] = generation_time
-
-                        # Generate unique test case ID with consistent format
                         test_case["test_id"] = f"{req_id}_TC_{i+1:03d}"
 
-                        # Track which model and template were used for debugging
-                        test_case["model_used"] = model
-                        test_case["template_used"] = template_name or "default"
-
                     if self.logger:
-                        self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
+                        self.logger.info(f"Generated {len(test_cases)} test cases for {req_id}")
 
                     return test_cases
                 else:
-                    # Phase 6: JSON Parsing Failure Handling
-                    # Handle cases where JSON parsing failed or structure is invalid
+                    # Phase 6: Handle JSON Parsing Failures
+                    # The response was valid but didn't contain expected structure
                     error_info = {
                         "error": True,
                         "requirement_id": req_id,
-                        "error_type": "InvalidJSONResponse",
-                        "error_message": "Could not parse test_cases from AI response",
+                        "error_type": "InvalidJSONStructure",
+                        "error_message": "Response does not contain 'test_cases' field",
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                         "generation_time": generation_time,
-                        # Include truncated raw response for debugging (avoid logging sensitive data)
-                        "raw_response": response[:200] + "..." if len(response) > 200 else response,
                         "test_cases": []
                     }
 
                     if self.logger:
-                        self.logger.warning(f"Invalid JSON response for {req_id}: {response[:100]}...")
-                        self.logger.add_requirement_failure(req_id, "Invalid JSON response format")
+                        self.logger.warning(f"Invalid JSON structure for {req_id}")
+                        self.logger.add_requirement_failure(req_id, "Invalid JSON structure")
 
                     return error_info
 
-            except asyncio.TimeoutError as e:
-                # Handle timeout errors specifically - these are common in async processing
-                # and should be handled gracefully without crashing the entire batch
-                error_info = {
-                    "error": True,
-                    "requirement_id": req_id,
-                    "error_type": "TimeoutError",
-                    "error_message": f"AI request timed out: {str(e)}",
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "test_cases": []
-                }
-
-                if self.logger:
-                    self.logger.error(f"⏱️  Timeout error for {req_id}: {e}")
-                    self.logger.add_requirement_failure(req_id, f"Timeout: {str(e)}")
-
-                return error_info
-
             except Exception as e:
-                # Catch-all for any other unexpected errors during processing
-                # This ensures the async batch processing continues even if individual
-                # requirements fail due to network issues, API errors, etc.
+                # Phase 7: Catastrophic Error Handling
+                # Catch any unexpected errors and wrap them in structured format
                 error_info = {
                     "error": True,
                     "requirement_id": req_id,
@@ -473,7 +313,7 @@ class AsyncTestCaseGenerator:
                 }
 
                 if self.logger:
-                    self.logger.error(f"💥 Unexpected error for {req_id}: {e}")
+                    self.logger.error(f"Exception generating test cases for {req_id}: {e}")
                     self.logger.add_requirement_failure(req_id, str(e))
 
                 return error_info

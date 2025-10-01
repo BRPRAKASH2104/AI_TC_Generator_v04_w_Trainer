@@ -10,6 +10,7 @@ from core.formatters import StreamingTestCaseFormatter, TestCaseFormatter
 from core.generators import AsyncTestCaseGenerator, TestCaseGenerator
 from core.ollama_client import AsyncOllamaClient, OllamaClient
 from core.parsers import FastJSONResponseParser, HTMLTableParser, JSONResponseParser
+from core.prompt_builder import PromptBuilder
 
 __all__ = [
     "OllamaClient",
@@ -23,4 +24,5 @@ __all__ = [
     "AsyncTestCaseGenerator",
     "TestCaseFormatter",
     "StreamingTestCaseFormatter",
+    "PromptBuilder",
 ]

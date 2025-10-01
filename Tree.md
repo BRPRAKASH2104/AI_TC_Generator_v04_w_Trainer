@@ -124,8 +124,7 @@ Root path: `c:\GitHub\AI_TC_Generator_v04_w_Trainer`
 ├── 📝 Trainer.md
 ├── 📄 coverage.xml
 ├── 🐍 main.py
-├── ⚙️ pyproject.toml
-└── 📄 requirements.txt
+└── ⚙️ pyproject.toml
 ```
 
 ---

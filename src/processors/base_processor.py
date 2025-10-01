@@ -1,0 +1,207 @@
+"""
+Base processor for the AI Test Case Generator.
+
+This module provides the base class with shared logic for both standard
+and high-performance processors, eliminating code duplication.
+"""
+
+from __future__ import annotations
+
+import time
+from pathlib import Path
+from typing import Any
+
+from config import ConfigManager
+from file_processing_logger import FileProcessingLogger
+from yaml_prompt_manager import YAMLPromptManager
+
+# Type aliases
+type ProcessingResult = dict[str, Any]
+type AugmentedRequirement = dict[str, Any]
+
+
+class BaseProcessor:
+    """Base processor containing shared logic for REQIFZ file processing"""
+
+    def __init__(self, config: ConfigManager = None):
+        self.config = config or ConfigManager()
+        self.logger = None  # Will be initialized per file
+        self.yaml_manager = YAMLPromptManager()
+
+        # Components initialized by subclasses
+        self.extractor = None
+        self.generator = None
+        self.formatter = None
+
+    def _initialize_logger(self, reqifz_path: Path) -> None:
+        """Initialize file-specific logger"""
+        self.logger = FileProcessingLogger(
+            reqifz_file=reqifz_path.name,
+            input_path=str(reqifz_path.parent)
+        )
+
+    def _extract_artifacts(self, reqifz_path: Path) -> list[dict[str, Any]] | None:
+        """
+        Extract artifacts from REQIFZ file
+
+        Args:
+            reqifz_path: Path to REQIFZ file
+
+        Returns:
+            List of artifacts or None if extraction fails
+        """
+        self.logger.info("📂 Extracting artifacts from REQIFZ file...")
+        artifacts = self.extractor.extract_reqifz_content(reqifz_path)
+
+        if not artifacts:
+            self.logger.error("No artifacts found in REQIFZ file")
+            return None
+
+        return artifacts
+
+    def _build_augmented_requirements(
+        self,
+        artifacts: list[dict[str, Any]]
+    ) -> tuple[list[AugmentedRequirement], int]:
+        """
+        Build context-aware augmented requirements from artifacts.
+
+        This method implements the core context-aware processing logic (v03 restoration):
+        - Tracks current heading context
+        - Collects information artifacts since last heading
+        - Augments system requirements with full context
+
+        Args:
+            artifacts: Raw artifacts from REQIFZ file
+
+        Returns:
+            Tuple of (augmented_requirements, system_interfaces_count)
+        """
+        # Classify artifacts and separate system interfaces (global context)
+        classified_artifacts = self.extractor.classify_artifacts(artifacts)
+        system_interfaces = classified_artifacts.get("System Interface", [])
+
+        # Context-aware artifact processing (v03 restoration)
+        augmented_requirements = []
+        current_heading = "No Heading"
+        info_since_heading = []
+
+        self.logger.info(f"🎯 Building context for {len(artifacts)} artifacts...")
+        self.logger.info(f"🔌 Found {len(system_interfaces)} system interfaces (global context)")
+
+        for obj in artifacts:
+            # Update context based on artifact type
+            if obj.get("type") == "Heading":
+                current_heading = obj.get("text", "No Heading")
+                info_since_heading = []
+                self.logger.debug(f"📌 Context heading: {current_heading}")
+                continue
+
+            elif obj.get("type") == "Information":
+                info_since_heading.append(obj)
+                self.logger.debug(f"📝 Stored information artifact: {obj.get('id', 'UNKNOWN')}")
+                continue
+
+            elif obj.get("type") == "System Requirement" and obj.get("table"):
+                # Augment requirement with collected context
+                req_id = obj.get("id", "UNKNOWN")
+                self.logger.debug(f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})")
+
+                augmented_requirement = obj.copy()
+                augmented_requirement.update({
+                    "heading": current_heading,
+                    "info_list": info_since_heading.copy(),
+                    "interface_list": system_interfaces
+                })
+                augmented_requirements.append(augmented_requirement)
+
+                # Reset information context after processing requirement
+                info_since_heading = []
+
+        if not augmented_requirements:
+            self.logger.warning("No System Requirements found for test generation")
+        else:
+            self.logger.info(f"📋 Built {len(augmented_requirements)} context-enriched requirements")
+
+        return augmented_requirements, len(system_interfaces)
+
+    def _generate_output_path(
+        self,
+        reqifz_path: Path,
+        model: str,
+        output_dir: Path = None
+    ) -> Path:
+        """
+        Generate output file path for Excel file
+
+        Args:
+            reqifz_path: Source REQIFZ file path
+            model: AI model name
+            output_dir: Optional output directory
+
+        Returns:
+            Path for output Excel file
+        """
+        output_directory = output_dir or reqifz_path.parent
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+        model_safe = model.replace(":", "_").replace("/", "_")
+
+        output_filename = f"{reqifz_path.stem}_TCD_{model_safe}_{timestamp}.xlsx"
+        output_path = output_directory / output_filename
+
+        return output_path
+
+    def _create_metadata(
+        self,
+        model: str,
+        template: str,
+        reqifz_path: Path,
+        total_cases: int,
+        requirements_processed: int,
+        successful_requirements: int
+    ) -> dict[str, Any]:
+        """Create metadata dictionary for Excel output"""
+        return {
+            "model": model,
+            "template": template or "auto-selected",
+            "source_file": str(reqifz_path),
+            "total_cases": total_cases,
+            "requirements_processed": requirements_processed,
+            "successful_requirements": successful_requirements
+        }
+
+    def _create_success_result(
+        self,
+        output_path: Path,
+        total_test_cases: int,
+        requirements_processed: int,
+        successful_requirements: int,
+        artifacts_count: int,
+        processing_time: float,
+        model: str,
+        template: str = None
+    ) -> ProcessingResult:
+        """Create success result dictionary"""
+        return {
+            "success": True,
+            "output_file": str(output_path),
+            "total_test_cases": total_test_cases,
+            "requirements_processed": requirements_processed,
+            "successful_requirements": successful_requirements,
+            "artifacts_found": artifacts_count,
+            "processing_time": processing_time,
+            "model_used": model,
+            "template_used": template or "auto-selected"
+        }
+
+    def _create_error_result(
+        self,
+        error_message: str,
+        processing_time: float = 0
+    ) -> ProcessingResult:
+        """Create error result dictionary"""
+        return {
+            "success": False,
+            "error": error_message,
+            "processing_time": processing_time
+        }

@@ -2423,7 +2423,7 @@ class ExcelTrainingDataManager:
 
 #### Required Dependencies
 ```txt
-# Add to requirements.txt
+# Add to pyproject.toml [project.optional-dependencies.training]
 pandas>=1.5.0
 openpyxl>=3.0.10
 xlrd>=2.0.1  # For legacy .xls support

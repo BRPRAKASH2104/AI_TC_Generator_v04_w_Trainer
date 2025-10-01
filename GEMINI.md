@@ -45,9 +45,9 @@ This command installs the project in editable mode (`-e`) and includes all devel
 *   **ML training dependencies:** `pip install -e .[training]`
 *   **All optional dependencies:** `pip install -e .[all]`
 
-**Note on `requirements.txt`:**
+**Dependency Management:**
 
-The `requirements.txt` file is also present in the repository, but it is recommended to use `pyproject.toml` as the single source of truth for dependencies. The `requirements.txt` file may be deprecated in the future.
+This project uses `pyproject.toml` as the single source of truth for all dependencies, following modern Python packaging standards (PEP 621). The `requirements.txt` file has been removed to avoid confusion and ensure consistency.
 
 ### 2. Running the Application
 

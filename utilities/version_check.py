@@ -197,12 +197,12 @@ class VersionChecker:
         print("❌ Critical features missing - upgrade required")
         return False
 
-    def check_dependencies(self, requirements_file: str = "requirements.txt") -> bool:
+    def check_dependencies(self, requirements_file: str = "pyproject.toml") -> bool:
         """
         Check if all required dependencies are available and compatible
 
         Args:
-            requirements_file: Path to requirements.txt file
+            requirements_file: Path to dependency file (pyproject.toml or legacy requirements.txt)
 
         Returns:
             bool: True if all dependencies are satisfied
@@ -392,7 +392,7 @@ class VersionChecker:
             if not features_ok:
                 print("   2. Verify Python installation completeness")
             if not deps_ok:
-                print("   3. Install missing dependencies: pip install -r requirements.txt")
+                print("   3. Install missing dependencies: pip install -e .[dev]")
 
         return all_passed
 
@@ -406,8 +406,8 @@ def main():
     )
     parser.add_argument(
         "--requirements",
-        default="requirements.txt",
-        help="Path to requirements.txt file (default: requirements.txt)",
+        default="pyproject.toml",
+        help="Path to dependency file (default: pyproject.toml)",
     )
     parser.add_argument(
         "--strict", action="store_true", help="Exit with error code if any check fails"

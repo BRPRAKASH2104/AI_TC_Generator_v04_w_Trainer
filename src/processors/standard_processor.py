@@ -16,26 +16,18 @@ from core.extractors import REQIFArtifactExtractor
 from core.formatters import TestCaseFormatter
 from core.generators import TestCaseGenerator
 from core.ollama_client import OllamaClient
-from file_processing_logger import FileProcessingLogger
-from yaml_prompt_manager import YAMLPromptManager
+from processors.base_processor import BaseProcessor
 
 # Type aliases
 type ProcessingResult = dict[str, Any]
 
 
-class REQIFZFileProcessor:
+class REQIFZFileProcessor(BaseProcessor):
     """Standard processor for REQIFZ files using synchronous processing"""
 
     def __init__(self, config: ConfigManager = None):
-        self.config = config or ConfigManager()
-        self.logger = None  # Will be initialized per file
-        
-        # Initialize core components (without logger for now)
-        self.extractor = None  # Will be initialized per file
+        super().__init__(config)
         self.ollama_client = OllamaClient(self.config.ollama)
-        self.yaml_manager = YAMLPromptManager()
-        self.generator = None  # Will be initialized per file  
-        self.formatter = None  # Will be initialized per file
 
     def process_file(
         self,
@@ -46,252 +38,125 @@ class REQIFZFileProcessor:
     ) -> ProcessingResult:
         """
         Process a single REQIFZ file and generate test cases.
-        
+
         Args:
             reqifz_path: Path to the REQIFZ file
             model: AI model to use for generation
             template: Optional template name
             output_dir: Optional output directory (defaults to same as input)
-            
+
         Returns:
             Processing result with statistics and file paths
         """
         start_time = time.time()
-        
+
         # Initialize file-specific logger and components
-        self.logger = FileProcessingLogger(
-            reqifz_file=reqifz_path.name,
-            input_path=str(reqifz_path.parent)
-        )
-        
-        # Initialize components with logger
+        self._initialize_logger(reqifz_path)
+
         self.extractor = REQIFArtifactExtractor(self.logger)
         self.generator = TestCaseGenerator(
-            self.ollama_client, 
-            self.yaml_manager, 
+            self.ollama_client,
+            self.yaml_manager,
             self.logger
         )
         self.formatter = TestCaseFormatter(self.config, self.logger)
-        
+
         self.logger.info(f"🔍 Processing: {reqifz_path.name}")
         self.logger.info(f"🤖 Model: {model}")
-        
+
         try:
             # Step 1: Extract artifacts from REQIFZ
-            self.logger.info("📂 Extracting artifacts from REQIFZ file...")
-            artifacts = self.extractor.extract_reqifz_content(reqifz_path)
-            
+            artifacts = self._extract_artifacts(reqifz_path)
+
             if not artifacts:
-                return {
-                    "success": False,
-                    "error": "No artifacts found in REQIFZ file",
-                    "processing_time": time.time() - start_time
-                }
-            
-            # Step 2: Classify artifacts by type
-            classified_artifacts = self.extractor.classify_artifacts(artifacts)
+                return self._create_error_result(
+                    "No artifacts found in REQIFZ file",
+                    time.time() - start_time
+                )
 
-            # Step 3: Separate system interfaces (global context) from processing list
-            system_interfaces = classified_artifacts.get("System Interface", [])
+            # Step 2: Build context-aware augmented requirements
+            augmented_requirements, interface_count = self._build_augmented_requirements(artifacts)
 
-            # Count system requirements for metrics
-            system_requirements = [obj for obj in artifacts if obj.get("type") == "System Requirement"]
+            if not augmented_requirements:
+                return self._create_error_result(
+                    "No System Requirements found",
+                    time.time() - start_time
+                )
 
-            if not system_requirements:
-                self.logger.warning("No System Requirements found for test generation")
-                return {
-                    "success": False,
-                    "error": "No System Requirements found",
-                    "processing_time": time.time() - start_time
-                }
+            self.logger.info(f"📋 Processing {len(augmented_requirements)} requirements sequentially...")
 
-            self.logger.info(f"🎯 Processing {len(artifacts)} artifacts with context-aware iteration...")
-            self.logger.info(f"📋 Found {len(system_requirements)} system requirements to process")
-            self.logger.info(f"🔌 Found {len(system_interfaces)} system interfaces (global context)")
-
-            # Step 4: Context-aware artifact processing (v03 restoration)
+            # Step 3: Generate test cases sequentially
             all_test_cases = []
             successful_requirements = 0
-            current_heading = "No Heading"
-            info_since_heading = []
 
-            for obj in artifacts:
-                # Update context based on artifact type
-                if obj.get("type") == "Heading":
-                    current_heading = obj.get("text", "No Heading")
-                    info_since_heading = []
-                    self.logger.debug(f"📌 Context heading: {current_heading}")
-                    continue
+            for augmented_req in augmented_requirements:
+                req_id = augmented_req.get("id", "UNKNOWN")
+                heading = augmented_req.get("heading", "No Heading")
 
-                elif obj.get("type") == "Information":
-                    info_since_heading.append(obj)
-                    self.logger.debug(f"📝 Stored information artifact: {obj.get('id', 'UNKNOWN')}")
-                    continue
+                self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {heading})")
 
-                elif obj.get("type") == "System Requirement" and obj.get("table"):
-                    # Augment requirement with collected context
-                    req_id = obj.get("id", "UNKNOWN")
-                    self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {current_heading})")
+                test_cases = self.generator.generate_test_cases_for_requirement(
+                    augmented_req, model, template
+                )
 
-                    augmented_requirement = obj.copy()
-                    augmented_requirement.update({
-                        "heading": current_heading,
-                        "info_list": info_since_heading.copy(),
-                        "interface_list": system_interfaces
-                    })
+                if test_cases:
+                    all_test_cases.extend(test_cases)
+                    successful_requirements += 1
+                    self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
+                else:
+                    self.logger.warning(f"⚠️  No test cases generated for {req_id}")
 
-                    test_cases = self.generator.generate_test_cases_for_requirement(
-                        augmented_requirement, model, template
-                    )
-
-                    if test_cases:
-                        all_test_cases.extend(test_cases)
-                        successful_requirements += 1
-                        self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
-                    else:
-                        self.logger.warning(f"⚠️  No test cases generated for {req_id}")
-
-                    # Reset information context after processing requirement
-                    info_since_heading = []
-            
             if not all_test_cases:
-                return {
-                    "success": False,
-                    "error": "No test cases were generated",
-                    "processing_time": time.time() - start_time
-                }
-            
+                return self._create_error_result(
+                    "No test cases were generated",
+                    time.time() - start_time
+                )
+
             # Step 4: Format and save to Excel
-            output_directory = output_dir or reqifz_path.parent
-            timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-            model_safe = model.replace(":", "_").replace("/", "_")
-            
-            output_filename = f"{reqifz_path.stem}_TCD_{model_safe}_{timestamp}.xlsx"
-            output_path = output_directory / output_filename
-            
+            output_path = self._generate_output_path(reqifz_path, model, output_dir)
+
             self.logger.info(f"📝 Formatting {len(all_test_cases)} test cases to Excel...")
-            
-            metadata = {
-                "model": model,
-                "template": template or "auto-selected",
-                "source_file": str(reqifz_path),
-                "total_cases": len(all_test_cases),
-                "requirements_processed": len(system_requirements),
-                "successful_requirements": successful_requirements
-            }
-            
+
+            metadata = self._create_metadata(
+                model, template, reqifz_path,
+                len(all_test_cases),
+                len(augmented_requirements),
+                successful_requirements
+            )
+
             success = self.formatter.format_to_excel(all_test_cases, output_path, metadata)
-            
+
             if not success:
-                return {
-                    "success": False,
-                    "error": "Failed to save Excel file",
-                    "processing_time": time.time() - start_time
-                }
-            
+                return self._create_error_result(
+                    "Failed to save Excel file",
+                    time.time() - start_time
+                )
+
             # Step 5: Generate processing summary
             processing_time = time.time() - start_time
-            
-            result = {
-                "success": True,
-                "output_file": str(output_path),
-                "total_test_cases": len(all_test_cases),
-                "requirements_processed": len(system_requirements),
-                "successful_requirements": successful_requirements,
-                "artifacts_found": len(artifacts),
-                "processing_time": processing_time,
-                "model_used": model,
-                "template_used": template or "auto-selected"
-            }
-            
+
+            result = self._create_success_result(
+                output_path,
+                len(all_test_cases),
+                len(augmented_requirements),
+                successful_requirements,
+                len(artifacts),
+                processing_time,
+                model,
+                template
+            )
+
             self.logger.info("🎉 Processing complete!")
             self.logger.info(f"📊 Generated {len(all_test_cases)} test cases in {processing_time:.2f}s")
             self.logger.info(f"📁 Saved to: {output_path.name}")
-            
+
             return result
 
         except Exception as e:
-            error_msg = f"Processing failed: {str(e)}"
-            self.logger.error(error_msg)
-            
-            return {
-                "success": False,
-                "error": error_msg,
-                "processing_time": time.time() - start_time
-            }
+            processing_time = time.time() - start_time
+            self.logger.error(f"❌ Processing failed: {e}")
+            return self._create_error_result(str(e), processing_time)
 
-    def process_directory(
-        self,
-        input_dir: Path,
-        model: str = "llama3.1:8b",
-        template: str = None,
-        output_dir: Path = None
-    ) -> list[ProcessingResult]:
-        """
-        Process all REQIFZ files in a directory.
-
-        Args:
-            input_dir: Directory containing REQIFZ files
-            model: AI model to use
-            template: Optional template name
-            output_dir: Optional output directory
-
-        Returns:
-            List of processing results
-        """
-        # Initialize temporary logger for directory processing
-        self.logger = FileProcessingLogger(reqifz_file="directory_processing", input_path=str(input_dir))
-        self.logger.info(f"🔍 Scanning directory: {input_dir}")
-        
-        # Find all REQIFZ files
-        reqifz_files = list(input_dir.glob("*.reqifz"))
-        
-        if not reqifz_files:
-            self.logger.warning("No REQIFZ files found in directory")
-            return []
-        
-        self.logger.info(f"📁 Found {len(reqifz_files)} REQIFZ file(s)")
-        
-        results = []
-        
-        for i, reqifz_file in enumerate(reqifz_files, 1):
-            self.logger.info(f"\n🔄 Processing file {i}/{len(reqifz_files)}: {reqifz_file.name}")
-            
-            result = self.process_file(reqifz_file, model, template, output_dir)
-            results.append(result)
-            
-            if result["success"]:
-                self.logger.info(f"✅ File {i} completed successfully")
-            else:
-                self.logger.error(f"❌ File {i} failed: {result.get('error', 'Unknown error')}")
-        
-        # Summary
-        successful = sum(1 for r in results if r["success"])
-        total_test_cases = sum(r.get("total_test_cases", 0) for r in results if r["success"])
-        total_time = sum(r.get("processing_time", 0) for r in results)
-        
-        self.logger.info("\n🏁 Batch Processing Complete!")
-        self.logger.info(f"📊 Files processed: {successful}/{len(reqifz_files)}")
-        self.logger.info(f"📋 Total test cases generated: {total_test_cases}")
-        self.logger.info(f"⏱️  Total processing time: {total_time:.2f}s")
-        
-        return results
-
-    def validate_environment(self) -> bool:
-        """Validate that the processing environment is ready"""
-        try:
-            # Test YAML manager
-            templates = self.yaml_manager.test_prompts
-            if not templates:
-                print("❌ No prompt templates available")
-                return False
-            
-            # Test Ollama connection (basic check)
-            # Could add actual API call here if needed
-            
-            print("✅ Environment validation passed")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Environment validation failed: {e}")
-            return False
+        finally:
+            if self.logger and hasattr(self.logger, 'close'):
+                self.logger.close()
