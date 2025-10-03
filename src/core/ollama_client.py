@@ -14,6 +14,13 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 import requests
 
+from core.exceptions import (
+    OllamaConnectionError,
+    OllamaModelNotFoundError,
+    OllamaResponseError,
+    OllamaTimeoutError,
+)
+
 if TYPE_CHECKING:
     from config import OllamaConfig
 
@@ -35,10 +42,23 @@ class OllamaClient:
         self._session.proxies.update(self.proxies)
 
     def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
-        """Generate response from Ollama model with comprehensive logging"""
-        # Note: Ollama call logging would be handled by FileProcessingLogger
-        # when this method is called from processors
+        """
+        Generate response from Ollama model with proper error handling.
 
+        Args:
+            model_name: Name of the Ollama model to use
+            prompt: Input prompt for generation
+            is_json: Whether to request JSON-formatted output
+
+        Returns:
+            Generated response text
+
+        Raises:
+            OllamaConnectionError: When connection to Ollama fails
+            OllamaTimeoutError: When request times out
+            OllamaModelNotFoundError: When requested model is not available
+            OllamaResponseError: When response is invalid
+        """
         payload = {
             "model": model_name,
             "prompt": prompt,
@@ -64,24 +84,50 @@ class OllamaClient:
                 timeout=self.config.timeout,
             )
             response.raise_for_status()
+
             try:
                 data: JSONResponse = response.json()
-            except ValueError:
-                # Fallback if response is not JSON
-                data = {}
+            except ValueError as e:
+                raise OllamaResponseError(
+                    f"Invalid JSON response from Ollama: {e}",
+                    status_code=response.status_code
+                ) from e
+
             return str(data.get("response", ""))
-        except (requests.ConnectionError, requests.Timeout) as e:
-            # Logger handled by calling processor - just return empty response
-            return ""
+
+        except requests.ConnectionError as e:
+            raise OllamaConnectionError(
+                f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
+                f"Ensure Ollama is running with 'ollama serve'",
+                host=self.config.host,
+                port=self.config.port
+            ) from e
+
+        except requests.Timeout as e:
+            raise OllamaTimeoutError(
+                f"Ollama request timed out after {self.config.timeout}s for model '{model_name}'. "
+                f"Try increasing timeout or using a faster model.",
+                timeout=self.config.timeout
+            ) from e
+
         except requests.HTTPError as e:
-            # Logger handled by calling processor - just return empty response
-            return ""
+            if e.response.status_code == 404:
+                raise OllamaModelNotFoundError(
+                    f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
+                    model=model_name
+                ) from e
+            else:
+                raise OllamaResponseError(
+                    f"Ollama HTTP error {e.response.status_code}: {e.response.text}",
+                    status_code=e.response.status_code
+                ) from e
+
         except requests.RequestException as e:
-            # Logger handled by calling processor - just return empty response
-            return ""
-        except Exception as e:
-            # Logger handled by calling processor - just return empty response
-            return ""
+            raise OllamaConnectionError(
+                f"Ollama request failed: {e}",
+                host=self.config.host,
+                port=self.config.port
+            ) from e
 
 
 class AsyncOllamaClient:
@@ -125,7 +171,23 @@ class AsyncOllamaClient:
             await self.session.close()
 
     async def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
-        """Generate response from Ollama model asynchronously"""
+        """
+        Generate response from Ollama model asynchronously with proper error handling.
+
+        Args:
+            model_name: Name of the Ollama model to use
+            prompt: Input prompt for generation
+            is_json: Whether to request JSON-formatted output
+
+        Returns:
+            Generated response text
+
+        Raises:
+            OllamaConnectionError: When connection to Ollama fails
+            OllamaTimeoutError: When request times out
+            OllamaModelNotFoundError: When requested model is not available
+            OllamaResponseError: When response is invalid
+        """
         if not self.session:
             raise RuntimeError("AsyncOllamaClient must be used as async context manager")
 
@@ -151,14 +213,48 @@ class AsyncOllamaClient:
             try:
                 async with self.session.post(self.config.api_url, json=payload) as response:
                     response.raise_for_status()
-                    data = await response.json()
+                    try:
+                        data = await response.json()
+                    except aiohttp.ContentTypeError as e:
+                        raise OllamaResponseError(
+                            f"Invalid JSON response from Ollama: {e}",
+                            status_code=response.status
+                        ) from e
+
                     return str(data.get("response", ""))
-            except (TimeoutError, aiohttp.ClientError):
-                # Log error but don't raise to maintain processing flow
-                return ""
-            except Exception:
-                # Unexpected error - return empty to continue processing
-                return ""
+
+            except asyncio.TimeoutError as e:
+                raise OllamaTimeoutError(
+                    f"Ollama async request timed out after {self.config.timeout}s for model '{model_name}'",
+                    timeout=self.config.timeout
+                ) from e
+
+            except aiohttp.ClientConnectorError as e:
+                raise OllamaConnectionError(
+                    f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
+                    f"Ensure Ollama is running with 'ollama serve'",
+                    host=self.config.host,
+                    port=self.config.port
+                ) from e
+
+            except aiohttp.ClientResponseError as e:
+                if e.status == 404:
+                    raise OllamaModelNotFoundError(
+                        f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
+                        model=model_name
+                    ) from e
+                else:
+                    raise OllamaResponseError(
+                        f"Ollama HTTP error {e.status}: {e.message}",
+                        status_code=e.status
+                    ) from e
+
+            except aiohttp.ClientError as e:
+                raise OllamaConnectionError(
+                    f"Ollama async client error: {e}",
+                    host=self.config.host,
+                    port=self.config.port
+                ) from e
 
     async def generate_with_retry(self, model_name: str, prompt: str, is_json: bool = False, max_retries: int = 3) -> str:
         """Generate response with exponential backoff retry logic"""

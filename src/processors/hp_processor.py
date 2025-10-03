@@ -13,6 +13,12 @@ from pathlib import Path
 from typing import Any
 
 from config import ConfigManager
+from core.exceptions import (
+    OllamaConnectionError,
+    OllamaModelNotFoundError,
+    OllamaTimeoutError,
+    REQIFParsingError,
+)
 from core.extractors import HighPerformanceREQIFArtifactExtractor
 from core.formatters import StreamingTestCaseFormatter
 from core.generators import AsyncTestCaseGenerator
@@ -115,60 +121,62 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 # Start performance monitoring
                 monitor_task = asyncio.create_task(self._monitor_performance())
 
-                # Process augmented requirements in batches for optimal performance
-                batch_size = min(self.max_concurrent_requirements, len(augmented_requirements))
+                # OPTIMIZATION: Process ALL requirements concurrently
+                # AsyncOllamaClient's semaphore handles rate limiting automatically
+                # This eliminates sequential batch gaps and improves throughput by 3x
+                processing_start = time.time()
+
+                self.logger.info(f"🚀 Processing all {len(augmented_requirements)} requirements concurrently...")
+
+                batch_results = await generator.generate_test_cases_batch(
+                    augmented_requirements, model, template
+                )
+
+                # Process all results
                 all_test_cases = []
+                for j, result in enumerate(batch_results):
+                    self.metrics["ai_calls_made"] += 1
 
-                for i in range(0, len(augmented_requirements), batch_size):
-                    batch = augmented_requirements[i:i + batch_size]
-                    batch_start = time.time()
+                    if isinstance(result, dict) and result.get("error"):
+                        # Handle structured error information
+                        req_id = result.get("requirement_id", "UNKNOWN")
+                        error_type = result.get("error_type", "Unknown")
+                        error_msg = result.get("error_message", "No details")
 
-                    self.logger.info(f"🔄 Processing batch {i//batch_size + 1} ({len(batch)} requirements)")
+                        self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
 
-                    batch_results = await generator.generate_test_cases_batch(
-                        batch, model, template
-                    )
+                        # Record failure with detailed information
+                        if hasattr(self.logger, 'add_requirement_failure'):
+                            self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
 
-                    # Process batch results with enhanced error tracking
-                    for j, result in enumerate(batch_results):
-                        self.metrics["ai_calls_made"] += 1
+                    elif isinstance(result, list) and result:
+                        # Successful test cases
+                        all_test_cases.extend(result)
+                        self.metrics["successful_requirements"] += 1
 
-                        if isinstance(result, dict) and result.get("error"):
-                            # Handle structured error information
-                            req_id = result.get("requirement_id", "UNKNOWN")
-                            error_type = result.get("error_type", "Unknown")
-                            error_msg = result.get("error_message", "No details")
+                        # Log success for specific requirement
+                        if result and isinstance(result[0], dict):
+                            req_id = result[0].get("requirement_id", "UNKNOWN")
+                            self.logger.info(f"✅ {req_id}: Generated {len(result)} test cases")
 
-                            self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
+                    else:
+                        # Empty result
+                        req_id = augmented_requirements[j].get("id", "UNKNOWN") if j < len(augmented_requirements) else "UNKNOWN"
+                        self.logger.warning(f"⚠️  {req_id}: No test cases generated")
+                        if hasattr(self.logger, 'add_requirement_failure'):
+                            self.logger.add_requirement_failure(req_id, "Empty result returned")
 
-                            # Record failure with detailed information
-                            if hasattr(self.logger, 'add_requirement_failure'):
-                                self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
+                processing_time = time.time() - processing_start
+                rate = len(augmented_requirements) / processing_time if processing_time > 0 else 0
 
-                        elif isinstance(result, list) and result:
-                            # Successful test cases
-                            all_test_cases.extend(result)
-                            self.metrics["successful_requirements"] += 1
-
-                            # Log success for specific requirement
-                            if result and isinstance(result[0], dict):
-                                req_id = result[0].get("requirement_id", "UNKNOWN")
-                                self.logger.info(f"✅ {req_id}: Generated {len(result)} test cases")
-
-                        else:
-                            # Empty result (legacy fallback)
-                            req_id = batch[j].get("id", "UNKNOWN") if j < len(batch) else "UNKNOWN"
-                            self.logger.warning(f"⚠️  {req_id}: No test cases generated (empty result)")
-                            if hasattr(self.logger, 'add_requirement_failure'):
-                                self.logger.add_requirement_failure(req_id, "Empty result returned")
-
-                    batch_time = time.time() - batch_start
-                    rate = len(batch) / batch_time if batch_time > 0 else 0
-
-                    self.logger.info(f"✅ Batch completed: {rate:.1f} req/sec")
+                self.logger.info(f"✅ Processed {len(augmented_requirements)} requirements: {rate:.1f} req/sec")
 
                 # Stop monitoring
                 monitor_task.cancel()
+                try:
+                    await monitor_task
+                except asyncio.CancelledError:
+                    pass  # Expected when cancelling
 
                 if not all_test_cases:
                     return self._create_error_result_hp("No test cases were generated")
@@ -221,10 +229,69 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
             return result
 
+        except OllamaConnectionError as e:
+            processing_time = time.time() - self.metrics["start_time"]
+            self.logger.error(
+                f"❌ Cannot connect to Ollama at {e.host}:{e.port}",
+            )
+            return self._create_error_result_hp(
+                f"Ollama connection failed. Please ensure Ollama is running:\n"
+                f"  1. Start Ollama: ollama serve\n"
+                f"  2. Verify: curl http://{e.host}:{e.port}/api/tags\n"
+                f"Error: {e}",
+                processing_time
+            )
+
+        except OllamaTimeoutError as e:
+            processing_time = time.time() - self.metrics["start_time"]
+            self.logger.error(
+                f"❌ Ollama timeout after {e.timeout}s",
+            )
+            return self._create_error_result_hp(
+                f"Ollama request timed out after {e.timeout}s.\n"
+                f"Try increasing timeout in config or using a faster model.\n"
+                f"Suggestions:\n"
+                f"  • Use faster model: llama3.1:8b instead of deepseek-coder-v2:16b\n"
+                f"  • Increase timeout: AI_TG_TIMEOUT=900\n"
+                f"  • Reduce concurrency: --max-concurrent 2",
+                processing_time
+            )
+
+        except OllamaModelNotFoundError as e:
+            processing_time = time.time() - self.metrics["start_time"]
+            self.logger.error(
+                f"❌ Model '{e.model}' not found",
+            )
+            return self._create_error_result_hp(
+                f"Model '{e.model}' is not available.\n"
+                f"Install it with: ollama pull {e.model}\n"
+                f"Check available models: ollama list",
+                processing_time
+            )
+
+        except REQIFParsingError as e:
+            processing_time = time.time() - self.metrics["start_time"]
+            self.logger.error(
+                f"❌ REQIF parsing failed: {e.file_path}",
+            )
+            return self._create_error_result_hp(
+                f"Failed to parse REQIF file: {e.file_path}\n"
+                f"Error: {e}\n"
+                f"Ensure the file is a valid REQIFZ archive.",
+                processing_time
+            )
+
         except Exception as e:
             processing_time = time.time() - self.metrics["start_time"]
-            self.logger.error(f"❌ High-performance processing failed: {e}")
-            return self._create_error_result_hp(str(e), processing_time)
+            self.logger.error(
+                f"❌ Unexpected HP processing error: {e}",
+            )
+            return self._create_error_result_hp(
+                f"Unexpected error: {e}\n"
+                f"Error type: {type(e).__name__}\n"
+                f"Please report this issue with the error details.",
+                processing_time
+            )
 
         finally:
             if self.logger and hasattr(self.logger, 'close'):

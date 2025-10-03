@@ -18,6 +18,7 @@ import pytest
 import requests
 
 from src.config import ConfigManager
+from src.core.exceptions import OllamaConnectionError, OllamaTimeoutError, OllamaResponseError
 from src.core.extractors import REQIFArtifactExtractor, HighPerformanceREQIFArtifactExtractor
 from src.core.generators import AsyncTestCaseGenerator, TestCaseGenerator
 from src.core.ollama_client import AsyncOllamaClient, OllamaClient
@@ -186,38 +187,39 @@ class TestNetworkErrorConditions:
     def test_connection_refused_error(self, mock_config):
         """Test handling when Ollama service is not available"""
         # Mock requests to raise ConnectionError
-        with patch('requests.post') as mock_post:
+        with patch('requests.Session.post') as mock_post:
             mock_post.side_effect = requests.ConnectionError("Connection refused")
 
             client = OllamaClient(mock_config.ollama)
 
-            with pytest.raises(requests.ConnectionError):
+            with pytest.raises(OllamaConnectionError):
                 client.generate_response("test-model", "test prompt")
 
     def test_timeout_error(self, mock_config):
         """Test handling of request timeouts"""
-        with patch('requests.post') as mock_post:
+        with patch('requests.Session.post') as mock_post:
             mock_post.side_effect = requests.Timeout("Request timed out")
 
             client = OllamaClient(mock_config.ollama)
 
-            with pytest.raises(requests.Timeout):
+            with pytest.raises(OllamaTimeoutError):
                 client.generate_response("test-model", "test prompt")
 
     def test_http_error_responses(self, mock_config):
         """Test handling of various HTTP error responses"""
-        error_codes = [400, 401, 403, 404, 500, 502, 503, 504]
+        error_codes = [400, 401, 403, 500, 502, 503, 504]
 
         for error_code in error_codes:
-            with patch('requests.post') as mock_post:
+            with patch('requests.Session.post') as mock_post:
                 mock_response = Mock()
                 mock_response.status_code = error_code
-                mock_response.raise_for_status.side_effect = requests.HTTPError(f"HTTP {error_code}")
+                mock_response.text = f"HTTP {error_code} error"
+                mock_response.raise_for_status.side_effect = requests.HTTPError(response=mock_response)
                 mock_post.return_value = mock_response
 
                 client = OllamaClient(mock_config.ollama)
 
-                with pytest.raises(requests.HTTPError):
+                with pytest.raises(OllamaResponseError):
                     client.generate_response("test-model", "test prompt")
 
     @pytest.mark.asyncio
@@ -225,13 +227,19 @@ class TestNetworkErrorConditions:
         """Test async client error handling"""
         import aiohttp
 
-        with patch('aiohttp.ClientSession.post') as mock_post:
-            mock_post.side_effect = aiohttp.ClientConnectionError("Connection failed")
+        async with AsyncOllamaClient(mock_config.ollama) as client:
+            with patch.object(client.session, 'post') as mock_post:
+                # Create proper ClientConnectorError
+                os_error = OSError("Connection refused")
+                os_error.errno = 61
+                os_error.strerror = "Connection refused"
+                mock_post.side_effect = aiohttp.ClientConnectorError(
+                    connection_key=None,
+                    os_error=os_error
+                )
 
-            client = AsyncOllamaClient(mock_config.ollama)
-
-            with pytest.raises(aiohttp.ClientConnectionError):
-                await client.generate_response("test-model", "test prompt")
+                with pytest.raises(OllamaConnectionError):
+                    await client.generate_response("test-model", "test prompt")
 
 
 class TestResourceConstraints:

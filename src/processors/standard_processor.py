@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Any
 
 from config import ConfigManager
+from core.exceptions import (
+    OllamaConnectionError,
+    OllamaModelNotFoundError,
+    OllamaTimeoutError,
+    REQIFParsingError,
+)
 from core.extractors import REQIFArtifactExtractor
 from core.formatters import TestCaseFormatter
 from core.generators import TestCaseGenerator
@@ -152,10 +158,68 @@ class REQIFZFileProcessor(BaseProcessor):
 
             return result
 
+        except OllamaConnectionError as e:
+            processing_time = time.time() - start_time
+            self.logger.error(
+                f"❌ Cannot connect to Ollama at {e.host}:{e.port}",
+            )
+            return self._create_error_result(
+                f"Ollama connection failed. Please ensure Ollama is running:\n"
+                f"  1. Start Ollama: ollama serve\n"
+                f"  2. Verify: curl http://{e.host}:{e.port}/api/tags\n"
+                f"Error: {e}",
+                processing_time
+            )
+
+        except OllamaTimeoutError as e:
+            processing_time = time.time() - start_time
+            self.logger.error(
+                f"❌ Ollama timeout after {e.timeout}s",
+            )
+            return self._create_error_result(
+                f"Ollama request timed out after {e.timeout}s.\n"
+                f"Try increasing timeout in config or using a faster model.\n"
+                f"Suggestions:\n"
+                f"  • Use faster model: llama3.1:8b instead of deepseek-coder-v2:16b\n"
+                f"  • Increase timeout: AI_TG_TIMEOUT=900",
+                processing_time
+            )
+
+        except OllamaModelNotFoundError as e:
+            processing_time = time.time() - start_time
+            self.logger.error(
+                f"❌ Model '{e.model}' not found",
+            )
+            return self._create_error_result(
+                f"Model '{e.model}' is not available.\n"
+                f"Install it with: ollama pull {e.model}\n"
+                f"Check available models: ollama list",
+                processing_time
+            )
+
+        except REQIFParsingError as e:
+            processing_time = time.time() - start_time
+            self.logger.error(
+                f"❌ REQIF parsing failed: {e.file_path}",
+            )
+            return self._create_error_result(
+                f"Failed to parse REQIF file: {e.file_path}\n"
+                f"Error: {e}\n"
+                f"Ensure the file is a valid REQIFZ archive.",
+                processing_time
+            )
+
         except Exception as e:
             processing_time = time.time() - start_time
-            self.logger.error(f"❌ Processing failed: {e}")
-            return self._create_error_result(str(e), processing_time)
+            self.logger.error(
+                f"❌ Unexpected error: {e}",
+            )
+            return self._create_error_result(
+                f"Unexpected error: {e}\n"
+                f"Error type: {type(e).__name__}\n"
+                f"Please report this issue with the error details.",
+                processing_time
+            )
 
         finally:
             if self.logger and hasattr(self.logger, 'close'):
