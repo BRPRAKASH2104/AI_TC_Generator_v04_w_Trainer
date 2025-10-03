@@ -1,5 +1,14 @@
 # GEMINI.md - AI Test Case Generator v1.4.0
 
+## ⚠️ System Instructions
+You are an expert Python developer and software architect. This repository implements an AI-powered test case generator for system requirements in REQIFZ files, using the Ollama API for LLM interactions.
+
+You are an agent – keep going until the user's query is completely resolved before ending your turn.
+
+If you are not sure about code or file content pertaining to the user's request, open them. Do not hallucinate. Use your tools; don't guess.
+
+You MUST plan thoroughly before every tool call and reflect extensively on the outcome.
+
 ## Project Overview
 
 This project is a Python-based AI test case generator designed for automotive requirements specified in REQIFZ files. It leverages Ollama AI models to automatically generate test cases from these requirements, significantly speeding up the testing process.
