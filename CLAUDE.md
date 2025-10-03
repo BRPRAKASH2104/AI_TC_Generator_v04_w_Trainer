@@ -190,6 +190,9 @@ python -m pytest tests/test_integration_refactored.py -v
 
 # Run critical improvements tests (v1.5.0)
 python -m pytest tests/test_critical_improvements.py -v
+
+# Run RAFT tests (v1.6.0)
+python -m pytest tests/training/ -v
 ```
 
 ### Code Quality
@@ -305,6 +308,7 @@ ollama list
 - ✅ Custom exception system: Complete (v1.5.0)
 - ✅ Double semaphore removed: Complete (v1.5.0)
 - ✅ Concurrent batch processing: Complete (v1.5.0)
+- ✅ RAFT training system: Complete (v1.6.0, non-invasive)
 - ✅ Import structure: All absolute imports
 - ✅ Dependency management: Single source (pyproject.toml)
 
@@ -373,6 +377,66 @@ python -m pytest tests/test_critical_improvements.py -v
 - Timeout errors: Use faster model or increase timeout
 - Model not found: Install with `ollama pull <model>`
 
+## 🎓 RAFT Training (Retrieval Augmented Fine-Tuning)
+
+**Status**: Implemented (v1.6.0) - Optional, disabled by default
+
+### Overview
+
+RAFT enables custom model training by teaching the AI to distinguish relevant context from noise when generating test cases.
+
+### Architecture
+
+**Key Modules**:
+- `src/training/raft_collector.py`: Collects training examples with context
+- `src/training/raft_dataset_builder.py`: Builds RAFT datasets for Ollama fine-tuning
+- `utilities/annotate_raft.py`: Interactive annotation tool for marking oracle/distractor context
+
+**Integration** (Non-Invasive):
+- BaseProcessor conditionally initializes RAFT collector
+- Processors optionally save examples AFTER core logic completes
+- Zero impact when disabled (default: `enable_raft: false`)
+
+### Enabling RAFT
+
+```bash
+# Via environment variable
+export AI_TG_ENABLE_RAFT=true
+
+# Or in config
+# config.training.enable_raft = True
+```
+
+### Workflow
+
+```bash
+# 1. Enable collection and process files
+ai-tc-generator input/ --verbose  # Examples saved to training_data/collected/
+
+# 2. Annotate examples (mark oracle vs distractor context)
+python utilities/annotate_raft.py
+
+# 3. Build RAFT dataset
+python -c "from training.raft_dataset_builder import RAFTDatasetBuilder; builder = RAFTDatasetBuilder(); builder.save_dataset(builder.build_dataset())"
+
+# 4. Train custom model with Ollama
+cd training_data/raft_dataset/
+ollama create automotive-tc-raft-v1 --file Modelfile --training-data raft_training_dataset.jsonl
+
+# 5. Use trained model
+ai-tc-generator input/ --model automotive-tc-raft-v1 --hp
+```
+
+### Critical Guarantees
+
+- ✅ Core logic 100% unchanged (verified via line-by-line inspection)
+- ✅ Context-aware processing intact
+- ✅ No side effects on test case generation
+- ✅ All RAFT calls conditional and post-execution
+- ✅ Backward compatible (works with/without RAFT config)
+
+**See**: `docs/RAFT_SETUP_GUIDE.md` for complete implementation guide
+
 ## 📚 Additional Documentation
 
 - `CRITICAL_IMPROVEMENTS_SUMMARY.md`: v1.5.0 performance and error handling improvements (IMPORTANT)
@@ -381,6 +445,9 @@ python -m pytest tests/test_critical_improvements.py -v
 - `TEST_SUMMARY.md`: Detailed test coverage and results
 - `GEMINI.md`: Additional development context
 - `.github/copilot-instructions.md`: GitHub Copilot-specific instructions
+- `docs/RAFT_SETUP_GUIDE.md`: Complete RAFT training implementation guide (v1.6.0)
+- `docs/RAFT_IMPLEMENTATION_VERIFICATION.md`: RAFT verification report
+- `Trainer.md`: Training philosophy and workflow
 - `docs/`: Extended documentation and guides
 - `pyproject.toml`: Package configuration and dependencies (single source of truth)
 
@@ -431,4 +498,4 @@ All improvements verified with:
 
 ---
 
-**Last Updated**: 2025-10-03 | **Architecture**: Context-Aware with BaseProcessor + PromptBuilder + Custom Exceptions
+**Last Updated**: 2025-10-03 | **Architecture**: Context-Aware with BaseProcessor + PromptBuilder + Custom Exceptions + RAFT Training (v1.6.0)
