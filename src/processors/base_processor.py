@@ -14,6 +14,7 @@ from typing import Any
 from config import ConfigManager
 from file_processing_logger import FileProcessingLogger
 from yaml_prompt_manager import YAMLPromptManager
+from training.raft_collector import RAFTDataCollector
 
 # Type aliases
 type ProcessingResult = dict[str, Any]
@@ -33,12 +34,25 @@ class BaseProcessor:
         self.generator = None
         self.formatter = None
 
+        # RAFT data collector (initialized if RAFT is enabled)
+        self.raft_collector = None
+        if self.config.training.enable_raft:
+            self.raft_collector = RAFTDataCollector(
+                output_dir=Path(self.config.training.training_data_dir) / "collected",
+                logger=None,  # Logger will be set per file
+                enabled=True
+            )
+
     def _initialize_logger(self, reqifz_path: Path) -> None:
         """Initialize file-specific logger"""
         self.logger = FileProcessingLogger(
             reqifz_file=reqifz_path.name,
             input_path=str(reqifz_path.parent)
         )
+
+        # Update RAFT collector logger if enabled
+        if self.raft_collector:
+            self.raft_collector.logger = self.logger
 
     def _extract_artifacts(self, reqifz_path: Path) -> list[dict[str, Any]] | None:
         """
@@ -205,3 +219,27 @@ class BaseProcessor:
             "error": error_message,
             "processing_time": processing_time
         }
+
+    def _save_raft_example(
+        self,
+        requirement: AugmentedRequirement,
+        test_cases: str,
+        model: str
+    ) -> None:
+        """
+        Save RAFT training example if collection is enabled.
+
+        This method is a no-op if RAFT collection is disabled. It does NOT
+        affect core logic - it only saves data for future training.
+
+        Args:
+            requirement: Augmented requirement with context
+            test_cases: Generated test cases string
+            model: Model used for generation
+        """
+        if self.raft_collector:
+            self.raft_collector.collect_example(
+                requirement=requirement,
+                generated_test_cases=test_cases,
+                model=model
+            )

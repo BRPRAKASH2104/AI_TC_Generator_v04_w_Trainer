@@ -213,6 +213,14 @@ class TrainingConfig(BaseModel):
     auto_approve_threshold: float = Field(0.9, ge=0.0, le=1.0)
     min_examples_for_training: int = Field(50, ge=1)
 
+    # RAFT-specific settings
+    enable_raft: bool = Field(False, description="Enable RAFT data collection")
+    raft_collect_context: bool = Field(True, description="Collect retrieved context for RAFT")
+    raft_min_oracle_docs: int = Field(1, ge=1, description="Minimum oracle documents per example")
+    raft_min_distractor_docs: int = Field(1, ge=0, description="Minimum distractor documents")
+    raft_context_window: int = Field(5, ge=1, description="Max context items to include")
+    raft_min_quality: int = Field(3, ge=1, le=5, description="Minimum quality rating for RAFT dataset")
+
     # Custom model settings
     enable_custom_models: bool = False
     custom_model_prefix: str = "automotive-test-"

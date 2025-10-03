@@ -159,6 +159,19 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                             req_id = result[0].get("requirement_id", "UNKNOWN")
                             self.logger.info(f"✅ {req_id}: Generated {len(result)} test cases")
 
+                            # RAFT: Save training example if enabled (does NOT affect core logic)
+                            if self.raft_collector and j < len(augmented_requirements):
+                                augmented_req = augmented_requirements[j]
+                                # Format test cases to string for RAFT storage
+                                test_cases_str = "\n".join([
+                                    f"Test Case {i+1}: {tc.get('summary', 'N/A')}\n"
+                                    f"Action: {tc.get('action', 'N/A')}\n"
+                                    f"Data: {tc.get('data', 'N/A')}\n"
+                                    f"Expected: {tc.get('expected_result', 'N/A')}\n"
+                                    for i, tc in enumerate(result)
+                                ])
+                                self._save_raft_example(augmented_req, test_cases_str, model)
+
                     else:
                         # Empty result
                         req_id = augmented_requirements[j].get("id", "UNKNOWN") if j < len(augmented_requirements) else "UNKNOWN"
