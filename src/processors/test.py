@@ -1,4 +1,3 @@
-"""
 Base processor for the AI Test Case Generator.
 
 This module provides the base class with shared logic for both standard
@@ -228,24 +227,3 @@ class BaseProcessor:
 
     def _save_raft_example(
         self,
-        requirement: AugmentedRequirement,
-        test_cases: str,
-        model: str
-    ) -> None:
-        """
-        Save RAFT training example if collection is enabled.
-
-        This method is a no-op if RAFT collection is disabled. It does NOT
-        affect core logic - it only saves data for future training.
-
-        Args:
-            requirement: Augmented requirement with context
-            test_cases: Generated test cases string
-            model: Model used for generation
-        """
-        if self.raft_collector:
-            self.raft_collector.collect_example(
-                requirement=requirement,
-                generated_test_cases=test_cases,
-                model=model
-            )

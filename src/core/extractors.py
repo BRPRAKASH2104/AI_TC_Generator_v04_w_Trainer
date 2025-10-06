@@ -7,6 +7,7 @@ with support for different artifact types commonly found in automotive requireme
 
 from __future__ import annotations
 
+import io
 import xml.etree.ElementTree as ET
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -35,11 +36,12 @@ class ArtifactType(StrEnum):
 class REQIFArtifactExtractor:
     """Extracts and processes artifacts from REQIFZ files"""
 
-    __slots__ = ("logger", "html_parser")
+    __slots__ = ("logger", "html_parser", "use_streaming")
 
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, use_streaming: bool = False):
         self.logger = logger
         self.html_parser = HTMLTableParser()
+        self.use_streaming = use_streaming
 
     def extract_reqifz_content(self, reqifz_file_path: Path) -> ArtifactList:
         """
@@ -72,6 +74,11 @@ class REQIFArtifactExtractor:
     def _parse_reqif_xml(self, xml_content: bytes) -> ArtifactList:
         """Parse REQIF XML content and extract artifacts"""
         try:
+            # Use streaming if enabled
+            if self.use_streaming:
+                return self._parse_reqif_xml_streaming(xml_content)
+
+            # Traditional DOM-based parsing
             root = ET.fromstring(xml_content)
 
             # REQIF namespaces
@@ -310,17 +317,112 @@ class REQIFArtifactExtractor:
             case _:
                 return ArtifactType.UNKNOWN
 
+    def _parse_reqif_xml_streaming(self, xml_content: bytes) -> ArtifactList:
+        """
+        Parse REQIF XML content using streaming parsing to reduce memory usage.
+
+        This method uses iterparse() to process XML elements as they are encountered,
+        rather than loading the entire DOM into memory. This provides significant
+        memory savings for large REQIF files.
+
+        Strategy:
+        1. First pass: Build type mappings using streaming
+        2. Second pass: Process spec objects using streaming
+        """
+        try:
+            # REQIF namespaces
+            namespaces = {
+                "reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd",
+                "html": "http://www.w3.org/1999/xhtml",
+            }
+
+            # Pass 1: Build mappings using streaming
+            spec_type_map, foreign_id_map = self._build_mappings_streaming(xml_content, namespaces)
+
+            # Pass 2: Extract spec objects using streaming
+            artifacts = self._extract_spec_objects_streaming(xml_content, namespaces, spec_type_map, foreign_id_map)
+
+            if self.logger:
+                self.logger.info(f"Extracted {len(artifacts)} artifacts from REQIF using streaming parsing")
+
+            return artifacts
+
+        except ET.ParseError as e:
+            if self.logger:
+                self.logger.error(f"Streaming XML parsing error: {e}")
+            return []
+
+    def _build_mappings_streaming(self, xml_content: bytes, namespaces: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+        """Build type mappings using streaming XML parsing."""
+        spec_type_map = {}
+        foreign_id_map = {}
+
+        try:
+            # Build SPEC-OBJECT-TYPE mapping
+            for _, elem in ET.iterparse(io.BytesIO(xml_content), events=('end',)):
+                if elem.tag.endswith('}SPEC-OBJECT-TYPE'):
+                    type_id = elem.get("IDENTIFIER")
+                    long_name = elem.get("LONG-NAME")
+
+                    if type_id and long_name:
+                        spec_type_map[type_id] = long_name
+
+                    # Check for ReqIF.ForeignID attribute definition
+                    for attr_def in elem.findall(".//reqif:ATTRIBUTE-DEFINITION-STRING[@LONG-NAME='ReqIF.ForeignID']", namespaces):
+                        foreign_id = attr_def.get("IDENTIFIER")
+                        if foreign_id:
+                            foreign_id_map[type_id] = foreign_id
+
+                # Clear element to save memory
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
+
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"Error in streaming mapping build: {e}")
+            # Fall back to empty mappings
+
+        if self.logger:
+            self.logger.debug(f"Built mappings via streaming: {len(spec_type_map)} types, {len(foreign_id_map)} foreign IDs")
+
+        return spec_type_map, foreign_id_map
+
+    def _extract_spec_objects_streaming(self, xml_content: bytes, namespaces: dict[str, str],
+                                        spec_type_map: dict[str, str], foreign_id_map: dict[str, str]) -> ArtifactList:
+        """Extract spec objects using streaming XML parsing."""
+        artifacts = []
+
+        try:
+            for _, elem in ET.iterparse(io.BytesIO(xml_content), events=('end',)):
+                if elem.tag.endswith('}SPEC-OBJECT'):
+                    # Extract this spec object
+                    artifact = self._extract_spec_object(elem, namespaces, spec_type_map, foreign_id_map)
+                    if artifact:
+                        artifacts.append(artifact)
+
+                # Clear element to save memory (important for streaming)
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
+
+        except Exception as e:
+            if self.logger:
+                self.logger.warning(f"Error in streaming spec object extraction: {e}")
+
+        return artifacts
+
     def classify_artifacts(self, artifacts: ArtifactList) -> dict[ArtifactType, ArtifactList]:
         """Classify artifacts by type"""
         classified = {}
-        
+
         for artifact_type in ArtifactType:
             classified[artifact_type] = []
-        
+
         for artifact in artifacts:
             artifact_type = artifact.get("type", ArtifactType.UNKNOWN)
             classified[artifact_type].append(artifact)
-        
+
         return classified
 
 

@@ -22,7 +22,7 @@ from core.extractors import REQIFArtifactExtractor
 from core.formatters import TestCaseFormatter
 from core.generators import TestCaseGenerator
 from core.ollama_client import OllamaClient
-from processors.base_processor import BaseProcessor
+from .base_processor import BaseProcessor
 
 # Type aliases
 type ProcessingResult = dict[str, Any]

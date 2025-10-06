@@ -187,8 +187,10 @@ class TestNetworkErrorConditions:
     def test_connection_refused_error(self, mock_config):
         """Test handling when Ollama service is not available"""
         # Mock requests to raise ConnectionError
-        with patch('requests.Session.post') as mock_post:
-            mock_post.side_effect = requests.ConnectionError("Connection refused")
+        with patch('src.core.ollama_client.requests') as mock_requests:
+            mock_session = Mock()
+            mock_session.post.side_effect = requests.ConnectionError("Connection refused")
+            mock_requests.Session.return_value = mock_session
 
             client = OllamaClient(mock_config.ollama)
 
@@ -197,8 +199,10 @@ class TestNetworkErrorConditions:
 
     def test_timeout_error(self, mock_config):
         """Test handling of request timeouts"""
-        with patch('requests.Session.post') as mock_post:
-            mock_post.side_effect = requests.Timeout("Request timed out")
+        with patch('src.core.ollama_client.requests') as mock_requests:
+            mock_session = Mock()
+            mock_session.post.side_effect = requests.Timeout("Request timed out")
+            mock_requests.Session.return_value = mock_session
 
             client = OllamaClient(mock_config.ollama)
 
@@ -210,12 +214,14 @@ class TestNetworkErrorConditions:
         error_codes = [400, 401, 403, 500, 502, 503, 504]
 
         for error_code in error_codes:
-            with patch('requests.Session.post') as mock_post:
+            with patch('src.core.ollama_client.requests') as mock_requests:
                 mock_response = Mock()
                 mock_response.status_code = error_code
                 mock_response.text = f"HTTP {error_code} error"
                 mock_response.raise_for_status.side_effect = requests.HTTPError(response=mock_response)
-                mock_post.return_value = mock_response
+                mock_session = Mock()
+                mock_session.post.return_value = mock_response
+                mock_requests.Session.return_value = mock_session
 
                 client = OllamaClient(mock_config.ollama)
 
@@ -234,7 +240,7 @@ class TestNetworkErrorConditions:
                 os_error.errno = 61
                 os_error.strerror = "Connection refused"
                 mock_post.side_effect = aiohttp.ClientConnectorError(
-                    connection_key=None,
+                    connection_key=Mock(),
                     os_error=os_error
                 )
 

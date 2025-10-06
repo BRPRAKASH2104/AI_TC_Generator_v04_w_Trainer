@@ -23,7 +23,7 @@ from core.extractors import HighPerformanceREQIFArtifactExtractor
 from core.formatters import StreamingTestCaseFormatter
 from core.generators import AsyncTestCaseGenerator
 from core.ollama_client import AsyncOllamaClient
-from processors.base_processor import BaseProcessor
+from .base_processor import BaseProcessor
 
 # Type aliases
 type ProcessingResult = dict[str, Any]
