@@ -94,8 +94,25 @@ class TestCaseFormatter:
             requirement_id = test_case.get("requirement_id", "UNKNOWN")
             issue_id = self._generate_issue_id(test_case, i)
 
+            # FIX: Support both v03 and v04 field names for backward compatibility
+            # v04: summary, action, data, expected_result, summary_suffix
+            # v03: feature_name, preconditions, test_steps, expected_result
+
+            # Map v03 field names to v04 if present
+            summary = (test_case.get('summary') or
+                      test_case.get('summary_suffix') or
+                      test_case.get('feature_name') or
+                      'Generated Test')
+
+            action = (test_case.get('action') or
+                     test_case.get('preconditions') or
+                     default_values["voltage_precondition"])
+
+            data_field = (test_case.get('data') or
+                         test_case.get('test_steps') or
+                         'N/A')
+
             # v03 data formatting logic
-            data_field = test_case.get("data", "N/A")
             if isinstance(data_field, str) and data_field.startswith("1)"):
                 data_field = (
                     data_field.replace(", ", "\n")
@@ -107,22 +124,24 @@ class TestCaseFormatter:
             elif isinstance(data_field, list):
                 data_field = "\n".join(str(step) for step in data_field)
 
+            # FIX: Match v03 column structure exactly
             formatted_case = {
                 "Issue ID": issue_id,
-                "Summary": f"[{requirement_id}] {test_case.get('summary', 'Generated Test')}",
+                "Summary": f"[{summary}]",  # v03 format: just [feature_name] without req_id
                 "Test Type": default_values["test_type"],
                 "Issue Type": default_values["issue_type"],
                 "Project Key": default_values["project_key"],
                 "Assignee": default_values["assignee"],
                 "Description": "",  # Keep description empty as in v03
-                "Action": self._stringify_list(test_case.get("action", default_values["voltage_precondition"])),
+                "Action": self._stringify_list(action),
                 "Data": data_field,
                 "Expected Result": self._stringify_list(test_case.get("expected_result", "N/A")),
                 "Planned Execution": default_values["planned_execution"],
                 "Test Case Type": default_values["test_case_type"],
+                "Feature Group": summary,  # v03 column: Feature Group
                 "Components": default_values["components"],
                 "Labels": self._stringify_list(default_values["labels"]),
-                "Tests": requirement_id,
+                "LinkTest": requirement_id,  # v03 column name: LinkTest (not Tests)
             }
             
             formatted_cases.append(formatted_case)
@@ -130,17 +149,21 @@ class TestCaseFormatter:
         return formatted_cases
 
     def _get_default_test_values(self, metadata: dict[str, Any] = None) -> dict[str, Any]:
-        """Get default values from config or use standard automotive defaults"""
+        """
+        Get default values from config or use v03-compatible automotive defaults.
+
+        FIX: Updated to match v03 static configuration exactly.
+        """
         defaults = {
-            "issue_type": "Test",
-            "project_key": "TCTOIC",
-            "assignee": "ENGG",
-            "test_case_type": "Feature Functional",
-            "planned_execution": "Manual",
-            "components": "SW_DI_FV",
-            "labels": "AI Generated TCs",
+            "test_type": "RoboFit",  # v03: STATIC_TEST_TYPE
+            "issue_type": "Test",  # v03: STATIC_ISSUE_TYPE
+            "project_key": "TCTOIC",  # v03: STATIC_PROJECT_KEY
+            "assignee": "ENGG",  # v03: STATIC_ASSIGNEE
+            "planned_execution": "Manual",  # v03: STATIC_PLANNED_EXECUTION
+            "test_case_type": "Feature Functional",  # v03: STATIC_TEST_CASE_TYPE
+            "components": "Infotainment",  # v03: STATIC_COMPONENTS
+            "labels": "SYS_DI_VALIDATION_TEST",  # v03: STATIC_LABELS
             "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",
-            "test_type": "PROVEtech"
         }
         
         # Override with config values if available
@@ -242,7 +265,7 @@ class TestCaseFormatter:
             cell.fill = header_fill
             cell.alignment = header_alignment
         
-        # Column widths (v03 style)
+        # Column widths (v03 style - 16 columns)
         column_widths = {
             'A': 15,  # Issue ID
             'B': 50,  # Summary
@@ -256,9 +279,10 @@ class TestCaseFormatter:
             'J': 50,  # Expected Result
             'K': 15,  # Planned Execution
             'L': 20,  # Test Case Type
-            'M': 15,  # Components
-            'N': 20,  # Labels
-            'O': 20,  # Tests
+            'M': 30,  # Feature Group (v03 column)
+            'N': 15,  # Components
+            'O': 20,  # Labels
+            'P': 20,  # LinkTest (v03 column name)
         }
         
         for col_letter, width in column_widths.items():

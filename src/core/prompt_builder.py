@@ -90,6 +90,8 @@ class PromptBuilder:
         """
         Build default prompt without template.
 
+        FIX: Updated to match YAML template field names for consistency.
+
         Args:
             requirement: Requirement data
 
@@ -100,31 +102,50 @@ class PromptBuilder:
         heading = requirement.get("heading", "")
         text = requirement.get("text", "")
 
-        prompt = f"""Generate comprehensive test cases for the following automotive requirement:
+        # Format context information if available
+        info_list = requirement.get("info_list", [])
+        interface_list = requirement.get("interface_list", [])
 
+        info_str = self.format_info_list(info_list) if info_list else "None"
+        interface_str = self.format_interfaces(interface_list) if interface_list else "None"
+
+        prompt = f"""You are an expert automotive test engineer. Generate comprehensive test cases for the following requirement with provided context:
+
+--- CONTEXTUAL INFORMATION ---
+FEATURE HEADING: {heading}
+ADDITIONAL INFORMATION: {info_str}
+SYSTEM INTERFACES: {interface_str}
+
+--- PRIMARY REQUIREMENT TO TEST ---
 Requirement ID: {req_id}
-Heading: {heading}
 Description: {text}
 
-Please generate test cases in JSON format with the following structure:
+--- YOUR TASK ---
+Generate test cases in JSON format with the following EXACT structure:
 {{
     "test_cases": [
         {{
-            "summary": "Brief test case description",
-            "action": "Detailed test steps",
-            "data": "Test data and inputs",
-            "expected_result": "Expected outcome"
+            "summary_suffix": "Brief descriptive title for this specific test",
+            "action": "Preconditions (voltage, system state)",
+            "data": "Numbered list of test steps: 1) Step one\\n2) Step two",
+            "expected_result": "Specific observable outcome that indicates pass",
+            "test_type": "positive or negative"
         }}
     ]
 }}
 
-Focus on:
-- Boundary value testing
-- Positive and negative scenarios
-- Automotive-specific conditions (voltage levels, temperature ranges)
-- Safety and security considerations
+REQUIREMENTS:
+1. Generate BOTH positive (valid inputs) AND negative (invalid/boundary/error) test cases
+2. Use "action" field for preconditions (e.g., "1. Voltage=12V\\n2. IGN ON")
+3. Use "data" field for numbered test steps
+4. Each test case MUST include "test_type" field marking it as "positive" or "negative"
+5. Focus on:
+   - Boundary value testing
+   - Positive and negative scenarios
+   - Automotive-specific conditions (voltage, temperature, CAN signals)
+   - Error handling and safety considerations
 
-Ensure each test case is detailed and executable."""
+Return ONLY valid JSON with the exact field names shown above."""
 
         return prompt
 

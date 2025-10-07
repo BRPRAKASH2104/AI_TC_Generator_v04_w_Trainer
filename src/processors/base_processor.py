@@ -124,7 +124,15 @@ class BaseProcessor:
 
             elif obj.get("type") == "System Requirement":
                 # Augment requirement with collected context
+                # FIX: Process ALL System Requirements, not just those with tables (v03 compatibility)
                 req_id = obj.get("id", "UNKNOWN")
+                req_text = obj.get("text", "")
+
+                # Skip if no text content (empty requirements)
+                if not req_text or not req_text.strip():
+                    self.logger.debug(f"⚠️  Skipping requirement {req_id}: no text content")
+                    continue
+
                 self.logger.debug(f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})")
 
                 augmented_requirement = obj.copy()

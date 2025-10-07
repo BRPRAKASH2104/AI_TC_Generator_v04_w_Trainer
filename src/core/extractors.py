@@ -289,7 +289,12 @@ class REQIFArtifactExtractor:
                 return ArtifactType.UNKNOWN
 
     def _determine_artifact_type(self, content: str) -> ArtifactType:
-        """Determine artifact type based on content patterns"""
+        """
+        Determine artifact type based on content patterns.
+
+        FIX: More lenient classification to match v03 behavior.
+        If content has substance, default to SYSTEM_REQUIREMENT instead of UNKNOWN.
+        """
         content_lower = content.lower()
 
         # Pattern matching for artifact classification (PEP 634)
@@ -315,6 +320,10 @@ class REQIFArtifactExtractor:
             case _ if any(keyword in content_lower for keyword in ["information", "note", "description"]):
                 return ArtifactType.INFORMATION
             case _:
+                # FIX: v03 compatibility - if content has substance (>50 chars), treat as requirement
+                # This ensures we don't drop valid requirements due to conservative classification
+                if len(content.strip()) > 50:
+                    return ArtifactType.SYSTEM_REQUIREMENT
                 return ArtifactType.UNKNOWN
 
     def _parse_reqif_xml_streaming(self, xml_content: bytes) -> ArtifactList:
