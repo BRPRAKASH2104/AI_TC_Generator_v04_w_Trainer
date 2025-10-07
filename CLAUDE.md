@@ -2,6 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 📋 Quick Reference
+
+**Project**: AI-powered test case generator for automotive REQIFZ requirements
+**Version**: v1.4.0 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+
+
+**Essential Commands**:
+```bash
+pip install -e .[dev]              # Install with dev dependencies
+python tests/run_tests.py          # Run complete test suite
+ai-tc-generator input/ --hp        # Process files in HP mode (3-5x faster)
+ruff check src/ main.py --fix      # Lint and auto-fix
+```
+
+**Critical Files**:
+- `src/processors/base_processor.py:62-126` - Context-aware processing (DO NOT MODIFY)
+- `src/core/prompt_builder.py` - Stateless prompt construction
+- `src/core/generators.py` - Test case generation (sync + async)
+- `src/core/exceptions.py` - Structured error handling
+
+**Architecture Pattern**: `CLI → Processor → Generator → PromptBuilder → Ollama → Excel`
+
+---
+
 ## ⚠️ System Instructions
 You are an expert Python developer and software architect. This repository implements an AI-powered test case generator for system requirements in REQIFZ files, using the Ollama API for LLM interactions.
 
@@ -62,6 +85,31 @@ main.py (CLI) → Processor (standard/hp) → Generator → PromptBuilder → Ol
                 BaseProcessor (shared context logic)
                      ↓
           Extract → Augment with context → Generate → Format to Excel
+```
+
+### Directory Structure (Critical Paths Only)
+
+```
+src/
+├── core/                    # Core business logic
+│   ├── extractors.py       # REQIFZ parsing
+│   ├── generators.py       # TestCaseGenerator + AsyncTestCaseGenerator
+│   ├── prompt_builder.py   # Stateless prompt construction
+│   ├── ollama_client.py    # Ollama API clients (sync + async)
+│   ├── exceptions.py       # Structured error handling
+│   └── formatters.py       # Excel/JSON output
+├── processors/             # Workflow orchestration
+│   ├── base_processor.py   # CRITICAL: Context-aware processing (DO NOT MODIFY)
+│   ├── standard_processor.py
+│   └── hp_processor.py
+├── training/               # RAFT training (optional, v1.6.0)
+├── config.py              # Pydantic configuration
+├── yaml_prompt_manager.py # YAML template management
+└── app_logger.py          # Centralized logging
+
+prompts/templates/         # YAML prompt templates
+tests/                     # Test suite (109/130 passing)
+utilities/                 # Helper scripts
 ```
 
 ### Key Components
@@ -293,31 +341,30 @@ ollama list
 
 ## 📊 Current System Status
 
-**Version**: v1.5.0 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+
+**Version**: v1.4.0 → v1.5.0 (in progress) | **Python**: 3.13.7+ | **Ollama**: v0.11.10+
 
 **Test Status**:
 - 109/130 tests passing (84% success rate)
-- 18/18 critical improvement tests passing (100% - v1.5.0)
+- 18/18 critical improvement tests passing (100% - v1.5.0 features)
 - 100% coverage on critical paths (context-aware processing, BaseProcessor, PromptBuilder)
 - Known issues: 21 legacy integration tests need updating to expect custom exceptions
 
 **Architecture Status**:
 - ✅ BaseProcessor refactoring: Complete (0% code duplication)
 - ✅ PromptBuilder decoupling: Complete (no awkward coupling)
-- ✅ Context-aware processing: Verified 100% intact (v1.5.0 verification)
-- ✅ Custom exception system: Complete (v1.5.0)
-- ✅ Double semaphore removed: Complete (v1.5.0)
-- ✅ Concurrent batch processing: Complete (v1.5.0)
-- ✅ RAFT training system: Complete (v1.6.0, non-invasive)
-- ✅ Import structure: All absolute imports
+- ✅ Context-aware processing: Verified 100% intact
+- ✅ Custom exception system: Complete
+- ✅ Double semaphore removed: Complete
+- ✅ Concurrent batch processing: Complete
+- ✅ RAFT training system: Complete (v1.6.0, optional, non-invasive)
+- ✅ Import structure: All absolute imports from `src` root
 - ✅ Dependency management: Single source (pyproject.toml)
 
-**Performance (v1.5.0 Improvements)**:
-- Standard mode: ~7,254 artifacts/second (unchanged)
-- HP mode: ~18,208 artifacts/second → **~54,624 artifacts/second (3-5x faster)**
-- Throughput improvement: +200% for large files (250+ requirements)
-- Processing rate: 8 req/sec → 24 req/sec (3x improvement)
-- Memory efficiency: 0.010 MB per artifact (unchanged)
+**Performance Benchmarks**:
+- Standard mode: ~7,254 artifacts/second
+- HP mode: ~18,208 → **~54,624 artifacts/second (3-5x faster)**
+- Processing rate improvement: 8 req/sec → 24 req/sec (3x)
+- Memory efficiency: 0.010 MB per artifact (constant)
 - Error debugging: 10x faster with structured exceptions
 
 ## 🔍 Verification Commands
@@ -360,22 +407,17 @@ python -m pytest tests/test_critical_improvements.py -v
 
 ## 🐛 Common Issues and Solutions
 
-**Import Errors**: Ensure `pip install -e .[dev]` was run in the project root
-
-**Context Loss**: Check that processors use `BaseProcessor._build_augmented_requirements()` and do not filter artifacts prematurely
-
-**Template Issues**: Run `ai-tc-generator --validate-prompts` to check YAML syntax
-
-**Ollama Connection**: Verify service with `ollama list` and ensure models are pulled
-
-**Test Failures**: Check that all imports are absolute (not relative) from `src` root
-
-**Performance Issues**: Use `--hp` mode for 3-5x speedup on multi-requirement files (v1.5.0)
-
-**Ollama Errors**: Check error context from custom exceptions - they provide fix instructions (v1.5.0):
-- Connection errors: Start Ollama with `ollama serve`
-- Timeout errors: Use faster model or increase timeout
-- Model not found: Install with `ollama pull <model>`
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| **Import Errors** | `ModuleNotFoundError: No module named 'src'` | Run `pip install -e .[dev]` in project root |
+| **Context Loss** | Test cases lack relevant context | Check processors use `BaseProcessor._build_augmented_requirements()` - never filter artifacts before context iteration |
+| **Template Issues** | YAML parsing errors | Run `ai-tc-generator --validate-prompts` |
+| **Ollama Connection** | `OllamaConnectionError` | Start service: `ollama serve`, verify: `ollama list` |
+| **Missing Model** | `OllamaModelNotFoundError: model 'X' not found` | Install: `ollama pull <model>` |
+| **Timeout** | `OllamaTimeoutError: request timed out after Xs` | Use faster model or increase timeout in config |
+| **Test Failures** | Import errors in tests | Ensure all imports are absolute from `src` root (not relative `..`) |
+| **Performance** | Slow processing | Use `--hp` mode for 3-5x speedup (large files) |
+| **RAFT Not Working** | Examples not collected | Set `AI_TG_ENABLE_RAFT=true` or enable in config |
 
 ## 🎓 RAFT Training (Retrieval Augmented Fine-Tuning)
 
@@ -453,49 +495,47 @@ ai-tc-generator input/ --model automotive-tc-raft-v1 --hp
 
 ---
 
-## 🚀 v1.5.0 Critical Improvements (October 2025)
+## 🚀 Recent Improvements
 
-### What Changed
+### v1.5.0 Critical Improvements (October 2025)
 
-**1. Custom Exception System** - Replaces silent failures with actionable errors
-- All Ollama errors now raise structured exceptions with context (host, port, timeout, model)
-- 10x faster debugging with clear fix instructions
-- 85% reduction in support tickets
+**1. Custom Exception System** - 10x faster debugging
+- Structured exceptions with actionable context (host, port, timeout, model)
+- All Ollama errors raise specific exception types
+- See `src/core/exceptions.py` for complete hierarchy
 
-**2. Removed Double Semaphore** - Eliminates throughput bottleneck
-- `AsyncTestCaseGenerator` no longer has its own semaphore
-- Only `AsyncOllamaClient` controls concurrency
-- Result: +50% throughput (8 req/sec → 12 req/sec)
+**2. Removed Double Semaphore** - +50% throughput
+- Only `AsyncOllamaClient` controls concurrency (removed from `AsyncTestCaseGenerator`)
+- Throughput: 8 req/sec → 12 req/sec
 
-**3. Concurrent Batch Processing** - Full parallelism in HP mode
-- HP processor now processes ALL requirements concurrently (not sequential batches)
-- AsyncOllamaClient's semaphore handles rate limiting automatically
-- Result: 3x faster for large files (250 req: 62.5s → 20.8s)
+**3. Concurrent Batch Processing** - 3x faster for large files
+- HP processor processes ALL requirements concurrently (no sequential batches)
+- 250 requirements: 62.5s → 20.8s
 
-### What Stayed the Same
+**Core Logic Guarantees**:
+✅ `BaseProcessor._build_augmented_requirements()` unchanged
+✅ Context-aware processing verified intact
+✅ Zero breaking changes for end users
+✅ Memory efficiency maintained (0.010 MB per artifact)
 
-✅ **Core logic 100% intact** - BaseProcessor._build_augmented_requirements() unchanged
-✅ **Context-aware processing** - Heading, info, interface tracking verified working
-✅ **API compatibility** - No breaking changes for end users
-✅ **Memory efficiency** - Same 0.010 MB per artifact
+### v1.6.0 RAFT Training (Optional)
 
-### Performance Gains
+- Non-invasive training data collection for custom models
+- Disabled by default (`enable_raft: false`)
+- Zero impact on core test case generation
+- See "RAFT Training" section below for details
 
-| Scenario | Before (v1.4.0) | After (v1.5.0) | Improvement |
-|----------|-----------------|----------------|-------------|
-| **10 requirements** | 2.5s | 2.5s | No change |
-| **50 requirements** | 12.5s | 6.3s | **2x faster** |
-| **100 requirements** | 25s | 8.3s | **3x faster** |
-| **250 requirements** | 62.5s | 20.8s | **3x faster** |
+**Performance Comparison**:
 
-### Verification
+| Requirements | Standard Mode | HP Mode (v1.4.0) | HP Mode (v1.5.0) | Improvement |
+|--------------|---------------|------------------|------------------|-------------|
+| 10 | 2.5s | 2.5s | 2.5s | - |
+| 50 | 12.5s | 12.5s | 6.3s | **2x** |
+| 100 | 25s | 25s | 8.3s | **3x** |
+| 250 | 62.5s | 62.5s | 20.8s | **3x** |
 
-All improvements verified with:
-- 18/18 critical improvement tests passing (100%)
-- Line-by-line code inspection of core logic
-- Zero regressions in context-aware processing
-- See `VERIFICATION_REPORT.md` for detailed evidence
+**Verification**: See `VERIFICATION_REPORT.md` for line-by-line evidence of zero core logic impact.
 
 ---
 
-**Last Updated**: 2025-10-03 | **Architecture**: Context-Aware with BaseProcessor + PromptBuilder + Custom Exceptions + RAFT Training (v1.6.0)
+**Last Updated**: 2025-10-07 | **Architecture**: Context-Aware with BaseProcessor + PromptBuilder + Custom Exceptions + RAFT Training (optional)
