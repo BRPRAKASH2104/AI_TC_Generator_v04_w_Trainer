@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 📋 Quick Reference
 
 **Project**: AI-powered test case generator for automotive REQIFZ requirements
-**Version**: v1.4.0 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+
+**Version**: v2.0.0 | **Python**: 3.13.7+ | **Ollama**: v0.11.10+
 
 **Essential Commands**:
 ```bash
@@ -17,9 +17,11 @@ ruff check src/ main.py --fix      # Lint and auto-fix
 
 **Critical Files**:
 - `src/processors/base_processor.py:62-126` - Context-aware processing (DO NOT MODIFY)
+- `src/core/extractors.py:151-172,191,235` - REQIFZ extraction with attribute mapping (RECENT FIX)
 - `src/core/prompt_builder.py` - Stateless prompt construction
 - `src/core/generators.py` - Test case generation (sync + async)
 - `src/core/exceptions.py` - Structured error handling
+- `prompts/templates/test_generation_adaptive.yaml` - Adaptive prompt (table + text-only)
 
 **Architecture Pattern**: `CLI → Processor → Generator → PromptBuilder → Ollama → Excel`
 
@@ -74,6 +76,7 @@ for obj in artifacts:
 - Filter artifacts before context iteration: `[obj for obj in artifacts if obj.get("type") == "System Requirement"]`
 - Duplicate context logic in processors (use BaseProcessor inheritance)
 - Remove context fields from PromptBuilder template variables
+- Modify extractor without building attribute definition mappings (see v2.0 fix below)
 
 ## 🏗️ Architecture Overview
 
@@ -113,6 +116,16 @@ utilities/                 # Helper scripts
 ```
 
 ### Key Components
+
+**REQIFArtifactExtractor** (`src/core/extractors.py`):
+- **PURPOSE**: Extracts artifacts from REQIFZ files with proper attribute name resolution
+- **CRITICAL FIX (v2.0)**: Attribute definition mapping prevents extraction failures
+- **KEY METHODS**:
+  - `extract_reqifz_content(reqifz_file_path)` - Main entry point
+  - `_build_attribute_definition_mapping(root, namespaces)` - Maps attribute identifiers to LONG-NAME values (CRITICAL)
+  - `_extract_spec_object(spec_obj, ..., attr_def_map)` - Extracts single artifact with proper attribute resolution
+- **COMMON ISSUE**: Without attribute mapping, extractor uses identifiers like `_json2reqif_XXX` instead of "ReqIF.Text", causing requirements to be skipped
+- **VALIDATION**: Check extraction success rate - should be >95% for valid REQIFZ files
 
 **BaseProcessor** (`src/processors/base_processor.py`):
 - **PURPOSE**: Eliminates code duplication between standard and HP processors
@@ -418,6 +431,8 @@ python -m pytest tests/test_critical_improvements.py -v
 | **Test Failures** | Import errors in tests | Ensure all imports are absolute from `src` root (not relative `..`) |
 | **Performance** | Slow processing | Use `--hp` mode for 3-5x speedup (large files) |
 | **RAFT Not Working** | Examples not collected | Set `AI_TG_ENABLE_RAFT=true` or enable in config |
+| **Requirements Skipped** | "no text content" warnings, 0 requirements extracted | Extractor missing attribute mapping - check `_build_attribute_definition_mapping()` exists and is called |
+| **Table vs Text Mismatch** | Poor test quality, prompt expects table but none exists | Use adaptive prompt template (`adaptive_default`) that handles both scenarios |
 
 ## 🎓 RAFT Training (Retrieval Augmented Fine-Tuning)
 
@@ -481,6 +496,7 @@ ai-tc-generator input/ --model automotive-tc-raft-v1 --hp
 
 ## 📚 Additional Documentation
 
+- `ADAPTIVE_PROMPT_SUMMARY.md`: v2.0 adaptive prompt template implementation (2025-10-07)
 - `CRITICAL_IMPROVEMENTS_SUMMARY.md`: v1.5.0 performance and error handling improvements (IMPORTANT)
 - `VERIFICATION_REPORT.md`: Line-by-line verification of v1.5.0 improvements with zero core logic impact
 - `SELF_REVIEW_REPORT.md`: Comprehensive architecture verification and test results
@@ -525,6 +541,36 @@ ai-tc-generator input/ --model automotive-tc-raft-v1 --hp
 - Zero impact on core test case generation
 - See "RAFT Training" section below for details
 
+### v2.0 Critical Fixes (October 2025)
+
+**1. REQIFZ Extraction Fix** - Fixed 0% extraction rate for text-only requirements
+- **Problem**: Extractor used attribute identifiers instead of LONG-NAME values, causing all requirements to be skipped
+- **Root Cause**: Line 208 extracted `_json2reqif_XXX` identifier, not "ReqIF.Text" LONG-NAME
+- **Solution**: Added `_build_attribute_definition_mapping()` to map identifiers to LONG-NAME values
+- **Files Modified**: `src/core/extractors.py:151-172,191,235`
+- **Impact**: 0 → 4,551 requirements successfully extracted (100% success rate)
+- **Validation**: Tested on 36 REQIFZ files across 3 datasets (Toyota_FDC, 2025_09_12_S220, W616)
+
+**2. Adaptive Prompt Template** - Support for both table-based and text-only requirements
+- **Problem**: Existing prompt required table data; 100% of current dataset (4,551 requirements) is text-only
+- **Solution**: Created single adaptive prompt that intelligently handles both scenarios
+- **File**: `prompts/templates/test_generation_adaptive.yaml` (6,377 characters)
+- **Key Features**:
+  - AI analyzes requirement to determine if table-based or text-only
+  - Table mode: Decision Table Testing (tests all rows + negative cases)
+  - Text mode: BVA, Equivalence Partitioning, Scenario-Based (5-13 tests)
+  - Context-aware: Uses System Interface Dictionary for parameter extraction
+- **Configuration Updated**: `prompts/config/prompt_config.yaml` now uses `adaptive_default`
+- **Backup Created**: `test_generation_v3_structured.yaml.backup` for rollback
+- **Validation**: Template loading, text-only, and table-based scenarios all verified
+
+**Dataset Analysis** (October 2025):
+- 36 REQIFZ files analyzed across 3 folders
+- 4,551 total requirements extracted
+- 0 requirements with tables (0.0%)
+- 4,551 requirements without tables (100.0%)
+- Recommendation: Adaptive prompt is REQUIRED for current dataset
+
 **Performance Comparison**:
 
 | Requirements | Standard Mode | HP Mode (v1.4.0) | HP Mode (v1.5.0) | Improvement |
@@ -538,4 +584,4 @@ ai-tc-generator input/ --model automotive-tc-raft-v1 --hp
 
 ---
 
-**Last Updated**: 2025-10-07 | **Architecture**: Context-Aware with BaseProcessor + PromptBuilder + Custom Exceptions + RAFT Training (optional)
+**Last Updated**: 2025-10-07 | **Architecture**: Context-Aware with BaseProcessor + PromptBuilder + Adaptive Prompts + Custom Exceptions + RAFT Training (optional)

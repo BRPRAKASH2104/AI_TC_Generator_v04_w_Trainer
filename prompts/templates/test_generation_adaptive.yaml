@@ -1,0 +1,213 @@
+# =================================================================
+# AI Test Case Generator - Adaptive Test Generation Prompt
+# File: prompts/templates/test_generation_adaptive.yaml
+# Version: 2.0 - Adaptive prompt for both table-based and text-only requirements
+# Last Updated: 2025-10-07
+# =================================================================
+
+metadata:
+  version: "2.0"
+  last_updated: "2025-10-07"
+  maintainer: "Test Engineering Team"
+  description: "Adaptive test generation prompt - works for both table-based and text-only requirements"
+
+# Template configuration
+template_config:
+  variable_format: "{variable_name}"
+  encoding: "utf-8"
+  line_endings: "unix"
+
+# Main test generation prompts
+test_generation_prompts:
+
+  # Adaptive prompt - handles both table-based and text-only requirements
+  adaptive_default:
+    name: "Adaptive Test Generation (Table + Text)"
+    description: "Smart prompt that adapts to table-based or text-only requirements automatically"
+    category: "general"
+    tags: ["automotive", "adaptive", "table-and-text", "intelligent"]
+
+    variables:
+      required:
+        - heading
+        - requirement_id
+        - requirement_text
+      optional:
+        - table_str
+        - row_count
+        - info_str
+        - interface_str
+        - voltage_precondition
+      defaults:
+        info_str: "None"
+        interface_str: "None"
+        table_str: ""
+        row_count: 0
+        voltage_precondition: "1. Voltage= 12V\n2. Bat-ON"
+
+    template: |
+      You are an expert automotive test engineer. Your task is to generate comprehensive test cases for the following requirement using all provided context.
+
+      --- CONTEXTUAL INFORMATION ---
+      ## FEATURE HEADING:
+      {heading}
+
+      ## ADDITIONAL INFORMATION NOTES:
+      {info_str}
+
+      ## SYSTEM INTERFACE DICTIONARY (Inputs/Outputs/Variables):
+      {interface_str}
+
+      ## AVAILABLE TEST DESIGN TECHNIQUES:
+      - **Decision Table Testing:** Test combinations of inputs and their corresponding system outputs as defined in a logic table
+      - **Boundary Value Analysis (BVA):** Test at the edges or boundaries of equivalence partitions
+      - **Equivalence Partitioning:** Group inputs into classes that are expected to be processed similarly
+      - **State Transition Testing:** Design tests to check transitions between system states
+      - **Scenario-Based Testing:** Test end-to-end user scenarios
+      - **Diagnostic Testing (UDS - ISO 14229 / OBD-II):** Verify diagnostic services and fault reporting
+
+      --- PRIMARY REQUIREMENT TO TEST ---
+      **ID:** {requirement_id}
+
+      **Requirement Description:**
+      {requirement_text}
+
+      **Logic Table Data:**
+      {table_str}
+
+      --- YOUR TASK ---
+
+      **STEP 1: ANALYZE THE REQUIREMENT**
+      Examine the requirement carefully:
+      - If a logic table is provided above (with rows/columns), use Decision Table Testing as the PRIMARY technique
+      - If NO table is provided (or table is empty), analyze the requirement text to identify:
+        * Input parameters and their valid ranges (check System Interface Dictionary)
+        * Output behaviors and expected responses
+        * State transitions or mode changes
+        * Boundary conditions (min/max values, thresholds)
+        * Error conditions and fault handling
+
+      **STEP 2: SELECT APPROPRIATE TEST TECHNIQUES**
+
+      ### IF LOGIC TABLE IS PROVIDED:
+      - **PRIMARY**: Decision Table Testing (test all table rows)
+      - **SECONDARY**: Boundary Value Analysis (for numeric parameters)
+      - **TERTIARY**: Negative testing (invalid inputs not in table)
+
+      ### IF NO TABLE PROVIDED (TEXT-ONLY REQUIREMENT):
+      Choose the most appropriate technique(s) based on requirement type:
+      - **For timing/threshold requirements**: Boundary Value Analysis + Equivalence Partitioning
+      - **For mode/state requirements**: State Transition Testing + Scenario-Based Testing
+      - **For diagnostic requirements**: Diagnostic Testing (UDS/OBD-II protocols)
+      - **For signal/interface requirements**: Boundary Value Analysis + Equivalence Partitioning
+      - **For configuration requirements**: Equivalence Partitioning + Scenario-Based Testing
+
+      **STEP 3: GENERATE TEST CASES**
+
+      ## FOR TABLE-BASED REQUIREMENTS:
+
+      **POSITIVE TEST CASES (Mandatory):**
+      - Create one positive test case for EACH row in the logic table (total: {row_count} tests)
+      - Use exact input/output combinations as specified
+      - Format `"data"`: "1) Set [Parameter] = [Value]\n2) Set [Parameter] = [Value]..."
+      - Format `"expected_result"`: "Verify [Output] = [Expected Value]"
+      - Mark each with `"test_type": "positive"`
+
+      **NEGATIVE TEST CASES (Mandatory):**
+      - Generate at least 3-5 negative tests covering:
+        * Invalid input values (out of range, wrong type, null)
+        * Boundary violations (below min, above max)
+        * Input combinations NOT in the table
+      - Format `"expected_result"`: "Verify error handling: [Expected Error Behavior]"
+      - Mark each with `"test_type": "negative"`
+
+      ## FOR TEXT-ONLY REQUIREMENTS:
+
+      **POSITIVE TEST CASES (Mandatory):**
+      - Extract parameters from requirement text and System Interface Dictionary
+      - Generate 3-8 positive test cases covering:
+        * Valid input values (minimum valid, typical, maximum valid)
+        * Normal operating conditions
+        * Expected functional behavior
+        * Valid state transitions (if applicable)
+      - Use specific values from interface definitions where available
+      - Format `"data"`: Numbered steps: "1) Set [Parameter] = [Value]\n2) Trigger [Action]..."
+      - Format `"expected_result"`: "Verify [Observable Outcome]"
+      - Mark each with `"test_type": "positive"`
+
+      **NEGATIVE TEST CASES (Mandatory):**
+      - Generate 2-5 negative test cases covering:
+        * Boundary violations (below minimum - 1, above maximum + 1)
+        * Invalid input types or formats
+        * Invalid state transitions (if applicable)
+        * Error conditions mentioned in requirement
+        * Safety-critical fault scenarios (voltage drop, communication loss, etc.)
+      - Format `"expected_result"`: "Verify error handling: [Expected System Response]"
+      - Mark each with `"test_type": "negative"`
+
+      **STEP 4: USE CONTEXT EFFECTIVELY**
+      - Reference the System Interface Dictionary to understand signal meanings, ranges, and data types
+      - Use Additional Information Notes to understand special conditions or dependencies
+      - Consider the Feature Heading to understand the broader context
+      - For parameters not explicitly defined, make reasonable automotive assumptions
+
+      ## CRITICAL REQUIREMENTS:
+      1. **MANDATORY JSON STRUCTURE**: Your ENTIRE response MUST be valid JSON with this exact structure:
+         ```
+         {
+           "test_cases": [
+             {
+               "summary_suffix": "Brief descriptive title",
+               "action": "{voltage_precondition}",
+               "data": "1) Step one\n2) Step two\n3) Step three",
+               "expected_result": "Verify specific observable outcome",
+               "test_type": "positive"
+             }
+           ]
+         }
+         ```
+
+      2. **MANDATORY FIELDS**: Each test case MUST include:
+         - `"summary_suffix"`: Short, specific test title (not generic)
+         - `"action"`: Use "{voltage_precondition}" for preconditions
+         - `"data"`: Numbered test steps (use \n for line breaks)
+         - `"expected_result"`: Clear, verifiable outcome
+         - `"test_type"`: Either "positive" or "negative"
+
+      3. **COVERAGE REQUIREMENTS**:
+         - Generate BOTH positive AND negative test cases
+         - For table-based: Test ALL {row_count} table rows + negative scenarios
+         - For text-only: Generate 5-13 total test cases (mix of positive/negative)
+
+      4. **QUALITY REQUIREMENTS**:
+         - Make test steps specific and actionable
+         - Use exact parameter names from System Interface Dictionary
+         - Make expected results observable and measurable
+         - For negative tests, clearly state the expected error/rejection behavior
+
+      5. **AUTOMOTIVE CONTEXT**:
+         - Consider voltage conditions (normal, low, high)
+         - Consider ignition states (Off, ACC, ON)
+         - Consider communication failures (CAN timeout, invalid frames)
+         - Consider safety implications (fail-safe behavior, degraded modes)
+
+      6. **OUTPUT FORMAT**: Return ONLY the JSON object. No explanations, no markdown, no additional text.
+
+    validation:
+      min_row_count: 0  # 0 allows text-only requirements
+      max_row_count: 500
+      required_context: ["heading", "requirement_id"]
+
+# Prompt selection rules for automatic template choice
+prompt_selection:
+  # Default fallback - use adaptive template
+  default_template: "adaptive_default"
+
+  # Model-specific preferences
+  model_preferences:
+    "llama3.1:8b":
+      preferred: ["adaptive_default"]
+      avoid: []
+    "deepseek-coder-v2:16b":
+      preferred: ["adaptive_default"]
+      avoid: []

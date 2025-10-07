@@ -5,14 +5,14 @@
 
 # File paths and locations
 file_paths:
-  test_generation_prompts: "prompts/templates/test_generation_v3_structured.yaml"
+  test_generation_prompts: "prompts/templates/test_generation_adaptive.yaml"
   error_handling_prompts: "prompts/templates/error_handling.yaml"
   output_directory: "output/"
   backup_directory: "prompts/backups/"
 
 # Default settings
 defaults:
-  template_selection: "driver_information_default"
+  template_selection: "adaptive_default"
   error_template: "validation_failure"
   encoding: "utf-8"
   variable_format: "{variable_name}"
@@ -34,14 +34,14 @@ model_configurations:
   "llama3.1:8b":
     max_context_length: 4000
     recommended_templates:
-      - "driver_information_default"
+      - "adaptive_default"
     timeout_seconds: 300
     temperature: 0.0
 
   "deepseek-coder-v2:16b":
     max_context_length: 8000
     recommended_templates:
-      - "driver_information_default"
+      - "adaptive_default"
     timeout_seconds: 600
     temperature: 0.0
 
