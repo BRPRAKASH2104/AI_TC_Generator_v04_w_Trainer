@@ -84,30 +84,45 @@ class TestCaseFormatter:
         test_cases: TestCaseList,
         metadata: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """Prepare test cases with automotive-specific formatting"""
+        """Prepare test cases with automotive-specific formatting (v03 style)"""
         formatted_cases = []
         
         # Get default values from config or use defaults
         default_values = self._get_default_test_values(metadata)
         
         for i, test_case in enumerate(test_cases, 1):
+            requirement_id = test_case.get("requirement_id", "UNKNOWN")
+            issue_id = self._generate_issue_id(test_case, i)
+
+            # v03 data formatting logic
+            data_field = test_case.get("data", "N/A")
+            if isinstance(data_field, str) and data_field.startswith("1)"):
+                data_field = (
+                    data_field.replace(", ", "\n")
+                    .replace("2)", "\n2)")
+                    .replace("3)", "\n3)")
+                    .replace("4)", "\n4)")
+                    .replace("5)", "\n5)")
+                )
+            elif isinstance(data_field, list):
+                data_field = "\n".join(str(step) for step in data_field)
+
             formatted_case = {
-                "Issue ID": self._generate_issue_id(test_case, i),
-                "Summary": self._stringify_list(test_case.get("summary", "Test Case")),
-                "Description": self._build_description(test_case),
+                "Issue ID": issue_id,
+                "Summary": f"[{requirement_id}] {test_case.get('summary', 'Generated Test')}",
+                "Test Type": default_values["test_type"],
                 "Issue Type": default_values["issue_type"],
-                "Status": "To Do",
                 "Project Key": default_values["project_key"],
                 "Assignee": default_values["assignee"],
-                "Test Case Type": default_values["test_case_type"],
+                "Description": "",  # Keep description empty as in v03
+                "Action": self._stringify_list(test_case.get("action", default_values["voltage_precondition"])),
+                "Data": data_field,
+                "Expected Result": self._stringify_list(test_case.get("expected_result", "N/A")),
                 "Planned Execution": default_values["planned_execution"],
+                "Test Case Type": default_values["test_case_type"],
                 "Components": default_values["components"],
                 "Labels": self._stringify_list(default_values["labels"]),
-                "Action": self._stringify_list(test_case.get("action", "Execute test steps")),
-                "Data": self._stringify_list(test_case.get("data", "See test description")),
-                "Expected Result": self._stringify_list(test_case.get("expected_result", "Test passes successfully")),
-                "Precondition": self._stringify_list(default_values["voltage_precondition"]),
-                "Test Type": default_values["test_type"]
+                "Tests": requirement_id,
             }
             
             formatted_cases.append(formatted_case)
@@ -216,7 +231,7 @@ class TestCaseFormatter:
         wb.save(output_path)
 
     def _apply_excel_formatting(self, worksheet) -> None:
-        """Apply professional formatting to Excel worksheet"""
+        """Apply professional formatting to Excel worksheet (v03 style)"""
         # Header formatting
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
@@ -227,24 +242,23 @@ class TestCaseFormatter:
             cell.fill = header_fill
             cell.alignment = header_alignment
         
-        # Column widths
+        # Column widths (v03 style)
         column_widths = {
             'A': 15,  # Issue ID
             'B': 50,  # Summary
-            'C': 60,  # Description
+            'C': 15,  # Test Type
             'D': 12,  # Issue Type
-            'E': 10,  # Status
-            'F': 12,  # Project Key
-            'G': 12,  # Assignee
-            'H': 20,  # Test Case Type
-            'I': 15,  # Planned Execution
-            'J': 15,  # Components
-            'K': 20,  # Labels
-            'L': 40,  # Action
-            'M': 30,  # Data
-            'N': 50,  # Expected Result
-            'O': 20,  # Precondition
-            'P': 15   # Test Type
+            'E': 12,  # Project Key
+            'F': 12,  # Assignee
+            'G': 15,  # Description (empty)
+            'H': 40,  # Action
+            'I': 30,  # Data
+            'J': 50,  # Expected Result
+            'K': 15,  # Planned Execution
+            'L': 20,  # Test Case Type
+            'M': 15,  # Components
+            'N': 20,  # Labels
+            'O': 20,  # Tests
         }
         
         for col_letter, width in column_widths.items():
@@ -322,12 +336,11 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
             ws = wb.active
             ws.title = "Test Cases"
             
-            # Write headers first
+            # Write headers first (v03 style)
             headers = [
-                "Issue ID", "Summary", "Description", "Issue Type", "Status",
-                "Project Key", "Assignee", "Test Case Type", "Planned Execution",
-                "Components", "Labels", "Action", "Data", "Expected Result",
-                "Precondition", "Test Type"
+                "Issue ID", "Summary", "Test Type", "Issue Type", "Project Key",
+                "Assignee", "Description", "Action", "Data", "Expected Result",
+                "Planned Execution", "Test Case Type", "Components", "Labels", "Tests"
             ]
             ws.append(headers)
             
@@ -377,18 +390,18 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
         metadata: dict[str, Any],
         start_index: int
     ) -> None:
-        """Write a chunk of test cases to Excel worksheet"""
+        """Write a chunk of test cases to Excel worksheet (v03 style)"""
         formatted_chunk = self._prepare_test_cases_for_excel(chunk, metadata)
         
         for formatted_case in formatted_chunk:
             row_data = [
                 formatted_case["Issue ID"], formatted_case["Summary"],
-                formatted_case["Description"], formatted_case["Issue Type"],
-                formatted_case["Status"], formatted_case["Project Key"],
-                formatted_case["Assignee"], formatted_case["Test Case Type"],
-                formatted_case["Planned Execution"], formatted_case["Components"],
-                formatted_case["Labels"], formatted_case["Action"],
+                formatted_case["Test Type"], formatted_case["Issue Type"],
+                formatted_case["Project Key"], formatted_case["Assignee"],
+                formatted_case["Description"], formatted_case["Action"],
                 formatted_case["Data"], formatted_case["Expected Result"],
-                formatted_case["Precondition"], formatted_case["Test Type"]
+                formatted_case["Planned Execution"], formatted_case["Test Case Type"],
+                formatted_case["Components"], formatted_case["Labels"],
+                formatted_case["Tests"]
             ]
             worksheet.append(row_data)
