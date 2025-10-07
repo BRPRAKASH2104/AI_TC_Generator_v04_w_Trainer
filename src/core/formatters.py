@@ -73,6 +73,12 @@ class TestCaseFormatter:
                 self.logger.error(f"Error formatting to Excel: {e}")
             return False
 
+    def _stringify_list(self, value: Any) -> str:
+        """Converts a list of strings to a single newline-separated string."""
+        if isinstance(value, list):
+            return "\n".join(map(str, value))
+        return str(value)  # Ensure the output is always a string
+
     def _prepare_test_cases_for_excel(
         self,
         test_cases: TestCaseList,
@@ -87,7 +93,7 @@ class TestCaseFormatter:
         for i, test_case in enumerate(test_cases, 1):
             formatted_case = {
                 "Issue ID": self._generate_issue_id(test_case, i),
-                "Summary": test_case.get("summary", "Test Case"),
+                "Summary": self._stringify_list(test_case.get("summary", "Test Case")),
                 "Description": self._build_description(test_case),
                 "Issue Type": default_values["issue_type"],
                 "Status": "To Do",
@@ -96,11 +102,11 @@ class TestCaseFormatter:
                 "Test Case Type": default_values["test_case_type"],
                 "Planned Execution": default_values["planned_execution"],
                 "Components": default_values["components"],
-                "Labels": default_values["labels"],
-                "Action": test_case.get("action", "Execute test steps"),
-                "Data": test_case.get("data", "See test description"),
-                "Expected Result": test_case.get("expected_result", "Test passes successfully"),
-                "Precondition": default_values["voltage_precondition"],
+                "Labels": self._stringify_list(default_values["labels"]),
+                "Action": self._stringify_list(test_case.get("action", "Execute test steps")),
+                "Data": self._stringify_list(test_case.get("data", "See test description")),
+                "Expected Result": self._stringify_list(test_case.get("expected_result", "Test passes successfully")),
+                "Precondition": self._stringify_list(default_values["voltage_precondition"]),
                 "Test Type": default_values["test_type"]
             }
             
@@ -160,19 +166,19 @@ class TestCaseFormatter:
         
         # Add summary if available
         if test_case.get("summary"):
-            parts.append(f"Summary: {test_case['summary']}")
+            parts.append(f"Summary: {self._stringify_list(test_case['summary'])}")
         
         # Add detailed action steps
         if test_case.get("action"):
-            parts.append(f"Test Steps: {test_case['action']}")
+            parts.append(f"Test Steps: {self._stringify_list(test_case['action'])}")
         
         # Add data requirements
         if test_case.get("data"):
-            parts.append(f"Test Data: {test_case['data']}")
+            parts.append(f"Test Data: {self._stringify_list(test_case['data'])}")
         
         # Add expected results
         if test_case.get("expected_result"):
-            parts.append(f"Expected Result: {test_case['expected_result']}")
+            parts.append(f"Expected Result: {self._stringify_list(test_case['expected_result'])}")
         
         # Add generation metadata
         if test_case.get("generation_time"):

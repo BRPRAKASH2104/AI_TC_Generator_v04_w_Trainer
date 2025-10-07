@@ -273,7 +273,7 @@ class REQIFArtifactExtractor:
 
         # Direct mapping based on REQIF type names
         match type_name_lower:
-            case name if "system requirement" in name:
+            case name if "requirement" in name:
                 return ArtifactType.SYSTEM_REQUIREMENT
             case name if "heading" in name:
                 return ArtifactType.HEADING

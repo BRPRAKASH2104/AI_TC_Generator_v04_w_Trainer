@@ -7,7 +7,11 @@ context relevance in RAFT training examples.
 
 from __future__ import annotations
 import json
-import readline
+try:
+    import readline
+except ImportError:
+    # Readline not available on Windows
+    pass
 from pathlib import Path
 from typing import Any, List, Dict, Set
 from logging import Logger

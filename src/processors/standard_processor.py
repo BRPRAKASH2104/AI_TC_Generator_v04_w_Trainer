@@ -35,6 +35,29 @@ class REQIFZFileProcessor(BaseProcessor):
         super().__init__(config)
         self.ollama_client = OllamaClient(self.config.ollama)
 
+    def process_directory(
+        self,
+        directory_path: Path,
+        model: str = "llama3.1:8b",
+        template: str = None,
+        output_dir: Path = None
+    ) -> list[ProcessingResult]:
+        """
+        Process all REQIFZ files in a directory.
+        """
+        from app_logger import get_app_logger
+        app_logger = get_app_logger()
+
+        results = []
+        reqifz_files = list(directory_path.glob("**/*.reqifz"))
+        app_logger.info(f"Found {len(reqifz_files)} REQIFZ files in {directory_path.name}")
+
+        for reqifz_path in reqifz_files:
+            result = self.process_file(reqifz_path, model, template, output_dir)
+            results.append(result)
+
+        return results
+
     def process_file(
         self,
         reqifz_path: Path,

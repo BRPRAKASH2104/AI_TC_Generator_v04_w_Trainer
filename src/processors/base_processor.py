@@ -122,7 +122,7 @@ class BaseProcessor:
                 self.logger.debug(f"📝 Stored information artifact: {id(obj)}")
                 continue
 
-            elif obj.get("type") == "System Requirement" and obj.get("table"):
+            elif obj.get("type") == "System Requirement":
                 # Augment requirement with collected context
                 req_id = obj.get("id", "UNKNOWN")
                 self.logger.debug(f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})")

@@ -189,12 +189,6 @@ def _run_standard_mode(
         # Initialize standard processor with modular components
         processor = REQIFZFileProcessor(config)
 
-        # Validate environment
-        if not processor.validate_environment():
-            app_logger.error("Environment validation failed", mode="standard")
-            console.print("[red]❌ Environment validation failed[/red]")
-            sys.exit(1)
-
         input_file = Path(input_path)
         output_directory = Path(output_dir) if output_dir else None
 
