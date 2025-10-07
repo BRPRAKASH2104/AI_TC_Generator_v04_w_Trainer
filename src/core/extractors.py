@@ -90,6 +90,7 @@ class REQIFArtifactExtractor:
             # Build all necessary mappings
             spec_type_map = self._build_spec_type_mapping(root, namespaces)
             foreign_id_map = self._build_foreign_id_mapping(root, namespaces)
+            attr_def_map = self._build_attribute_definition_mapping(root, namespaces)
 
             artifacts = []
 
@@ -97,7 +98,7 @@ class REQIFArtifactExtractor:
             spec_objects = root.findall(".//reqif:SPEC-OBJECT", namespaces)
 
             for spec_obj in spec_objects:
-                artifact = self._extract_spec_object(spec_obj, namespaces, spec_type_map, foreign_id_map)
+                artifact = self._extract_spec_object(spec_obj, namespaces, spec_type_map, foreign_id_map, attr_def_map)
                 if artifact:
                     artifacts.append(artifact)
 
@@ -148,6 +149,29 @@ class REQIFArtifactExtractor:
 
         return foreign_id_map
 
+    def _build_attribute_definition_mapping(self, root: ET.Element, namespaces: dict[str, str]) -> dict[str, str]:
+        """Build mapping from ATTRIBUTE-DEFINITION identifiers to their LONG-NAME values"""
+        attr_def_map = {}
+
+        # Find all ATTRIBUTE-DEFINITION-XHTML elements
+        for attr_def in root.findall(".//reqif:ATTRIBUTE-DEFINITION-XHTML", namespaces):
+            identifier = attr_def.get("IDENTIFIER")
+            long_name = attr_def.get("LONG-NAME")
+            if identifier and long_name:
+                attr_def_map[identifier] = long_name
+
+        # Find all ATTRIBUTE-DEFINITION-STRING elements
+        for attr_def in root.findall(".//reqif:ATTRIBUTE-DEFINITION-STRING", namespaces):
+            identifier = attr_def.get("IDENTIFIER")
+            long_name = attr_def.get("LONG-NAME")
+            if identifier and long_name:
+                attr_def_map[identifier] = long_name
+
+        if self.logger:
+            self.logger.debug(f"Found {len(attr_def_map)} attribute definitions")
+
+        return attr_def_map
+
     def _extract_foreign_id(self, values_container, target_foreign_id_ref: str, default_id: str) -> str:
         """Extract foreign ID from VALUES container"""
         if not target_foreign_id_ref:
@@ -164,7 +188,7 @@ class REQIFArtifactExtractor:
 
         return default_id
 
-    def _extract_spec_object(self, spec_obj: ET.Element, namespaces: dict[str, str], spec_type_map: dict[str, str] = None, foreign_id_map: dict[str, str] = None) -> RequirementData | None:
+    def _extract_spec_object(self, spec_obj: ET.Element, namespaces: dict[str, str], spec_type_map: dict[str, str] = None, foreign_id_map: dict[str, str] = None, attr_def_map: dict[str, str] = None) -> RequirementData | None:
         """Extract a single spec object as an artifact"""
         try:
             artifact = {
@@ -203,9 +227,12 @@ class REQIFArtifactExtractor:
             for value in values:
                 definition = value.find(".//reqif:DEFINITION", namespaces)
                 if definition is not None:
-                    # Extract attribute name from ATTRIBUTE-DEFINITION-XHTML-REF
+                    # Extract attribute identifier from ATTRIBUTE-DEFINITION-XHTML-REF
                     attr_ref = definition.find(".//reqif:ATTRIBUTE-DEFINITION-XHTML-REF", namespaces)
-                    attr_name = attr_ref.text if attr_ref is not None else ""
+                    attr_identifier = attr_ref.text if attr_ref is not None else ""
+
+                    # Resolve attribute name using the mapping
+                    attr_name = attr_def_map.get(attr_identifier, attr_identifier) if attr_def_map else attr_identifier
 
                     # Extract XHTML content from THE-VALUE (handle any HTML element, not just div)
                     the_value = value.find(".//reqif:THE-VALUE", namespaces)
