@@ -5,7 +5,6 @@ This module collects training data in RAFT format with context annotation suppor
 It saves generated test cases along with their retrieved context for expert annotation.
 """
 
-from __future__ import annotations
 import json
 from pathlib import Path
 from datetime import datetime

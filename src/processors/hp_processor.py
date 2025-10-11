@@ -5,7 +5,6 @@ This module provides async/concurrent processing capabilities for high-throughpu
 test case generation with optimized resource utilization.
 """
 
-from __future__ import annotations
 
 import asyncio
 import time

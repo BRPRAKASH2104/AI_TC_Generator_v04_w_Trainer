@@ -6,7 +6,6 @@ with Ollama API endpoints, with proper error handling and performance optimizati
 for Python 3.13.7+.
 """
 
-from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any

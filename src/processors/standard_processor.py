@@ -5,7 +5,6 @@ This module provides the standard synchronous processing workflow that orchestra
 the core components to process REQIFZ files and generate test cases.
 """
 
-from __future__ import annotations
 
 import time
 from pathlib import Path

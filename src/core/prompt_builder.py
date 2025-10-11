@@ -5,7 +5,6 @@ This module provides a stateless, reusable prompt builder that handles all
 prompt construction logic, decoupled from test case generators.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

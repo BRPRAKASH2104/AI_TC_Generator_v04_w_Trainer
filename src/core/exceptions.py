@@ -4,7 +4,6 @@ Custom exceptions for AI Test Case Generator.
 Provides structured error handling with proper context and error types.
 """
 
-from __future__ import annotations
 
 
 class AITestCaseGeneratorError(Exception):

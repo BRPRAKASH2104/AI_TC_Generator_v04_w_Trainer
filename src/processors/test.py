@@ -4,7 +4,6 @@ This module provides the base class with shared logic for both standard
 and high-performance processors, eliminating code duplication.
 """
 
-from __future__ import annotations
 
 import time
 from pathlib import Path

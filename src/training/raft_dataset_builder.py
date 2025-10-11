@@ -5,7 +5,6 @@ This module builds RAFT training datasets from annotated examples,
 converting them to Ollama fine-tuning format.
 """
 
-from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any

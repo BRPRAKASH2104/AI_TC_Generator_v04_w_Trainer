@@ -5,7 +5,6 @@ This module provides parsers for JSON responses from AI models and HTML table pa
 for REQIF files, with performance optimizations for Python 3.13.7+.
 """
 
-from __future__ import annotations
 
 import json
 import re

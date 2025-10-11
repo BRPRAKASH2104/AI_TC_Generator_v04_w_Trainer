@@ -5,7 +5,6 @@ This module provides an interactive interface for human experts to annotate
 context relevance in RAFT training examples.
 """
 
-from __future__ import annotations
 import json
 try:
     import readline

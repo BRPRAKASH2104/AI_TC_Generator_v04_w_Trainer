@@ -5,7 +5,6 @@ This module provides automated quality scoring for training examples to help
 prioritize which examples need human annotation and identify quality patterns.
 """
 
-from __future__ import annotations
 import json
 import re
 from pathlib import Path
