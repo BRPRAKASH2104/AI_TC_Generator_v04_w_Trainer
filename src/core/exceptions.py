@@ -4,7 +4,6 @@ Custom exceptions for AI Test Case Generator.
 Provides structured error handling with proper context and error types.
 """
 
-from __future__ import annotations
 
 
 class AITestCaseGeneratorError(Exception):
@@ -45,8 +44,9 @@ class OllamaModelNotFoundError(OllamaError):
 class OllamaResponseError(OllamaError):
     """Raised when Ollama returns invalid response"""
 
-    def __init__(self, message: str, status_code: int | None = None):
+    def __init__(self, message: str, status_code: int | None = None, response_body: str | None = None):
         self.status_code = status_code
+        self.response_body = response_body
         super().__init__(message)
 
 

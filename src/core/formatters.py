@@ -5,7 +5,6 @@ This module provides classes for formatting and outputting test cases to various
 with primary support for Excel/XLSX output with automotive-specific formatting.
 """
 
-from __future__ import annotations
 
 import json
 from datetime import datetime

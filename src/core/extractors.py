@@ -5,7 +5,6 @@ This module provides classes for extracting and processing artifacts from REQIFZ
 with support for different artifact types commonly found in automotive requirements.
 """
 
-from __future__ import annotations
 
 import io
 import xml.etree.ElementTree as ET

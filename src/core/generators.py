@@ -5,7 +5,6 @@ This module provides classes for generating test cases from requirement artifact
 using AI models, with support for both synchronous and asynchronous processing.
 """
 
-from __future__ import annotations
 
 import asyncio
 import time

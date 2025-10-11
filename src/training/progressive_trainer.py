@@ -5,7 +5,6 @@ This module implements progressive training strategies that gradually increase
 complexity and difficulty to improve model learning effectiveness.
 """
 
-from __future__ import annotations
 import json
 import time
 from pathlib import Path

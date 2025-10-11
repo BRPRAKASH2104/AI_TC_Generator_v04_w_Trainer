@@ -6,7 +6,6 @@ with Ollama API endpoints, with proper error handling and performance optimizati
 for Python 3.13.7+.
 """
 
-from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any
@@ -117,9 +116,17 @@ class OllamaClient:
                     model=model_name
                 ) from e
             else:
+                # Ollama 0.12.5 may include detailed error JSON
+                try:
+                    error_details = e.response.json()
+                    error_msg = error_details.get("error", e.response.text)
+                except Exception:
+                    error_msg = e.response.text
+
                 raise OllamaResponseError(
-                    f"Ollama HTTP error {e.response.status_code}: {e.response.text}",
-                    status_code=e.response.status_code
+                    f"Ollama HTTP error {e.response.status_code}: {error_msg}",
+                    status_code=e.response.status_code,
+                    response_body=error_msg
                 ) from e
 
         except requests.RequestException as e:
@@ -244,9 +251,11 @@ class AsyncOllamaClient:
                         model=model_name
                     ) from e
                 else:
+                    # Ollama 0.12.5 enhanced error details
                     raise OllamaResponseError(
                         f"Ollama HTTP error {e.status}: {e.message}",
-                        status_code=e.status
+                        status_code=e.status,
+                        response_body=str(e.message)
                     ) from e
 
             except aiohttp.ClientError as e:

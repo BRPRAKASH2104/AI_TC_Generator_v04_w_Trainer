@@ -23,7 +23,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class OllamaConfig(BaseModel):
-    """Configuration for Ollama API connection and settings"""
+    """Configuration for Ollama API connection and settings (Python 3.14 + Ollama 0.12.5)"""
 
     # Connection settings
     host: str = Field("127.0.0.1", description="Ollama host")
@@ -39,14 +39,18 @@ class OllamaConfig(BaseModel):
     max_retries: int = Field(3, ge=0, description="Maximum number of API retries")
     concurrent_requests: int = Field(4, ge=1, description="Number of concurrent requests")
 
-    # GPU/Hardware-specific concurrency settings
-    gpu_concurrency_limit: int = Field(1, ge=1, description="Concurrent requests for GPU-accelerated inference")
+    # GPU/Hardware-specific concurrency settings (Ollama 0.12.5 optimized)
+    gpu_concurrency_limit: int = Field(2, ge=1, description="Concurrent requests for GPU inference (0.12.5 improved)")
     cpu_concurrency_limit: int = Field(4, ge=1, description="Concurrent requests for CPU-only inference")
 
-    # Ollama v0.11.10+ optimization parameters
-    keep_alive: str = Field("30m", description="Keep model loaded in memory")
-    num_ctx: int = Field(8192, gt=0, description="Context window size")
-    num_predict: int = Field(2048, gt=0, description="Response length limit")
+    # Ollama 0.12.5 optimization parameters
+    keep_alive: str = Field("30m", description="Keep model loaded in memory (0.12.5 improved scheduling)")
+    num_ctx: int = Field(16384, gt=0, description="Context window size (0.12.5 supports 16K+)")
+    num_predict: int = Field(4096, gt=0, description="Response length limit (0.12.5 increased max)")
+
+    # Ollama 0.12.5 memory management
+    enable_gpu_offload: bool = Field(True, description="Enable GPU memory offloading (0.12.5)")
+    max_vram_usage: float = Field(0.95, ge=0.1, le=1.0, description="Max VRAM utilization (0.12.5)")
 
     # Model preferences
     synthesizer_model: str = Field("llama3.1:8b", description="Model for synthesizing test cases")
@@ -71,6 +75,11 @@ class OllamaConfig(BaseModel):
     def tags_url(self) -> str:
         """Get the URL for listing available models"""
         return f"http://{self.host}:{self.port}/api/tags"
+
+    @property
+    def version_url(self) -> str:
+        """Get the URL for version endpoint (Ollama 0.12.5+)"""
+        return f"http://{self.host}:{self.port}/api/version"
 
 
 class StaticTestConfig(BaseModel):
