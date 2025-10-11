@@ -30,6 +30,8 @@ type ProcessingResult = dict[str, Any]
 class REQIFZFileProcessor(BaseProcessor):
     """Standard processor for REQIFZ files using synchronous processing"""
 
+    __slots__ = ("ollama_client",)
+
     def __init__(self, config: ConfigManager = None):
         super().__init__(config)
         self.ollama_client = OllamaClient(self.config.ollama)

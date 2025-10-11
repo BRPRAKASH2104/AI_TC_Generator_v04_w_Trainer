@@ -16,6 +16,15 @@ import yaml
 class YAMLPromptManager:
     """Simple YAML-based prompt manager with variable substitution and auto-selection"""
 
+    __slots__ = (
+        "config_file",
+        "config",
+        "test_prompts",
+        "error_prompts",
+        "last_selected_template",
+        "template_usage_count",
+    )
+
     def __init__(self, config_file: str = "prompts/config/prompt_config.yaml"):
         """
         Initialize YAML Prompt Manager

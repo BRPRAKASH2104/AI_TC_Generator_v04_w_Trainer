@@ -32,6 +32,8 @@ type PerformanceMetrics = dict[str, Any]
 class HighPerformanceREQIFZFileProcessor(BaseProcessor):
     """High-performance async processor for REQIFZ files"""
 
+    __slots__ = ("max_concurrent_requirements", "metrics")
+
     def __init__(self, config: ConfigManager = None, max_concurrent_requirements: int = None):
         super().__init__(config)
 

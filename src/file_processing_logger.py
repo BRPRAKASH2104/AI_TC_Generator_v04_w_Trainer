@@ -15,7 +15,7 @@ from typing import Any
 import psutil
 
 
-@dataclass
+@dataclass(slots=True)
 class ProcessingPhase:
     """Track timing for individual processing phases"""
 
@@ -39,7 +39,7 @@ class ProcessingPhase:
         return self.end_time - self.start_time
 
 
-@dataclass
+@dataclass(slots=True)
 class RequirementFailure:
     """Details about a failed requirement"""
 
@@ -48,7 +48,7 @@ class RequirementFailure:
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
-@dataclass
+@dataclass(slots=True)
 class FileProcessingLogger:
     """Comprehensive logging for REQIFZ file processing"""
 

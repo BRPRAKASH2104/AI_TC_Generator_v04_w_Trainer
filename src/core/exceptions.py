@@ -20,6 +20,8 @@ class OllamaError(AITestCaseGeneratorError):
 class OllamaConnectionError(OllamaError):
     """Raised when connection to Ollama API fails"""
 
+    __slots__ = ("host", "port")
+
     def __init__(self, message: str, host: str | None = None, port: int | None = None):
         self.host = host
         self.port = port
@@ -29,6 +31,8 @@ class OllamaConnectionError(OllamaError):
 class OllamaTimeoutError(OllamaError):
     """Raised when Ollama API request times out"""
 
+    __slots__ = ("timeout",)
+
     def __init__(self, message: str, timeout: int | None = None):
         self.timeout = timeout
         super().__init__(message)
@@ -37,6 +41,8 @@ class OllamaTimeoutError(OllamaError):
 class OllamaModelNotFoundError(OllamaError):
     """Raised when requested model is not available"""
 
+    __slots__ = ("model",)
+
     def __init__(self, message: str, model: str | None = None):
         self.model = model
         super().__init__(message)
@@ -44,6 +50,8 @@ class OllamaModelNotFoundError(OllamaError):
 
 class OllamaResponseError(OllamaError):
     """Raised when Ollama returns invalid response"""
+
+    __slots__ = ("status_code", "response_body")
 
     def __init__(
         self, message: str, status_code: int | None = None, response_body: str | None = None
@@ -56,6 +64,8 @@ class OllamaResponseError(OllamaError):
 class REQIFParsingError(AITestCaseGeneratorError):
     """Raised when REQIF file parsing fails"""
 
+    __slots__ = ("file_path",)
+
     def __init__(self, message: str, file_path: str | None = None):
         self.file_path = file_path
         super().__init__(message)
@@ -63,6 +73,8 @@ class REQIFParsingError(AITestCaseGeneratorError):
 
 class TestCaseGenerationError(AITestCaseGeneratorError):
     """Raised when test case generation fails"""
+
+    __slots__ = ("requirement_id",)
 
     def __init__(self, message: str, requirement_id: str | None = None):
         self.requirement_id = requirement_id

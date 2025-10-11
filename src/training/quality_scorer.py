@@ -16,7 +16,7 @@ from typing import Any
 type RAFTExample = dict[str, Any]
 
 
-@dataclass
+@dataclass(slots=True)
 class QualityMetrics:
     """Quality metrics for a RAFT training example"""
 
@@ -27,7 +27,7 @@ class QualityMetrics:
     overall_score: float = 0.0  # Combined quality score
 
 
-@dataclass
+@dataclass(slots=True)
 class QualityAssessment:
     """Complete quality assessment result"""
 
@@ -44,6 +44,8 @@ class QualityScorer:
     This class analyzes training examples and provides quality scores and
     recommendations to help prioritize human annotation efforts.
     """
+
+    __slots__ = ("logger", "weights", "domain_keywords")
 
     def __init__(self, logger: Logger | None = None):
         self.logger = logger

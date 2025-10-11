@@ -22,6 +22,16 @@ type AugmentedRequirement = dict[str, Any]
 class BaseProcessor:
     """Base processor containing shared logic for REQIFZ file processing"""
 
+    __slots__ = (
+        "config",
+        "logger",
+        "yaml_manager",
+        "extractor",
+        "generator",
+        "formatter",
+        "raft_collector",
+    )
+
     def __init__(
         self,
         config: ConfigManager = None,

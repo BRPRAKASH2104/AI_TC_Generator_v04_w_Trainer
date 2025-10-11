@@ -32,6 +32,18 @@ class AppLogger:
     and multi-output support (console, file, JSON).
     """
 
+    __slots__ = (
+        "name",
+        "log_level",
+        "log_directory",
+        "enable_json_logging",
+        "enable_console_logging",
+        "logger",
+        "app_start_time",
+        "session_id",
+        "metrics",
+    )
+
     def __init__(
         self,
         name: str = "ai_tc_generator",

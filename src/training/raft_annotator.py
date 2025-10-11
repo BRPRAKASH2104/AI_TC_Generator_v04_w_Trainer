@@ -27,6 +27,8 @@ type RAFTExample = dict[str, Any]
 class RAFTAnnotator:
     """Interactive annotation interface for RAFT training examples"""
 
+    __slots__ = ("collected_dir", "validated_dir", "rejected_dir", "logger", "console")
+
     def __init__(
         self,
         collected_dir: str | Path = "training_data/collected",

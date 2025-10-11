@@ -27,7 +27,7 @@ class CurriculumPhase(Enum):
     ADVANCED = "advanced"  # Edge cases, conflicting context, domain expertise
 
 
-@dataclass
+@dataclass(slots=True)
 class TrainingProgress:
     """Tracks training curriculum progress"""
 
@@ -41,7 +41,7 @@ class TrainingProgress:
     training_history: list[dict] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(slots=True)
 class CurriculumStage:
     """Defines requirements for a curriculum stage"""
 
@@ -61,6 +61,15 @@ class ProgressiveRAFTTrainer:
     This trainer implements staged learning where model progresses from simple
     to complex examples, improving learning effectiveness and generalization.
     """
+
+    __slots__ = (
+        "validated_dir",
+        "output_dir",
+        "logger",
+        "quality_scorer",
+        "progress",
+        "curriculum",
+    )
 
     def __init__(
         self,
