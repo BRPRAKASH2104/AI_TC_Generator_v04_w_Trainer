@@ -150,18 +150,28 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 # Start performance monitoring
                 monitor_task = asyncio.create_task(self._monitor_performance())
 
-                # OPTIMIZATION: Process ALL requirements concurrently
+                # OPTIMIZATION: Process ALL requirements concurrently using Python 3.14 TaskGroup
+                # TaskGroup provides better error handling and automatic task cleanup
                 # AsyncOllamaClient's semaphore handles rate limiting automatically
-                # This eliminates sequential batch gaps and improves throughput by 3x
                 processing_start = time.time()
 
                 self.logger.info(
                     f"🚀 Processing all {len(augmented_requirements)} requirements concurrently..."
                 )
 
-                batch_results = await generator.generate_test_cases_batch(
-                    augmented_requirements, model, template
-                )
+                # Use TaskGroup for better async error handling (Python 3.14+)
+                async with asyncio.TaskGroup() as tg:
+                    tasks = [
+                        tg.create_task(
+                            generator.generate_test_cases(
+                                requirement, model, template
+                            )
+                        )
+                        for requirement in augmented_requirements
+                    ]
+
+                # Collect results from completed tasks
+                batch_results = [task.result() for task in tasks]
 
                 # Process all results
                 all_test_cases = []
