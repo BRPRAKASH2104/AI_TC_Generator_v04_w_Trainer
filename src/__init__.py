@@ -6,7 +6,7 @@ using AI language models. Built with clean, modular components for maintainabili
 and extensibility.
 """
 
-__version__ = "1.4.0"
+__version__ = "2.1.0"
 __architecture__ = "Modular"
 
 # Public API exports
