@@ -35,6 +35,8 @@ This directory contains comprehensive documentation for the AI Test Case Generat
 - **[CI_CD_GUIDE.md](CI_CD_GUIDE.md)** - Continuous integration and deployment
 
 ### Reviews & Reports
+- **[reviews/](reviews/)** - Archived code review reports (2025-10-07, 2025-10-11)
+- **[reviews/README.md](reviews/README.md)** - Review archive index with progress metrics
 - **[REVIEWS_AND_REPORTS.md](REVIEWS_AND_REPORTS.md)** - Collection of all review reports and assessments
 
 ---
