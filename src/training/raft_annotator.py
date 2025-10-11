@@ -6,20 +6,20 @@ context relevance in RAFT training examples.
 """
 
 import json
+
 try:
     import readline
 except ImportError:
     # Readline not available on Windows
     pass
-from pathlib import Path
-from typing import Any, List, Dict, Set
 from logging import Logger
+from pathlib import Path
+from typing import Any
+
 from rich.console import Console
 from rich.panel import Panel
-from rich.text import Text
+from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
-from rich.prompt import Prompt, IntPrompt, Confirm
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 type RAFTExample = dict[str, Any]
 
@@ -27,10 +27,13 @@ type RAFTExample = dict[str, Any]
 class RAFTAnnotator:
     """Interactive annotation interface for RAFT training examples"""
 
-    def __init__(self, collected_dir: str | Path = "training_data/collected",
-                 validated_dir: str | Path = "training_data/validated",
-                 rejected_dir: str | Path = "training_data/rejected",
-                 logger: Logger | None = None):
+    def __init__(
+        self,
+        collected_dir: str | Path = "training_data/collected",
+        validated_dir: str | Path = "training_data/validated",
+        rejected_dir: str | Path = "training_data/rejected",
+        logger: Logger | None = None,
+    ):
         """
         Initialize RAFT annotator.
 
@@ -58,12 +61,14 @@ class RAFTAnnotator:
             batch_size: Number of examples to annotate per session
             resume_annotation: Allow resuming incomplete annotations
         """
-        self.console.print(Panel.fit(
-            "[bold blue]🚀 RAFT Interactive Annotation[/bold blue]\n"
-            "[yellow]Rate context relevance for AI training data[/yellow]\n"
-            "[dim]Use this tool to create high-quality training examples[/dim]",
-            title="Welcome"
-        ))
+        self.console.print(
+            Panel.fit(
+                "[bold blue]🚀 RAFT Interactive Annotation[/bold blue]\n"
+                "[yellow]Rate context relevance for AI training data[/yellow]\n"
+                "[dim]Use this tool to create high-quality training examples[/dim]",
+                title="Welcome",
+            )
+        )
 
         unannotated_files = self._get_unannotated_files()
 
@@ -95,7 +100,9 @@ class RAFTAnnotator:
 
                 # Progress update
                 total_processed = annotated_count + skipped_count
-                self.console.print(f"[blue]Progress: {total_processed}/{min(batch_size, len(unannotated_files))}[/blue]")
+                self.console.print(
+                    f"[blue]Progress: {total_processed}/{min(batch_size, len(unannotated_files))}[/blue]"
+                )
 
             except Exception as e:
                 self.console.print(f"[red]Error processing {example_path.name}: {e}[/red]")
@@ -103,13 +110,15 @@ class RAFTAnnotator:
                     self.logger.error(f"Annotation error for {example_path}: {e}")
 
         # Summary
-        self.console.print(Panel.fit(
-            f"[green]✅ Annotation session completed![/green]\n"
-            f"[blue]Annotated: {annotated_count}[/blue]\n"
-            f"[yellow]Skipped: {skipped_count}[/yellow]\n"
-            f"[cyan]Quality focus areas identified[/cyan]",
-            title="Session Summary"
-        ))
+        self.console.print(
+            Panel.fit(
+                f"[green]✅ Annotation session completed![/green]\n"
+                f"[blue]Annotated: {annotated_count}[/blue]\n"
+                f"[yellow]Skipped: {skipped_count}[/yellow]\n"
+                f"[cyan]Quality focus areas identified[/cyan]",
+                title="Session Summary",
+            )
+        )
 
     def _annotate_single_example(self, example: RAFTExample, file_path: Path) -> bool:
         """
@@ -118,15 +127,17 @@ class RAFTAnnotator:
         Returns:
             True if annotation completed, False if skipped
         """
-        req_id = example['requirement_id']
-        req_text = example['requirement_text']
+        req_id = example["requirement_id"]
+        req_text = example["requirement_text"]
 
         # Display requirement
-        self.console.print(Panel.fit(
-            f"[bold white]{req_text}[/bold white]",
-            title=f"📋 Requirement {req_id}",
-            border_style="blue"
-        ))
+        self.console.print(
+            Panel.fit(
+                f"[bold white]{req_text}[/bold white]",
+                title=f"📋 Requirement {req_id}",
+                border_style="blue",
+            )
+        )
 
         # Display retrieved context
         ctx = example["retrieved_context"]
@@ -149,20 +160,20 @@ class RAFTAnnotator:
                 quality_rating, notes = self._get_quality_rating_and_notes()
 
                 # Calculate distractor context (not in oracle)
-                all_context_ids = {item['id'] for item in context_items}
+                all_context_ids = {item["id"] for item in context_items}
                 distractor_ids = list(all_context_ids - set(oracle_ids))
 
                 # Update annotation
-                example['context_annotation'] = {
-                    'oracle_context': oracle_ids,
-                    'distractor_context': distractor_ids,
-                    'quality_rating': quality_rating,
-                    'annotation_notes': notes,
-                    'annotated_timestamp': json.dumps(None)  # Will be filled on save
+                example["context_annotation"] = {
+                    "oracle_context": oracle_ids,
+                    "distractor_context": distractor_ids,
+                    "quality_rating": quality_rating,
+                    "annotation_notes": notes,
+                    "annotated_timestamp": json.dumps(None),  # Will be filled on save
                 }
 
-                example['validation_status'] = 'validated'
-                example['annotation_timestamp'] = json.dumps(None)
+                example["validation_status"] = "validated"
+                example["annotation_timestamp"] = json.dumps(None)
 
                 # Save validated example
                 self._save_validated_example(example, file_path)
@@ -183,31 +194,37 @@ class RAFTAnnotator:
         items = []
 
         # Heading
-        if ctx.get('heading', {}).get('text'):
-            items.append({
-                'id': 'HEADING',
-                'type': 'heading',
-                'text': ctx['heading']['text'],
-                'display_text': f"[bold cyan]Header:[/bold cyan] {ctx['heading']['text']}"
-            })
+        if ctx.get("heading", {}).get("text"):
+            items.append(
+                {
+                    "id": "HEADING",
+                    "type": "heading",
+                    "text": ctx["heading"]["text"],
+                    "display_text": f"[bold cyan]Header:[/bold cyan] {ctx['heading']['text']}",
+                }
+            )
 
         # Info artifacts
-        for info in ctx.get('info_artifacts', []):
-            items.append({
-                'id': info['id'],
-                'type': 'info',
-                'text': info['text'],
-                'display_text': f"[green]Info {info['id']}:[/green] {info['text'][:100]}..."
-            })
+        for info in ctx.get("info_artifacts", []):
+            items.append(
+                {
+                    "id": info["id"],
+                    "type": "info",
+                    "text": info["text"],
+                    "display_text": f"[green]Info {info['id']}:[/green] {info['text'][:100]}...",
+                }
+            )
 
         # Interfaces
-        for iface in ctx.get('interfaces', []):
-            items.append({
-                'id': iface['id'],
-                'type': 'interface',
-                'text': iface['text'],
-                'display_text': f"[magenta]Interface {iface['id']}:[/magenta] {iface['text'][:100]}..."
-            })
+        for iface in ctx.get("interfaces", []):
+            items.append(
+                {
+                    "id": iface["id"],
+                    "type": "interface",
+                    "text": iface["text"],
+                    "display_text": f"[magenta]Interface {iface['id']}:[/magenta] {iface['text'][:100]}...",
+                }
+            )
 
         return items
 
@@ -221,16 +238,11 @@ class RAFTAnnotator:
 
         for i, item in enumerate(context_items, 1):
             # Truncate long content for display
-            content = item['text']
+            content = item["text"]
             if len(content) > 150:
                 content = content[:147] + "..."
 
-            table.add_row(
-                str(i),
-                item['type'].title(),
-                item['id'],
-                content
-            )
+            table.add_row(str(i), item["type"].title(), item["id"], content)
 
         self.console.print(table)
 
@@ -241,33 +253,37 @@ class RAFTAnnotator:
 
         while True:
             # Instructions
-            self.console.print(Panel.fit(
-                "[bold green]🎯 Annotation Instructions:[/bold green]\n"
-                "• Enter context item numbers (comma-separated) that are RELEVANT for generating test cases\n"
-                "• Example: 1,3,5 (means items 1, 3, and 5 are relevant)\n"
-                "• Enter 'all' for all items relevant\n"
-                "• Enter 'none' for no items relevant\n"
-                "• Enter 'skip' to skip this example\n"
-                "• Enter 'help' for more details",
-                border_style="green"
-            ))
+            self.console.print(
+                Panel.fit(
+                    "[bold green]🎯 Annotation Instructions:[/bold green]\n"
+                    "• Enter context item numbers (comma-separated) that are RELEVANT for generating test cases\n"
+                    "• Example: 1,3,5 (means items 1, 3, and 5 are relevant)\n"
+                    "• Enter 'all' for all items relevant\n"
+                    "• Enter 'none' for no items relevant\n"
+                    "• Enter 'skip' to skip this example\n"
+                    "• Enter 'help' for more details",
+                    border_style="green",
+                )
+            )
 
-            response = Prompt.ask("[bold cyan]Relevant context item numbers[/bold cyan]").strip().lower()
+            response = (
+                Prompt.ask("[bold cyan]Relevant context item numbers[/bold cyan]").strip().lower()
+            )
 
-            if response == 'skip':
+            if response == "skip":
                 return None
-            elif response == 'help':
+            elif response == "help":
                 self._show_annotation_help()
                 continue
-            elif response == 'all':
-                return [item['id'] for item in context_items]
-            elif response == 'none':
+            elif response == "all":
+                return [item["id"] for item in context_items]
+            elif response == "none":
                 return []
             else:
                 # Parse number selections
                 try:
                     indices = []
-                    for part in response.split(','):
+                    for part in response.split(","):
                         part = part.strip()
                         if part:
                             idx = int(part) - 1  # Convert to 0-based
@@ -276,7 +292,7 @@ class RAFTAnnotator:
                             else:
                                 raise ValueError(f"Invalid item number: {idx + 1}")
 
-                    selected_ids = [context_items[i]['id'] for i in indices]
+                    selected_ids = [context_items[i]["id"] for i in indices]
 
                     # Confirm selection
                     selected_items = [context_items[i] for i in indices]
@@ -299,15 +315,19 @@ class RAFTAnnotator:
         # Quality rating
         while True:
             try:
-                rating = IntPrompt.ask("[bold magenta]Quality rating (1-5, where 5 is excellent)[/bold magenta]",
-                                     choices=[1, 2, 3, 4, 5])
+                rating = IntPrompt.ask(
+                    "[bold magenta]Quality rating (1-5, where 5 is excellent)[/bold magenta]",
+                    choices=[1, 2, 3, 4, 5],
+                )
                 break
             except ValueError:
                 self.console.print("[red]Please enter a number between 1-5[/red]")
                 continue
 
         # Optional notes
-        notes = Prompt.ask("[bold cyan]Optional notes about this annotation[/bold cyan]", default="")
+        notes = Prompt.ask(
+            "[bold cyan]Optional notes about this annotation[/bold cyan]", default=""
+        )
 
         return rating, notes
 
@@ -339,17 +359,16 @@ class RAFTAnnotator:
     def _save_validated_example(self, example: RAFTExample, original_path: Path):
         """Save validated example to validated directory"""
         import datetime
-        from pathlib import Path
 
         # Update timestamp
-        example['annotation_timestamp'] = datetime.datetime.now().isoformat()
+        example["annotation_timestamp"] = datetime.datetime.now().isoformat()
 
         # Create new filename
         stem = original_path.stem
         validated_path = self.validated_dir / f"{stem}_annotated.json"
 
         # Save validated example
-        with open(validated_path, 'w', encoding='utf-8') as f:
+        with open(validated_path, "w", encoding="utf-8") as f:
             json.dump(example, f, indent=2, ensure_ascii=False)
 
         # Optionally remove from collected (or move to processed subdir)
@@ -364,6 +383,7 @@ class RAFTAnnotator:
 
         # Copy to rejected
         import shutil
+
         shutil.copy2(file_path, rejected_path)
 
     def _get_unannotated_files(self) -> list[Path]:
@@ -391,14 +411,14 @@ class RAFTAnnotator:
 
     def _is_annotated(self, example: RAFTExample) -> bool:
         """Check if example has been properly annotated"""
-        annotation = example.get('context_annotation', {})
+        annotation = example.get("context_annotation", {})
 
         # Must have oracle context (can be empty list)
-        if 'oracle_context' not in annotation:
+        if "oracle_context" not in annotation:
             return False
 
         # Must have a quality rating
-        if not annotation.get('quality_rating'):
+        if not annotation.get("quality_rating"):
             return False
 
         return True
@@ -410,8 +430,8 @@ class RAFTAnnotator:
         rejected = len(list(self.rejected_dir.glob("raft_*.json")))
 
         return {
-            'total_collected': total,
-            'annotated_and_validated': validated,
-            'rejected': rejected,
-            'pending_annotation': total - validated - rejected
+            "total_collected": total,
+            "annotated_and_validated": validated,
+            "rejected": rejected,
+            "pending_annotation": total - validated - rejected,
         }

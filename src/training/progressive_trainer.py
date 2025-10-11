@@ -7,14 +7,13 @@ complexity and difficulty to improve model learning effectiveness.
 
 import json
 import time
-from pathlib import Path
-from typing import Any, List, Dict, Optional
-from logging import Logger
 from dataclasses import dataclass, field
 from enum import Enum
-from collections import defaultdict, deque
+from logging import Logger
+from pathlib import Path
+from typing import Any
 
-from .quality_scorer import QualityScorer, QualityAssessment
+from .quality_scorer import QualityScorer
 
 type RAFTExample = dict[str, Any]
 type TrainingPhase = dict[str, Any]
@@ -22,27 +21,30 @@ type TrainingPhase = dict[str, Any]
 
 class CurriculumPhase(Enum):
     """Progressive training curriculum phases"""
-    FOUNDATION = "foundation"      # Basic requirements, simple context
+
+    FOUNDATION = "foundation"  # Basic requirements, simple context
     INTERMEDIATE = "intermediate"  # Complex requirements, mixed context
-    ADVANCED = "advanced"         # Edge cases, conflicting context, domain expertise
+    ADVANCED = "advanced"  # Edge cases, conflicting context, domain expertise
 
 
 @dataclass
 class TrainingProgress:
     """Tracks training curriculum progress"""
+
     current_phase: CurriculumPhase = CurriculumPhase.FOUNDATION
     phase_completed_examples: int = 0
     total_trained_examples: int = 0
     phase_quality_threshold: float = 0.7
     last_evaluation_score: float = 0.0
     graduated_phases: list[CurriculumPhase] = field(default_factory=list)
-    phase_start_time: Optional[float] = None
+    phase_start_time: float | None = None
     training_history: list[dict] = field(default_factory=list)
 
 
 @dataclass
 class CurriculumStage:
     """Defines requirements for a curriculum stage"""
+
     name: str
     min_examples: int
     min_quality_score: float
@@ -64,7 +66,7 @@ class ProgressiveRAFTTrainer:
         self,
         validated_dir: str | Path = "training_data/validated",
         output_dir: str | Path = "training_data/models",
-        logger: Logger | None = None
+        logger: Logger | None = None,
     ):
         """
         Initialize progressive trainer.
@@ -99,7 +101,7 @@ class ProgressiveRAFTTrainer:
                 requirement_complexity_range=(0.0, 0.4),
                 context_diversity_min=0.3,
                 allowed_context_types=["heading", "info"],
-                difficulty_features=[]
+                difficulty_features=[],
             ),
             CurriculumPhase.INTERMEDIATE: CurriculumStage(
                 name="Intermediate Training",
@@ -108,7 +110,7 @@ class ProgressiveRAFTTrainer:
                 requirement_complexity_range=(0.2, 0.7),
                 context_diversity_min=0.5,
                 allowed_context_types=["heading", "info", "interface"],
-                difficulty_features=["multiple_context_types", "technical_terms"]
+                difficulty_features=["multiple_context_types", "technical_terms"],
             ),
             CurriculumPhase.ADVANCED: CurriculumStage(
                 name="Advanced Training",
@@ -122,12 +124,14 @@ class ProgressiveRAFTTrainer:
                     "technical_terms",
                     "edge_cases",
                     "conflicting_context",
-                    "domain_specific"
-                ]
-            )
+                    "domain_specific",
+                ],
+            ),
         }
 
-    def start_curriculum_training(self, model_name: str = "progressive-raft-model") -> dict[str, Any]:
+    def start_curriculum_training(
+        self, model_name: str = "progressive-raft-model"
+    ) -> dict[str, Any]:
         """
         Start progressive curriculum training.
 
@@ -141,12 +145,12 @@ class ProgressiveRAFTTrainer:
             self.logger.info(f"🚀 Starting progressive RAFT training: {model_name}")
 
         training_results = {
-            'model_name': model_name,
-            'phases_completed': [],
-            'total_examples_trained': 0,
-            'final_performance_score': 0.0,
-            'training_duration': 0.0,
-            'issues_encountered': []
+            "model_name": model_name,
+            "phases_completed": [],
+            "total_examples_trained": 0,
+            "final_performance_score": 0.0,
+            "training_duration": 0.0,
+            "issues_encountered": [],
         }
 
         start_time = time.time()
@@ -156,7 +160,7 @@ class ProgressiveRAFTTrainer:
             all_examples = self._load_validated_examples()
 
             if not all_examples:
-                training_results['issues_encountered'].append("No validated examples found")
+                training_results["issues_encountered"].append("No validated examples found")
                 return training_results
 
             # Organize examples by curriculum phase
@@ -178,31 +182,34 @@ class ProgressiveRAFTTrainer:
                 # Train this phase
                 phase_result = self._train_phase(phase, phase_examples[phase], model_name)
 
-                if phase_result['success']:
-                    training_results['phases_completed'].append({
-                        'phase': phase.value,
-                        'examples_trained': len(phase_examples[phase]),
-                        'final_score': phase_result.get('phase_score', 0.0)
-                    })
+                if phase_result["success"]:
+                    training_results["phases_completed"].append(
+                        {
+                            "phase": phase.value,
+                            "examples_trained": len(phase_examples[phase]),
+                            "final_score": phase_result.get("phase_score", 0.0),
+                        }
+                    )
 
                     self.progress.graduated_phases.append(phase)
                 else:
-                    training_results['issues_encountered'].extend(phase_result.get('issues', []))
+                    training_results["issues_encountered"].extend(phase_result.get("issues", []))
                     break  # Stop training if a phase fails
 
-            training_results['total_examples_trained'] = sum(
-                len(phase_examples[phase]) for phase in CurriculumPhase
-                if any(p['phase'] == phase.value for p in training_results['phases_completed'])
+            training_results["total_examples_trained"] = sum(
+                len(phase_examples[phase])
+                for phase in CurriculumPhase
+                if any(p["phase"] == phase.value for p in training_results["phases_completed"])
             )
 
-            training_results['final_performance_score'] = self._evaluate_final_performance()
-            training_results['training_duration'] = time.time() - start_time
+            training_results["final_performance_score"] = self._evaluate_final_performance()
+            training_results["training_duration"] = time.time() - start_time
 
             # Save progress
             self._save_progress()
 
         except Exception as e:
-            training_results['issues_encountered'].append(f"Training failed: {str(e)}")
+            training_results["issues_encountered"].append(f"Training failed: {str(e)}")
             if self.logger:
                 self.logger.error(f"Progressive training failed: {e}")
 
@@ -215,7 +222,7 @@ class ProgressiveRAFTTrainer:
         examples = []
         for file_path in validated_files:
             try:
-                with open(file_path, encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     example = json.load(f)
                     examples.append(example)
             except Exception as e:
@@ -227,7 +234,9 @@ class ProgressiveRAFTTrainer:
 
         return examples
 
-    def _organize_examples_by_phase(self, examples: list[RAFTExample]) -> dict[CurriculumPhase, list[RAFTExample]]:
+    def _organize_examples_by_phase(
+        self, examples: list[RAFTExample]
+    ) -> dict[CurriculumPhase, list[RAFTExample]]:
         """
         Organize examples into curriculum phases based on quality metrics.
 
@@ -264,8 +273,9 @@ class ProgressiveRAFTTrainer:
 
         return phase_examples
 
-    def _train_phase(self, phase: CurriculumPhase, examples: list[RAFTExample],
-                     model_name: str) -> dict[str, Any]:
+    def _train_phase(
+        self, phase: CurriculumPhase, examples: list[RAFTExample], model_name: str
+    ) -> dict[str, Any]:
         """
         Train a specific curriculum phase.
 
@@ -283,16 +293,18 @@ class ProgressiveRAFTTrainer:
             self.logger.info(f"🎯 Training phase {phase.value} with {len(examples)} examples")
 
         result = {
-            'phase': phase.value,
-            'examples_available': len(examples),
-            'success': False,
-            'phase_score': 0.0,
-            'issues': []
+            "phase": phase.value,
+            "examples_available": len(examples),
+            "success": False,
+            "phase_score": 0.0,
+            "issues": [],
         }
 
         # Check minimum requirements
         if len(examples) < stage.min_examples:
-            result['issues'].append(f"Insufficient examples: {len(examples)} < {stage.min_examples}")
+            result["issues"].append(
+                f"Insufficient examples: {len(examples)} < {stage.min_examples}"
+            )
             return result
 
         try:
@@ -301,23 +313,29 @@ class ProgressiveRAFTTrainer:
 
             # Evaluate phase completion
             if training_score >= stage.min_quality_score:
-                result['success'] = True
-                result['phase_score'] = training_score
+                result["success"] = True
+                result["phase_score"] = training_score
                 self.progress.phase_completed_examples += len(examples)
 
                 if self.logger:
-                    self.logger.info(f"✅ Phase {phase.value} completed with score: {training_score:.3f}")
+                    self.logger.info(
+                        f"✅ Phase {phase.value} completed with score: {training_score:.3f}"
+                    )
             else:
-                result['issues'].append(f"Training score {training_score:.3f} below threshold {stage.min_quality_score}")
+                result["issues"].append(
+                    f"Training score {training_score:.3f} below threshold {stage.min_quality_score}"
+                )
 
         except Exception as e:
-            result['issues'].append(f"Phase training failed: {str(e)}")
+            result["issues"].append(f"Phase training failed: {str(e)}")
             if self.logger:
                 self.logger.error(f"Phase {phase.value} training failed: {e}")
 
         return result
 
-    def _simulate_phase_training(self, phase: CurriculumPhase, examples: list[RAFTExample]) -> float:
+    def _simulate_phase_training(
+        self, phase: CurriculumPhase, examples: list[RAFTExample]
+    ) -> float:
         """
         Simulate phase training and return performance score.
 
@@ -336,7 +354,7 @@ class ProgressiveRAFTTrainer:
         phase_multiplier = {
             CurriculumPhase.FOUNDATION: 0.8,
             CurriculumPhase.INTERMEDIATE: 0.7,
-            CurriculumPhase.ADVANCED: 0.6
+            CurriculumPhase.ADVANCED: 0.6,
         }
 
         base_score = total_quality / count if count > 0 else 0.0
@@ -368,25 +386,33 @@ class ProgressiveRAFTTrainer:
         for phase, examples in phase_examples.items():
             stage = self.curriculum[phase]
             if len(examples) < stage.min_examples:
-                recommendations.append(f"Add {stage.min_examples - len(examples)} more examples to {phase.value} phase")
+                recommendations.append(
+                    f"Add {stage.min_examples - len(examples)} more examples to {phase.value} phase"
+                )
 
         # Check quality distribution
         quality_stats = self.quality_scorer.batch_assess_quality(self.validated_dir)
-        avg_quality = quality_stats.get('average_score', 0.0)
+        avg_quality = quality_stats.get("average_score", 0.0)
 
         if avg_quality < 0.7:
-            recommendations.append("Overall example quality is low. Consider human validation or context regeneration")
+            recommendations.append(
+                "Overall example quality is low. Consider human validation or context regeneration"
+            )
 
         # Check phase progression
         total_phases = len(CurriculumPhase)
         completed_phases = len(self.progress.graduated_phases)
 
         if completed_phases < total_phases:
-            recommendations.append(f"Only {completed_phases}/{total_phases} phases completed. Focus on remaining phases")
+            recommendations.append(
+                f"Only {completed_phases}/{total_phases} phases completed. Focus on remaining phases"
+            )
 
         # Default recommendations
         if not recommendations:
-            recommendations.append("Training curriculum looks good. Consider adding more diverse examples for better generalization")
+            recommendations.append(
+                "Training curriculum looks good. Consider adding more diverse examples for better generalization"
+            )
 
         return recommendations
 
@@ -395,10 +421,10 @@ class ProgressiveRAFTTrainer:
         progress_file = self.output_dir / "training_progress.json"
         if progress_file.exists():
             try:
-                with open(progress_file, encoding='utf-8') as f:
+                with open(progress_file, encoding="utf-8") as f:
                     data = json.load(f)
                     # Restore progress (would need more sophisticated serialization in real implementation)
-                    self.progress.total_trained_examples = data.get('total_trained_examples', 0)
+                    self.progress.total_trained_examples = data.get("total_trained_examples", 0)
             except Exception:
                 pass  # Use defaults
 
@@ -407,14 +433,14 @@ class ProgressiveRAFTTrainer:
         progress_file = self.output_dir / "training_progress.json"
 
         progress_data = {
-            'current_phase': self.progress.current_phase.value,
-            'total_trained_examples': self.progress.total_trained_examples,
-            'graduated_phases': [p.value for p in self.progress.graduated_phases],
-            'last_evaluation_score': self.progress.last_evaluation_score
+            "current_phase": self.progress.current_phase.value,
+            "total_trained_examples": self.progress.total_trained_examples,
+            "graduated_phases": [p.value for p in self.progress.graduated_phases],
+            "last_evaluation_score": self.progress.last_evaluation_score,
         }
 
         try:
-            with open(progress_file, 'w', encoding='utf-8') as f:
+            with open(progress_file, "w", encoding="utf-8") as f:
                 json.dump(progress_data, f, indent=2)
         except Exception as e:
             if self.logger:
@@ -426,9 +452,11 @@ class ProgressiveRAFTTrainer:
         phase_examples = self._organize_examples_by_phase(all_examples)
 
         return {
-            'current_phase': self.progress.current_phase.value,
-            'graduated_phases': [p.value for p in self.progress.graduated_phases],
-            'examples_per_phase': {phase.value: len(examples) for phase, examples in phase_examples.items()},
-            'total_examples': len(all_examples),
-            'recommendations': self.get_training_recommendations()
+            "current_phase": self.progress.current_phase.value,
+            "graduated_phases": [p.value for p in self.progress.graduated_phases],
+            "examples_per_phase": {
+                phase.value: len(examples) for phase, examples in phase_examples.items()
+            },
+            "total_examples": len(all_examples),
+            "recommendations": self.get_training_recommendations(),
         }

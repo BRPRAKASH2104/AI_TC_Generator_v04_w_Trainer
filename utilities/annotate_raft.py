@@ -9,8 +9,8 @@ validate/reject generated test cases.
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 
 def annotate_example(example_path: Path) -> None:
@@ -36,17 +36,21 @@ def annotate_example(example_path: Path) -> None:
     print(f"\n  Heading: {ctx['heading']['text']}")
 
     print(f"\n  Info Artifacts ({len(ctx['info_artifacts'])}):")
-    for i, info in enumerate(ctx['info_artifacts'], 1):
-        text = info['text'][:80] + "..." if len(info['text']) > 80 else info['text']
+    for i, info in enumerate(ctx["info_artifacts"], 1):
+        text = info["text"][:80] + "..." if len(info["text"]) > 80 else info["text"]
         print(f"    [{i}] {info['id']}: {text}")
 
     print(f"\n  Interfaces ({len(ctx['interfaces'])}):")
-    for i, iface in enumerate(ctx['interfaces'], 1):
-        text = iface['text'][:80] + "..." if len(iface['text']) > 80 else iface['text']
+    for i, iface in enumerate(ctx["interfaces"], 1):
+        text = iface["text"][:80] + "..." if len(iface["text"]) > 80 else iface["text"]
         print(f"    [{i}] {iface['id']}: {text}")
 
     # Show generated test cases
-    tc_preview = data['generated_test_cases'][:500] + "..." if len(data['generated_test_cases']) > 500 else data['generated_test_cases']
+    tc_preview = (
+        data["generated_test_cases"][:500] + "..."
+        if len(data["generated_test_cases"]) > 500
+        else data["generated_test_cases"]
+    )
     print(f"\n✨ Generated Test Cases:\n{tc_preview}")
 
     # Interactive annotation
@@ -92,34 +96,38 @@ def annotate_example(example_path: Path) -> None:
     print("   Skip (s) = Uncertain, skip this item")
 
     # Heading
-    heading_text = ctx['heading']['text'][:40] + "..." if len(ctx['heading']['text']) > 40 else ctx['heading']['text']
+    heading_text = (
+        ctx["heading"]["text"][:40] + "..."
+        if len(ctx["heading"]["text"]) > 40
+        else ctx["heading"]["text"]
+    )
     choice = input(f"\n   Heading '{heading_text}' - Oracle? (y/n/s): ").lower()
-    if choice == 'y':
+    if choice == "y":
         oracle_ids.append("HEADING")
-    elif choice == 'n':
+    elif choice == "n":
         distractor_ids.append("HEADING")
 
     # Info artifacts
-    if ctx['info_artifacts']:
+    if ctx["info_artifacts"]:
         print("\n   Info Artifacts:")
-        for info in ctx['info_artifacts']:
-            text = info['text'][:60] + "..." if len(info['text']) > 60 else info['text']
+        for info in ctx["info_artifacts"]:
+            text = info["text"][:60] + "..." if len(info["text"]) > 60 else info["text"]
             choice = input(f"     {info['id']}: {text}\n     Oracle? (y/n/s): ").lower()
-            if choice == 'y':
-                oracle_ids.append(info['id'])
-            elif choice == 'n':
-                distractor_ids.append(info['id'])
+            if choice == "y":
+                oracle_ids.append(info["id"])
+            elif choice == "n":
+                distractor_ids.append(info["id"])
 
     # Interfaces
-    if ctx['interfaces']:
+    if ctx["interfaces"]:
         print("\n   Interfaces:")
-        for iface in ctx['interfaces']:
-            text = iface['text'][:60] + "..." if len(iface['text']) > 60 else iface['text']
+        for iface in ctx["interfaces"]:
+            text = iface["text"][:60] + "..." if len(iface["text"]) > 60 else iface["text"]
             choice = input(f"     {iface['id']}: {text}\n     Oracle? (y/n/s): ").lower()
-            if choice == 'y':
-                oracle_ids.append(iface['id'])
-            elif choice == 'n':
-                distractor_ids.append(iface['id'])
+            if choice == "y":
+                oracle_ids.append(iface["id"])
+            elif choice == "n":
+                distractor_ids.append(iface["id"])
 
     # Notes
     print("\n4️⃣ Annotation notes (optional):")
@@ -135,7 +143,7 @@ def annotate_example(example_path: Path) -> None:
         "oracle_context": oracle_ids,
         "distractor_context": distractor_ids,
         "annotation_notes": notes,
-        "quality_rating": quality
+        "quality_rating": quality,
     }
     data["validation_status"] = status
     data["annotated_by"] = annotated_by
@@ -152,7 +160,10 @@ def annotate_example(example_path: Path) -> None:
 
     # Handle existing file
     if dest_path.exists():
-        dest_path = dest_dir / f"{example_path.stem}_v{datetime.now().strftime('%H%M%S')}{example_path.suffix}"
+        dest_path = (
+            dest_dir
+            / f"{example_path.stem}_v{datetime.now().strftime('%H%M%S')}{example_path.suffix}"
+        )
 
     example_path.rename(dest_path)
 
@@ -188,7 +199,7 @@ def batch_annotate(collected_dir: Path = Path("training_data/collected")) -> Non
     print("=" * 70)
 
     for i, file_path in enumerate(pending_files, 1):
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"Progress: {i}/{len(pending_files)}")
 
         try:
@@ -199,13 +210,13 @@ def batch_annotate(collected_dir: Path = Path("training_data/collected")) -> Non
         except Exception as e:
             print(f"\n❌ Error annotating {file_path.name}: {e}")
             cont = input("\nContinue with next example? (y/n): ")
-            if cont.lower() != 'y':
+            if cont.lower() != "y":
                 break
             continue
 
         if i < len(pending_files):
             cont = input("\n➡️  Continue to next? (y/n): ")
-            if cont.lower() != 'y':
+            if cont.lower() != "y":
                 break
 
     print("\n✅ Annotation session complete!")
@@ -226,7 +237,7 @@ def show_stats() -> None:
     stats = {
         "collected": len(list(collected_dir.glob("raft_*.json"))) if collected_dir.exists() else 0,
         "validated": len(list(validated_dir.glob("raft_*.json"))) if validated_dir.exists() else 0,
-        "rejected": len(list(rejected_dir.glob("raft_*.json"))) if rejected_dir.exists() else 0
+        "rejected": len(list(rejected_dir.glob("raft_*.json"))) if rejected_dir.exists() else 0,
     }
 
     total = stats["collected"] + stats["validated"] + stats["rejected"]
@@ -238,7 +249,9 @@ def show_stats() -> None:
     print(f"  Pending annotation: {stats['collected']}")
     print(f"  Validated: {stats['validated']}")
     print(f"  Rejected: {stats['rejected']}")
-    print(f"  Annotation progress: {annotated}/{total} ({100*annotated/total if total > 0 else 0:.1f}%)")
+    print(
+        f"  Annotation progress: {annotated}/{total} ({100 * annotated / total if total > 0 else 0:.1f}%)"
+    )
     print("=" * 50)
 
 

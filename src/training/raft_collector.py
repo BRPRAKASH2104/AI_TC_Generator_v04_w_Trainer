@@ -6,10 +6,10 @@ It saves generated test cases along with their retrieved context for expert anno
 """
 
 import json
-from pathlib import Path
 from datetime import datetime
-from typing import Any
 from logging import Logger
+from pathlib import Path
+from typing import Any
 
 type AugmentedRequirement = dict[str, Any]
 type RAFTExample = dict[str, Any]
@@ -24,7 +24,7 @@ class RAFTDataCollector:
         self,
         output_dir: str | Path = "training_data/collected",
         logger: Logger | None = None,
-        enabled: bool = True
+        enabled: bool = True,
     ):
         """
         Initialize RAFT data collector.
@@ -44,10 +44,7 @@ class RAFTDataCollector:
                 self.logger.info(f"📊 RAFT collector initialized: {self.output_dir}")
 
     def collect_example(
-        self,
-        requirement: AugmentedRequirement,
-        generated_test_cases: str,
-        model: str
+        self, requirement: AugmentedRequirement, generated_test_cases: str, model: str
     ) -> Path | None:
         """
         Collect a single RAFT training example.
@@ -73,7 +70,6 @@ class RAFTDataCollector:
             "requirement_id": requirement.get("id", "UNKNOWN"),
             "requirement_text": requirement.get("text", ""),
             "heading": heading,
-
             # Retrieved context (to be annotated as oracle/distractor)
             "retrieved_context": {
                 "heading": {"id": "HEADING", "text": heading},
@@ -84,26 +80,23 @@ class RAFTDataCollector:
                 "interfaces": [
                     {"id": iface.get("id", f"IF_{i}"), "text": iface.get("text", "")}
                     for i, iface in enumerate(interface_list)
-                ]
+                ],
             },
-
             # Generated output (to be validated by expert)
             "generated_test_cases": generated_test_cases,
             "model_used": model,
             "generation_timestamp": datetime.now().isoformat(),
-
             # RAFT annotation (to be filled by expert)
             "context_annotation": {
-                "oracle_context": [],        # Expert fills: relevant context IDs
-                "distractor_context": [],    # Expert fills: irrelevant context IDs
-                "annotation_notes": "",       # Expert fills: optional notes
-                "quality_rating": None        # Expert fills: 1-5 scale
+                "oracle_context": [],  # Expert fills: relevant context IDs
+                "distractor_context": [],  # Expert fills: irrelevant context IDs
+                "annotation_notes": "",  # Expert fills: optional notes
+                "quality_rating": None,  # Expert fills: 1-5 scale
             },
-
             # Validation status
             "validation_status": "pending",  # pending|validated|rejected
             "annotated_by": None,
-            "annotation_timestamp": None
+            "annotation_timestamp": None,
         }
 
         # Save to file
@@ -133,7 +126,7 @@ class RAFTDataCollector:
                 "pending_annotation": 0,
                 "validated": 0,
                 "rejected": 0,
-                "annotated": 0
+                "annotated": 0,
             }
 
         json_files = list(self.output_dir.glob("raft_*.json"))
@@ -143,7 +136,7 @@ class RAFTDataCollector:
             "pending_annotation": 0,
             "validated": 0,
             "rejected": 0,
-            "annotated": 0
+            "annotated": 0,
         }
 
         for json_file in json_files:

@@ -6,9 +6,9 @@ converting them to Ollama fine-tuning format.
 """
 
 import json
+from logging import Logger
 from pathlib import Path
 from typing import Any
-from logging import Logger
 
 type RAFTTrainingExample = dict[str, Any]
 
@@ -22,7 +22,7 @@ class RAFTDatasetBuilder:
         self,
         validated_dir: str | Path = "training_data/validated",
         output_dir: str | Path = "training_data/raft_dataset",
-        logger: Logger | None = None
+        logger: Logger | None = None,
     ):
         """
         Initialize RAFT dataset builder.
@@ -86,7 +86,9 @@ class RAFTDatasetBuilder:
                 quality = annotation.get("quality_rating", 0)
                 if quality and quality < min_quality:
                     if self.logger:
-                        self.logger.debug(f"Skipping {file_path.name}: Quality {quality} < {min_quality}")
+                        self.logger.debug(
+                            f"Skipping {file_path.name}: Quality {quality} < {min_quality}"
+                        )
                     continue
 
                 # Build RAFT example
@@ -150,14 +152,12 @@ class RAFTDatasetBuilder:
                 "requirement_id": data["requirement_id"],
                 "quality_rating": annotation.get("quality_rating"),
                 "annotation_notes": annotation.get("annotation_notes", ""),
-                "original_model": data.get("model_used")
-            }
+                "original_model": data.get("model_used"),
+            },
         }
 
     def save_dataset(
-        self,
-        raft_examples: list[RAFTTrainingExample],
-        filename: str = "raft_training_dataset"
+        self, raft_examples: list[RAFTTrainingExample], filename: str = "raft_training_dataset"
     ) -> tuple[Path, Path]:
         """
         Save RAFT dataset in Ollama fine-tuning format.
@@ -189,18 +189,12 @@ class RAFTDatasetBuilder:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an expert automotive test case generator. Use only the relevant context to generate high-quality test cases. Ignore irrelevant information."
+                        "content": "You are an expert automotive test case generator. Use only the relevant context to generate high-quality test cases. Ignore irrelevant information.",
                     },
-                    {
-                        "role": "user",
-                        "content": f"{context_str}\n\n{example['question']}"
-                    },
-                    {
-                        "role": "assistant",
-                        "content": example["answer"]
-                    }
+                    {"role": "user", "content": f"{context_str}\n\n{example['question']}"},
+                    {"role": "assistant", "content": example["answer"]},
                 ],
-                "metadata": example.get("metadata", {})
+                "metadata": example.get("metadata", {}),
             }
             training_data.append(conversation)
 
@@ -234,7 +228,7 @@ class RAFTDatasetBuilder:
             "jsonl_files": len(jsonl_files),
             "json_files": len(json_files),
             "latest_dataset": None,
-            "total_examples": 0
+            "total_examples": 0,
         }
 
         # Get stats from latest JSONL file
@@ -263,7 +257,7 @@ class RAFTDatasetBuilder:
             "with_oracle_context": 0,
             "with_distractor_context": 0,
             "avg_oracle_docs": 0,
-            "avg_distractor_docs": 0
+            "avg_distractor_docs": 0,
         }
 
         try:
@@ -301,7 +295,11 @@ class RAFTDatasetBuilder:
                 if "Additional Context" in user_msg:
                     stats["with_distractor_context"] += 1
                     # Estimate distractor count
-                    distractor_section = user_msg.split("Additional Context")[-1] if "Additional Context" in user_msg else ""
+                    distractor_section = (
+                        user_msg.split("Additional Context")[-1]
+                        if "Additional Context" in user_msg
+                        else ""
+                    )
                     distractor_count = distractor_section.count("- ")
                     distractor_counts.append(distractor_count)
 
@@ -314,8 +312,4 @@ class RAFTDatasetBuilder:
         except Exception as e:
             issues.append(f"Critical error: {e}")
 
-        return {
-            "valid": len(issues) == 0,
-            "issues": issues,
-            "stats": stats
-        }
+        return {"valid": len(issues) == 0, "issues": issues, "stats": stats}

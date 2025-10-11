@@ -6,7 +6,6 @@ with Ollama API endpoints, with proper error handling and performance optimizati
 for Python 3.13.7+.
 """
 
-
 import asyncio
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +33,7 @@ class OllamaClient:
 
     def __init__(self, config: OllamaConfig = None):
         from config import OllamaConfig
+
         self.config = config or OllamaConfig()
         self.proxies = {"http": None, "https": None}
         # Reuse session for better performance (Python 3.13.7+ optimization)
@@ -88,8 +88,7 @@ class OllamaClient:
                 data: JSONResponse = response.json()
             except ValueError as e:
                 raise OllamaResponseError(
-                    f"Invalid JSON response from Ollama: {e}",
-                    status_code=response.status_code
+                    f"Invalid JSON response from Ollama: {e}", status_code=response.status_code
                 ) from e
 
             return str(data.get("response", ""))
@@ -99,21 +98,21 @@ class OllamaClient:
                 f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
                 f"Ensure Ollama is running with 'ollama serve'",
                 host=self.config.host,
-                port=self.config.port
+                port=self.config.port,
             ) from e
 
         except requests.Timeout as e:
             raise OllamaTimeoutError(
                 f"Ollama request timed out after {self.config.timeout}s for model '{model_name}'. "
                 f"Try increasing timeout or using a faster model.",
-                timeout=self.config.timeout
+                timeout=self.config.timeout,
             ) from e
 
         except requests.HTTPError as e:
             if e.response.status_code == 404:
                 raise OllamaModelNotFoundError(
                     f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
-                    model=model_name
+                    model=model_name,
                 ) from e
             else:
                 # Ollama 0.12.5 may include detailed error JSON
@@ -126,14 +125,12 @@ class OllamaClient:
                 raise OllamaResponseError(
                     f"Ollama HTTP error {e.response.status_code}: {error_msg}",
                     status_code=e.response.status_code,
-                    response_body=error_msg
+                    response_body=error_msg,
                 ) from e
 
         except requests.RequestException as e:
             raise OllamaConnectionError(
-                f"Ollama request failed: {e}",
-                host=self.config.host,
-                port=self.config.port
+                f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
             ) from e
 
 
@@ -144,6 +141,7 @@ class AsyncOllamaClient:
 
     def __init__(self, config: OllamaConfig = None):
         from config import OllamaConfig
+
         self.config = config or OllamaConfig()
         self.session: aiohttp.ClientSession | None = None
         # Configurable GPU/CPU-aware concurrency limit
@@ -224,16 +222,15 @@ class AsyncOllamaClient:
                         data = await response.json()
                     except aiohttp.ContentTypeError as e:
                         raise OllamaResponseError(
-                            f"Invalid JSON response from Ollama: {e}",
-                            status_code=response.status
+                            f"Invalid JSON response from Ollama: {e}", status_code=response.status
                         ) from e
 
                     return str(data.get("response", ""))
 
-            except asyncio.TimeoutError as e:
+            except TimeoutError as e:
                 raise OllamaTimeoutError(
                     f"Ollama async request timed out after {self.config.timeout}s for model '{model_name}'",
-                    timeout=self.config.timeout
+                    timeout=self.config.timeout,
                 ) from e
 
             except aiohttp.ClientConnectorError as e:
@@ -241,31 +238,31 @@ class AsyncOllamaClient:
                     f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
                     f"Ensure Ollama is running with 'ollama serve'",
                     host=self.config.host,
-                    port=self.config.port
+                    port=self.config.port,
                 ) from e
 
             except aiohttp.ClientResponseError as e:
                 if e.status == 404:
                     raise OllamaModelNotFoundError(
                         f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
-                        model=model_name
+                        model=model_name,
                     ) from e
                 else:
                     # Ollama 0.12.5 enhanced error details
                     raise OllamaResponseError(
                         f"Ollama HTTP error {e.status}: {e.message}",
                         status_code=e.status,
-                        response_body=str(e.message)
+                        response_body=str(e.message),
                     ) from e
 
             except aiohttp.ClientError as e:
                 raise OllamaConnectionError(
-                    f"Ollama async client error: {e}",
-                    host=self.config.host,
-                    port=self.config.port
+                    f"Ollama async client error: {e}", host=self.config.host, port=self.config.port
                 ) from e
 
-    async def generate_with_retry(self, model_name: str, prompt: str, is_json: bool = False, max_retries: int = 3) -> str:
+    async def generate_with_retry(
+        self, model_name: str, prompt: str, is_json: bool = False, max_retries: int = 3
+    ) -> str:
         """Generate response with exponential backoff retry logic"""
         for attempt in range(max_retries + 1):
             try:
@@ -277,6 +274,6 @@ class AsyncOllamaClient:
 
             if attempt < max_retries:
                 # Exponential backoff: 1s, 2s, 4s
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(2**attempt)
 
         return ""  # All retries failed

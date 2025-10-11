@@ -16,11 +16,11 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.extractors import REQIFArtifactExtractor
-from core.prompt_builder import PromptBuilder
-from core.formatters import TestCaseFormatter
-from processors.base_processor import BaseProcessor
 from config import ConfigManager
+from core.extractors import REQIFArtifactExtractor
+from core.formatters import TestCaseFormatter
+from core.prompt_builder import PromptBuilder
+from processors.base_processor import BaseProcessor
 from yaml_prompt_manager import YAMLPromptManager
 
 
@@ -34,14 +34,14 @@ class V03CompatibilityVerifier:
             "classification": False,
             "augmentation": False,
             "prompt_generation": False,
-            "field_mapping": False
+            "field_mapping": False,
         }
 
     def verify_all(self) -> dict:
         """Run all verification checks"""
-        print("="*80)
+        print("=" * 80)
         print("V03 COMPATIBILITY VERIFICATION")
-        print("="*80)
+        print("=" * 80)
         print(f"\nTesting file: {self.reqifz_path.name}\n")
 
         self.verify_extraction()
@@ -123,7 +123,7 @@ class V03CompatibilityVerifier:
             # Show sample
             if with_text:
                 sample = with_text[0]
-                print(f"\nSample Requirement:")
+                print("\nSample Requirement:")
                 print(f"  ID: {sample.get('id', 'UNKNOWN')}")
                 print(f"  Type: {sample.get('type')}")
                 print(f"  Text: {sample.get('text', '')[:100]}...")
@@ -178,10 +178,14 @@ class V03CompatibilityVerifier:
             has_info = "info_list" in sample
             has_interfaces = "interface_list" in sample
 
-            print(f"\nAugmentation Quality Check (first requirement):")
+            print("\nAugmentation Quality Check (first requirement):")
             print(f"  Heading: {'✅' if has_heading else '❌'} {sample.get('heading', 'N/A')}")
-            print(f"  Info List: {'✅' if has_info else '❌'} ({len(sample.get('info_list', []))} items)")
-            print(f"  Interfaces: {'✅' if has_interfaces else '❌'} ({len(sample.get('interface_list', []))} items)")
+            print(
+                f"  Info List: {'✅' if has_info else '❌'} ({len(sample.get('info_list', []))} items)"
+            )
+            print(
+                f"  Interfaces: {'✅' if has_interfaces else '❌'} ({len(sample.get('interface_list', []))} items)"
+            )
 
             if has_heading and has_info and has_interfaces:
                 print("\n✅ PASS: Context-aware augmentation working correctly")
@@ -193,6 +197,7 @@ class V03CompatibilityVerifier:
         except Exception as e:
             print(f"❌ FAIL: Exception during augmentation: {e}")
             import traceback
+
             traceback.print_exc()
             self.results["augmentation"] = False
 
@@ -212,7 +217,7 @@ class V03CompatibilityVerifier:
                 "text": "System shall perform test operation",
                 "table": {"rows": 2, "data": [{"input": "A", "output": "B"}]},
                 "info_list": [{"text": "Additional context information"}],
-                "interface_list": [{"id": "SIG_001", "text": "Test signal input"}]
+                "interface_list": [{"id": "SIG_001", "text": "Test signal input"}],
             }
 
             # Test default prompt (no template)
@@ -231,7 +236,7 @@ class V03CompatibilityVerifier:
             print(f"  Includes Interfaces: {'✅' if has_interface else '❌'}")
             print(f"  Requests Correct Field Names: {'✅' if has_field_names else '❌'}")
 
-            print(f"\nPrompt Preview (first 500 chars):")
+            print("\nPrompt Preview (first 500 chars):")
             print("-" * 80)
             print(prompt[:500])
             print("...")
@@ -246,6 +251,7 @@ class V03CompatibilityVerifier:
         except Exception as e:
             print(f"❌ FAIL: Exception during prompt generation: {e}")
             import traceback
+
             traceback.print_exc()
             self.results["prompt_generation"] = False
 
@@ -263,7 +269,7 @@ class V03CompatibilityVerifier:
                 "feature_name": "Test Feature",
                 "preconditions": "1. IGN ON\n2. Voltage 12V",
                 "test_steps": "1. Press button\n2. Verify LED",
-                "expected_result": "LED turns on"
+                "expected_result": "LED turns on",
             }
 
             # Test v04-style test case
@@ -273,7 +279,7 @@ class V03CompatibilityVerifier:
                 "action": "1. IGN ON\n2. Voltage 12V",
                 "data": "1. Press button\n2. Verify LED",
                 "expected_result": "LED turns on",
-                "test_type": "positive"
+                "test_type": "positive",
             }
 
             # Format both
@@ -286,7 +292,7 @@ class V03CompatibilityVerifier:
                 print(f"  Summary: {tc.get('Summary', 'MISSING')[:50]}...")
                 print(f"  Action: {tc.get('Action', 'MISSING')[:50]}...")
                 print(f"  Data: {tc.get('Data', 'MISSING')[:50]}...")
-                v03_ok = all(tc.get(key) != 'MISSING' for key in ['Summary', 'Action', 'Data'])
+                v03_ok = all(tc.get(key) != "MISSING" for key in ["Summary", "Action", "Data"])
             else:
                 print("  ❌ Failed to format")
                 v03_ok = False
@@ -297,7 +303,7 @@ class V03CompatibilityVerifier:
                 print(f"  Summary: {tc.get('Summary', 'MISSING')[:50]}...")
                 print(f"  Action: {tc.get('Action', 'MISSING')[:50]}...")
                 print(f"  Data: {tc.get('Data', 'MISSING')[:50]}...")
-                v04_ok = all(tc.get(key) != 'MISSING' for key in ['Summary', 'Action', 'Data'])
+                v04_ok = all(tc.get(key) != "MISSING" for key in ["Summary", "Action", "Data"])
             else:
                 print("  ❌ Failed to format")
                 v04_ok = False
@@ -312,14 +318,15 @@ class V03CompatibilityVerifier:
         except Exception as e:
             print(f"❌ FAIL: Exception during field mapping: {e}")
             import traceback
+
             traceback.print_exc()
             self.results["field_mapping"] = False
 
     def print_summary(self):
         """Print verification summary"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("VERIFICATION SUMMARY")
-        print("="*80)
+        print("=" * 80)
 
         all_passed = all(self.results.values())
         status = "✅ ALL CHECKS PASSED" if all_passed else "❌ SOME CHECKS FAILED"
@@ -357,7 +364,7 @@ def main():
         print(f"❌ Error: File not found: {reqifz_path}")
         sys.exit(1)
 
-    if not reqifz_path.suffix.lower() == '.reqifz':
+    if not reqifz_path.suffix.lower() == ".reqifz":
         print(f"❌ Error: File must be a .reqifz file, got: {reqifz_path.suffix}")
         sys.exit(1)
 

@@ -5,7 +5,6 @@ This module provides classes for generating test cases from requirement artifact
 using AI models, with support for both synchronous and asynchronous processing.
 """
 
-
 import asyncio
 import time
 from typing import Any
@@ -33,10 +32,7 @@ class TestCaseGenerator:
         self.logger = logger
 
     def generate_test_cases_for_requirement(
-        self,
-        requirement: RequirementData,
-        model: str,
-        template_name: str = None
+        self, requirement: RequirementData, model: str, template_name: str = None
     ) -> TestCaseList:
         """
         Generate test cases for a single requirement.
@@ -71,20 +67,26 @@ class TestCaseGenerator:
                 for i, test_case in enumerate(test_cases):
                     test_case["requirement_id"] = requirement.get("id", "UNKNOWN")
                     test_case["generation_time"] = generation_time
-                    test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i+1:03d}"
+                    test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i + 1:03d}"
 
                 if self.logger:
-                    self.logger.info(f"Generated {len(test_cases)} test cases for {requirement.get('id', 'UNKNOWN')}")
+                    self.logger.info(
+                        f"Generated {len(test_cases)} test cases for {requirement.get('id', 'UNKNOWN')}"
+                    )
 
                 return test_cases
             else:
                 if self.logger:
-                    self.logger.warning(f"No test cases generated for {requirement.get('id', 'UNKNOWN')}")
+                    self.logger.warning(
+                        f"No test cases generated for {requirement.get('id', 'UNKNOWN')}"
+                    )
                 return []
 
         except Exception as e:
             if self.logger:
-                self.logger.error(f"Error generating test cases for {requirement.get('id', 'UNKNOWN')}: {e}")
+                self.logger.error(
+                    f"Error generating test cases for {requirement.get('id', 'UNKNOWN')}: {e}"
+                )
             return []
 
 
@@ -93,7 +95,9 @@ class AsyncTestCaseGenerator:
 
     __slots__ = ("client", "json_parser", "prompt_builder", "logger")
 
-    def __init__(self, client: AsyncOllamaClient, yaml_manager=None, logger=None, max_concurrent: int = 4):
+    def __init__(
+        self, client: AsyncOllamaClient, yaml_manager=None, logger=None, max_concurrent: int = 4
+    ):
         self.client = client
         self.json_parser = FastJSONResponseParser()
         self.prompt_builder = PromptBuilder(yaml_manager)
@@ -102,10 +106,7 @@ class AsyncTestCaseGenerator:
         # No need for double semaphore here - improves throughput by ~50%
 
     async def generate_test_cases_batch(
-        self,
-        requirements: list[RequirementData],
-        model: str,
-        template_name: str = None
+        self, requirements: list[RequirementData], model: str, template_name: str = None
     ) -> list[ProcessingResult]:
         """
         Generate test cases for multiple requirements concurrently with intelligent batching.
@@ -156,7 +157,7 @@ class AsyncTestCaseGenerator:
                     "error_type": type(result).__name__,
                     "error_message": str(result),
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "test_cases": []  # Consistent interface: always provide test_cases list
+                    "test_cases": [],  # Consistent interface: always provide test_cases list
                 }
 
                 # Log the failure for debugging and metrics
@@ -179,10 +180,7 @@ class AsyncTestCaseGenerator:
         return processed_results
 
     async def _generate_test_cases_for_requirement_async(
-        self,
-        requirement: RequirementData,
-        model: str,
-        template_name: str = None
+        self, requirement: RequirementData, model: str, template_name: str = None
     ) -> ProcessingResult:
         """
         Generate test cases for a single requirement asynchronously with comprehensive error handling.
@@ -202,7 +200,7 @@ class AsyncTestCaseGenerator:
             Either a list of test cases (success) or structured error object (failure)
             Both maintain the same interface with test_cases field for consistency
         """
-        req_id = requirement.get('id', 'UNKNOWN')
+        req_id = requirement.get("id", "UNKNOWN")
 
         # Note: Concurrency control is handled by AsyncOllamaClient's semaphore
         # No need for additional semaphore here - allows better throughput
@@ -234,7 +232,7 @@ class AsyncTestCaseGenerator:
                     "error_message": "AI model returned empty response",
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "generation_time": generation_time,
-                    "test_cases": []  # Maintain consistent interface
+                    "test_cases": [],  # Maintain consistent interface
                 }
 
                 if self.logger:
@@ -259,7 +257,7 @@ class AsyncTestCaseGenerator:
                         "error_message": "AI returned empty test cases list",
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                         "generation_time": generation_time,
-                        "test_cases": []
+                        "test_cases": [],
                     }
 
                     if self.logger:
@@ -273,7 +271,7 @@ class AsyncTestCaseGenerator:
                 for i, test_case in enumerate(test_cases):
                     test_case["requirement_id"] = req_id
                     test_case["generation_time"] = generation_time
-                    test_case["test_id"] = f"{req_id}_TC_{i+1:03d}"
+                    test_case["test_id"] = f"{req_id}_TC_{i + 1:03d}"
 
                 if self.logger:
                     self.logger.info(f"Generated {len(test_cases)} test cases for {req_id}")
@@ -289,7 +287,7 @@ class AsyncTestCaseGenerator:
                     "error_message": "Response does not contain 'test_cases' field",
                     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "generation_time": generation_time,
-                    "test_cases": []
+                    "test_cases": [],
                 }
 
                 if self.logger:
@@ -307,7 +305,7 @@ class AsyncTestCaseGenerator:
                 "error_type": type(e).__name__,
                 "error_message": str(e),
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "test_cases": []
+                "test_cases": [],
             }
 
             if self.logger:

@@ -137,8 +137,9 @@ class VersionChecker:
         total_features += 1
         try:
             import typing
+
             # Test for available typing features
-            hasattr(typing, 'Generic') and hasattr(typing, 'TypeVar')
+            hasattr(typing, "Generic") and hasattr(typing, "TypeVar")
             print("✅ Advanced typing support available")
             features_passed += 1
         except ImportError:

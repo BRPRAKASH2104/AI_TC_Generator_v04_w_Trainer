@@ -15,14 +15,14 @@ import time
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import psutil
 from rich.console import Console
 from rich.logging import RichHandler
 
 # Global logger instance
-_app_logger_instance: Optional["AppLogger"] = None
+_app_logger_instance: AppLogger | None = None
 _logger_lock = threading.Lock()
 
 
@@ -70,10 +70,7 @@ class AppLogger:
                 rich_tracebacks=True,
             )
             console_handler.setLevel(getattr(logging, self.log_level))
-            console_formatter = logging.Formatter(
-                fmt="%(message)s",
-                datefmt="[%X]"
-            )
+            console_formatter = logging.Formatter(fmt="%(message)s", datefmt="[%X]")
             console_handler.setFormatter(console_formatter)
             self.logger.addHandler(console_handler)
 
@@ -84,12 +81,12 @@ class AppLogger:
                 log_file,
                 maxBytes=max_log_size_mb * 1024 * 1024,
                 backupCount=backup_count,
-                encoding="utf-8"
+                encoding="utf-8",
             )
             file_handler.setLevel(logging.DEBUG)  # Capture all levels in file
             file_formatter = logging.Formatter(
                 fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S"
+                datefmt="%Y-%m-%d %H:%M:%S",
             )
             file_handler.setFormatter(file_formatter)
             self.logger.addHandler(file_handler)
@@ -98,11 +95,7 @@ class AppLogger:
         if enable_json_logging and log_to_file:
             json_log_file = self.log_directory / f"{name}_structured.jsonl"
             json_handler = TimedRotatingFileHandler(
-                json_log_file,
-                when="midnight",
-                interval=1,
-                backupCount=7,
-                encoding="utf-8"
+                json_log_file, when="midnight", interval=1, backupCount=7, encoding="utf-8"
             )
             json_handler.setLevel(logging.DEBUG)
             json_formatter = self._JsonFormatter()
@@ -122,7 +115,7 @@ class AppLogger:
                 "peak_cpu_percent": 0.0,
                 "peak_memory_mb": 0.0,
                 "avg_response_time": 0.0,
-            }
+            },
         }
 
         # Performance monitoring
@@ -136,7 +129,7 @@ class AppLogger:
                 "log_level": self.log_level,
                 "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                 "log_directory": str(self.log_directory),
-            }
+            },
         )
 
     def _generate_session_id(self) -> str:
@@ -220,7 +213,7 @@ class AppLogger:
             self.logger.name,
             level,
             "",  # pathname
-            0,   # lineno
+            0,  # lineno
             message,
             (),  # args
             None,  # exc_info
@@ -235,7 +228,7 @@ class AppLogger:
             file_path=file_path,
             model=model,
             processing_mode=mode,
-            event_type="file_processing_start"
+            event_type="file_processing_start",
         )
 
     def log_file_processing_complete(
@@ -244,7 +237,7 @@ class AppLogger:
         success: bool,
         test_cases_generated: int,
         processing_time: float,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Log completion of file processing"""
         if success:
@@ -259,7 +252,7 @@ class AppLogger:
             test_cases_generated=test_cases_generated,
             processing_time_seconds=processing_time,
             event_type="file_processing_complete",
-            **kwargs
+            **kwargs,
         )
 
     def log_ai_api_call(
@@ -267,8 +260,8 @@ class AppLogger:
         model: str,
         response_time: float,
         success: bool,
-        requirement_id: Optional[str] = None,
-        **kwargs
+        requirement_id: str | None = None,
+        **kwargs,
     ) -> None:
         """Log AI API call metrics"""
         self.metrics["ai_api_calls"] += 1
@@ -286,7 +279,7 @@ class AppLogger:
             success=success,
             requirement_id=requirement_id,
             event_type="ai_api_call",
-            **kwargs
+            **kwargs,
         )
 
     def log_application_metrics(self) -> None:
@@ -299,24 +292,23 @@ class AppLogger:
             "Application metrics snapshot",
             event_type="metrics_snapshot",
             uptime_seconds=uptime,
-            **self.metrics
+            **self.metrics,
         )
 
     def log_environment_info(self, config_manager) -> None:
         """Log environment and configuration information"""
         try:
             import subprocess
+
             ollama_version = "unknown"
             try:
                 result = subprocess.run(
-                    ["ollama", "--version"],
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    ["ollama", "--version"], check=False, capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0:
-                    ollama_version = result.stdout.strip().split()[-1] if result.stdout.strip() else "unknown"
+                    ollama_version = (
+                        result.stdout.strip().split()[-1] if result.stdout.strip() else "unknown"
+                    )
             except Exception:
                 pass
 
@@ -341,7 +333,7 @@ class AppLogger:
             "Application logger shutting down",
             event_type="application_shutdown",
             total_uptime_seconds=uptime,
-            final_metrics=self.metrics
+            final_metrics=self.metrics,
         )
 
         # Close all handlers

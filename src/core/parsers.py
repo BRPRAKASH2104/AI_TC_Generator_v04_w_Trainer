@@ -5,7 +5,6 @@ This module provides parsers for JSON responses from AI models and HTML table pa
 for REQIF files, with performance optimizations for Python 3.13.7+.
 """
 
-
 import json
 import re
 from typing import Any
@@ -13,6 +12,7 @@ from xml.etree import ElementTree as ET
 
 try:
     import ujson  # Faster JSON parsing if available
+
     JSON_PARSER = ujson
 except ImportError:
     JSON_PARSER = json
@@ -31,7 +31,7 @@ class JSONResponseParser:
     def extract_json_from_response(response_text: str) -> JSONObject | None:
         """
         Extract JSON from AI model response with multiple fallback strategies.
-        
+
         This handles cases where models return JSON embedded in markdown code blocks
         or mixed with other text.
         """
@@ -55,7 +55,7 @@ class JSONResponseParser:
                 continue
 
         # Strategy 3: Find JSON-like objects in text
-        json_object_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+        json_object_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
         matches = re.findall(json_object_pattern, response_text, re.DOTALL)
 
         for match in matches:
@@ -118,14 +118,16 @@ class FastJSONResponseParser(JSONResponseParser):
 
         # Fast path: Direct JSON parsing
         stripped_text = response_text.strip()
-        if stripped_text.startswith('{') and stripped_text.endswith('}'):
+        if stripped_text.startswith("{") and stripped_text.endswith("}"):
             try:
                 return JSON_PARSER.loads(stripped_text)
             except (json.JSONDecodeError, ValueError):
                 pass
 
         # Fallback to parent implementation
-        return super(FastJSONResponseParser, FastJSONResponseParser).extract_json_from_response(response_text)
+        return super(FastJSONResponseParser, FastJSONResponseParser).extract_json_from_response(
+            response_text
+        )
 
 
 class HTMLTableParser:
@@ -137,7 +139,7 @@ class HTMLTableParser:
     def extract_tables_from_html(html_content: str) -> HTMLTableData:
         """
         Extract structured data from HTML tables with enhanced parsing.
-        
+
         Handles various table formats commonly found in automotive REQIF files.
         """
         if not html_content or not html_content.strip():
@@ -167,11 +169,16 @@ class HTMLTableParser:
     def _clean_html_content(html_content: str) -> str:
         """Clean HTML content for better parsing"""
         # Remove common problematic elements
-        cleaned = re.sub(r'<(?:script|style)[^>]*>.*?</(?:script|style)>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = re.sub(
+            r"<(?:script|style)[^>]*>.*?</(?:script|style)>",
+            "",
+            html_content,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
 
         # Fix common HTML issues
-        cleaned = re.sub(r'<br\s*/?>', '<br/>', cleaned)
-        cleaned = re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;)', '&amp;', cleaned)
+        cleaned = re.sub(r"<br\s*/?>", "<br/>", cleaned)
+        cleaned = re.sub(r"&(?!amp;|lt;|gt;|quot;|apos;)", "&amp;", cleaned)
 
         return cleaned
 
@@ -186,7 +193,7 @@ class HTMLTableParser:
         header_row = rows[0]
         headers = []
         for th in header_row.findall(".//th") or header_row.findall(".//td"):
-            text = ET.tostring(th, method='text', encoding='unicode').strip()
+            text = ET.tostring(th, method="text", encoding="unicode").strip()
             headers.append(text or f"Column_{len(headers)}")
 
         # Extract data rows
@@ -196,7 +203,7 @@ class HTMLTableParser:
             if len(cells) == len(headers):
                 row_data = {}
                 for i, cell in enumerate(cells):
-                    cell_text = ET.tostring(cell, method='text', encoding='unicode').strip()
+                    cell_text = ET.tostring(cell, method="text", encoding="unicode").strip()
                     row_data[headers[i]] = cell_text
                 table_data.append(row_data)
 
@@ -205,9 +212,9 @@ class HTMLTableParser:
     @staticmethod
     def _fallback_table_parsing(html_content: str) -> HTMLTableData:
         """Simple regex-based fallback for malformed HTML"""
-        table_pattern = r'<table[^>]*>(.*?)</table>'
-        row_pattern = r'<tr[^>]*>(.*?)</tr>'
-        cell_pattern = r'<(?:td|th)[^>]*>(.*?)</(?:td|th)>'
+        table_pattern = r"<table[^>]*>(.*?)</table>"
+        row_pattern = r"<tr[^>]*>(.*?)</tr>"
+        cell_pattern = r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>"
 
         tables = re.findall(table_pattern, html_content, re.DOTALL | re.IGNORECASE)
         all_data = []
@@ -219,7 +226,7 @@ class HTMLTableParser:
 
             # First row as headers
             first_row_cells = re.findall(cell_pattern, rows[0], re.DOTALL | re.IGNORECASE)
-            headers = [re.sub(r'<[^>]+>', '', cell).strip() for cell in first_row_cells]
+            headers = [re.sub(r"<[^>]+>", "", cell).strip() for cell in first_row_cells]
 
             # Data rows
             for row in rows[1:]:
@@ -227,7 +234,7 @@ class HTMLTableParser:
                 if len(cells) == len(headers):
                     row_data = {}
                     for i, cell in enumerate(cells):
-                        clean_cell = re.sub(r'<[^>]+>', '', cell).strip()
+                        clean_cell = re.sub(r"<[^>]+>", "", cell).strip()
                         row_data[headers[i]] = clean_cell
                     all_data.append(row_data)
 

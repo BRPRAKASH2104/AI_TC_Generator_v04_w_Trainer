@@ -20,9 +20,11 @@ except ImportError:
     # If running as installed package
     from ..main import main
 
+
 def cli():
     """Entry point for installed package"""
     main()
+
 
 if __name__ == "__main__":
     cli()

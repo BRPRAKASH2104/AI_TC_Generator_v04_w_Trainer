@@ -11,20 +11,22 @@ This script checks:
 
 import sys
 from pathlib import Path
+
 import pandas as pd
+
 
 def compare_outputs(v03_csv: Path, v04_xlsx: Path):
     """Compare v03 CSV and v04 Excel outputs"""
-    print("="*80)
+    print("=" * 80)
     print("V03 vs V04 OUTPUT COMPARISON")
-    print("="*80)
+    print("=" * 80)
     print(f"\nv03 file: {v03_csv.name}")
     print(f"v04 file: {v04_xlsx.name}")
 
     # Read both files
     try:
-        v03_df = pd.read_csv(v03_csv, encoding='utf-8-sig')
-        v04_df = pd.read_excel(v04_xlsx, sheet_name='Test Cases')
+        v03_df = pd.read_csv(v03_csv, encoding="utf-8-sig")
+        v04_df = pd.read_excel(v04_xlsx, sheet_name="Test Cases")
     except Exception as e:
         print(f"\n❌ Error reading files: {e}")
         return False
@@ -63,8 +65,14 @@ def compare_outputs(v03_csv: Path, v04_xlsx: Path):
         v04_sample = v04_df.iloc[0]
 
         defaults_to_check = [
-            'Test Type', 'Issue Type', 'Project Key', 'Assignee',
-            'Planned Execution', 'Test Case Type', 'Components', 'Labels'
+            "Test Type",
+            "Issue Type",
+            "Project Key",
+            "Assignee",
+            "Planned Execution",
+            "Test Case Type",
+            "Components",
+            "Labels",
         ]
 
         defaults_match = True
@@ -91,15 +99,15 @@ def compare_outputs(v03_csv: Path, v04_xlsx: Path):
     print("-" * 80)
 
     if len(v03_df) > 0 and len(v04_df) > 0:
-        v03_summary = v03_df.iloc[0]['Summary']
-        v04_summary = v04_df.iloc[0]['Summary']
+        v03_summary = v03_df.iloc[0]["Summary"]
+        v04_summary = v04_df.iloc[0]["Summary"]
 
         print(f"v03 Summary: {v03_summary}")
         print(f"v04 Summary: {v04_summary}")
 
         # v03 format is [feature_name]
-        v03_has_brackets = v03_summary.startswith('[') and v03_summary.endswith(']')
-        v04_has_brackets = v04_summary.startswith('[') and v04_summary.endswith(']')
+        v03_has_brackets = v03_summary.startswith("[") and v03_summary.endswith("]")
+        v04_has_brackets = v04_summary.startswith("[") and v04_summary.endswith("]")
 
         if v03_has_brackets and v04_has_brackets:
             print("✅ PASS: Both use [feature_name] format")
@@ -115,8 +123,8 @@ def compare_outputs(v03_csv: Path, v04_xlsx: Path):
     print("\n[4/5] Feature Group Column Check")
     print("-" * 80)
 
-    if 'Feature Group' in v03_cols:
-        if 'Feature Group' in v04_cols:
+    if "Feature Group" in v03_cols:
+        if "Feature Group" in v04_cols:
             print("✅ PASS: Feature Group column exists in v04")
             feature_group_ok = True
         else:
@@ -130,11 +138,11 @@ def compare_outputs(v03_csv: Path, v04_xlsx: Path):
     print("\n[5/5] LinkTest Column Name Check")
     print("-" * 80)
 
-    if 'LinkTest' in v03_cols:
-        if 'LinkTest' in v04_cols:
+    if "LinkTest" in v03_cols:
+        if "LinkTest" in v04_cols:
             print("✅ PASS: LinkTest column name matches")
             linktest_ok = True
-        elif 'Tests' in v04_cols:
+        elif "Tests" in v04_cols:
             print("❌ FAIL: v04 uses 'Tests' instead of 'LinkTest'")
             linktest_ok = False
         else:
@@ -145,9 +153,9 @@ def compare_outputs(v03_csv: Path, v04_xlsx: Path):
         linktest_ok = True
 
     # Summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("COMPARISON SUMMARY")
-    print("="*80)
+    print("=" * 80)
 
     all_checks = [cols_match, defaults_match, summary_match, feature_group_ok, linktest_ok]
 

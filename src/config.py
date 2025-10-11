@@ -15,11 +15,9 @@ from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
-from pydantic_settings import SettingsError
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict, SettingsError
 
 # Redundant function removed - using class method in ConfigManager instead
-
 
 
 class OllamaConfig(BaseModel):
@@ -31,8 +29,12 @@ class OllamaConfig(BaseModel):
     timeout: int = Field(600, gt=0, description="API timeout in seconds")
 
     # Security settings - using environment variables for sensitive data
-    api_key: str | None = Field(None, description="API key for authentication (use AI_TG_API_KEY env var)")
-    auth_token: str | None = Field(None, description="Auth token for API access (use AI_TG_AUTH_TOKEN env var)")
+    api_key: str | None = Field(
+        None, description="API key for authentication (use AI_TG_API_KEY env var)"
+    )
+    auth_token: str | None = Field(
+        None, description="Auth token for API access (use AI_TG_AUTH_TOKEN env var)"
+    )
 
     # Model settings
     temperature: float = Field(0.0, ge=0.0, le=2.0, description="Model temperature")
@@ -40,11 +42,17 @@ class OllamaConfig(BaseModel):
     concurrent_requests: int = Field(4, ge=1, description="Number of concurrent requests")
 
     # GPU/Hardware-specific concurrency settings (Ollama 0.12.5 optimized)
-    gpu_concurrency_limit: int = Field(2, ge=1, description="Concurrent requests for GPU inference (0.12.5 improved)")
-    cpu_concurrency_limit: int = Field(4, ge=1, description="Concurrent requests for CPU-only inference")
+    gpu_concurrency_limit: int = Field(
+        2, ge=1, description="Concurrent requests for GPU inference (0.12.5 improved)"
+    )
+    cpu_concurrency_limit: int = Field(
+        4, ge=1, description="Concurrent requests for CPU-only inference"
+    )
 
     # Ollama 0.12.5 optimization parameters
-    keep_alive: str = Field("30m", description="Keep model loaded in memory (0.12.5 improved scheduling)")
+    keep_alive: str = Field(
+        "30m", description="Keep model loaded in memory (0.12.5 improved scheduling)"
+    )
     num_ctx: int = Field(16384, gt=0, description="Context window size (0.12.5 supports 16K+)")
     num_predict: int = Field(4096, gt=0, description="Response length limit (0.12.5 increased max)")
 
@@ -54,10 +62,12 @@ class OllamaConfig(BaseModel):
 
     # Model preferences
     synthesizer_model: str = Field("llama3.1:8b", description="Model for synthesizing test cases")
-    decomposer_model: str = Field("deepseek-coder-v2:16b", description="Model for decomposing requirements")
+    decomposer_model: str = Field(
+        "deepseek-coder-v2:16b", description="Model for decomposing requirements"
+    )
 
     @model_validator(mode="after")
-    def audit_config(self) -> "OllamaConfig":
+    def audit_config(self) -> OllamaConfig:
         """Post-initialization validation and audit logging"""
         try:
             sys.audit("ollama.config.init", self.host, self.port)
@@ -154,7 +164,9 @@ class SecretsConfig(BaseModel):
 
     # Security settings
     enable_encryption: bool = Field(False, description="Enable encryption for sensitive data")
-    secrets_expiry_hours: int = Field(24, ge=1, le=168, description="Hours after which secrets should be refreshed")
+    secrets_expiry_hours: int = Field(
+        24, ge=1, le=168, description="Hours after which secrets should be refreshed"
+    )
 
     def model_post_init(self, __context) -> None:
         """Load secrets from environment variables after initialization"""
@@ -228,7 +240,9 @@ class TrainingConfig(BaseModel):
     raft_min_oracle_docs: int = Field(1, ge=1, description="Minimum oracle documents per example")
     raft_min_distractor_docs: int = Field(1, ge=0, description="Minimum distractor documents")
     raft_context_window: int = Field(5, ge=1, description="Max context items to include")
-    raft_min_quality: int = Field(3, ge=1, le=5, description="Minimum quality rating for RAFT dataset")
+    raft_min_quality: int = Field(
+        3, ge=1, le=5, description="Minimum quality rating for RAFT dataset"
+    )
 
     # Custom model settings
     enable_custom_models: bool = False
@@ -244,11 +258,11 @@ class TrainingConfig(BaseModel):
     # Conversation formatting templates (configurable for different model architectures)
     conversation_format: dict[str, str] = Field(
         default={
-            'system': '<|system|>\n{content}\n',
-            'user': '<|user|>\n{content}\n',
-            'assistant': '<|assistant|>\n{content}\n'
+            "system": "<|system|>\n{content}\n",
+            "user": "<|user|>\n{content}\n",
+            "assistant": "<|assistant|>\n{content}\n",
         },
-        description="Templates for formatting conversation roles during training"
+        description="Templates for formatting conversation roles during training",
     )
 
 
@@ -272,14 +286,18 @@ class CLIConfig(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     # Processing mode defaults
-    mode: str = Field("standard", pattern="^(standard|hp|training)$", description="Default processing mode")
+    mode: str = Field(
+        "standard", pattern="^(standard|hp|training)$", description="Default processing mode"
+    )
     model: str = Field("llama3.1:8b", description="Default AI model")
     template: str | None = Field(None, description="Default template name")
     max_concurrent: int = Field(4, ge=1, le=16, description="Default max concurrent requests")
 
     # I/O defaults
     input_directory: Path = Field(Path("input/"), description="Default input directory")
-    output_directory: Path | None = Field(None, description="Default output directory (None = same as input)")
+    output_directory: Path | None = Field(
+        None, description="Default output directory (None = same as input)"
+    )
 
     # Logging defaults
     verbose: bool = Field(False, description="Default verbose mode")
@@ -287,9 +305,15 @@ class CLIConfig(BaseModel):
     performance: bool = Field(False, description="Default performance metrics")
 
     # Configuration collections
-    presets: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Named configuration presets")
-    environments: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Environment-specific configs")
-    model_configs: dict[str, dict[str, Any]] = Field(default_factory=dict, description="Model-specific settings")
+    presets: dict[str, dict[str, Any]] = Field(
+        default_factory=dict, description="Named configuration presets"
+    )
+    environments: dict[str, dict[str, Any]] = Field(
+        default_factory=dict, description="Environment-specific configs"
+    )
+    model_configs: dict[str, dict[str, Any]] = Field(
+        default_factory=dict, description="Model-specific settings"
+    )
 
 
 class ConfigManager(BaseSettings):
@@ -333,8 +357,8 @@ class ConfigManager(BaseSettings):
         Here we happen to know that returning an empty dictionary is an acceptable
         behavior when the YAML file does not exist.
         """
-        encoding = cls.model_config.get('yaml_file_encoding')
-        yaml_file = cls.model_config.get('yaml_file')
+        encoding = cls.model_config.get("yaml_file_encoding")
+        yaml_file = cls.model_config.get("yaml_file")
         if not yaml_file:
             return {}
         try:
@@ -343,7 +367,6 @@ class ConfigManager(BaseSettings):
             return {}
         except Exception as e:
             raise SettingsError(f'Error loading YAML file "{yaml_file}": {e}') from e
-
 
     def save_to_file(self, config_file: str) -> None:
         """
@@ -414,13 +437,13 @@ class ConfigManager(BaseSettings):
             Path("config/cli_config.yaml"),  # Project config
             Path.home() / ".config" / "ai_tc_generator" / "config.yaml",  # User config
         ]
-        
+
         for config_path in config_paths:
             if config_path and Path(config_path).exists():
                 try:
-                    with open(config_path, "r", encoding="utf-8") as f:
+                    with open(config_path, encoding="utf-8") as f:
                         config_data = yaml.safe_load(f)
-                    
+
                     # Update CLI configuration
                     if "cli_defaults" in config_data:
                         cli_data = config_data["cli_defaults"]
@@ -428,7 +451,7 @@ class ConfigManager(BaseSettings):
                         for key, value in cli_data.items():
                             if hasattr(self.cli, key):
                                 setattr(self.cli, key, value)
-                    
+
                     # Load presets, environments, and model configs
                     if "presets" in config_data:
                         self.cli.presets.update(config_data["presets"])
@@ -436,14 +459,14 @@ class ConfigManager(BaseSettings):
                         self.cli.environments.update(config_data["environments"])
                     if "model_configs" in config_data:
                         self.cli.model_configs.update(config_data["model_configs"])
-                        
+
                     print(f"✅ Loaded CLI config from: {config_path}")
                     return
-                    
+
                 except Exception as e:
                     print(f"⚠️  Warning: Could not load CLI config from {config_path}: {e}")
                     continue
-        
+
         print("ℹ️  Using default CLI configuration (no config file found)")
 
     def get_preset_config(self, preset_name: str) -> dict[str, Any]:
@@ -464,7 +487,7 @@ class ConfigManager(BaseSettings):
             print(f"❌ Environment '{env_name}' not found. Available environments: {available}")
             return {}
 
-    def apply_cli_overrides(self, **kwargs) -> "ConfigManager":
+    def apply_cli_overrides(self, **kwargs) -> ConfigManager:
         """
         Apply CLI configuration with environment variables and overrides.
 
@@ -601,10 +624,18 @@ class ConfigManager(BaseSettings):
         secrets_summary = self.secrets.get_masked_summary()
 
         # Count configured vs unconfigured secrets
-        configured_count = sum(1 for v in secrets_summary.values()
-                             if v not in ["not_set", "False"] and not v.startswith("enable_"))
-        total_secrets = len([k for k in secrets_summary.keys()
-                           if not k.endswith("_hours") and not k.startswith("enable_")])
+        configured_count = sum(
+            1
+            for v in secrets_summary.values()
+            if v not in ["not_set", "False"] and not v.startswith("enable_")
+        )
+        total_secrets = len(
+            [
+                k
+                for k in secrets_summary.keys()
+                if not k.endswith("_hours") and not k.startswith("enable_")
+            ]
+        )
 
         return {
             "secrets_configured": configured_count,
@@ -612,7 +643,7 @@ class ConfigManager(BaseSettings):
             "encryption_enabled": self.secrets.enable_encryption,
             "secrets_expiry_hours": self.secrets.secrets_expiry_hours,
             "secrets_summary": secrets_summary,
-            "configuration_health": "healthy" if configured_count > 0 else "minimal"
+            "configuration_health": "healthy" if configured_count > 0 else "minimal",
         }
 
 

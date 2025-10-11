@@ -7,11 +7,11 @@ prioritize which examples need human annotation and identify quality patterns.
 
 import json
 import re
-from pathlib import Path
-from typing import Any, List, Dict
-from logging import Logger
-from dataclasses import dataclass
 from collections import defaultdict
+from dataclasses import dataclass
+from logging import Logger
+from pathlib import Path
+from typing import Any
 
 type RAFTExample = dict[str, Any]
 
@@ -19,6 +19,7 @@ type RAFTExample = dict[str, Any]
 @dataclass
 class QualityMetrics:
     """Quality metrics for a RAFT training example"""
+
     relevance_score: float = 0.0  # How well oracle context relates to requirement
     context_diversity: float = 0.0  # Diversity of context types
     context_quantity: float = 0.0  # Amount of context provided
@@ -29,6 +30,7 @@ class QualityMetrics:
 @dataclass
 class QualityAssessment:
     """Complete quality assessment result"""
+
     example_id: str
     metrics: QualityMetrics
     recommendations: list[str]
@@ -47,28 +49,59 @@ class QualityScorer:
         self.logger = logger
 
         # Scoring weights
-        self.weights = {
-            'relevance': 0.4,
-            'diversity': 0.2,
-            'quantity': 0.2,
-            'complexity': 0.2
-        }
+        self.weights = {"relevance": 0.4, "diversity": 0.2, "quantity": 0.2, "complexity": 0.2}
 
         # Keyword sets for relevance scoring
         self.domain_keywords = {
-            'automotive': [
-                'vehicle', 'car', 'engine', 'transmission', 'brake', 'steering',
-                'ABS', 'ESP', 'ECU', 'CAN', 'LIN', 'FlexRay', 'ADAS', 'safety',
-                'emission', 'fuel', 'battery', 'electric', 'hybrid', 'autonomous'
+            "automotive": [
+                "vehicle",
+                "car",
+                "engine",
+                "transmission",
+                "brake",
+                "steering",
+                "ABS",
+                "ESP",
+                "ECU",
+                "CAN",
+                "LIN",
+                "FlexRay",
+                "ADAS",
+                "safety",
+                "emission",
+                "fuel",
+                "battery",
+                "electric",
+                "hybrid",
+                "autonomous",
             ],
-            'aerospace': [
-                'aircraft', 'avionics', 'flight', 'altitude', 'pressure', 'temperature',
-                'navigation', 'radar', 'GPS', 'inertial', 'hydraulics', 'pneumatics'
+            "aerospace": [
+                "aircraft",
+                "avionics",
+                "flight",
+                "altitude",
+                "pressure",
+                "temperature",
+                "navigation",
+                "radar",
+                "GPS",
+                "inertial",
+                "hydraulics",
+                "pneumatics",
             ],
-            'medical': [
-                'patient', 'therapy', 'diagnosis', 'monitoring', 'alarm', 'sensor',
-                'dosage', 'infusion', 'ventilation', 'anesthesia', 'radiation'
-            ]
+            "medical": [
+                "patient",
+                "therapy",
+                "diagnosis",
+                "monitoring",
+                "alarm",
+                "sensor",
+                "dosage",
+                "infusion",
+                "ventilation",
+                "anesthesia",
+                "radiation",
+            ],
         }
 
     def assess_example_quality(self, example: RAFTExample) -> QualityAssessment:
@@ -81,9 +114,9 @@ class QualityScorer:
         Returns:
             Quality assessment with scores and recommendations
         """
-        example_id = example.get('requirement_id', 'UNKNOWN')
-        requirement_text = example.get('requirement_text', '')
-        context = example.get('retrieved_context', {})
+        example_id = example.get("requirement_id", "UNKNOWN")
+        requirement_text = example.get("requirement_text", "")
+        context = example.get("retrieved_context", {})
 
         # Calculate individual metrics
         relevance_score = self._calculate_relevance_score(requirement_text, context)
@@ -93,10 +126,10 @@ class QualityScorer:
 
         # Calculate overall score
         overall_score = (
-            relevance_score * self.weights['relevance'] +
-            context_diversity * self.weights['diversity'] +
-            context_quantity * self.weights['quantity'] +
-            requirement_complexity * self.weights['complexity']
+            relevance_score * self.weights["relevance"]
+            + context_diversity * self.weights["diversity"]
+            + context_quantity * self.weights["quantity"]
+            + requirement_complexity * self.weights["complexity"]
         )
 
         metrics = QualityMetrics(
@@ -104,7 +137,7 @@ class QualityScorer:
             context_diversity=context_diversity,
             context_quantity=context_quantity,
             requirement_complexity=requirement_complexity,
-            overall_score=overall_score
+            overall_score=overall_score,
         )
 
         # Generate recommendations
@@ -117,7 +150,7 @@ class QualityScorer:
             example_id=example_id,
             metrics=metrics,
             recommendations=recommendations,
-            priority=priority
+            priority=priority,
         )
 
     def _calculate_relevance_score(self, requirement_text: str, context: dict) -> float:
@@ -131,32 +164,32 @@ class QualityScorer:
             return 0.0
 
         req_lower = requirement_text.lower()
-        req_words = set(re.findall(r'\b\w+\b', req_lower))
+        req_words = set(re.findall(r"\b\w+\b", req_lower))
 
         context_words = set()
         total_context_text = ""
 
         # Collect all context text
-        for context_type in ['heading', 'info_artifacts', 'interfaces']:
-            if context_type == 'heading':
-                heading = context.get('heading', {})
-                if isinstance(heading, dict) and 'text' in heading:
-                    total_context_text += " " + heading['text']
+        for context_type in ["heading", "info_artifacts", "interfaces"]:
+            if context_type == "heading":
+                heading = context.get("heading", {})
+                if isinstance(heading, dict) and "text" in heading:
+                    total_context_text += " " + heading["text"]
                 elif isinstance(heading, str):
                     total_context_text += " " + heading
-            elif context_type == 'info_artifacts':
-                artifacts = context.get('info_artifacts', [])
+            elif context_type == "info_artifacts":
+                artifacts = context.get("info_artifacts", [])
                 for artifact in artifacts:
-                    if isinstance(artifact, dict) and 'text' in artifact:
-                        total_context_text += " " + artifact['text']
-            elif context_type == 'interfaces':
-                interfaces = context.get('interfaces', [])
+                    if isinstance(artifact, dict) and "text" in artifact:
+                        total_context_text += " " + artifact["text"]
+            elif context_type == "interfaces":
+                interfaces = context.get("interfaces", [])
                 for iface in interfaces:
-                    if isinstance(iface, dict) and 'text' in iface:
-                        total_context_text += " " + iface['text']
+                    if isinstance(iface, dict) and "text" in iface:
+                        total_context_text += " " + iface["text"]
 
         ctx_lower = total_context_text.lower()
-        ctx_words = set(re.findall(r'\b\w+\b', ctx_lower))
+        ctx_words = set(re.findall(r"\b\w+\b", ctx_lower))
 
         # Calculate lexical overlap
         if req_words:
@@ -193,19 +226,22 @@ class QualityScorer:
         has_interfaces = False
 
         # Check for heading
-        heading = context.get('heading', {})
-        if isinstance(heading, dict) and heading.get('text'):
-            has_heading = True
-        elif isinstance(heading, str) and heading.strip():
+        heading = context.get("heading", {})
+        if (
+            isinstance(heading, dict)
+            and heading.get("text")
+            or isinstance(heading, str)
+            and heading.strip()
+        ):
             has_heading = True
 
         # Check for info artifacts
-        info_artifacts = context.get('info_artifacts', [])
+        info_artifacts = context.get("info_artifacts", [])
         if info_artifacts and len(info_artifacts) > 0:
             has_info = True
 
         # Check for interfaces
-        interfaces = context.get('interfaces', [])
+        interfaces = context.get("interfaces", [])
         if interfaces and len(interfaces) > 0:
             has_interfaces = True
 
@@ -224,23 +260,23 @@ class QualityScorer:
         total_chars = 0
 
         # Count heading text
-        heading = context.get('heading', {})
-        if isinstance(heading, dict) and 'text' in heading:
-            total_chars += len(heading['text'])
+        heading = context.get("heading", {})
+        if isinstance(heading, dict) and "text" in heading:
+            total_chars += len(heading["text"])
         elif isinstance(heading, str):
             total_chars += len(heading)
 
         # Count info artifacts
-        info_artifacts = context.get('info_artifacts', [])
+        info_artifacts = context.get("info_artifacts", [])
         for artifact in info_artifacts:
-            if isinstance(artifact, dict) and 'text' in artifact:
-                total_chars += len(artifact['text'])
+            if isinstance(artifact, dict) and "text" in artifact:
+                total_chars += len(artifact["text"])
 
         # Count interfaces
-        interfaces = context.get('interfaces', [])
+        interfaces = context.get("interfaces", [])
         for iface in interfaces:
-            if isinstance(iface, dict) and 'text' in iface:
-                total_chars += len(iface['text'])
+            if isinstance(iface, dict) and "text" in iface:
+                total_chars += len(iface["text"])
 
         # Normalize to 0-1 scale (1000+ characters = full score)
         quantity_score = min(1.0, total_chars / 1000.0)
@@ -258,16 +294,18 @@ class QualityScorer:
         length_score = min(1.0, len(text) / 200.0)
 
         # Structural complexity (number of clauses)
-        clause_indicators = ['shall', 'must', 'should', 'will', 'may', 'can', 'if', 'when', 'then']
+        clause_indicators = ["shall", "must", "should", "will", "may", "can", "if", "when", "then"]
         clauses = sum(1 for indicator in clause_indicators if indicator in text.lower())
         clause_score = min(1.0, clauses / 3.0)
 
         # Technical complexity (special characters, numbers)
-        tech_patterns = [r'\b\d+\.\d+\b', r'[A-Z]{3,}', r'[<>]=', r'±', r'°', r'%']
-        tech_score = sum(1 for pattern in tech_patterns if re.search(pattern, text)) / len(tech_patterns)
+        tech_patterns = [r"\b\d+\.\d+\b", r"[A-Z]{3,}", r"[<>]=", r"±", r"°", r"%"]
+        tech_score = sum(1 for pattern in tech_patterns if re.search(pattern, text)) / len(
+            tech_patterns
+        )
 
         # Combined complexity score
-        complexity_score = (length_score * 0.4 + clause_score * 0.4 + tech_score * 0.2)
+        complexity_score = length_score * 0.4 + clause_score * 0.4 + tech_score * 0.2
 
         return complexity_score
 
@@ -279,39 +317,49 @@ class QualityScorer:
             recommendations.append("Low relevance: Consider adding more domain-specific context")
 
         if metrics.context_diversity < 0.5:
-            recommendations.append("Low diversity: Include different types of context (heading, info, interfaces)")
+            recommendations.append(
+                "Low diversity: Include different types of context (heading, info, interfaces)"
+            )
 
         if metrics.context_quantity < 0.3:
             recommendations.append("Insufficient context: Add more detailed context information")
 
         if metrics.requirement_complexity < 0.3:
-            recommendations.append("Simple requirement: Consider if this adds value to training set")
+            recommendations.append(
+                "Simple requirement: Consider if this adds value to training set"
+            )
 
         # Specific context type recommendations
-        context = example.get('retrieved_context', {})
-        if not context.get('heading', {}).get('text'):
+        context = example.get("retrieved_context", {})
+        if not context.get("heading", {}).get("text"):
             recommendations.append("Missing heading: Consider adding section header context")
 
-        info_count = len(context.get('info_artifacts', []))
+        info_count = len(context.get("info_artifacts", []))
         if info_count < 2:
-            recommendations.append(f"Limited info artifacts ({info_count}): Add more background information")
+            recommendations.append(
+                f"Limited info artifacts ({info_count}): Add more background information"
+            )
 
-        interface_count = len(context.get('interfaces', []))
+        interface_count = len(context.get("interfaces", []))
         if interface_count == 0:
-            recommendations.append("No interface context: Consider adding system interface definitions")
+            recommendations.append(
+                "No interface context: Consider adding system interface definitions"
+            )
 
         return recommendations
 
     def _determine_priority(self, metrics: QualityMetrics) -> str:
         """Determine annotation priority based on quality metrics"""
         if metrics.overall_score >= 0.7:
-            return 'high'  # Good examples - prioritize for validation
+            return "high"  # Good examples - prioritize for validation
         elif metrics.overall_score >= 0.4:
-            return 'medium'  # Medium quality - standard priority
+            return "medium"  # Medium quality - standard priority
         else:
-            return 'low'  # Low quality - may need regeneration or rejection
+            return "low"  # Low quality - may need regeneration or rejection
 
-    def batch_assess_quality(self, examples_dir: str | Path, max_examples: int = 100) -> dict[str, Any]:
+    def batch_assess_quality(
+        self, examples_dir: str | Path, max_examples: int = 100
+    ) -> dict[str, Any]:
         """
         Assess quality of multiple examples and provide summary statistics.
 
@@ -324,18 +372,18 @@ class QualityScorer:
         """
         examples_path = Path(examples_dir)
         if not examples_path.exists():
-            return {'error': f'Directory {examples_dir} does not exist'}
+            return {"error": f"Directory {examples_dir} does not exist"}
 
         # Get example files
         json_files = list(examples_path.glob("raft_*.json"))[:max_examples]
 
         assessments = []
         priority_counts = defaultdict(int)
-        score_distribution = {'high': 0, 'medium': 0, 'low': 0}
+        score_distribution = {"high": 0, "medium": 0, "low": 0}
 
         for file_path in json_files:
             try:
-                with open(file_path, encoding='utf-8') as f:
+                with open(file_path, encoding="utf-8") as f:
                     example = json.load(f)
 
                 assessment = self.assess_example_quality(example)
@@ -373,13 +421,13 @@ class QualityScorer:
             top_recommendations = []
 
         return {
-            'total_assessed': len(assessments),
-            'score_distribution': dict(score_distribution),
-            'average_score': avg_score,
-            'median_score': median_score,
-            'average_relevance': avg_relevance,
-            'top_recommendations': top_recommendations,
-            'priority_breakdown': dict(priority_counts)
+            "total_assessed": len(assessments),
+            "score_distribution": dict(score_distribution),
+            "average_score": avg_score,
+            "median_score": median_score,
+            "average_relevance": avg_relevance,
+            "top_recommendations": top_recommendations,
+            "priority_breakdown": dict(priority_counts),
         }
 
     def suggest_improvements(self, assessment: QualityAssessment) -> dict[str, Any]:
@@ -393,26 +441,32 @@ class QualityScorer:
             Suggested improvements
         """
         improvements = {
-            'required_actions': [],
-            'optional_actions': [],
-            'regeneration_recommended': False
+            "required_actions": [],
+            "optional_actions": [],
+            "regeneration_recommended": False,
         }
 
         metrics = assessment.metrics
 
         # Critical improvements
         if metrics.relevance_score < 0.2:
-            improvements['regeneration_recommended'] = True
-            improvements['required_actions'].append("Regenerate context with better retrieval algorithm")
+            improvements["regeneration_recommended"] = True
+            improvements["required_actions"].append(
+                "Regenerate context with better retrieval algorithm"
+            )
 
         if metrics.context_quantity < 0.2:
-            improvements['required_actions'].append("Add more context information to retrieved documents")
+            improvements["required_actions"].append(
+                "Add more context information to retrieved documents"
+            )
 
         # Optional improvements
         if metrics.context_diversity < 0.3:
-            improvements['optional_actions'].append("Incorporate different types of context documents")
+            improvements["optional_actions"].append(
+                "Incorporate different types of context documents"
+            )
 
         if metrics.requirement_complexity < 0.2:
-            improvements['optional_actions'].append("Select more complex requirements for training")
+            improvements["optional_actions"].append("Select more complex requirements for training")
 
         return improvements

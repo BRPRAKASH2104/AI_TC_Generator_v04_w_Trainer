@@ -5,7 +5,6 @@ This module provides a stateless, reusable prompt builder that handles all
 prompt construction logic, decoupled from test case generators.
 """
 
-
 from typing import Any
 
 # Type aliases
@@ -26,11 +25,7 @@ class PromptBuilder:
         """
         self.yaml_manager = yaml_manager
 
-    def build_prompt(
-        self,
-        requirement: RequirementData,
-        template_name: str = None
-    ) -> str:
+    def build_prompt(self, requirement: RequirementData, template_name: str = None) -> str:
         """
         Build prompt from requirement data.
 
@@ -46,11 +41,7 @@ class PromptBuilder:
         else:
             return self._build_default(requirement)
 
-    def _build_from_template(
-        self,
-        requirement: RequirementData,
-        template_name: str = None
-    ) -> str:
+    def _build_from_template(self, requirement: RequirementData, template_name: str = None) -> str:
         """
         Build prompt using YAML template.
 
@@ -68,11 +59,13 @@ class PromptBuilder:
                 "heading": requirement.get("heading", ""),
                 "requirement_text": requirement.get("text", ""),
                 "table_str": self.format_table(requirement.get("table")),
-                "row_count": requirement.get("table", {}).get("rows", 0) if requirement.get("table") else 0,
+                "row_count": requirement.get("table", {}).get("rows", 0)
+                if requirement.get("table")
+                else 0,
                 "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",  # Default automotive precondition
                 # Context-aware fields (v03 restoration)
                 "info_str": self.format_info_list(requirement.get("info_list", [])),
-                "interface_str": self.format_interfaces(requirement.get("interface_list", []))
+                "interface_str": self.format_interfaces(requirement.get("interface_list", [])),
             }
 
             # Use template manager to get formatted prompt
@@ -81,7 +74,7 @@ class PromptBuilder:
             else:
                 return self.yaml_manager.get_test_prompt(**variables)
 
-        except Exception as e:
+        except Exception:
             # Fallback to default prompt on template error
             return self._build_default(requirement)
 
@@ -217,7 +210,9 @@ Return ONLY valid JSON with the exact field names shown above."""
         if not interface_list:
             return "None"
 
-        return "\n".join([
-            f"- {interface.get('id', 'UNKNOWN')}: {interface.get('text', '')}"
-            for interface in interface_list
-        ])
+        return "\n".join(
+            [
+                f"- {interface.get('id', 'UNKNOWN')}: {interface.get('text', '')}"
+                for interface in interface_list
+            ]
+        )

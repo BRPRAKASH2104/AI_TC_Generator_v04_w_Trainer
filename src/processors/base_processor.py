@@ -5,15 +5,14 @@ This module provides the base class with shared logic for both standard
 and high-performance processors, eliminating code duplication.
 """
 
-
 import time
 from pathlib import Path
 from typing import Any
 
 from config import ConfigManager
 from file_processing_logger import FileProcessingLogger
-from yaml_prompt_manager import YAMLPromptManager
 from training.raft_collector import RAFTDataCollector
+from yaml_prompt_manager import YAMLPromptManager
 
 # Type aliases
 type ProcessingResult = dict[str, Any]
@@ -28,7 +27,7 @@ class BaseProcessor:
         config: ConfigManager = None,
         extractor=None,  # Dependency injection
         generator=None,  # Dependency injection
-        formatter=None   # Dependency injection
+        formatter=None,  # Dependency injection
     ):
         self.config = config or ConfigManager()
         self.logger = None  # Will be initialized per file
@@ -45,14 +44,13 @@ class BaseProcessor:
             self.raft_collector = RAFTDataCollector(
                 output_dir=Path(self.config.training.training_data_dir) / "collected",
                 logger=None,  # Logger will be set per file
-                enabled=True
+                enabled=True,
             )
 
     def _initialize_logger(self, reqifz_path: Path) -> None:
         """Initialize file-specific logger"""
         self.logger = FileProcessingLogger(
-            reqifz_file=reqifz_path.name,
-            input_path=str(reqifz_path.parent)
+            reqifz_file=reqifz_path.name, input_path=str(reqifz_path.parent)
         )
 
         # Update RAFT collector logger if enabled
@@ -79,8 +77,7 @@ class BaseProcessor:
         return artifacts
 
     def _build_augmented_requirements(
-        self,
-        artifacts: list[dict[str, Any]]
+        self, artifacts: list[dict[str, Any]]
     ) -> tuple[list[AugmentedRequirement], int]:
         """
         Build context-aware augmented requirements from artifacts.
@@ -132,14 +129,18 @@ class BaseProcessor:
                     self.logger.debug(f"⚠️  Skipping requirement {req_id}: no text content")
                     continue
 
-                self.logger.debug(f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})")
+                self.logger.debug(
+                    f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})"
+                )
 
                 augmented_requirement = obj.copy()
-                augmented_requirement.update({
-                    "heading": current_heading,
-                    "info_list": info_since_heading.copy(),
-                    "interface_list": system_interfaces
-                })
+                augmented_requirement.update(
+                    {
+                        "heading": current_heading,
+                        "info_list": info_since_heading.copy(),
+                        "interface_list": system_interfaces,
+                    }
+                )
                 augmented_requirements.append(augmented_requirement)
 
                 # Reset information context after processing requirement
@@ -148,16 +149,13 @@ class BaseProcessor:
         if not augmented_requirements:
             self.logger.warning("No System Requirements found for test generation")
         else:
-            self.logger.info(f"📋 Built {len(augmented_requirements)} context-enriched requirements")
+            self.logger.info(
+                f"📋 Built {len(augmented_requirements)} context-enriched requirements"
+            )
 
         return augmented_requirements, len(system_interfaces)
 
-    def _generate_output_path(
-        self,
-        reqifz_path: Path,
-        model: str,
-        output_dir: Path = None
-    ) -> Path:
+    def _generate_output_path(self, reqifz_path: Path, model: str, output_dir: Path = None) -> Path:
         """
         Generate output file path for Excel file
 
@@ -185,7 +183,7 @@ class BaseProcessor:
         reqifz_path: Path,
         total_cases: int,
         requirements_processed: int,
-        successful_requirements: int
+        successful_requirements: int,
     ) -> dict[str, Any]:
         """Create metadata dictionary for Excel output"""
         return {
@@ -194,7 +192,7 @@ class BaseProcessor:
             "source_file": str(reqifz_path),
             "total_cases": total_cases,
             "requirements_processed": requirements_processed,
-            "successful_requirements": successful_requirements
+            "successful_requirements": successful_requirements,
         }
 
     def _create_success_result(
@@ -206,7 +204,7 @@ class BaseProcessor:
         artifacts_count: int,
         processing_time: float,
         model: str,
-        template: str = None
+        template: str = None,
     ) -> ProcessingResult:
         """Create success result dictionary"""
         return {
@@ -218,26 +216,17 @@ class BaseProcessor:
             "artifacts_found": artifacts_count,
             "processing_time": processing_time,
             "model_used": model,
-            "template_used": template or "auto-selected"
+            "template_used": template or "auto-selected",
         }
 
     def _create_error_result(
-        self,
-        error_message: str,
-        processing_time: float = 0
+        self, error_message: str, processing_time: float = 0
     ) -> ProcessingResult:
         """Create error result dictionary"""
-        return {
-            "success": False,
-            "error": error_message,
-            "processing_time": processing_time
-        }
+        return {"success": False, "error": error_message, "processing_time": processing_time}
 
     def _save_raft_example(
-        self,
-        requirement: AugmentedRequirement,
-        test_cases: str,
-        model: str
+        self, requirement: AugmentedRequirement, test_cases: str, model: str
     ) -> None:
         """
         Save RAFT training example if collection is enabled.
@@ -252,7 +241,5 @@ class BaseProcessor:
         """
         if self.raft_collector:
             self.raft_collector.collect_example(
-                requirement=requirement,
-                generated_test_cases=test_cases,
-                model=model
+                requirement=requirement, generated_test_cases=test_cases, model=model
             )

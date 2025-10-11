@@ -5,14 +5,15 @@ Provides structured error handling with proper context and error types.
 """
 
 
-
 class AITestCaseGeneratorError(Exception):
     """Base exception for all AI Test Case Generator errors"""
+
     pass
 
 
 class OllamaError(AITestCaseGeneratorError):
     """Base exception for Ollama client errors"""
+
     pass
 
 
@@ -44,7 +45,9 @@ class OllamaModelNotFoundError(OllamaError):
 class OllamaResponseError(OllamaError):
     """Raised when Ollama returns invalid response"""
 
-    def __init__(self, message: str, status_code: int | None = None, response_body: str | None = None):
+    def __init__(
+        self, message: str, status_code: int | None = None, response_body: str | None = None
+    ):
         self.status_code = status_code
         self.response_body = response_body
         super().__init__(message)
@@ -68,4 +71,5 @@ class TestCaseGenerationError(AITestCaseGeneratorError):
 
 class ConfigurationError(AITestCaseGeneratorError):
     """Raised when configuration is invalid"""
+
     pass

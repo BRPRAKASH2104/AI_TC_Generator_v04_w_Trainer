@@ -5,7 +5,6 @@ This module provides async/concurrent processing capabilities for high-throughpu
 test case generation with optimized resource utilization.
 """
 
-
 import asyncio
 import time
 from pathlib import Path
@@ -22,6 +21,7 @@ from core.extractors import HighPerformanceREQIFArtifactExtractor
 from core.formatters import StreamingTestCaseFormatter
 from core.generators import AsyncTestCaseGenerator
 from core.ollama_client import AsyncOllamaClient
+
 from .base_processor import BaseProcessor
 
 # Type aliases
@@ -37,8 +37,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
         # Concurrency settings
         self.max_concurrent_requirements = (
-            max_concurrent_requirements or
-            self.config.ollama.gpu_concurrency_limit
+            max_concurrent_requirements or self.config.ollama.gpu_concurrency_limit
         )
 
         # Performance tracking
@@ -53,7 +52,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             "avg_response_time": 0.0,
             "peak_concurrency": 0,
             "cpu_usage_samples": [],
-            "memory_usage_samples": []
+            "memory_usage_samples": [],
         }
 
     async def process_directory(
@@ -61,16 +60,19 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         directory_path: Path,
         model: str = "llama3.1:8b",
         template: str = None,
-        output_dir: Path = None
+        output_dir: Path = None,
     ) -> list[ProcessingResult]:
         """
         Process all REQIFZ files in a directory concurrently.
         """
         from app_logger import get_app_logger
+
         app_logger = get_app_logger()
 
         reqifz_files = list(directory_path.glob("**/*.reqifz"))
-        app_logger.info(f"Found {len(reqifz_files)} REQIFZ files for async processing in {directory_path.name}")
+        app_logger.info(
+            f"Found {len(reqifz_files)} REQIFZ files for async processing in {directory_path.name}"
+        )
 
         tasks = []
         for reqifz_path in reqifz_files:
@@ -86,7 +88,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         model: str = "llama3.1:8b",
         template: str = None,
         output_dir: Path = None,
-        show_progress: bool = True
+        show_progress: bool = True,
     ) -> ProcessingResult:
         """
         Process a single REQIFZ file with high-performance async processing.
@@ -130,7 +132,9 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
             self.metrics["total_requirements"] = len(augmented_requirements)
 
-            self.logger.info(f"⚡ Async processing {len(augmented_requirements)} context-enriched requirements...")
+            self.logger.info(
+                f"⚡ Async processing {len(augmented_requirements)} context-enriched requirements..."
+            )
 
             # Step 3: High-performance async test case generation
             async with AsyncOllamaClient(self.config.ollama) as ollama_client:
@@ -138,7 +142,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                     ollama_client,
                     self.yaml_manager,
                     self.logger,
-                    max_concurrent=self.max_concurrent_requirements
+                    max_concurrent=self.max_concurrent_requirements,
                 )
 
                 # Start performance monitoring
@@ -149,7 +153,9 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 # This eliminates sequential batch gaps and improves throughput by 3x
                 processing_start = time.time()
 
-                self.logger.info(f"🚀 Processing all {len(augmented_requirements)} requirements concurrently...")
+                self.logger.info(
+                    f"🚀 Processing all {len(augmented_requirements)} requirements concurrently..."
+                )
 
                 batch_results = await generator.generate_test_cases_batch(
                     augmented_requirements, model, template
@@ -169,8 +175,10 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                         self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
 
                         # Record failure with detailed information
-                        if hasattr(self.logger, 'add_requirement_failure'):
-                            self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
+                        if hasattr(self.logger, "add_requirement_failure"):
+                            self.logger.add_requirement_failure(
+                                req_id, f"{error_type}: {error_msg}"
+                            )
 
                     elif isinstance(result, list) and result:
                         # Successful test cases
@@ -186,26 +194,34 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                             if self.raft_collector and j < len(augmented_requirements):
                                 augmented_req = augmented_requirements[j]
                                 # Format test cases to string for RAFT storage
-                                test_cases_str = "\n".join([
-                                    f"Test Case {i+1}: {tc.get('summary', 'N/A')}\n"
-                                    f"Action: {tc.get('action', 'N/A')}\n"
-                                    f"Data: {tc.get('data', 'N/A')}\n"
-                                    f"Expected: {tc.get('expected_result', 'N/A')}\n"
-                                    for i, tc in enumerate(result)
-                                ])
+                                test_cases_str = "\n".join(
+                                    [
+                                        f"Test Case {i + 1}: {tc.get('summary', 'N/A')}\n"
+                                        f"Action: {tc.get('action', 'N/A')}\n"
+                                        f"Data: {tc.get('data', 'N/A')}\n"
+                                        f"Expected: {tc.get('expected_result', 'N/A')}\n"
+                                        for i, tc in enumerate(result)
+                                    ]
+                                )
                                 self._save_raft_example(augmented_req, test_cases_str, model)
 
                     else:
                         # Empty result
-                        req_id = augmented_requirements[j].get("id", "UNKNOWN") if j < len(augmented_requirements) else "UNKNOWN"
+                        req_id = (
+                            augmented_requirements[j].get("id", "UNKNOWN")
+                            if j < len(augmented_requirements)
+                            else "UNKNOWN"
+                        )
                         self.logger.warning(f"⚠️  {req_id}: No test cases generated")
-                        if hasattr(self.logger, 'add_requirement_failure'):
+                        if hasattr(self.logger, "add_requirement_failure"):
                             self.logger.add_requirement_failure(req_id, "Empty result returned")
 
                 processing_time = time.time() - processing_start
                 rate = len(augmented_requirements) / processing_time if processing_time > 0 else 0
 
-                self.logger.info(f"✅ Processed {len(augmented_requirements)} requirements: {rate:.1f} req/sec")
+                self.logger.info(
+                    f"✅ Processed {len(augmented_requirements)} requirements: {rate:.1f} req/sec"
+                )
 
                 # Stop monitoring
                 monitor_task.cancel()
@@ -230,7 +246,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 "source_file": str(reqifz_path),
                 "processing_mode": "high_performance",
                 "max_concurrent": self.max_concurrent_requirements,
-                "total_cases": len(all_test_cases)
+                "total_cases": len(all_test_cases),
             }
 
             # Use streaming formatter for memory efficiency
@@ -255,12 +271,16 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 "processing_time": processing_time,
                 "model_used": model,
                 "template_used": template or "auto-selected",
-                "performance_metrics": self._get_performance_summary()
+                "performance_metrics": self._get_performance_summary(),
             }
 
             self.logger.info("🎉 High-performance processing complete!")
-            self.logger.info(f"📊 Generated {len(all_test_cases)} test cases in {processing_time:.2f}s")
-            self.logger.info(f"⚡ Processing rate: {len(all_test_cases)/processing_time:.1f} cases/sec")
+            self.logger.info(
+                f"📊 Generated {len(all_test_cases)} test cases in {processing_time:.2f}s"
+            )
+            self.logger.info(
+                f"⚡ Processing rate: {len(all_test_cases) / processing_time:.1f} cases/sec"
+            )
             self.logger.info(f"📁 Saved to: {output_path.name}")
 
             return result
@@ -275,7 +295,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 f"  1. Start Ollama: ollama serve\n"
                 f"  2. Verify: curl http://{e.host}:{e.port}/api/tags\n"
                 f"Error: {e}",
-                processing_time
+                processing_time,
             )
 
         except OllamaTimeoutError as e:
@@ -290,7 +310,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 f"  • Use faster model: llama3.1:8b instead of deepseek-coder-v2:16b\n"
                 f"  • Increase timeout: AI_TG_TIMEOUT=900\n"
                 f"  • Reduce concurrency: --max-concurrent 2",
-                processing_time
+                processing_time,
             )
 
         except OllamaModelNotFoundError as e:
@@ -302,7 +322,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 f"Model '{e.model}' is not available.\n"
                 f"Install it with: ollama pull {e.model}\n"
                 f"Check available models: ollama list",
-                processing_time
+                processing_time,
             )
 
         except REQIFParsingError as e:
@@ -314,7 +334,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 f"Failed to parse REQIF file: {e.file_path}\n"
                 f"Error: {e}\n"
                 f"Ensure the file is a valid REQIFZ archive.",
-                processing_time
+                processing_time,
             )
 
         except Exception as e:
@@ -326,18 +346,15 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 f"Unexpected error: {e}\n"
                 f"Error type: {type(e).__name__}\n"
                 f"Please report this issue with the error details.",
-                processing_time
+                processing_time,
             )
 
         finally:
-            if self.logger and hasattr(self.logger, 'close'):
+            if self.logger and hasattr(self.logger, "close"):
                 self.logger.close()
 
     def _generate_output_path_hp(
-        self,
-        reqifz_path: Path,
-        model: str,
-        output_dir: Path = None
+        self, reqifz_path: Path, model: str, output_dir: Path = None
     ) -> Path:
         """Generate HP-specific output file path"""
         output_directory = output_dir or reqifz_path.parent
@@ -350,9 +367,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         return output_path
 
     def _create_error_result_hp(
-        self,
-        error_message: str,
-        processing_time: float = None
+        self, error_message: str, processing_time: float = None
     ) -> ProcessingResult:
         """Create HP-specific error result with metrics"""
         if processing_time is None:
@@ -362,13 +377,14 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             "success": False,
             "error": error_message,
             "processing_time": processing_time,
-            "performance_metrics": self._get_performance_summary()
+            "performance_metrics": self._get_performance_summary(),
         }
 
     async def _monitor_performance(self) -> None:
         """Monitor CPU and memory usage during processing"""
         try:
             import psutil
+
             process = psutil.Process()
 
             while True:
@@ -396,11 +412,12 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             "total_requirements": self.metrics["total_requirements"],
             "success_rate": (
                 self.metrics["successful_requirements"] / self.metrics["total_requirements"] * 100
-                if self.metrics["total_requirements"] > 0 else 0
+                if self.metrics["total_requirements"] > 0
+                else 0
             ),
             "avg_cpu_percent": sum(cpu_samples) / len(cpu_samples) if cpu_samples else 0,
             "peak_cpu_percent": max(cpu_samples) if cpu_samples else 0,
             "avg_memory_mb": sum(mem_samples) / len(mem_samples) if mem_samples else 0,
             "peak_memory_mb": max(mem_samples) if mem_samples else 0,
-            "max_concurrent": self.max_concurrent_requirements
+            "max_concurrent": self.max_concurrent_requirements,
         }
