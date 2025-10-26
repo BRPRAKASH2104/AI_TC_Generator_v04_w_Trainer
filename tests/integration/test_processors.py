@@ -6,7 +6,6 @@ Tests the full workflow integration between components.
 
 import asyncio
 import pytest
-from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock
 
 from processors.standard_processor import REQIFZFileProcessor

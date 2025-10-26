@@ -4,8 +4,7 @@ Unit tests for YAML prompt manager - Fixed to match actual implementation.
 Tests template loading, variable substitution, and auto-selection using real interface.
 """
 
-import pytest
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import patch, mock_open
 from pathlib import Path
 
 from yaml_prompt_manager import YAMLPromptManager

@@ -6,7 +6,7 @@ Tests verify that RAFT collection does NOT affect core logic or test case genera
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from config import ConfigManager
 from processors.base_processor import BaseProcessor
 

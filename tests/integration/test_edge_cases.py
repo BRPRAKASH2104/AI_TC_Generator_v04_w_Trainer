@@ -12,19 +12,17 @@ import tempfile
 import time
 import zipfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
 
-from src.config import ConfigManager
-from src.core.exceptions import OllamaConnectionError, OllamaTimeoutError, OllamaResponseError
-from src.core.extractors import REQIFArtifactExtractor, HighPerformanceREQIFArtifactExtractor
-from src.core.generators import AsyncTestCaseGenerator, TestCaseGenerator
-from src.core.ollama_client import AsyncOllamaClient, OllamaClient
-from src.core.parsers import JSONResponseParser
-from src.processors.hp_processor import HighPerformanceREQIFZFileProcessor
-from src.processors.standard_processor import REQIFZFileProcessor
+from config import ConfigManager
+from core.exceptions import OllamaConnectionError, OllamaTimeoutError, OllamaResponseError
+from core.extractors import REQIFArtifactExtractor, HighPerformanceREQIFArtifactExtractor
+from core.generators import AsyncTestCaseGenerator, TestCaseGenerator
+from core.ollama_client import AsyncOllamaClient, OllamaClient
+from core.parsers import JSONResponseParser
 
 
 class TestMalformedFiles:
@@ -186,47 +184,42 @@ class TestNetworkErrorConditions:
 
     def test_connection_refused_error(self, mock_config):
         """Test handling when Ollama service is not available"""
-        # Mock requests to raise ConnectionError
-        with patch('src.core.ollama_client.requests') as mock_requests:
-            mock_session = Mock()
-            mock_session.post.side_effect = requests.ConnectionError("Connection refused")
-            mock_requests.Session.return_value = mock_session
+        client = OllamaClient(mock_config.ollama)
 
-            client = OllamaClient(mock_config.ollama)
+        # Mock the session's post method to raise ConnectionError
+        client._session.post = Mock(side_effect=requests.ConnectionError("Connection refused"))
 
-            with pytest.raises(OllamaConnectionError):
-                client.generate_response("test-model", "test prompt")
+        with pytest.raises(OllamaConnectionError):
+            client.generate_response("test-model", "test prompt")
 
     def test_timeout_error(self, mock_config):
         """Test handling of request timeouts"""
-        with patch('src.core.ollama_client.requests') as mock_requests:
-            mock_session = Mock()
-            mock_session.post.side_effect = requests.Timeout("Request timed out")
-            mock_requests.Session.return_value = mock_session
+        client = OllamaClient(mock_config.ollama)
 
-            client = OllamaClient(mock_config.ollama)
+        # Mock the session's post method to raise Timeout
+        client._session.post = Mock(side_effect=requests.Timeout("Request timed out"))
 
-            with pytest.raises(OllamaTimeoutError):
-                client.generate_response("test-model", "test prompt")
+        with pytest.raises(OllamaTimeoutError):
+            client.generate_response("test-model", "test prompt")
 
     def test_http_error_responses(self, mock_config):
         """Test handling of various HTTP error responses"""
         error_codes = [400, 401, 403, 500, 502, 503, 504]
 
         for error_code in error_codes:
-            with patch('src.core.ollama_client.requests') as mock_requests:
-                mock_response = Mock()
-                mock_response.status_code = error_code
-                mock_response.text = f"HTTP {error_code} error"
-                mock_response.raise_for_status.side_effect = requests.HTTPError(response=mock_response)
-                mock_session = Mock()
-                mock_session.post.return_value = mock_response
-                mock_requests.Session.return_value = mock_session
+            client = OllamaClient(mock_config.ollama)
 
-                client = OllamaClient(mock_config.ollama)
+            # Mock the response to raise HTTPError
+            mock_response = Mock()
+            mock_response.status_code = error_code
+            mock_response.text = f"HTTP {error_code} error"
+            mock_response.raise_for_status.side_effect = requests.HTTPError(response=mock_response)
 
-                with pytest.raises(OllamaResponseError):
-                    client.generate_response("test-model", "test prompt")
+            # Mock the session's post method to return the mock response
+            client._session.post = Mock(return_value=mock_response)
+
+            with pytest.raises(OllamaResponseError):
+                client.generate_response("test-model", "test prompt")
 
     @pytest.mark.asyncio
     async def test_async_connection_errors(self, mock_config):

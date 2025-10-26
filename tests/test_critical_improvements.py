@@ -11,7 +11,7 @@ These tests ensure that optimizations don't break existing functionality.
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -26,7 +26,7 @@ from core.exceptions import (
     OllamaTimeoutError,
     REQIFParsingError,
 )
-from core.generators import AsyncTestCaseGenerator, TestCaseGenerator
+from core.generators import AsyncTestCaseGenerator
 from core.ollama_client import AsyncOllamaClient, OllamaClient
 from processors.base_processor import BaseProcessor
 from processors.hp_processor import HighPerformanceREQIFZFileProcessor
@@ -173,7 +173,6 @@ class TestAsyncOllamaClientErrorHandling:
     @pytest.mark.asyncio
     async def test_async_connection_error_raises_ollama_connection_error(self):
         """Async connection errors should raise OllamaConnectionError"""
-        import aiohttp
         from aiohttp import ClientConnectorError
 
         config = ConfigManager()

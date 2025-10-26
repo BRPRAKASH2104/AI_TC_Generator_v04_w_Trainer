@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock
 from processors.base_processor import BaseProcessor
 from core.prompt_builder import PromptBuilder
 from core.generators import TestCaseGenerator, AsyncTestCaseGenerator

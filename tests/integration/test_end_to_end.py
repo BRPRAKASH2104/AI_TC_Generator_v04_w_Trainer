@@ -6,18 +6,17 @@ These tests validate the complete workflow from REQIFZ file input
 to Excel output generation, including error handling and performance.
 """
 
-import asyncio
 import json
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from src.config import ConfigManager
-from src.processors.hp_processor import HighPerformanceREQIFZFileProcessor
-from src.processors.standard_processor import REQIFZFileProcessor
+from config import ConfigManager
+from processors.hp_processor import HighPerformanceREQIFZFileProcessor
+from processors.standard_processor import REQIFZFileProcessor
 
 
 class TestEndToEndWorkflows:

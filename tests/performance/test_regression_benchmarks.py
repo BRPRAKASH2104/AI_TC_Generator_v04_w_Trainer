@@ -7,9 +7,7 @@ Run these benchmarks after major changes to verify performance improvements/null
 
 import pytest
 import time
-from pathlib import Path
 from unittest.mock import Mock
-import statistics
 
 from src.processors.standard_processor import REQIFZFileProcessor
 from src.config import ConfigManager

@@ -19,7 +19,11 @@ ruff check src/ main.py --fix      # Lint and auto-fix
 - `src/processors/base_processor.py:62-126` - Context-aware processing (DO NOT MODIFY)
 - `src/core/extractors.py:151-172,191,235` - REQIFZ extraction with attribute mapping (RECENT FIX)
 - `src/core/prompt_builder.py` - Stateless prompt construction
-- `src/core/generators.py` - Test case generation (sync + async)
+- `src/core/generators.py` - Test case generation with validation & deduplication
+- `src/core/validators.py` - Semantic validation (NEW v2.2.0)
+- `src/core/deduplicator.py` - Test case deduplication (NEW v2.2.0)
+- `src/core/relationship_parser.py` - SPEC-RELATION parsing (NEW v2.2.0)
+- `src/core/image_extractor.py` - Image extraction from REQIFZ (NEW v2.2.0)
 - `src/core/exceptions.py` - Structured error handling
 - `prompts/templates/test_generation_adaptive.yaml` - Adaptive prompt (table + text-only)
 

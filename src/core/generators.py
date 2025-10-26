@@ -9,9 +9,11 @@ import asyncio
 import time
 from typing import Any
 
+from core.deduplicator import TestCaseDeduplicator
 from core.ollama_client import AsyncOllamaClient, OllamaClient
 from core.parsers import FastJSONResponseParser, JSONResponseParser
 from core.prompt_builder import PromptBuilder
+from core.validators import SemanticValidator
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseData = dict[str, Any]
@@ -23,12 +25,14 @@ type ProcessingResult = TestCaseList | dict[str, Any]  # Can be test cases or er
 class TestCaseGenerator:
     """Generates test cases from requirements using AI models"""
 
-    __slots__ = ("client", "json_parser", "prompt_builder", "logger")
+    __slots__ = ("client", "json_parser", "prompt_builder", "validator", "deduplicator", "logger")
 
-    def __init__(self, client: OllamaClient, yaml_manager=None, logger=None):
+    def __init__(self, client: OllamaClient, yaml_manager=None, logger=None, validator=None, deduplicator=None):
         self.client = client
         self.json_parser = JSONResponseParser()
         self.prompt_builder = PromptBuilder(yaml_manager)
+        self.validator = validator or SemanticValidator(logger=logger)
+        self.deduplicator = deduplicator or TestCaseDeduplicator(logger=logger)
         self.logger = logger
 
     def generate_test_cases_for_requirement(
@@ -63,15 +67,45 @@ class TestCaseGenerator:
             if test_cases_data and "test_cases" in test_cases_data:
                 test_cases = test_cases_data["test_cases"]
 
+                # Semantic validation
+                validation_report = self.validator.validate_batch(test_cases, requirement)
+
+                if validation_report["invalid_count"] > 0 and self.logger:
+                    self.logger.warning(
+                        f"Semantic validation: {validation_report['valid_count']}/{validation_report['total_test_cases']} passed"
+                    )
+                    for issue_entry in validation_report["issues"]:
+                        self.logger.warning(
+                            f"  Test case {issue_entry['test_case_index']}: {issue_entry['summary']}"
+                        )
+                        for issue in issue_entry["issues"]:
+                            self.logger.warning(f"    - {issue}")
+
+                # Deduplication
+                test_cases, dedup_report = self.deduplicator.deduplicate(test_cases, keep_strategy="best")
+
+                if dedup_report["duplicates_removed"] > 0 and self.logger:
+                    self.logger.info(
+                        f"Deduplication: {dedup_report['original_count']} → {dedup_report['deduplicated_count']} test cases "
+                        f"({dedup_report['duplicates_removed']} duplicates removed)"
+                    )
+
                 # Add metadata to each test case
                 for i, test_case in enumerate(test_cases):
                     test_case["requirement_id"] = requirement.get("id", "UNKNOWN")
                     test_case["generation_time"] = generation_time
                     test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i + 1:03d}"
+                    # Add validation status
+                    is_valid = i >= len(validation_report["issues"]) or all(
+                        entry["test_case_index"] != i + 1
+                        for entry in validation_report["issues"]
+                    )
+                    test_case["validation_passed"] = is_valid
 
                 if self.logger:
                     self.logger.info(
-                        f"Generated {len(test_cases)} test cases for {requirement.get('id', 'UNKNOWN')}"
+                        f"Generated {len(test_cases)} test cases for {requirement.get('id', 'UNKNOWN')} "
+                        f"({validation_report['valid_count']} passed validation)"
                     )
 
                 return test_cases
@@ -93,14 +127,16 @@ class TestCaseGenerator:
 class AsyncTestCaseGenerator:
     """Asynchronous test case generator for high-performance processing"""
 
-    __slots__ = ("client", "json_parser", "prompt_builder", "logger")
+    __slots__ = ("client", "json_parser", "prompt_builder", "validator", "deduplicator", "logger")
 
     def __init__(
-        self, client: AsyncOllamaClient, yaml_manager=None, logger=None, max_concurrent: int = 4
+        self, client: AsyncOllamaClient, yaml_manager=None, logger=None, validator=None, deduplicator=None, max_concurrent: int = 4
     ):
         self.client = client
         self.json_parser = FastJSONResponseParser()
         self.prompt_builder = PromptBuilder(yaml_manager)
+        self.validator = validator or SemanticValidator(logger=logger)
+        self.deduplicator = deduplicator or TestCaseDeduplicator(logger=logger)
         self.logger = logger
         # Note: Concurrency limiting is handled by AsyncOllamaClient's semaphore
         # No need for double semaphore here - improves throughput by ~50%
@@ -266,19 +302,53 @@ class AsyncTestCaseGenerator:
 
                     return error_info
 
-                # Phase 5: Metadata Enrichment
+                # Phase 5: Semantic Validation
+                # Validate test cases against requirement context
+                validation_report = self.validator.validate_batch(test_cases, requirement)
+
+                if validation_report["invalid_count"] > 0 and self.logger:
+                    self.logger.warning(
+                        f"Semantic validation: {validation_report['valid_count']}/{validation_report['total_test_cases']} passed for {req_id}"
+                    )
+                    for issue_entry in validation_report["issues"]:
+                        self.logger.warning(
+                            f"  Test case {issue_entry['test_case_index']}: {issue_entry['summary']}"
+                        )
+                        for issue in issue_entry["issues"]:
+                            self.logger.warning(f"    - {issue}")
+
+                # Phase 6: Deduplication
+                # Remove duplicate or highly similar test cases
+                test_cases, dedup_report = self.deduplicator.deduplicate(test_cases, keep_strategy="best")
+
+                if dedup_report["duplicates_removed"] > 0 and self.logger:
+                    self.logger.info(
+                        f"Deduplication: {dedup_report['original_count']} → {dedup_report['deduplicated_count']} test cases for {req_id} "
+                        f"({dedup_report['duplicates_removed']} duplicates removed)"
+                    )
+
+                # Phase 7: Metadata Enrichment
                 # Add tracking and correlation metadata to each test case
                 for i, test_case in enumerate(test_cases):
                     test_case["requirement_id"] = req_id
                     test_case["generation_time"] = generation_time
                     test_case["test_id"] = f"{req_id}_TC_{i + 1:03d}"
+                    # Add validation status
+                    is_valid = i >= len(validation_report["issues"]) or all(
+                        entry["test_case_index"] != i + 1
+                        for entry in validation_report["issues"]
+                    )
+                    test_case["validation_passed"] = is_valid
 
                 if self.logger:
-                    self.logger.info(f"Generated {len(test_cases)} test cases for {req_id}")
+                    self.logger.info(
+                        f"Generated {len(test_cases)} test cases for {req_id} "
+                        f"({validation_report['valid_count']} passed validation)"
+                    )
 
                 return test_cases
             else:
-                # Phase 6: Handle JSON Parsing Failures
+                # Phase 8: Handle JSON Parsing Failures
                 # The response was valid but didn't contain expected structure
                 error_info = {
                     "error": True,
@@ -297,7 +367,7 @@ class AsyncTestCaseGenerator:
                 return error_info
 
         except Exception as e:
-            # Phase 7: Catastrophic Error Handling
+            # Phase 9: Catastrophic Error Handling
             # Catch any unexpected errors and wrap them in structured format
             error_info = {
                 "error": True,

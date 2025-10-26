@@ -6,8 +6,7 @@ Focuses on non-mocked integration where feasible.
 """
 
 import pytest
-from unittest.mock import Mock, patch
-import time
+from unittest.mock import patch
 
 from src.config import ConfigManager
 from src.core.ollama_client import OllamaClient
@@ -119,7 +118,7 @@ class TestConfigurationValidation:
 
     def test_pydantic_validation_real(self):
         """Test actual Pydantic validation in config."""
-        from src.config import ConfigManager, OllamaConfig
+        from src.config import OllamaConfig
 
         # Test valid config
         ollama_config = OllamaConfig(
@@ -194,7 +193,6 @@ class TestFileProcessingIntegration:
 
     def test_processor_component_validation(self):
         """Test that processor components work together correctly."""
-        from src.processors.standard_processor import REQIFZFileProcessor
         from src.core.extractors import REQIFArtifactExtractor
         from src.core.generators import TestCaseGenerator
         from src.core.formatters import TestCaseFormatter

@@ -4,7 +4,6 @@ Unit tests for the parsers module.
 Tests JSON response parsing with multiple fallback strategies and HTML table parsing.
 """
 
-import pytest
 
 from core.parsers import JSONResponseParser, FastJSONResponseParser, HTMLTableParser
 

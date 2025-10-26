@@ -5,7 +5,7 @@ Tests test case generation with mock AI clients.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock
 
 from core.generators import TestCaseGenerator, AsyncTestCaseGenerator
 

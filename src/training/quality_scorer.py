@@ -168,7 +168,6 @@ class QualityScorer:
         req_lower = requirement_text.lower()
         req_words = set(re.findall(r"\b\w+\b", req_lower))
 
-        context_words = set()
         total_context_text = ""
 
         # Collect all context text

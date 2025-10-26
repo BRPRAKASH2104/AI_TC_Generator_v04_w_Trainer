@@ -9,8 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pytest
-import asyncio
-from unittest.mock import Mock, MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 from processors.standard_processor import REQIFZFileProcessor
 from processors.hp_processor import HighPerformanceREQIFZFileProcessor
 

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from core.parsers import HTMLTableParser
+from core.relationship_parser import RequirementRelationshipParser
 
 # Type aliases for better readability (PEP 695 style)
 type RequirementData = dict[str, Any]
@@ -531,6 +532,104 @@ class REQIFArtifactExtractor:
             classified[artifact_type].append(artifact)
 
         return classified
+
+    def parse_and_augment_relationships(
+        self,
+        reqifz_file_path: Path,
+        artifacts: ArtifactList,
+        augment_requirements: bool = True,
+        build_dependency_graph: bool = False,
+    ) -> tuple[ArtifactList, dict[str, Any]]:
+        """
+        Parse SPEC-RELATION elements and augment artifacts with relationship metadata.
+
+        Args:
+            reqifz_file_path: Path to the REQIFZ file
+            artifacts: List of artifacts to augment
+            augment_requirements: Whether to augment requirements with parent/child metadata
+            build_dependency_graph: Whether to build dependency graph
+
+        Returns:
+            Tuple of (augmented_artifacts, relationship_info)
+            - augmented_artifacts: Artifacts with relationship metadata
+            - relationship_info: Dict with relationships, parent_child_map, and optionally dependency_graph
+        """
+        try:
+            with zipfile.ZipFile(reqifz_file_path, "r") as zip_file:
+                reqif_files = [f for f in zip_file.namelist() if f.endswith(".reqif")]
+
+                if not reqif_files:
+                    if self.logger:
+                        self.logger.warning(f"No .reqif files found in {reqifz_file_path}")
+                    return artifacts, {"relationships": [], "parent_child_map": {}}
+
+                # Parse REQIF XML
+                reqif_content = zip_file.read(reqif_files[0])
+                root = ET.fromstring(reqif_content)
+
+                # REQIF namespaces
+                namespaces = {
+                    "reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd",
+                    "html": "http://www.w3.org/1999/xhtml",
+                }
+
+                # Build mapping from internal SPEC-OBJECT identifiers to foreign IDs
+                spec_obj_to_foreign_id = {}
+                spec_objects = root.findall(".//reqif:SPEC-OBJECT", namespaces)
+                for spec_obj in spec_objects:
+                    internal_id = spec_obj.get("IDENTIFIER")
+                    # Look for foreign ID in VALUES
+                    values_container = spec_obj.find("reqif:VALUES", namespaces)
+                    if values_container is not None:
+                        for attr_value in values_container.findall(
+                            "reqif:ATTRIBUTE-VALUE-STRING", namespaces
+                        ):
+                            definition_ref_node = attr_value.find(
+                                "reqif:DEFINITION/reqif:ATTRIBUTE-DEFINITION-STRING-REF", namespaces
+                            )
+                            if definition_ref_node is not None:
+                                attr_def_id = definition_ref_node.text
+                                # Check if this is a ReqIF.ForeignID attribute
+                                attr_def = root.find(
+                                    f".//reqif:ATTRIBUTE-DEFINITION-STRING[@IDENTIFIER='{attr_def_id}']",
+                                    namespaces,
+                                )
+                                if attr_def is not None and attr_def.get("LONG-NAME") == "ReqIF.ForeignID":
+                                    foreign_id = attr_value.get("THE-VALUE")
+                                    if foreign_id:
+                                        spec_obj_to_foreign_id[internal_id] = foreign_id
+                                        break
+
+                # Create relationship parser
+                relationship_parser = RequirementRelationshipParser(logger=self.logger)
+
+                # Parse relationships
+                relationships, parent_child_map = relationship_parser.parse_relationships(
+                    root, namespaces, spec_obj_to_foreign_id
+                )
+
+                relationship_info = {
+                    "relationships": relationships,
+                    "parent_child_map": parent_child_map,
+                }
+
+                # Augment requirements with relationship metadata
+                if augment_requirements:
+                    artifacts = relationship_parser.augment_requirements_with_relationships(
+                        artifacts, parent_child_map
+                    )
+
+                # Build dependency graph if requested
+                if build_dependency_graph and relationships:
+                    dependency_graph = relationship_parser.build_dependency_graph(relationships)
+                    relationship_info["dependency_graph"] = dependency_graph
+
+                return artifacts, relationship_info
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error parsing relationships from {reqifz_file_path}: {e}")
+            return artifacts, {"relationships": [], "parent_child_map": {}}
 
 
 class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):

@@ -4,7 +4,6 @@ Pytest configuration and shared fixtures for AI Test Case Generator tests.
 
 import sys
 from pathlib import Path
-from typing import Any
 from unittest.mock import Mock
 
 import pytest

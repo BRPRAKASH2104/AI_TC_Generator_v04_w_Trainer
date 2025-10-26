@@ -25,7 +25,7 @@ def test_ollama_version():
 
 def test_type_aliases():
     """Test Python 3.14 type parameter syntax"""
-    from src.core.generators import TestCaseData, TestCaseList, ProcessingResult
+    from core.generators import TestCaseData, TestCaseList, ProcessingResult
 
     # Type aliases should be accessible
     assert TestCaseData is not None
@@ -35,7 +35,7 @@ def test_type_aliases():
 
 def test_ollama_larger_context():
     """Test Ollama 0.12.5 larger context window support"""
-    from src.config import OllamaConfig
+    from config import OllamaConfig
 
     config = OllamaConfig(num_ctx=16384)  # 0.12.5 supports 16K+
     assert config.num_ctx == 16384
@@ -43,7 +43,7 @@ def test_ollama_larger_context():
 
 def test_ollama_increased_response_length():
     """Test Ollama 0.12.5 increased response length"""
-    from src.config import OllamaConfig
+    from config import OllamaConfig
 
     config = OllamaConfig(num_predict=4096)  # 0.12.5 increased max
     assert config.num_predict == 4096
@@ -51,7 +51,7 @@ def test_ollama_increased_response_length():
 
 def test_ollama_gpu_offload():
     """Test Ollama 0.12.5 GPU offload config"""
-    from src.config import OllamaConfig
+    from config import OllamaConfig
 
     config = OllamaConfig(enable_gpu_offload=True, max_vram_usage=0.95)
     assert config.enable_gpu_offload is True
@@ -60,7 +60,7 @@ def test_ollama_gpu_offload():
 
 def test_ollama_version_url():
     """Test Ollama 0.12.5 version_url property"""
-    from src.config import OllamaConfig
+    from config import OllamaConfig
 
     config = OllamaConfig()
     assert config.version_url == "http://127.0.0.1:11434/api/version"
@@ -68,7 +68,7 @@ def test_ollama_version_url():
 
 def test_ollama_improved_gpu_concurrency():
     """Test Ollama 0.12.5 improved GPU concurrency default"""
-    from src.config import OllamaConfig
+    from config import OllamaConfig
 
     config = OllamaConfig()
     assert config.gpu_concurrency_limit == 2  # Improved from 1
@@ -76,7 +76,7 @@ def test_ollama_improved_gpu_concurrency():
 
 def test_exception_response_body_field():
     """Test OllamaResponseError has response_body field"""
-    from src.core.exceptions import OllamaResponseError
+    from core.exceptions import OllamaResponseError
 
     error = OllamaResponseError(
         "Test error",
@@ -105,7 +105,6 @@ async def test_taskgroup_available():
 
 def test_no_future_import_annotations():
     """Verify 'from __future__ import annotations' has been removed"""
-    import importlib.util
     from pathlib import Path
 
     # Check key modules don't have future imports
@@ -132,7 +131,7 @@ def test_package_version():
 
 def test_config_defaults_for_ollama_0125():
     """Test that default config values match Ollama 0.12.5 capabilities"""
-    from src.config import OllamaConfig
+    from config import OllamaConfig
 
     config = OllamaConfig()
 
@@ -145,7 +144,7 @@ def test_config_defaults_for_ollama_0125():
 
 def test_python314_union_type_syntax():
     """Test that Python 3.14 union type syntax works"""
-    from src.core.exceptions import OllamaResponseError
+    from core.exceptions import OllamaResponseError
 
     # Python 3.14 supports | syntax without future imports
     error: OllamaResponseError | None = None

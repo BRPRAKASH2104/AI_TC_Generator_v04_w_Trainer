@@ -11,7 +11,7 @@ Updated to use Pydantic for robust validation and settings management.
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
@@ -67,7 +67,7 @@ class OllamaConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def audit_config(self) -> OllamaConfig:
+    def audit_config(self) -> Self:
         """Post-initialization validation and audit logging"""
         try:
             sys.audit("ollama.config.init", self.host, self.port)
@@ -112,6 +112,78 @@ class StaticTestConfig(BaseModel):
     use_issue_id_prefix: bool = True
     summary_max_length: int = Field(200, gt=0)
     description_template: str = "Generated test case for requirement {requirement_id}"
+
+
+class ValidationConfig(BaseModel):
+    """Configuration for semantic validation"""
+
+    enable_semantic_validation: bool = Field(
+        True, description="Enable semantic validation of test cases"
+    )
+    signal_name_validation: bool = Field(
+        True, description="Validate signal names against interface dictionary"
+    )
+    similarity_threshold: float = Field(
+        0.8, ge=0.0, le=1.0, description="Fuzzy match threshold for signal names"
+    )
+    fail_on_validation_error: bool = Field(
+        False, description="Fail generation if validation fails (vs. warn only)"
+    )
+
+
+class DeduplicationConfig(BaseModel):
+    """Configuration for test case deduplication"""
+
+    enable_deduplication: bool = Field(
+        True, description="Enable test case deduplication"
+    )
+    similarity_threshold: float = Field(
+        0.85, ge=0.0, le=1.0, description="Similarity threshold for considering test cases as duplicates"
+    )
+    keep_strategy: str = Field(
+        "best", description="Strategy for keeping duplicates: 'first', 'last', or 'best'"
+    )
+    fields_to_compare: list[str] = Field(
+        default_factory=lambda: ["action", "data", "expected_result"],
+        description="Fields to compare for similarity detection"
+    )
+
+
+class RelationshipConfig(BaseModel):
+    """Configuration for requirement relationship parsing"""
+
+    enable_relationship_parsing: bool = Field(
+        True, description="Enable parsing of SPEC-RELATION elements"
+    )
+    augment_requirements: bool = Field(
+        True, description="Augment requirements with parent/child/hierarchy metadata"
+    )
+    build_dependency_graph: bool = Field(
+        False, description="Build dependency graph from relationships"
+    )
+    max_hierarchy_depth: int = Field(
+        10, ge=1, le=100, description="Maximum hierarchy depth (prevents infinite loops)"
+    )
+
+
+class ImageExtractionConfig(BaseModel):
+    """Configuration for image extraction from REQIFZ files"""
+
+    enable_image_extraction: bool = Field(
+        True, description="Enable extraction of images from REQIFZ files"
+    )
+    save_images: bool = Field(
+        True, description="Save extracted images to disk"
+    )
+    output_dir: str = Field(
+        "extracted_images", description="Directory for saving extracted images"
+    )
+    validate_images: bool = Field(
+        True, description="Validate images using PIL/Pillow (requires Pillow)"
+    )
+    augment_artifacts: bool = Field(
+        True, description="Augment artifacts with image reference metadata"
+    )
 
 
 class FileProcessingConfig(BaseModel):
@@ -325,6 +397,10 @@ class ConfigManager(BaseSettings):
 
     ollama: OllamaConfig = Field(default_factory=OllamaConfig)
     static_test: StaticTestConfig = Field(default_factory=StaticTestConfig)
+    validation: ValidationConfig = Field(default_factory=ValidationConfig)
+    deduplication: DeduplicationConfig = Field(default_factory=DeduplicationConfig)
+    relationships: RelationshipConfig = Field(default_factory=RelationshipConfig)
+    image_extraction: ImageExtractionConfig = Field(default_factory=ImageExtractionConfig)
     file_processing: FileProcessingConfig = Field(default_factory=FileProcessingConfig)
     secrets: SecretsConfig = Field(default_factory=SecretsConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
