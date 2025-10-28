@@ -61,6 +61,8 @@ class FileProcessingLogger:
     version: str = "unknown"
     ai_model: str = "unknown"
     template_used: str = "unknown"
+    python_version: str = "unknown"
+    ollama_version: str = "unknown"
 
     # Timing
     start_time: float | None = None
