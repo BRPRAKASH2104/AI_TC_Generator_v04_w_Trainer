@@ -15,7 +15,7 @@ from typing import Any, Self
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict, SettingsError
+from pydantic_settings import BaseSettings, SettingsConfigDict, SettingsError, YamlConfigSettingsSource
 
 # Redundant function removed - using class method in ConfigManager instead
 
@@ -194,7 +194,7 @@ class FileProcessingConfig(BaseModel):
     output_encoding: str = "utf-8"
 
     # REQIF processing
-    reqif_namespaces: dict[str, HttpUrl] = {
+    reqif_namespaces: dict[str, str] = {
         "reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd",
         "html": "http://www.w3.org/1999/xhtml",
     }
@@ -418,31 +418,13 @@ class ConfigManager(BaseSettings):
     ):
         return (
             init_settings,
-            cls.yaml_config_settings_source,
+            YamlConfigSettingsSource(cls.model_config.get("yaml_file")),
             env_settings,
             dotenv_settings,
             file_secret_settings,
         )
 
-    @classmethod
-    def yaml_config_settings_source(cls, **kwargs) -> dict[str, Any]:
-        """
-        A simple settings source that loads variables from a YAML file
-        at the project's root.
 
-        Here we happen to know that returning an empty dictionary is an acceptable
-        behavior when the YAML file does not exist.
-        """
-        encoding = cls.model_config.get("yaml_file_encoding")
-        yaml_file = cls.model_config.get("yaml_file")
-        if not yaml_file:
-            return {}
-        try:
-            return yaml.safe_load(Path(yaml_file).read_text(encoding=encoding))
-        except FileNotFoundError:
-            return {}
-        except Exception as e:
-            raise SettingsError(f'Error loading YAML file "{yaml_file}": {e}') from e
 
     def save_to_file(self, config_file: str) -> None:
         """
