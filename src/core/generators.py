@@ -7,13 +7,15 @@ using AI models, with support for both synchronous and asynchronous processing.
 
 import asyncio
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from core.deduplicator import TestCaseDeduplicator
-from core.ollama_client import AsyncOllamaClient, OllamaClient
 from core.parsers import FastJSONResponseParser, JSONResponseParser
 from core.prompt_builder import PromptBuilder
 from core.validators import SemanticValidator
+
+if TYPE_CHECKING:
+    from core.ollama_client import AsyncOllamaClient, OllamaClient
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseData = dict[str, Any]
@@ -130,7 +132,7 @@ class AsyncTestCaseGenerator:
     __slots__ = ("client", "json_parser", "prompt_builder", "validator", "deduplicator", "logger")
 
     def __init__(
-        self, client: AsyncOllamaClient, yaml_manager=None, logger=None, validator=None, deduplicator=None, max_concurrent: int = 4
+        self, client: AsyncOllamaClient, yaml_manager=None, logger=None, validator=None, deduplicator=None, _max_concurrent: int = 4
     ):
         self.client = client
         self.json_parser = FastJSONResponseParser()

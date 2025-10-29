@@ -9,9 +9,11 @@ import json
 import re
 from collections import defaultdict
 from dataclasses import dataclass
-from logging import Logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 type RAFTExample = dict[str, Any]
 
@@ -209,7 +211,7 @@ class QualityScorer:
 
     def _calculate_domain_relevance(self, req_text: str, ctx_text: str) -> float:
         """Calculate domain-specific relevance bonus"""
-        for domain, keywords in self.domain_keywords.items():
+        for _domain, keywords in self.domain_keywords.items():
             req_domain_score = sum(1 for kw in keywords if kw.lower() in req_text) / len(keywords)
             ctx_domain_score = sum(1 for kw in keywords if kw.lower() in ctx_text) / len(keywords)
 

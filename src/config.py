@@ -8,14 +8,19 @@ including settings for Ollama API, static test case parameters, and file process
 Updated to use Pydantic for robust validation and settings management.
 """
 
+import contextlib
 import os
 import sys
 from pathlib import Path
 from typing import Any, Self
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict, SettingsError, YamlConfigSettingsSource
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 
 # Redundant function removed - using class method in ConfigManager instead
 
@@ -69,11 +74,8 @@ class OllamaConfig(BaseModel):
     @model_validator(mode="after")
     def audit_config(self) -> Self:
         """Post-initialization validation and audit logging"""
-        try:
-            sys.audit("ollama.config.init", self.host, self.port)
-        except (RuntimeError, OSError):
-            # Audit hook may not be available in all environments
-            pass
+        with contextlib.suppress(RuntimeError, OSError):
+            sys.audit("ollama.config.init", self.host, self.port)  # Audit hook may not be available in all environments
         return self
 
     @property
@@ -391,7 +393,7 @@ class CLIConfig(BaseModel):
 class ConfigManager(BaseSettings):
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
-        yaml_file="example_config.yaml",
+        yaml_file="src/example_config.yaml" if Path("src/example_config.yaml").exists() else None,
         case_sensitive=False,
     )
 
@@ -410,7 +412,7 @@ class ConfigManager(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls,
+        _settings_cls,
         init_settings,
         env_settings,
         dotenv_settings,
@@ -418,7 +420,7 @@ class ConfigManager(BaseSettings):
     ):
         return (
             init_settings,
-            YamlConfigSettingsSource(cls.model_config.get("yaml_file")),
+            YamlConfigSettingsSource(cls, cls.model_config.get("yaml_file")),
             env_settings,
             dotenv_settings,
             file_secret_settings,
@@ -690,7 +692,7 @@ class ConfigManager(BaseSettings):
         total_secrets = len(
             [
                 k
-                for k in secrets_summary.keys()
+                for k in secrets_summary
                 if not k.endswith("_hours") and not k.startswith("enable_")
             ]
         )

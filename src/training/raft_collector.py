@@ -7,9 +7,11 @@ It saves generated test cases along with their retrieved context for expert anno
 
 import json
 from datetime import datetime
-from logging import Logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 type AugmentedRequirement = dict[str, Any]
 type RAFTExample = dict[str, Any]

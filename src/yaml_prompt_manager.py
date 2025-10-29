@@ -223,7 +223,7 @@ class YAMLPromptManager:
 
         # Check heading keywords
         heading_rules = selection_rules.get("heading_keywords", {})
-        for category, rule_data in heading_rules.items():
+        for _category, rule_data in heading_rules.items():
             keywords = rule_data.get("keywords", [])
             if any(keyword.lower() in heading for keyword in keywords):
                 template = rule_data.get("template")
@@ -232,7 +232,7 @@ class YAMLPromptManager:
 
         # Check requirement ID patterns
         id_rules = selection_rules.get("requirement_id_patterns", {})
-        for category, rule_data in id_rules.items():
+        for _category, rule_data in id_rules.items():
             patterns = rule_data.get("patterns", [])
             if any(pattern in req_id for pattern in patterns):
                 template = rule_data.get("template")
@@ -265,10 +265,7 @@ class YAMLPromptManager:
         template_vars = template_data.get("variables", {})
 
         # Handle both old format (list) and new format (dict with defaults key)
-        if isinstance(template_vars, list):
-            defaults = {}
-        else:
-            defaults = template_vars.get("defaults", {})
+        defaults = {} if isinstance(template_vars, list) else template_vars.get("defaults", {})
 
         final_variables = variables.copy()
         for var, default_value in defaults.items():

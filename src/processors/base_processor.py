@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from config import ConfigManager
+from ..config import ConfigManager
 from file_processing_logger import FileProcessingLogger
 from training.raft_collector import RAFTDataCollector
 from yaml_prompt_manager import YAMLPromptManager

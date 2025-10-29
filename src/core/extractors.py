@@ -10,11 +10,13 @@ import xml.etree.ElementTree as ET
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import StrEnum
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from core.parsers import HTMLTableParser
 from core.relationship_parser import RequirementRelationshipParser
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Type aliases for better readability (PEP 695 style)
 type RequirementData = dict[str, Any]

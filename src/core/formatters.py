@@ -7,13 +7,15 @@ with primary support for Excel/XLSX output with automotive-specific formatting.
 
 import json
 from datetime import datetime
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils.dataframe import dataframe_to_rows
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseList = list[dict[str, Any]]
@@ -417,7 +419,7 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
             return False
 
     def _write_chunk_to_excel(
-        self, worksheet, chunk: TestCaseList, metadata: dict[str, Any], start_index: int
+        self, worksheet, chunk: TestCaseList, metadata: dict[str, Any], _start_index: int
     ) -> None:
         """Write a chunk of test cases to Excel worksheet (v03 style)"""
         formatted_chunk = self._prepare_test_cases_for_excel(chunk, metadata)

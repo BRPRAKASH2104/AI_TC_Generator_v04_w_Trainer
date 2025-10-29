@@ -5,9 +5,11 @@ This module provides functionality to parse and extract requirement relationship
 from REQIFZ files, building parent-child hierarchies and dependency graphs.
 """
 
-import xml.etree.ElementTree as ET
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import xml.etree.ElementTree as ET
 
 # Type aliases for better readability (PEP 695 style)
 type RelationshipData = dict[str, Any]

@@ -9,11 +9,13 @@ import json
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from logging import Logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .quality_scorer import QualityScorer
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 type RAFTExample = dict[str, Any]
 type TrainingPhase = dict[str, Any]
@@ -283,7 +285,7 @@ class ProgressiveRAFTTrainer:
         return phase_examples
 
     def _train_phase(
-        self, phase: CurriculumPhase, examples: list[RAFTExample], model_name: str
+        self, phase: CurriculumPhase, examples: list[RAFTExample], _model_name: str
     ) -> dict[str, Any]:
         """
         Train a specific curriculum phase.

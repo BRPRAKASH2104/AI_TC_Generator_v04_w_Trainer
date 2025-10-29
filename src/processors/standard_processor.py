@@ -6,10 +6,8 @@ the core components to process REQIFZ files and generate test cases.
 """
 
 import time
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from config import ConfigManager
 from core.exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,
@@ -22,6 +20,11 @@ from core.generators import TestCaseGenerator
 from core.ollama_client import OllamaClient
 
 from .base_processor import BaseProcessor
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from config import ConfigManager
 
 # Type aliases
 type ProcessingResult = dict[str, Any]

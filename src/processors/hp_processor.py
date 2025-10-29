@@ -6,11 +6,10 @@ test case generation with optimized resource utilization.
 """
 
 import asyncio
+import contextlib
 import time
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from config import ConfigManager
 from core.exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,
@@ -23,6 +22,11 @@ from core.generators import AsyncTestCaseGenerator
 from core.ollama_client import AsyncOllamaClient
 
 from .base_processor import BaseProcessor
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from config import ConfigManager
 
 # Type aliases
 type ProcessingResult = dict[str, Any]
@@ -90,7 +94,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         model: str = "llama3.1:8b",
         template: str = None,
         output_dir: Path = None,
-        show_progress: bool = True,
+        _show_progress: bool = True,
     ) -> ProcessingResult:
         """
         Process a single REQIFZ file with high-performance async processing.
@@ -237,10 +241,8 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
                 # Stop monitoring
                 monitor_task.cancel()
-                try:
-                    await monitor_task
-                except asyncio.CancelledError:
-                    pass  # Expected when cancelling
+                with contextlib.suppress(asyncio.CancelledError):
+                    await monitor_task  # Expected when cancelling
 
                 if not all_test_cases:
                     return self._create_error_result_hp("No test cases were generated")

@@ -6,20 +6,16 @@ context relevance in RAFT training examples.
 """
 
 import json
-
-try:
-    import readline
-except ImportError:
-    # Readline not available on Windows
-    pass
-from logging import Logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 type RAFTExample = dict[str, Any]
 
@@ -420,10 +416,7 @@ class RAFTAnnotator:
             return False
 
         # Must have a quality rating
-        if not annotation.get("quality_rating"):
-            return False
-
-        return True
+        return annotation.get("quality_rating")
 
     def get_annotation_stats(self) -> dict[str, int]:
         """Get annotation statistics"""
