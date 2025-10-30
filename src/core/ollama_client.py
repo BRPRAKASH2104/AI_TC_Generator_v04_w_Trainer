@@ -29,7 +29,7 @@ type JSONResponse = dict[str, Any]
 class OllamaClient:
     """Handles all interactions with Ollama API with enhanced logging"""
 
-    __slots__ = ("config", "proxies", "_session")
+    __slots__ = ("config", "proxies", "_session", "_version_validated", "_available_features")
 
     def __init__(self, config: OllamaConfig = None):
         from config import OllamaConfig
@@ -39,6 +39,10 @@ class OllamaClient:
         # Reuse session for better performance (Python 3.13.7+ optimization)
         self._session = requests.Session()
         self._session.proxies.update(self.proxies)
+
+        # Version and feature validation
+        self._version_validated = False
+        self._available_features: dict[str, bool] = {}
 
     def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
         """
@@ -70,6 +74,10 @@ class OllamaClient:
                 "top_k": 40,
                 "top_p": 0.9,
                 "repeat_penalty": 1.1,
+                # Advanced sampling parameters for improved determinism
+                "tfs_z": self.config.tfs_z,  # Tail-free sampling
+                "typical_p": self.config.typical_p,  # Typical sampling
+                "repeat_last_n": self.config.repeat_last_n,  # Repetition penalty window
             },
         }
 
@@ -133,11 +141,186 @@ class OllamaClient:
                 f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
             ) from e
 
+    def _check_version_compatibility(self) -> None:
+        """
+        Check Ollama version compatibility and available features (sync version).
+
+        This method validates that the connected Ollama instance meets
+        minimum version requirements and detects available API features.
+        """
+        if self._version_validated:
+            return  # Already validated
+
+        try:
+            response = self._session.get(
+                self.config.version_url,
+                timeout=10,  # Shorter timeout for version check
+            )
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+                version_str = data.get("version", "")
+                if not version_str:
+                    raise OllamaResponseError("No version information received from Ollama")
+
+                # Parse version (e.g., "0.12.5")
+                version_parts = version_str.split(".")
+                if len(version_parts) < 3:
+                    raise OllamaResponseError(f"Invalid version format: {version_str}")
+
+                major, minor, patch = map(int, version_parts[:3])
+
+                # Check minimum version (0.12.5)
+                min_major, min_minor, min_patch = 0, 12, 5
+                if (major, minor, patch) < (min_major, min_minor, min_patch):
+                    raise OllamaResponseError(
+                        f"Ollama version {version_str} is incompatible. "
+                        f"Minimum required: {min_major}.{min_minor}.{min_patch}",
+                        status_code=200,
+                        response_body=f"Current: {version_str}, Required: >=0.12.5"
+                    )
+
+                # Detect available features based on version
+                self._available_features = {
+                    "version_endpoint": True,
+                    "gpu_offload": (major, minor, patch) >= (0, 12, 5),
+                    "enhanced_context": (major, minor, patch) >= (0, 12, 5),
+                    "detailed_errors": (major, minor, patch) >= (0, 12, 5),
+                }
+
+                self._version_validated = True
+
+            except ValueError as e:
+                raise OllamaResponseError(
+                    f"Invalid version response format from Ollama: {e}",
+                    status_code=response.status_code
+                ) from e
+
+        except requests.ConnectionError:
+            raise OllamaConnectionError(
+                f"Cannot connect to Ollama at {self.config.version_url}. "
+                f"Ensure Ollama is running with 'ollama serve'",
+                host=self.config.host,
+                port=self.config.port
+            )
+        except requests.Timeout:
+            raise OllamaConnectionError(
+                f"Timeout connecting to Ollama for version check. "
+                f"Check if Ollama is running and accessible",
+                host=self.config.host,
+                port=self.config.port
+            )
+        except requests.HTTPError as e:
+            raise OllamaResponseError(
+                f"Ollama version check failed: HTTP {e.response.status_code}",
+                status_code=e.response.status_code,
+                response_body=e.response.text
+            )
+
+    def is_feature_available(self, feature: str) -> bool:
+        """
+        Check if a specific Ollama feature is available.
+
+        Args:
+            feature: Feature name to check (e.g., 'gpu_offload', 'enhanced_context')
+
+        Returns:
+            True if feature is available, False otherwise
+        """
+        if not self._version_validated:
+            try:
+                self._check_version_compatibility()
+            except Exception:
+                return False  # Conservative fallback
+
+        return self._available_features.get(feature, False)
+
+    def get_model_info(self, model_name: str) -> dict[str, Any] | None:
+        """
+        Get detailed information about a model using /api/show endpoint (async client).
+
+        Args:
+            model_name: Name of the model to get information about
+
+        Returns:
+            Dictionary containing model information, or None if not available
+        """
+        # For async client, we use session for show endpoint (similar to version check)
+        try:
+            # Use synchronous requests for model info since it's simple metadata
+            temp_session = requests.Session()
+            response = temp_session.post(
+                self.config.show_url,
+                json={"name": model_name},
+                timeout=self.config.timeout,
+            )
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+                return data
+            except ValueError as e:
+                raise OllamaResponseError(
+                    f"Invalid JSON response from Ollama /api/show: {e}",
+                    status_code=response.status_code
+                ) from e
+
+        except requests.ConnectionError as e:
+            raise OllamaConnectionError(
+                f"Cannot connect to Ollama at {self.config.host}:{self.config.port}. "
+                f"Ensure Ollama is running with 'ollama serve'",
+                host=self.config.host,
+                port=self.config.port,
+            ) from e
+
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                raise OllamaModelNotFoundError(
+                    f"Model '{model_name}' not found. Use 'ollama pull {model_name}' to download it.",
+                    model=model_name,
+                ) from e
+            else:
+                try:
+                    error_details = e.response.json()
+                    error_msg = error_details.get("error", e.response.text)
+                except Exception:
+                    error_msg = e.response.text
+
+                raise OllamaResponseError(
+                    f"Ollama HTTP error {e.response.status_code} getting model info: {error_msg}",
+                    status_code=e.response.status_code,
+                    response_body=error_msg,
+                ) from e
+
+        except requests.RequestException as e:
+            raise OllamaConnectionError(
+                f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
+            ) from e
+
+    def validate_model_compatibility(self, model_name: str) -> bool:
+        """
+        Validate if a model is compatible with current requirements (async client).
+
+        Args:
+            model_name: Name of the model to validate
+
+        Returns:
+            True if model is compatible, False otherwise
+        """
+        try:
+            model_info = self.get_model_info(model_name)
+            return model_info is not None
+        except Exception:
+            return False
+
+
+
 
 class AsyncOllamaClient:
     """Async client for high-performance Ollama API interactions"""
 
-    __slots__ = ("config", "session", "semaphore")
+    __slots__ = ("config", "session", "semaphore", "_version_validated", "_available_features")
 
     def __init__(self, config: OllamaConfig = None):
         from config import OllamaConfig
@@ -147,6 +330,10 @@ class AsyncOllamaClient:
         # Configurable GPU/CPU-aware concurrency limit
         concurrency_limit = self.config.gpu_concurrency_limit  # Use GPU setting by default
         self.semaphore = asyncio.Semaphore(concurrency_limit)
+
+        # Version and feature validation for async client
+        self._version_validated = False
+        self._available_features: dict[str, bool] = {}
 
     async def __aenter__(self):
         """Async context manager entry"""
@@ -208,6 +395,10 @@ class AsyncOllamaClient:
                 "top_k": 40,
                 "top_p": 0.9,
                 "repeat_penalty": 1.1,
+                # Advanced sampling parameters for improved determinism
+                "tfs_z": self.config.tfs_z,  # Tail-free sampling
+                "typical_p": self.config.typical_p,  # Typical sampling
+                "repeat_last_n": self.config.repeat_last_n,  # Repetition penalty window
             },
         }
 
@@ -277,3 +468,101 @@ class AsyncOllamaClient:
                 await asyncio.sleep(2**attempt)
 
         return ""  # All retries failed
+
+    def _check_version_compatibility(self) -> None:
+        """
+        Check Ollama version compatibility and available features (shared implementation).
+
+        This method validates that the connected Ollama instance meets
+        minimum version requirements and detects available API features.
+        Used by both sync and async clients through temporary session.
+        """
+        if self._version_validated:
+            return  # Already validated
+
+        try:
+            # Use synchronous requests for version checking (works for both sync/async clients)
+            temp_session = requests.Session()
+            response = temp_session.get(
+                self.config.version_url,
+                timeout=10,  # Shorter timeout for version check
+            )
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+                version_str = data.get("version", "")
+                if not version_str:
+                    raise OllamaResponseError("No version information received from Ollama")
+
+                # Parse version (e.g., "0.12.5")
+                version_parts = version_str.split(".")
+                if len(version_parts) < 3:
+                    raise OllamaResponseError(f"Invalid version format: {version_str}")
+
+                major, minor, patch = map(int, version_parts[:3])
+
+                # Check minimum version (0.12.5)
+                min_major, min_minor, min_patch = 0, 12, 5
+                if (major, minor, patch) < (min_major, min_minor, min_patch):
+                    raise OllamaResponseError(
+                        f"Ollama version {version_str} is incompatible. "
+                        f"Minimum required: {min_major}.{min_minor}.{min_patch}",
+                        status_code=response.status_code,
+                        response_body=f"Current: {version_str}, Required: >=0.12.5"
+                    )
+
+                # Detect available features based on version
+                self._available_features = {
+                    "version_endpoint": True,
+                    "gpu_offload": (major, minor, patch) >= (0, 12, 5),
+                    "enhanced_context": (major, minor, patch) >= (0, 12, 5),
+                    "detailed_errors": (major, minor, patch) >= (0, 12, 5),
+                }
+
+                self._version_validated = True
+
+            except ValueError as e:
+                raise OllamaResponseError(
+                    f"Invalid version response format from Ollama: {e}",
+                    status_code=response.status_code
+                ) from e
+
+        except requests.ConnectionError:
+            raise OllamaConnectionError(
+                f"Cannot connect to Ollama at {self.config.version_url}. "
+                f"Ensure Ollama is running with 'ollama serve'",
+                host=self.config.host,
+                port=self.config.port
+            )
+        except requests.Timeout:
+            raise OllamaConnectionError(
+                f"Timeout connecting to Ollama for version check. "
+                f"Check if Ollama is running and accessible",
+                host=self.config.host,
+                port=self.config.port
+            )
+        except requests.HTTPError as e:
+            raise OllamaResponseError(
+                f"Ollama version check failed: HTTP {e.response.status_code}",
+                status_code=e.response.status_code,
+                response_body=e.response.text
+            )
+
+    def is_feature_available(self, feature: str) -> bool:
+        """
+        Check if a specific Ollama feature is available.
+
+        Args:
+            feature: Feature name to check (e.g., 'gpu_offload', 'enhanced_context')
+
+        Returns:
+            True if feature is available, False otherwise
+        """
+        if not self._version_validated:
+            try:
+                self._check_version_compatibility()
+            except Exception:
+                return False  # Conservative fallback
+
+        return self._available_features.get(feature, False)

@@ -46,6 +46,11 @@ class OllamaConfig(BaseModel):
     max_retries: int = Field(3, ge=0, description="Maximum number of API retries")
     concurrent_requests: int = Field(4, ge=1, description="Number of concurrent requests")
 
+    # Advanced sampling parameters for improved determinism
+    tfs_z: float = Field(0.9, ge=0.0, le=1.0, description="Tail-free sampling parameter (reduces hallucinations)")
+    typical_p: float = Field(0.9, ge=0.0, le=1.0, description="Typical sampling parameter (improves coherence)")
+    repeat_last_n: int = Field(128, ge=0, description="Number of previous tokens to consider for repetition penalty")
+
     # GPU/Hardware-specific concurrency settings (Ollama 0.12.5 optimized)
     gpu_concurrency_limit: int = Field(
         2, ge=1, description="Concurrent requests for GPU inference (0.12.5 improved)"
@@ -92,6 +97,11 @@ class OllamaConfig(BaseModel):
     def version_url(self) -> str:
         """Get the URL for version endpoint (Ollama 0.12.5+)"""
         return f"http://{self.host}:{self.port}/api/version"
+
+    @property
+    def show_url(self) -> str:
+        """Get the URL for model information endpoint (Ollama)"""
+        return f"http://{self.host}:{self.port}/api/show"
 
 
 class StaticTestConfig(BaseModel):
