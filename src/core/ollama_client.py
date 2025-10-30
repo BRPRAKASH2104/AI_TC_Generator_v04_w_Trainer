@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 import requests
 
-from core.exceptions import (
+from .exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,
     OllamaResponseError,
@@ -20,7 +20,7 @@ from core.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from config import OllamaConfig
+    from ..config import OllamaConfig
 
 # Type aliases for better readability (PEP 695 style)
 type JSONResponse = dict[str, Any]
@@ -32,7 +32,7 @@ class OllamaClient:
     __slots__ = ("config", "proxies", "_session", "_version_validated", "_available_features")
 
     def __init__(self, config: OllamaConfig = None):
-        from config import OllamaConfig
+        from ..config import OllamaConfig
 
         self.config = config or OllamaConfig()
         self.proxies = {"http": None, "https": None}
@@ -323,7 +323,7 @@ class AsyncOllamaClient:
     __slots__ = ("config", "session", "semaphore", "_version_validated", "_available_features")
 
     def __init__(self, config: OllamaConfig = None):
-        from config import OllamaConfig
+        from ..config import OllamaConfig
 
         self.config = config or OllamaConfig()
         self.session: aiohttp.ClientSession | None = None

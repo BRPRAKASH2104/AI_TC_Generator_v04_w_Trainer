@@ -106,20 +106,32 @@ test_generation_prompts:
 
       ## FOR TABLE-BASED REQUIREMENTS:
 
-      **POSITIVE TEST CASES (Mandatory):**
-      - Create one positive test case for EACH row in the logic table (total: {row_count} tests)
-      - Use exact input/output combinations as specified
-      - Format `"data"`: "1) Set [Parameter] = [Value]\n2) Set [Parameter] = [Value]..."
-      - Format `"expected_result"`: "Verify [Output] = [Expected Value]"
+      **ROW-BY-ROW COVERAGE VALIDATION:**
+      - TABLE MUST HAVE: {row_count} rows displayed above
+      - REQUIREMENT: Generate EXACTLY one positive test case for EACH displayed table row
+      - VALIDATION: Final test case count must equal {row_count} for complete coverage
+
+      **POSITIVE TEST CASES (Mandatory - One Per Table Row):**
+      - Row 1: Create test case using input/output values from Row 1 of table
+      - Row 2: Create test case using input/output values from Row 2 of table
+      - Row N: Create test case using input/output values from Row N of table
+      - Format each: `"data"`: "1) Set [Parameter] = [Row_Value]\n2) Trigger action..."
+      - Format each: `"expected_result"`: "Verify [Output] = [Expected_Value_From_Row]"
+      - Each positive test case maps directly to one table row
       - Mark each with `"test_type": "positive"`
 
-      **NEGATIVE TEST CASES (Mandatory):**
-      - Generate at least 3-5 negative tests covering:
-        * Invalid input values (out of range, wrong type, null)
-        * Boundary violations (below min, above max)
-        * Input combinations NOT in the table
-      - Format `"expected_result"`: "Verify error handling: [Expected Error Behavior]"
+      **NEGATIVE TEST CASES (Mandatory - At Least 3-5):**
+      - Generate negative tests for boundary violations and invalid inputs
+      - Test inputs that are out of range, wrong type, or null for each parameter
+      - Include edge cases like: min-1, max+1, invalid formats
+      - Test scenarios where preconditions fail or system is in wrong state
+      - Format `"expected_result"`: "Verify error handling: [Specific Error Response]"
       - Mark each with `"test_type": "negative"`
+
+      **COMPLETE COVERAGE CHECK:**
+      - Total positive test cases: MUST equal {row_count} (one per table row)
+      - Additional negative test cases: 3-5 minimum for boundary/error scenarios
+      - All table rows must have corresponding positive test coverage
 
       ## FOR TEXT-ONLY REQUIREMENTS:
 

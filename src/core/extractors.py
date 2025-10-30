@@ -12,8 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
-from core.parsers import HTMLTableParser
-from core.relationship_parser import RequirementRelationshipParser
+from .parsers import HTMLTableParser
+from .relationship_parser import RequirementRelationshipParser
 
 if TYPE_CHECKING:
     from pathlib import Path

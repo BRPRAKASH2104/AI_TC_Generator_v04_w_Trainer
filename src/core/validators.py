@@ -202,12 +202,117 @@ class SemanticValidator:
                     }
                 )
 
+        # Check table coverage for table-based requirements
+        table_issues = self._validate_table_coverage(test_cases, requirement)
+        all_issues.extend(table_issues)
+
         report = {
             "total_test_cases": total,
             "valid_count": valid_count,
-            "invalid_count": total - valid_count,
+            "invalid_count": total - valid_count + len(table_issues),
             "validation_rate": valid_count / total if total > 0 else 0,
             "issues": all_issues,
+            "table_coverage": self._analyze_table_coverage(test_cases, requirement),
         }
 
         return report
+
+    def _validate_table_coverage(self, test_cases: list[dict[str, Any]], requirement: dict[str, Any]) -> list[dict[str, Any]]:
+        """
+        Validate that table-based requirements have adequate test coverage.
+
+        For table-based requirements, ensure:
+        1. At least one positive test case per table row
+        2. At least 3 negative test cases
+        3. Total test cases reasonable for table size
+
+        Args:
+            test_cases: Generated test cases
+            requirement: Requirement with table data
+
+        Returns:
+            List of coverage validation issues
+        """
+        issues = []
+
+        # Check if this is a table-based requirement
+        table_data = requirement.get("table")
+        if not table_data:
+            return issues  # Not table-based, skip
+
+        required_rows = table_data.get("rows", 0)
+        if required_rows == 0:
+            return issues  # No table rows to cover
+
+        # Count positive and negative test cases
+        positive_count = sum(1 for tc in test_cases if tc.get("test_type") == "positive")
+        negative_count = sum(1 for tc in test_cases if tc.get("test_type") == "negative")
+
+        # Validate coverage
+        if positive_count < required_rows:
+            issues.append({
+                "test_case_index": 0,  # Global issue, not specific to one test case
+                "summary": "Table Coverage Deficiency",
+                "issues": [
+                    f"Generated {positive_count} positive test cases but table has {required_rows} rows. "
+                    f"Required: at least one positive test per table row."
+                ]
+            })
+
+        if negative_count < 3:
+            issues.append({
+                "test_case_index": 0,
+                "summary": "Negative Test Deficiency",
+                "issues": [
+                    f"Generated {negative_count} negative test cases but minimum 3 required for table-based requirements."
+                ]
+            })
+
+        total_expected_min = required_rows + 3  # At least one per row + 3 negative
+        total_expected_max = required_rows + 8  # Reasonable maximum for negatives
+
+        if len(test_cases) < total_expected_min:
+            issues.append({
+                "test_case_index": 0,
+                "summary": "Total Test Case Count",
+                "issues": [
+                    f"Generated {len(test_cases)} test cases. Expected minimum: {total_expected_min} "
+                    f"({required_rows} positive + 3 negative). Expected maximum: {total_expected_max}."
+                ]
+            })
+
+        return issues
+
+    def _analyze_table_coverage(self, test_cases: list[dict[str, Any]], requirement: dict[str, Any]) -> dict[str, Any]:
+        """
+        Analyze table coverage and return statistics.
+
+        Args:
+            test_cases: Generated test cases
+            requirement: Requirement with table data
+
+        Returns:
+            Coverage analysis statistics
+        """
+        table_data = requirement.get("table")
+
+        if not table_data:
+            return {"is_table_based": False}
+
+        required_rows = table_data.get("rows", 0)
+        positive_count = sum(1 for tc in test_cases if tc.get("test_type") == "positive")
+        negative_count = sum(1 for tc in test_cases if tc.get("test_type") == "negative")
+
+        coverage_percentage = (positive_count / required_rows * 100) if required_rows > 0 else 0
+
+        return {
+            "is_table_based": True,
+            "required_table_rows": required_rows,
+            "positive_test_cases": positive_count,
+            "negative_test_cases": negative_count,
+            "coverage_percentage": coverage_percentage,
+            "adequate_coverage": positive_count >= required_rows and negative_count >= 3,
+            "expected_min_total": required_rows + 3,
+            "expected_max_total": required_rows + 8,
+            "actual_total": len(test_cases)
+        }

@@ -8,23 +8,23 @@ the core components to process REQIFZ files and generate test cases.
 import time
 from typing import TYPE_CHECKING, Any
 
-from core.exceptions import (
+from ..core.exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,
     OllamaTimeoutError,
     REQIFParsingError,
 )
-from core.extractors import REQIFArtifactExtractor
-from core.formatters import TestCaseFormatter
-from core.generators import TestCaseGenerator
-from core.ollama_client import OllamaClient
+from ..core.extractors import REQIFArtifactExtractor
+from ..core.formatters import TestCaseFormatter
+from ..core.generators import TestCaseGenerator
+from ..core.ollama_client import OllamaClient
 
 from .base_processor import BaseProcessor
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from config import ConfigManager
+    from ..config import ConfigManager
 
 # Type aliases
 type ProcessingResult = dict[str, Any]
@@ -49,7 +49,7 @@ class REQIFZFileProcessor(BaseProcessor):
         """
         Process all REQIFZ files in a directory.
         """
-        from app_logger import get_app_logger
+        from ..app_logger import get_app_logger
 
         app_logger = get_app_logger()
 

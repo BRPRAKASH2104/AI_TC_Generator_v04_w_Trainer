@@ -16,22 +16,21 @@ import asyncio
 import sys
 from pathlib import Path
 
+# Add project root to path so src package can be imported
+sys.path.insert(0, str(Path(__file__).parent))
+
 import click
 from rich.console import Console
 from rich.panel import Panel
 
-# Add src to path for imports (only when running directly, not when installed as package)
-if __name__ == "__main__":
-    sys.path.insert(0, str(Path(__file__).parent / "src"))
-
 # Import processors (high-level orchestrators)
-from app_logger import get_app_logger, shutdown_app_logger
+from src.app_logger import get_app_logger, shutdown_app_logger
 
 # Import utilities
-from config import ConfigManager
-from processors.hp_processor import HighPerformanceREQIFZFileProcessor
-from processors.standard_processor import REQIFZFileProcessor
-from yaml_prompt_manager import YAMLPromptManager
+from src.config import ConfigManager
+from src.processors.hp_processor import HighPerformanceREQIFZFileProcessor
+from src.processors.standard_processor import REQIFZFileProcessor
+from src.yaml_prompt_manager import YAMLPromptManager
 
 # Version and metadata
 __version__ = "1.4.0"

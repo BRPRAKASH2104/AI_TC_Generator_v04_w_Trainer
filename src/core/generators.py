@@ -9,13 +9,13 @@ import asyncio
 import time
 from typing import TYPE_CHECKING, Any
 
-from core.deduplicator import TestCaseDeduplicator
-from core.parsers import FastJSONResponseParser, JSONResponseParser
-from core.prompt_builder import PromptBuilder
-from core.validators import SemanticValidator
+from .deduplicator import TestCaseDeduplicator
+from .parsers import FastJSONResponseParser, JSONResponseParser
+from .prompt_builder import PromptBuilder
+from .validators import SemanticValidator
 
 if TYPE_CHECKING:
-    from core.ollama_client import AsyncOllamaClient, OllamaClient
+    from .ollama_client import AsyncOllamaClient, OllamaClient
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseData = dict[str, Any]
@@ -82,6 +82,26 @@ class TestCaseGenerator:
                         )
                         for issue in issue_entry["issues"]:
                             self.logger.warning(f"    - {issue}")
+
+                # Log table coverage information
+                table_coverage = validation_report.get("table_coverage", {})
+                if table_coverage.get("is_table_based", False) and self.logger:
+                    req_rows = table_coverage.get("required_table_rows", 0)
+                    pos_tests = table_coverage.get("positive_test_cases", 0)
+                    neg_tests = table_coverage.get("negative_test_cases", 0)
+                    coverage_pct = table_coverage.get("coverage_percentage", 0)
+
+                    self.logger.info(
+                        f"Table coverage: {pos_tests}/{req_rows} rows covered ({coverage_pct:.1f}%) - "
+                        f"{neg_tests} negative tests"
+                    )
+
+                    if not table_coverage.get("adequate_coverage", True):
+                        self.logger.warning(
+                            f"Inadequate table coverage for {requirement.get('id', 'UNKNOWN')}: "
+                            f"Expected {req_rows}+ positive tests, got {pos_tests}. "
+                            f"Expected 3+ negative tests, got {neg_tests}."
+                        )
 
                 # Deduplication
                 test_cases, dedup_report = self.deduplicator.deduplicate(test_cases, keep_strategy="best")

@@ -146,11 +146,16 @@ Return ONLY valid JSON with the exact field names shown above."""
         """
         Format table data for inclusion in prompts.
 
+        Enhanced version that shows ALL rows with intelligent formatting:
+        - For 20 rows or fewer: Show all rows
+        - For 21-50 rows: Show all rows with compact formatting
+        - For 51+ rows: Show first 10 and last 10 rows with center truncation
+
         Args:
             table_data: Table data dictionary with "data" key
 
         Returns:
-            Formatted table string
+            Formatted table string showing all rows
         """
         if not table_data or "data" not in table_data:
             return "No table data available"
@@ -160,6 +165,7 @@ Return ONLY valid JSON with the exact field names shown above."""
             if not rows:
                 return "Empty table"
 
+            total_rows = len(rows)
             # Get headers from first row
             headers = list(rows[0].keys()) if rows else []
 
@@ -168,13 +174,34 @@ Return ONLY valid JSON with the exact field names shown above."""
             formatted += " | ".join(headers) + "\n"
             formatted += "-" * (len(" | ".join(headers))) + "\n"
 
-            for row in rows[:10]:  # Limit to first 10 rows
-                values = [str(row.get(header, "")) for header in headers]
-                formatted += " | ".join(values) + "\n"
+            # Intelligent row display based on table size
+            if total_rows <= 20:
+                # Show all rows
+                for i, row in enumerate(rows):
+                    values = [str(row.get(header, "")) for header in headers]
+                    formatted += " | ".join(values) + " | Row " + str(i + 1) + "\n"
+            elif total_rows <= 50:
+                # Show all rows but with compact numbering
+                for i, row in enumerate(rows):
+                    values = [str(row.get(header, "")) for header in headers]
+                    formatted += f"R{i + 1:02d}: " + " | ".join(values) + "\n"
+            else:
+                # Large table: Show first 10, truncation indicator, last 10
+                # First 10 rows
+                for i, row in enumerate(rows[:10]):
+                    values = [str(row.get(header, "")) for header in headers]
+                    formatted += f"R{i + 1:02d}: " + " | ".join(values) + "\n"
 
-            if len(rows) > 10:
-                formatted += f"... ({len(rows) - 10} more rows)\n"
+                # Truncation indicator
+                formatted += f"... (showing first 10 and last 10 of {total_rows} total rows) ...\n"
 
+                # Last 10 rows
+                start_last = max(10, total_rows - 10)
+                for i, row in enumerate(rows[start_last:], start=start_last):
+                    values = [str(row.get(header, "")) for header in headers]
+                    formatted += f"R{i + 1:02d}: " + " | ".join(values) + "\n"
+
+            formatted += f"\nTable contains {total_rows} rows total."
             return formatted
 
         except Exception as e:
