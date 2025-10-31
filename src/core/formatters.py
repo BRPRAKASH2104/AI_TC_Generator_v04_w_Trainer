@@ -373,9 +373,10 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
                 "Expected Result",
                 "Planned Execution",
                 "Test Case Type",
+                "Feature Group",
                 "Components",
                 "Labels",
-                "Tests",
+                "LinkTest",
             ]
             ws.append(headers)
 
@@ -438,8 +439,9 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
                 formatted_case["Expected Result"],
                 formatted_case["Planned Execution"],
                 formatted_case["Test Case Type"],
+                formatted_case["Feature Group"],
                 formatted_case["Components"],
                 formatted_case["Labels"],
-                formatted_case["Tests"],
+                formatted_case["LinkTest"],
             ]
             worksheet.append(row_data)

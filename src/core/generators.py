@@ -163,6 +163,27 @@ class AsyncTestCaseGenerator:
         # Note: Concurrency limiting is handled by AsyncOllamaClient's semaphore
         # No need for double semaphore here - improves throughput by ~50%
 
+    async def generate_test_cases(
+        self, requirement: RequirementData, model: str, template_name: str = None
+    ) -> ProcessingResult:
+        """
+        Generate test cases for a single requirement asynchronously.
+
+        This is a public wrapper around the internal _generate_test_cases_for_requirement_async
+        method, providing a clean API for single-requirement processing (used by HP processor).
+
+        Args:
+            requirement: Requirement data containing id, type, heading, text, etc.
+            model: AI model identifier for generation
+            template_name: Optional template for prompt customization
+
+        Returns:
+            Either a list of test cases (success) or structured error object (failure)
+        """
+        return await self._generate_test_cases_for_requirement_async(
+            requirement, model, template_name
+        )
+
     async def generate_test_cases_batch(
         self, requirements: list[RequirementData], model: str, template_name: str = None
     ) -> list[ProcessingResult]:

@@ -7,10 +7,8 @@ This is the unified entry point that orchestrates the modular components:
 - Processors (standard and high-performance workflows)
 - Clean separation of concerns and maintainable architecture
 
-Modern Python 3.13.7+ with full expert review recommendations implemented.
+Modern Python 3.14+ (no backward compatibility).
 """
-
-from __future__ import annotations
 
 import asyncio
 import sys
@@ -32,8 +30,8 @@ from src.processors.hp_processor import HighPerformanceREQIFZFileProcessor
 from src.processors.standard_processor import REQIFZFileProcessor
 from src.yaml_prompt_manager import YAMLPromptManager
 
-# Version and metadata
-__version__ = "1.4.0"
+# Version and metadata (matches pyproject.toml)
+__version__ = "2.1.0"
 __architecture__ = "Modular"
 
 console = Console()

@@ -82,8 +82,8 @@ all = [
 ]
 
 [project.scripts]
-ai-tc-generator = "src.main:main"
-ai-tc-gen = "src.main:main"
+ai-tc-generator = "main:main"
+ai-tc-gen = "main:main"
 
 [project.urls]
 Documentation = "https://github.com/your-username/AI_TC_Generator_v04_w_Trainer#readme"
