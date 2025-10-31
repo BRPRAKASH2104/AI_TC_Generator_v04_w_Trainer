@@ -281,7 +281,6 @@ def _run_hp_mode(input_path: str, output_dir: str | None, config: ConfigManager)
             result.get("total_test_cases", 0),
             result.get("processing_time", 0.0),
             mode="high-performance",
-            max_concurrent=max_concurrent,
             **performance_data,
         )
 
