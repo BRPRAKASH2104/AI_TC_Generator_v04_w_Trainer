@@ -10,23 +10,23 @@ import contextlib
 import time
 from typing import TYPE_CHECKING, Any
 
-from ..core.exceptions import (
+from src.core.exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,
     OllamaTimeoutError,
     REQIFParsingError,
 )
-from ..core.extractors import HighPerformanceREQIFArtifactExtractor
-from ..core.formatters import StreamingTestCaseFormatter
-from ..core.generators import AsyncTestCaseGenerator
-from ..core.ollama_client import AsyncOllamaClient
+from src.core.extractors import HighPerformanceREQIFArtifactExtractor
+from src.core.formatters import StreamingTestCaseFormatter
+from src.core.generators import AsyncTestCaseGenerator
+from src.core.ollama_client import AsyncOllamaClient
 
 from .base_processor import BaseProcessor
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ..config import ConfigManager
+    from src.config import ConfigManager
 
 # Type aliases
 type ProcessingResult = dict[str, Any]
@@ -71,7 +71,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         """
         Process all REQIFZ files in a directory concurrently.
         """
-        from ..app_logger import get_app_logger
+        from src.app_logger import get_app_logger
 
         app_logger = get_app_logger()
 

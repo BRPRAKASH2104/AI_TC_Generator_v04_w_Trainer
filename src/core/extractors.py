@@ -237,15 +237,14 @@ class REQIFArtifactExtractor:
 
             # Extract VALUES container for both foreign ID and content extraction
             values_container = spec_obj.find("reqif:VALUES", namespaces)
-            if values_container is not None:
-                # Extract foreign ID if available - THIS IS THE KEY FIX
-                if foreign_id_map and spec_object_type_ref:
-                    target_foreign_id_ref = foreign_id_map.get(spec_object_type_ref)
-                    if target_foreign_id_ref:
-                        foreign_id = self._extract_foreign_id(
-                            values_container, target_foreign_id_ref, artifact["id"]
-                        )
-                        artifact["id"] = foreign_id  # Use foreign ID instead of internal ID
+            # Extract foreign ID if available - THIS IS THE KEY FIX
+            if values_container is not None and foreign_id_map and spec_object_type_ref:
+                target_foreign_id_ref = foreign_id_map.get(spec_object_type_ref)
+                if target_foreign_id_ref:
+                    foreign_id = self._extract_foreign_id(
+                        values_container, target_foreign_id_ref, artifact["id"]
+                    )
+                    artifact["id"] = foreign_id  # Use foreign ID instead of internal ID
 
             # Extract attribute values
             values = spec_obj.findall(".//reqif:ATTRIBUTE-VALUE-XHTML", namespaces)

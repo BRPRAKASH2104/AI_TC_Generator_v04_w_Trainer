@@ -208,7 +208,7 @@ class V03CompatibilityVerifier:
 
         try:
             yaml_manager = YAMLPromptManager()
-            builder = PromptBuilder(yaml_manager)
+            PromptBuilder(yaml_manager)
 
             # Create mock augmented requirement
             mock_req = {
@@ -364,7 +364,7 @@ def main():
         print(f"❌ Error: File not found: {reqifz_path}")
         sys.exit(1)
 
-    if not reqifz_path.suffix.lower() == ".reqifz":
+    if reqifz_path.suffix.lower() != ".reqifz":
         print(f"❌ Error: File must be a .reqifz file, got: {reqifz_path.suffix}")
         sys.exit(1)
 

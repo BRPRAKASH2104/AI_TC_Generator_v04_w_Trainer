@@ -20,7 +20,7 @@ from .exceptions import (
 )
 
 if TYPE_CHECKING:
-    from ..config import OllamaConfig
+    from src.config import OllamaConfig
 
 # Type aliases for better readability (PEP 695 style)
 type JSONResponse = dict[str, Any]
@@ -32,7 +32,7 @@ class OllamaClient:
     __slots__ = ("config", "proxies", "_session", "_version_validated", "_available_features")
 
     def __init__(self, config: OllamaConfig = None):
-        from ..config import OllamaConfig
+        from src.config import OllamaConfig
 
         self.config = config or OllamaConfig()
         self.proxies = {"http": None, "https": None}
@@ -197,26 +197,26 @@ class OllamaClient:
                     status_code=response.status_code
                 ) from e
 
-        except requests.ConnectionError:
+        except requests.ConnectionError as e:
             raise OllamaConnectionError(
                 f"Cannot connect to Ollama at {self.config.version_url}. "
                 f"Ensure Ollama is running with 'ollama serve'",
                 host=self.config.host,
                 port=self.config.port
-            )
-        except requests.Timeout:
+            ) from e
+        except requests.Timeout as e:
             raise OllamaConnectionError(
-                f"Timeout connecting to Ollama for version check. "
-                f"Check if Ollama is running and accessible",
+                "Timeout connecting to Ollama for version check. "
+                "Check if Ollama is running and accessible",
                 host=self.config.host,
                 port=self.config.port
-            )
+            ) from e
         except requests.HTTPError as e:
             raise OllamaResponseError(
                 f"Ollama version check failed: HTTP {e.response.status_code}",
                 status_code=e.response.status_code,
                 response_body=e.response.text
-            )
+            ) from e
 
     def is_feature_available(self, feature: str) -> bool:
         """
@@ -323,7 +323,7 @@ class AsyncOllamaClient:
     __slots__ = ("config", "session", "semaphore", "_version_validated", "_available_features")
 
     def __init__(self, config: OllamaConfig = None):
-        from ..config import OllamaConfig
+        from src.config import OllamaConfig
 
         self.config = config or OllamaConfig()
         self.session: aiohttp.ClientSession | None = None
@@ -528,26 +528,26 @@ class AsyncOllamaClient:
                     status_code=response.status_code
                 ) from e
 
-        except requests.ConnectionError:
+        except requests.ConnectionError as e:
             raise OllamaConnectionError(
                 f"Cannot connect to Ollama at {self.config.version_url}. "
                 f"Ensure Ollama is running with 'ollama serve'",
                 host=self.config.host,
                 port=self.config.port
-            )
-        except requests.Timeout:
+            ) from e
+        except requests.Timeout as e:
             raise OllamaConnectionError(
-                f"Timeout connecting to Ollama for version check. "
-                f"Check if Ollama is running and accessible",
+                "Timeout connecting to Ollama for version check. "
+                "Check if Ollama is running and accessible",
                 host=self.config.host,
                 port=self.config.port
-            )
+            ) from e
         except requests.HTTPError as e:
             raise OllamaResponseError(
                 f"Ollama version check failed: HTTP {e.response.status_code}",
                 status_code=e.response.status_code,
                 response_body=e.response.text
-            )
+            ) from e
 
     def is_feature_available(self, feature: str) -> bool:
         """

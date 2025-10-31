@@ -323,7 +323,7 @@ class VersionChecker:
 
         all_satisfied = True
 
-        for package, min_version in core_packages.items():
+        for package, _min_version in core_packages.items():
             try:
                 installed = pkg_resources.get_distribution(package)
                 print(f"✅ {package}: {installed.version}")

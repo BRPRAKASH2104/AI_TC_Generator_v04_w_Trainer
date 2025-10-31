@@ -15,7 +15,7 @@ import time
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import psutil
 from rich.console import Console
@@ -214,7 +214,7 @@ class AppLogger:
         self.metrics["total_errors"] += 1
         self._log_with_extras(logging.CRITICAL, message, kwargs)
 
-    def _log_with_extras(self, level: int, message: str, extra_data: Dict[str, Any]) -> None:
+    def _log_with_extras(self, level: int, message: str, extra_data: dict[str, Any]) -> None:
         """Internal method to log with extra structured data"""
         # Add session context
         extra_data.setdefault("session_id", self.session_id)

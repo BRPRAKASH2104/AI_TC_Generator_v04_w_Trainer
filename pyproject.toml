@@ -129,6 +129,12 @@ python_classes = ["Test*"]
 norecursedirs = ["src"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+markers = [
+    "integration: Integration tests requiring external services (Ollama, file I/O)",
+    "slow: Slow tests that take >5 seconds to complete",
+    "unit: Fast unit tests with mocked dependencies",
+    "async_test: Tests using async/await patterns",
+]
 filterwarnings = [
     "ignore::pytest.PytestCollectionWarning",
 ]
