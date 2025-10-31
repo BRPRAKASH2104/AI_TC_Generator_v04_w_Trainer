@@ -144,7 +144,7 @@ class TestAsyncTestCaseGenerator:
             return f"Generate for {req_id}: {req_text}"
         mock_yaml_manager.get_test_prompt.side_effect = mock_prompt
         
-        generator = AsyncTestCaseGenerator(mock_client, mock_yaml_manager, mock_logger, max_concurrent=2)
+        generator = AsyncTestCaseGenerator(mock_client, mock_yaml_manager, mock_logger, _max_concurrent=2)
         
         results = await generator.generate_test_cases_batch(sample_requirements_list, "llama3.1:8b")
         
@@ -172,7 +172,7 @@ class TestAsyncTestCaseGenerator:
         mock_yaml_manager = Mock()
         mock_yaml_manager.get_test_prompt.return_value = "Generate test cases"
         
-        generator = AsyncTestCaseGenerator(mock_client, mock_yaml_manager, mock_logger, max_concurrent=2)
+        generator = AsyncTestCaseGenerator(mock_client, mock_yaml_manager, mock_logger, _max_concurrent=2)
         
         await generator.generate_test_cases_batch(sample_requirements_list, "llama3.1:8b")
         
