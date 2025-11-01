@@ -66,6 +66,8 @@ class PromptBuilder:
                 # Context-aware fields (v03 restoration)
                 "info_str": self.format_info_list(requirement.get("info_list", [])),
                 "interface_str": self.format_interfaces(requirement.get("interface_list", [])),
+                # Vision model support (v2.2.0)
+                "image_context": self.format_image_context(requirement.get("images", [])),
             }
 
             # Use template manager to get formatted prompt
@@ -100,6 +102,7 @@ class PromptBuilder:
 
         info_str = self.format_info_list(info_list) if info_list else "None"
         interface_str = self.format_interfaces(interface_list) if interface_list else "None"
+        image_context = self.format_image_context(requirement.get("images", []))
 
         prompt = f"""You are an expert automotive test engineer. Generate comprehensive test cases for the following requirement with provided context:
 
@@ -107,6 +110,7 @@ class PromptBuilder:
 FEATURE HEADING: {heading}
 ADDITIONAL INFORMATION: {info_str}
 SYSTEM INTERFACES: {interface_str}
+VISUAL DIAGRAMS: {image_context}
 
 --- PRIMARY REQUIREMENT TO TEST ---
 Requirement ID: {req_id}
@@ -136,6 +140,12 @@ REQUIREMENTS:
    - Positive and negative scenarios
    - Automotive-specific conditions (voltage, temperature, CAN signals)
    - Error handling and safety considerations
+6. If diagrams are provided, analyze them to understand:
+   - System state machines and transitions
+   - Signal flows and timing sequences
+   - Parameter tables and threshold values
+   - Architectural dependencies and interactions
+   - UI behaviors and expected responses
 
 Return ONLY valid JSON with the exact field names shown above."""
 
@@ -243,3 +253,39 @@ Return ONLY valid JSON with the exact field names shown above."""
                 for interface in interface_list
             ]
         )
+
+    @staticmethod
+    def format_image_context(images: list[dict[str, Any]]) -> str:
+        """
+        Format image context for vision models (v2.2.0).
+
+        This method provides helpful context about attached images to guide
+        vision models in analyzing diagrams, flowcharts, and visual requirements.
+
+        Args:
+            images: List of image metadata dictionaries
+
+        Returns:
+            Formatted string describing images and analysis instructions
+        """
+        if not images:
+            return "No diagrams or images provided."
+
+        image_count = len(images)
+        formats = ", ".join(sorted({img.get("format", "unknown").upper() for img in images}))
+
+        # Build context with analysis guidance
+        context = f"{image_count} diagram(s) provided ({formats}). "
+
+        if image_count == 1:
+            context += "Analyze the visual information to better understand "
+        else:
+            context += "Analyze the visual information across all diagrams to better understand "
+
+        context += (
+            "system behavior, state transitions, signal flows, parameter values, "
+            "timing sequences, and test scenarios. Use insights from the diagrams "
+            "to generate more comprehensive and accurate test cases."
+        )
+
+        return context

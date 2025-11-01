@@ -87,7 +87,9 @@ class REQIFZFileProcessor(BaseProcessor):
         # Initialize file-specific logger and components
         self._initialize_logger(reqifz_path)
 
-        self.extractor = REQIFArtifactExtractor(self.logger)
+        self.extractor = REQIFArtifactExtractor(
+            self.logger, use_streaming=False, config=self.config
+        )
         self.generator = TestCaseGenerator(self.ollama_client, self.yaml_manager, self.logger)
         self.formatter = TestCaseFormatter(self.config, self.logger)
 
@@ -123,10 +125,20 @@ class REQIFZFileProcessor(BaseProcessor):
                 req_id = augmented_req.get("id", "UNKNOWN")
                 heading = augmented_req.get("heading", "No Heading")
 
-                self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {heading})")
+                # Hybrid strategy: Use vision model for requirements with images, text model otherwise
+                selected_model = self.config.get_model_for_requirement(augmented_req)
+
+                if selected_model != model:
+                    # Log when switching to vision model
+                    self.logger.info(
+                        f"⚡ Processing requirement: {req_id} (heading: {heading}) "
+                        f"- Using {selected_model} (has {len(augmented_req.get('images', []))} images)"
+                    )
+                else:
+                    self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {heading})")
 
                 test_cases = self.generator.generate_test_cases_for_requirement(
-                    augmented_req, model, template
+                    augmented_req, selected_model, template
                 )
 
                 if test_cases:

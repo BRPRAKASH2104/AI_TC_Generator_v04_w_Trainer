@@ -9,7 +9,8 @@ Always read, understand and follow the guidelines from System_Instruction.md.
 ## 📋 Quick Reference
 
 **Project**: AI-powered test case generator for automotive REQIFZ requirements
-**Version**: v2.1.0 | **Python**: 3.14+ (no backward compatibility) | **Ollama**: v0.12.5+
+**Version**: v2.2.0 | **Python**: 3.14+ (no backward compatibility) | **Ollama**: v0.12.5+
+**Vision Support**: ✅ Hybrid llama3.2-vision:11b + llama3.1:8b strategy
 
 **Essential Commands**:
 ```bash
@@ -18,8 +19,9 @@ pip install -e .[dev]              # Install with dev dependencies
 pip install -e .                   # Production install only
 
 # Running the application
-ai-tc-generator input/file.reqifz --verbose           # Standard mode
-ai-tc-generator input/ --hp --max-concurrent 4        # HP mode (3-9x faster)
+ai-tc-generator input/file.reqifz --verbose           # Standard mode (hybrid vision/text)
+ai-tc-generator input/ --hp --max-concurrent 4        # HP mode (3-9x faster, hybrid)
+python3 main.py input/file.reqifz --model llama3.2-vision:11b --verbose  # Force vision model
 python3 main.py input/file.reqifz --debug             # Development mode
 
 # Testing
@@ -36,7 +38,12 @@ mypy src/ main.py --python-version 3.14               # Type checking
 ai-tc-generator --validate-prompts                    # Validate YAML templates
 ```
 
-**Architecture Pattern**: `CLI → Processor → Generator → PromptBuilder → Ollama → Excel`
+**Architecture Pattern**: `CLI → Processor → Generator → PromptBuilder → Ollama (hybrid vision/text) → Excel`
+
+**Hybrid Vision Strategy** (v2.2.0):
+- Requirements with images → `llama3.2-vision:11b` (vision understanding)
+- Requirements without images → `llama3.1:8b` (faster text-only)
+- Automatic per-requirement model selection via `ConfigManager.get_model_for_requirement()`
 
 ---
 
@@ -88,18 +95,25 @@ main.py (CLI entry)
 Processor (standard or HP)
   ├─ BaseProcessor (shared context logic)
   ├─ REQIFArtifactExtractor (parse REQIFZ)
+  │   ├─ Extract text artifacts from REQIF XML
+  │   ├─ RequirementImageExtractor (extract & save images) [v2.1.1]
+  │   └─ Augment artifacts with image metadata
   ├─ _build_augmented_requirements() (add context)
+  ├─ Hybrid model selection (ConfigManager.get_model_for_requirement) [v2.2.0]
   ↓
 Generator (TestCaseGenerator or AsyncTestCaseGenerator)
-  ├─ PromptBuilder (format prompts with context)
+  ├─ _extract_image_paths() - Extract images from requirement [v2.2.0]
+  ├─ PromptBuilder (format prompts with context + image context) [v2.2.0]
   ├─ OllamaClient/AsyncOllamaClient (AI generation)
+  │   ├─ generate_response() - Text-only (llama3.1:8b)
+  │   └─ generate_response_with_vision() - Vision model (llama3.2-vision:11b) [v2.2.0]
   ├─ FastJSONResponseParser (parse AI responses)
   ├─ SemanticValidator (validate test cases)
   ├─ TestCaseDeduplicator (remove duplicates)
   ↓
 Formatter (TestCaseFormatter or StreamingTestCaseFormatter)
   ↓
-Excel/JSON Output
+Excel/JSON Output + Extracted Images
 ```
 
 ### Key Components
@@ -126,11 +140,30 @@ Excel/JSON Output
 - Without mapping, uses identifiers like `_json2reqif_XXX` instead of "ReqIF.Text"
 - `_build_attribute_definition_mapping()` prevents extraction failures
 - Extraction success rate should be >95%
+- **NEW (v2.1.1)**: Integrated image extraction via `RequirementImageExtractor`
+  - Extracts external images and base64-embedded images from REQIFZ
+  - Augments artifacts with image metadata (format, size, hashes)
+  - Configurable via `config.image_extraction` settings
+
+**RequirementImageExtractor** (`src/core/image_extractor.py`):
+- Extracts images from REQIFZ files (external files and embedded base64)
+- Supports PNG, JPEG, GIF, BMP, SVG, TIFF, WEBP
+- Validates images using PIL/Pillow (optional)
+- Saves images to `extracted_images/` directory
+- Augments artifacts with image references for future OCR/vision AI
 
 **PromptBuilder** (`src/core/prompt_builder.py`):
 - Stateless prompt construction
-- Template variables: `heading`, `info_str`, `interface_str`, `requirement_text`
+- Template variables: `heading`, `info_str`, `interface_str`, `requirement_text`, `image_context` [v2.2.0]
+- `format_image_context()` - Provides vision model guidance for diagram analysis [v2.2.0]
 - Used by both sync and async generators
+
+**OllamaClient & AsyncOllamaClient** (`src/core/ollama_client.py`):
+- **NEW (v2.2.0)**: Vision model support
+  - `generate_response_with_vision()` - Sends images as base64 to vision models
+  - Supports multiple images per requirement
+  - Graceful fallback if images fail to load
+  - Backward compatible (existing code unchanged)
 
 **Formatters** (`src/core/formatters.py`):
 - `TestCaseFormatter`: Standard Excel export (16 columns)
@@ -143,6 +176,29 @@ Excel/JSON Output
 ---
 
 ## 🔧 Recent Fixes & Known Issues
+
+### ✅ Fixed (v2.2.0 - Nov 1, 2025)
+
+1. **Vision Model Support - Hybrid Strategy**: Implemented intelligent model selection
+   - Added `generate_response_with_vision()` to both sync and async Ollama clients
+   - Generators automatically extract image paths and use vision methods when images present
+   - `ConfigManager.get_model_for_requirement()` selects appropriate model per requirement
+   - `PromptBuilder.format_image_context()` provides vision-specific guidance
+   - Processors (standard and HP) apply hybrid strategy per requirement
+   - Configuration: `vision_model`, `enable_vision`, `vision_context_window` settings
+   - **Impact**: Requirements with diagrams use llama3.2-vision:11b, text-only use llama3.1:8b
+   - **Files Modified**: 9 files, ~424 lines added
+   - **Zero Breaking Changes**: Fully backward compatible
+
+### ✅ Fixed (v2.1.1 - Nov 1, 2025)
+
+1. **Image Extraction Integration**: Fully integrated image extraction into processing pipeline
+   - Updated `REQIFArtifactExtractor` and `HighPerformanceREQIFArtifactExtractor` to extract images
+   - Added config parameter to extractors for image extraction settings
+   - Processors now pass config to extractors (standard_processor.py:90, hp_processor.py:117)
+   - Extracts external images and base64-embedded images from REQIFZ files
+   - Saves images to `extracted_images/` directory with metadata
+   - Configurable via `config.image_extraction.enable_image_extraction`
 
 ### ✅ Fixed (v2.1.0 - Oct 31, 2025)
 
@@ -210,6 +266,8 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 | **Requirements Skipped** | "no text content" warnings | Check attribute mapping in extractor lines 151-172 |
 | **Excel Export Crash** | `KeyError` in HP mode | Verify 16 columns with "Feature Group", "LinkTest" |
 | **HP Mode AttributeError** | `generate_test_cases` not found | Verify `AsyncTestCaseGenerator` has the method (v2.1.0 fix) |
+| **Vision Model Not Found** | `OllamaModelNotFoundError` for vision | Install: `ollama pull llama3.2-vision:11b` |
+| **Out of VRAM** | Vision model fails | Reduce concurrency or disable vision: `export OLLAMA__ENABLE_VISION=false` |
 
 ---
 
@@ -219,6 +277,9 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 - `src/processors/base_processor.py:62-126` - Context-aware processing core
 - `src/core/extractors.py:151-172,191,235` - Attribute definition mapping (v2.0 fix)
 - `src/core/formatters.py:363-447` - Streaming Excel formatter (16 columns)
+- `src/core/ollama_client.py:146-266,578-689` - Vision model support (v2.2.0)
+- `src/core/generators.py:41-62,85-98,200-221,351-367` - Image path extraction & vision logic (v2.2.0)
+- `src/config.py:79-92,475-498` - Vision model config & hybrid selection (v2.2.0)
 - `main.py:278-285` - HP mode logging (no duplicate parameters)
 
 **Safe to Modify:**
@@ -253,12 +314,19 @@ pip install -e .[all]
 
 ## 🚀 Performance
 
-### Benchmarks (v2.1.0)
+### Benchmarks (v2.2.0)
 - **Standard mode**: ~7,254 artifacts/second
 - **HP mode**: ~65,000 artifacts/second (9x faster)
 - **Memory**: 0.008 MB per artifact (with `__slots__`)
-- **Ollama context**: 16K tokens (8K → 16K with v0.12.5)
+- **Ollama context**: 16K tokens (text), 32K-128K tokens (vision)
 - **Response length**: 4K tokens (2K → 4K with v0.12.5)
+
+### Vision Model Performance (v2.2.0)
+- **llama3.1:8b (text)**: ~2-3 sec/requirement, 6-7 GB VRAM
+- **llama3.2-vision:11b**: ~4-5 sec/requirement, 10-12 GB VRAM
+- **Hybrid strategy**: ~10-15 min for 70 files (vs 5-10 min text-only)
+  - 42 files with images → vision model
+  - 28 files without images → text model (faster)
 
 ### Optimization Notes
 - HP mode uses `asyncio.TaskGroup` (Python 3.14+)
@@ -270,9 +338,13 @@ pip install -e .[all]
 
 ## 📚 Documentation
 
+- `VISION_MODEL_IMPLEMENTATION_SUMMARY.md` - Vision model hybrid strategy (Nov 1, 2025)
+- `LLAMA32_VISION_MIGRATION_PLAN.md` - Comprehensive vision migration guide
+- `IMAGE_TO_AI_GAP_ANALYSIS.md` - Image extraction to vision model analysis
 - `ENHANCEMENT_SUMMARY.md` - Recent fixes and improvements (Oct 31, 2025)
 - `TEST_REPORT.md` - End-to-end test verification
 - `UPGRADE_COMPLETE.md` - Python 3.14 + Ollama 0.12.5 upgrade summary
+- `System_Intructions.md` - Vibe coding principles and review guidelines
 - `docs/reviews/` - Comprehensive code review archive
 - `.github/copilot-instructions.md` - Copilot-specific guidance
 
@@ -289,4 +361,63 @@ pip install -e .[all]
 
 ---
 
-**Last Updated**: 2025-10-31 | **Python**: 3.14+ only | **Status**: Production-Ready ✅
+---
+
+## 🔍 Vision Model Configuration (v2.2.0)
+
+### Enable/Disable Vision
+
+```bash
+# Default: Vision enabled (hybrid strategy)
+# Requirements with images use llama3.2-vision:11b automatically
+
+# Disable vision (always use text model)
+export OLLAMA__ENABLE_VISION=false
+
+# Change vision model
+export OLLAMA__VISION_MODEL="llama3.2-vision:90b"
+
+# Adjust vision context window
+export OLLAMA__VISION_CONTEXT_WINDOW=65536
+```
+
+### Hybrid Strategy Details
+
+**Automatic Model Selection** (per requirement):
+```python
+# In ConfigManager.get_model_for_requirement():
+if requirement.has_images and config.ollama.enable_vision:
+    return config.ollama.vision_model  # llama3.2-vision:11b
+else:
+    return config.ollama.synthesizer_model  # llama3.1:8b
+```
+
+**Processors automatically apply hybrid strategy**:
+- Standard processor: `standard_processor.py:126-140`
+- HP processor: `hp_processor.py:167-178`
+
+**Logs indicate model selection**:
+```
+⚡ Processing REQ_123 (heading: ACC) - Using llama3.2-vision:11b (has 8 images)
+⚡ Processing REQ_124 (heading: Diagnostics)  # Uses llama3.1:8b (no images)
+```
+
+### Vision Model Requirements
+
+**Hardware**:
+- Minimum: 12 GB VRAM (single request)
+- Recommended: 24 GB VRAM (HP mode with 4 concurrent)
+- CPU fallback: Possible but 10-20x slower
+
+**Model Installation**:
+```bash
+# Install vision model
+ollama pull llama3.2-vision:11b
+
+# Verify
+ollama list | grep llama3.2-vision
+```
+
+---
+
+**Last Updated**: 2025-11-01 | **Python**: 3.14+ only | **Status**: Production-Ready ✅

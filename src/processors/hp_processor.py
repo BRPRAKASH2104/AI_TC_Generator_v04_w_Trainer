@@ -114,7 +114,9 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         # Initialize file-specific logger and components
         self._initialize_logger(reqifz_path)
 
-        self.extractor = HighPerformanceREQIFArtifactExtractor(self.logger)
+        self.extractor = HighPerformanceREQIFArtifactExtractor(
+            self.logger, max_workers=4, config=self.config
+        )
         self.formatter = StreamingTestCaseFormatter(self.config, self.logger)
 
         self.logger.info(f"🚀 High-Performance Processing: {reqifz_path.name}")
@@ -164,15 +166,16 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 )
 
                 # Use TaskGroup for better async error handling (Python 3.14+)
+                # Hybrid strategy: Select appropriate model per requirement
                 async with asyncio.TaskGroup() as tg:
-                    tasks = [
-                        tg.create_task(
-                            generator.generate_test_cases(
-                                requirement, model, template
-                            )
+                    tasks = []
+                    for requirement in augmented_requirements:
+                        # Select vision or text model based on requirement characteristics
+                        selected_model = self.config.get_model_for_requirement(requirement)
+                        task = tg.create_task(
+                            generator.generate_test_cases(requirement, selected_model, template)
                         )
-                        for requirement in augmented_requirements
-                    ]
+                        tasks.append(task)
 
                 # Collect results from completed tasks
                 batch_results = [task.result() for task in tasks]

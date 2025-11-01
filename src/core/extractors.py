@@ -10,13 +10,15 @@ import xml.etree.ElementTree as ET
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import StrEnum
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .image_extractor import RequirementImageExtractor
 from .parsers import HTMLTableParser
 from .relationship_parser import RequirementRelationshipParser
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from src.config import ConfigManager
 
 # Type aliases for better readability (PEP 695 style)
 type RequirementData = dict[str, Any]
@@ -38,12 +40,13 @@ class ArtifactType(StrEnum):
 class REQIFArtifactExtractor:
     """Extracts and processes artifacts from REQIFZ files"""
 
-    __slots__ = ("logger", "html_parser", "use_streaming")
+    __slots__ = ("logger", "html_parser", "use_streaming", "config")
 
-    def __init__(self, logger=None, use_streaming: bool = False):
+    def __init__(self, logger=None, use_streaming: bool = False, config: ConfigManager = None):
         self.logger = logger
         self.html_parser = HTMLTableParser()
         self.use_streaming = use_streaming
+        self.config = config
 
     def extract_reqifz_content(self, reqifz_file_path: Path) -> ArtifactList:
         """
@@ -66,7 +69,39 @@ class REQIFArtifactExtractor:
 
                 # Process the first REQIF file found
                 reqif_content = zip_file.read(reqif_files[0])
-                return self._parse_reqif_xml(reqif_content)
+                artifacts = self._parse_reqif_xml(reqif_content)
+
+            # Extract images if enabled in config
+            if self.config and self.config.image_extraction.enable_image_extraction:
+                if self.logger:
+                    self.logger.info("🖼️  Extracting images from REQIFZ file...")
+
+                image_extractor = RequirementImageExtractor(
+                    logger=self.logger,
+                    output_dir=Path(self.config.image_extraction.output_dir),
+                    save_images=self.config.image_extraction.save_images,
+                    validate_images=self.config.image_extraction.validate_images,
+                )
+
+                images, report = image_extractor.extract_images_from_reqifz(reqifz_file_path)
+
+                if self.logger:
+                    self.logger.info(
+                        f"🖼️  Extracted {report.get('total_images', 0)} images: "
+                        f"{report.get('external_files', 0)} external, "
+                        f"{report.get('embedded_images', 0)} embedded"
+                    )
+
+                # Augment artifacts with image references if enabled
+                if self.config.image_extraction.augment_artifacts and images:
+                    artifacts = image_extractor.augment_artifacts_with_images(artifacts, images)
+                    if self.logger:
+                        self.logger.info(
+                            f"🔗 Augmented artifacts with image metadata "
+                            f"({sum(1 for a in artifacts if a.get('has_images', False))} artifacts have images)"
+                        )
+
+            return artifacts
 
         except Exception as e:
             if self.logger:
@@ -644,8 +679,8 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
     - Implementing intelligent fallback to sequential processing when needed
     """
 
-    def __init__(self, logger=None, max_workers: int = 4):
-        super().__init__(logger)
+    def __init__(self, logger=None, max_workers: int = 4, config: ConfigManager = None):
+        super().__init__(logger, use_streaming=False, config=config)
         self.max_workers = max_workers
 
     def extract_reqifz_content(self, reqifz_file_path: Path) -> ArtifactList:
@@ -666,7 +701,39 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
 
                 # Process the first REQIF file found with enhanced parallel processing
                 reqif_content = zip_file.read(reqif_files[0])
-                return self._parse_reqif_xml_parallel(reqif_content)
+                artifacts = self._parse_reqif_xml_parallel(reqif_content)
+
+            # Extract images if enabled in config
+            if self.config and self.config.image_extraction.enable_image_extraction:
+                if self.logger:
+                    self.logger.info("🖼️  Extracting images from REQIFZ file...")
+
+                image_extractor = RequirementImageExtractor(
+                    logger=self.logger,
+                    output_dir=Path(self.config.image_extraction.output_dir),
+                    save_images=self.config.image_extraction.save_images,
+                    validate_images=self.config.image_extraction.validate_images,
+                )
+
+                images, report = image_extractor.extract_images_from_reqifz(reqifz_file_path)
+
+                if self.logger:
+                    self.logger.info(
+                        f"🖼️  Extracted {report.get('total_images', 0)} images: "
+                        f"{report.get('external_files', 0)} external, "
+                        f"{report.get('embedded_images', 0)} embedded"
+                    )
+
+                # Augment artifacts with image references if enabled
+                if self.config.image_extraction.augment_artifacts and images:
+                    artifacts = image_extractor.augment_artifacts_with_images(artifacts, images)
+                    if self.logger:
+                        self.logger.info(
+                            f"🔗 Augmented artifacts with image metadata "
+                            f"({sum(1 for a in artifacts if a.get('has_images', False))} artifacts have images)"
+                        )
+
+            return artifacts
 
         except Exception as e:
             if self.logger:

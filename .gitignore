@@ -36,8 +36,13 @@ output/
 # Testing and coverage
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 .tox/
+
+# Linting and type checking
+.ruff_cache/
+.mypy_cache/
 
 # Documentation
 docs/_build/

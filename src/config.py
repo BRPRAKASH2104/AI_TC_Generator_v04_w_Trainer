@@ -47,9 +47,15 @@ class OllamaConfig(BaseModel):
     concurrent_requests: int = Field(4, ge=1, description="Number of concurrent requests")
 
     # Advanced sampling parameters for improved determinism
-    tfs_z: float = Field(0.9, ge=0.0, le=1.0, description="Tail-free sampling parameter (reduces hallucinations)")
-    typical_p: float = Field(0.9, ge=0.0, le=1.0, description="Typical sampling parameter (improves coherence)")
-    repeat_last_n: int = Field(128, ge=0, description="Number of previous tokens to consider for repetition penalty")
+    tfs_z: float = Field(
+        0.9, ge=0.0, le=1.0, description="Tail-free sampling parameter (reduces hallucinations)"
+    )
+    typical_p: float = Field(
+        0.9, ge=0.0, le=1.0, description="Typical sampling parameter (improves coherence)"
+    )
+    repeat_last_n: int = Field(
+        128, ge=0, description="Number of previous tokens to consider for repetition penalty"
+    )
 
     # GPU/Hardware-specific concurrency settings (Ollama 0.12.5 optimized)
     gpu_concurrency_limit: int = Field(
@@ -76,11 +82,27 @@ class OllamaConfig(BaseModel):
         "deepseek-coder-v2:16b", description="Model for decomposing requirements"
     )
 
+    # Vision model support (Ollama 0.12.5+ with multimodal models)
+    vision_model: str = Field(
+        "llama3.2-vision:11b",
+        description="Vision-capable model for requirements with diagrams (e.g., llama3.2-vision:11b)",
+    )
+    enable_vision: bool = Field(
+        True, description="Enable vision model for requirements with images (hybrid strategy)"
+    )
+    vision_context_window: int = Field(
+        32768,
+        gt=0,
+        description="Context window for vision model (llama3.2-vision supports 32K-128K)",
+    )
+
     @model_validator(mode="after")
     def audit_config(self) -> Self:
         """Post-initialization validation and audit logging"""
         with contextlib.suppress(RuntimeError, OSError):
-            sys.audit("ollama.config.init", self.host, self.port)  # Audit hook may not be available in all environments
+            sys.audit(
+                "ollama.config.init", self.host, self.port
+            )  # Audit hook may not be available in all environments
         return self
 
     @property
@@ -146,18 +168,19 @@ class ValidationConfig(BaseModel):
 class DeduplicationConfig(BaseModel):
     """Configuration for test case deduplication"""
 
-    enable_deduplication: bool = Field(
-        True, description="Enable test case deduplication"
-    )
+    enable_deduplication: bool = Field(True, description="Enable test case deduplication")
     similarity_threshold: float = Field(
-        0.85, ge=0.0, le=1.0, description="Similarity threshold for considering test cases as duplicates"
+        0.85,
+        ge=0.0,
+        le=1.0,
+        description="Similarity threshold for considering test cases as duplicates",
     )
     keep_strategy: str = Field(
         "best", description="Strategy for keeping duplicates: 'first', 'last', or 'best'"
     )
     fields_to_compare: list[str] = Field(
         default_factory=lambda: ["action", "data", "expected_result"],
-        description="Fields to compare for similarity detection"
+        description="Fields to compare for similarity detection",
     )
 
 
@@ -184,12 +207,8 @@ class ImageExtractionConfig(BaseModel):
     enable_image_extraction: bool = Field(
         True, description="Enable extraction of images from REQIFZ files"
     )
-    save_images: bool = Field(
-        True, description="Save extracted images to disk"
-    )
-    output_dir: str = Field(
-        "extracted_images", description="Directory for saving extracted images"
-    )
+    save_images: bool = Field(True, description="Save extracted images to disk")
+    output_dir: str = Field("extracted_images", description="Directory for saving extracted images")
     validate_images: bool = Field(
         True, description="Validate images using PIL/Pillow (requires Pillow)"
     )
@@ -436,8 +455,6 @@ class ConfigManager(BaseSettings):
             file_secret_settings,
         )
 
-
-
     def save_to_file(self, config_file: str) -> None:
         """
         Save current configuration to YAML file
@@ -456,6 +473,31 @@ class ConfigManager(BaseSettings):
 
         except Exception as e:
             print(f"Error saving configuration: {e}")
+
+    def get_model_for_requirement(self, requirement: dict) -> str:
+        """
+        Select appropriate model based on requirement characteristics (hybrid strategy).
+
+        This method implements intelligent model selection:
+        - Vision model (llama3.2-vision) for requirements with diagrams/images
+        - Text model (llama3.1) for text-only requirements (faster)
+
+        Args:
+            requirement: Requirement data containing metadata
+
+        Returns:
+            Model name to use for generation
+        """
+        # Use vision model if images present and vision enabled
+        if (
+            self.ollama.enable_vision
+            and requirement.get("has_images", False)
+            and requirement.get("images")
+        ):
+            return self.ollama.vision_model
+
+        # Fallback to standard synthesizer model for text-only
+        return self.ollama.synthesizer_model
 
     def print_summary(self) -> None:
         """Print a summary of current configuration"""
@@ -700,11 +742,7 @@ class ConfigManager(BaseSettings):
             if v not in ["not_set", "False"] and not v.startswith("enable_")
         )
         total_secrets = len(
-            [
-                k
-                for k in secrets_summary
-                if not k.endswith("_hours") and not k.startswith("enable_")
-            ]
+            [k for k in secrets_summary if not k.endswith("_hours") and not k.startswith("enable_")]
         )
 
         return {

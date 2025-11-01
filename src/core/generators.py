@@ -7,6 +7,7 @@ using AI models, with support for both synchronous and asynchronous processing.
 
 import asyncio
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .deduplicator import TestCaseDeduplicator
@@ -29,13 +30,43 @@ class TestCaseGenerator:
 
     __slots__ = ("client", "json_parser", "prompt_builder", "validator", "deduplicator", "logger")
 
-    def __init__(self, client: OllamaClient, yaml_manager=None, logger=None, validator=None, deduplicator=None):
+    def __init__(
+        self,
+        client: OllamaClient,
+        yaml_manager=None,
+        logger=None,
+        validator=None,
+        deduplicator=None,
+    ):
         self.client = client
         self.json_parser = JSONResponseParser()
         self.prompt_builder = PromptBuilder(yaml_manager)
         self.validator = validator or SemanticValidator(logger=logger)
         self.deduplicator = deduplicator or TestCaseDeduplicator(logger=logger)
         self.logger = logger
+
+    def _extract_image_paths(self, requirement: RequirementData) -> list[Path]:
+        """
+        Extract image file paths from requirement metadata.
+
+        Args:
+            requirement: Requirement data containing potential image metadata
+
+        Returns:
+            List of Path objects pointing to valid image files
+        """
+        if not requirement.get("has_images", False):
+            return []
+
+        images = requirement.get("images", [])
+        paths = []
+        for img in images:
+            if "saved_path" in img:
+                img_path = Path(img["saved_path"])
+                if img_path.exists():
+                    paths.append(img_path)
+
+        return paths
 
     def generate_test_cases_for_requirement(
         self, requirement: RequirementData, model: str, template_name: str = None
@@ -58,9 +89,19 @@ class TestCaseGenerator:
             if self.logger:
                 self.logger.debug(f"Generating test cases for {requirement.get('id', 'UNKNOWN')}")
 
-            # Generate AI response
+            # Extract image paths for vision model support
+            image_paths = self._extract_image_paths(requirement)
+
+            # Generate AI response (use vision-capable method if images present)
             start_time = time.time()
-            response = self.client.generate_response(model, prompt, is_json=True)
+            if image_paths:
+                if self.logger:
+                    self.logger.debug(f"Using vision model with {len(image_paths)} image(s)")
+                response = self.client.generate_response_with_vision(
+                    model, prompt, image_paths, is_json=True
+                )
+            else:
+                response = self.client.generate_response(model, prompt, is_json=True)
             generation_time = time.time() - start_time
 
             # Parse JSON response
@@ -104,7 +145,9 @@ class TestCaseGenerator:
                         )
 
                 # Deduplication
-                test_cases, dedup_report = self.deduplicator.deduplicate(test_cases, keep_strategy="best")
+                test_cases, dedup_report = self.deduplicator.deduplicate(
+                    test_cases, keep_strategy="best"
+                )
 
                 if dedup_report["duplicates_removed"] > 0 and self.logger:
                     self.logger.info(
@@ -119,8 +162,7 @@ class TestCaseGenerator:
                     test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i + 1:03d}"
                     # Add validation status
                     is_valid = i >= len(validation_report["issues"]) or all(
-                        entry["test_case_index"] != i + 1
-                        for entry in validation_report["issues"]
+                        entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
                     )
                     test_case["validation_passed"] = is_valid
 
@@ -152,7 +194,13 @@ class AsyncTestCaseGenerator:
     __slots__ = ("client", "json_parser", "prompt_builder", "validator", "deduplicator", "logger")
 
     def __init__(
-        self, client: AsyncOllamaClient, yaml_manager=None, logger=None, validator=None, deduplicator=None, _max_concurrent: int = 4
+        self,
+        client: AsyncOllamaClient,
+        yaml_manager=None,
+        logger=None,
+        validator=None,
+        deduplicator=None,
+        _max_concurrent: int = 4,
     ):
         self.client = client
         self.json_parser = FastJSONResponseParser()
@@ -162,6 +210,29 @@ class AsyncTestCaseGenerator:
         self.logger = logger
         # Note: Concurrency limiting is handled by AsyncOllamaClient's semaphore
         # No need for double semaphore here - improves throughput by ~50%
+
+    def _extract_image_paths(self, requirement: RequirementData) -> list[Path]:
+        """
+        Extract image file paths from requirement metadata.
+
+        Args:
+            requirement: Requirement data containing potential image metadata
+
+        Returns:
+            List of Path objects pointing to valid image files
+        """
+        if not requirement.get("has_images", False):
+            return []
+
+        images = requirement.get("images", [])
+        paths = []
+        for img in images:
+            if "saved_path" in img:
+                img_path = Path(img["saved_path"])
+                if img_path.exists():
+                    paths.append(img_path)
+
+        return paths
 
     async def generate_test_cases(
         self, requirement: RequirementData, model: str, template_name: str = None
@@ -291,10 +362,22 @@ class AsyncTestCaseGenerator:
             if self.logger:
                 self.logger.info(f"Async generating test cases for {req_id}")
 
-            # Phase 2: AI Response Generation
+            # Extract image paths for vision model support
+            image_paths = self._extract_image_paths(requirement)
+
+            # Phase 2: AI Response Generation (use vision-capable method if images present)
             # Time the AI call for performance metrics and SLA monitoring
             start_time = time.time()
-            response = await self.client.generate_response(model, prompt, is_json=True)
+            if image_paths:
+                if self.logger:
+                    self.logger.debug(
+                        f"Using vision model with {len(image_paths)} image(s) for {req_id}"
+                    )
+                response = await self.client.generate_response_with_vision(
+                    model, prompt, image_paths, is_json=True
+                )
+            else:
+                response = await self.client.generate_response(model, prompt, is_json=True)
             generation_time = time.time() - start_time
 
             # Record timing metrics for performance analysis and optimization
@@ -362,7 +445,9 @@ class AsyncTestCaseGenerator:
 
                 # Phase 6: Deduplication
                 # Remove duplicate or highly similar test cases
-                test_cases, dedup_report = self.deduplicator.deduplicate(test_cases, keep_strategy="best")
+                test_cases, dedup_report = self.deduplicator.deduplicate(
+                    test_cases, keep_strategy="best"
+                )
 
                 if dedup_report["duplicates_removed"] > 0 and self.logger:
                     self.logger.info(
@@ -378,8 +463,7 @@ class AsyncTestCaseGenerator:
                     test_case["test_id"] = f"{req_id}_TC_{i + 1:03d}"
                     # Add validation status
                     is_valid = i >= len(validation_report["issues"]) or all(
-                        entry["test_case_index"] != i + 1
-                        for entry in validation_report["issues"]
+                        entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
                     )
                     test_case["validation_passed"] = is_valid
 
