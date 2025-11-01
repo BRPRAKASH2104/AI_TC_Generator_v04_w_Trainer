@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Instruction
+
+Always read, understand and follow the guidelines from System_Instruction.md.
+
 ## 📋 Quick Reference
 
 **Project**: AI-powered test case generator for automotive REQIFZ requirements
