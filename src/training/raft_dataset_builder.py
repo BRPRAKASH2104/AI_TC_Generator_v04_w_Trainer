@@ -3,6 +3,8 @@ RAFT Training Dataset Builder
 
 This module builds RAFT training datasets from annotated examples,
 converting them to Ollama fine-tuning format.
+
+Vision Support (v2.2.0+): Builds datasets for vision model training with images.
 """
 
 import json
@@ -108,7 +110,7 @@ class RAFTDatasetBuilder:
         return raft_examples
 
     def _build_raft_example(self, data: dict[str, Any]) -> RAFTTrainingExample:
-        """Convert annotated example to RAFT format"""
+        """Convert annotated example to RAFT format (with vision support)"""
 
         # Extract oracle and distractor IDs
         annotation = data["context_annotation"]
@@ -144,17 +146,39 @@ class RAFTDatasetBuilder:
             elif iface["id"] in distractor_ids:
                 distractor_docs.append(doc_text)
 
+        # Process images (Vision Support v2.2.0+)
+        oracle_images = []
+        distractor_images = []
+
+        has_images = data.get("has_images", False)
+        if has_images:
+            images = data.get("images", [])
+            for img in images:
+                img_relevance = img.get("relevance")
+                if img_relevance == "oracle":
+                    oracle_images.append(img)
+                elif img_relevance == "distractor":
+                    distractor_images.append(img)
+                # If no annotation, include as oracle by default
+                elif img_relevance is None:
+                    oracle_images.append(img)
+
         # Build RAFT training example
         return {
             "question": f"Generate comprehensive test cases for requirement {data['requirement_id']}: {data['requirement_text']}",
             "oracle_context": oracle_docs,
             "distractor_context": distractor_docs,
+            "oracle_images": oracle_images,  # NEW: Vision support
+            "distractor_images": distractor_images,  # NEW: Vision support
+            "has_images": has_images,  # NEW: Vision flag
             "answer": data["generated_test_cases"],
             "metadata": {
                 "requirement_id": data["requirement_id"],
                 "quality_rating": annotation.get("quality_rating"),
                 "annotation_notes": annotation.get("annotation_notes", ""),
                 "original_model": data.get("model_used"),
+                "image_count": len(oracle_images) + len(distractor_images),
+                "oracle_image_count": len(oracle_images),
             },
         }
 
@@ -162,7 +186,7 @@ class RAFTDatasetBuilder:
         self, raft_examples: list[RAFTTrainingExample], filename: str = "raft_training_dataset"
     ) -> tuple[Path, Path]:
         """
-        Save RAFT dataset in Ollama fine-tuning format.
+        Save RAFT dataset in Ollama fine-tuning format (with vision support).
 
         Args:
             raft_examples: List of RAFT training examples
@@ -186,14 +210,36 @@ class RAFTDatasetBuilder:
                 context_str += "\n\nAdditional Context (may not be relevant):\n"
                 context_str += "\n".join(f"- {doc}" for doc in example["distractor_context"])
 
+            # Vision Support: Add image context
+            has_images = example.get("has_images", False)
+            oracle_images = example.get("oracle_images", [])
+            distractor_images = example.get("distractor_images", [])
+
+            if has_images and oracle_images:
+                context_str += f"\n\nRelevant Diagrams: {len(oracle_images)} diagram(s) provided. "
+                context_str += "Analyze visual information to understand system behavior, "
+                context_str += "state transitions, signal flows, and test scenarios."
+
+            if has_images and distractor_images:
+                context_str += f"\n\nAdditional Diagrams (may not be relevant): {len(distractor_images)} diagram(s)."
+
+            # Build user message
+            user_message = {"role": "user", "content": f"{context_str}\n\n{example['question']}"}
+
+            # Add images to user message (Ollama vision format)
+            if has_images and oracle_images:
+                user_message["images"] = [img["base64"] for img in oracle_images if "base64" in img]
+
             # Ollama conversation format
             conversation = {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an expert automotive test case generator. Use only the relevant context to generate high-quality test cases. Ignore irrelevant information.",
+                        "content": "You are an expert automotive test case generator with vision capabilities. "
+                        "Analyze both text context and diagrams to generate comprehensive test cases. "
+                        "Use only the relevant context and ignore irrelevant information.",
                     },
-                    {"role": "user", "content": f"{context_str}\n\n{example['question']}"},
+                    user_message,
                     {"role": "assistant", "content": example["answer"]},
                 ],
                 "metadata": example.get("metadata", {}),
@@ -207,9 +253,15 @@ class RAFTDatasetBuilder:
             for item in training_data:
                 f.write(json.dumps(item) + "\n")
 
+        # Calculate vision statistics
+        vision_count = sum(1 for ex in raft_examples if ex.get("has_images", False))
+        total_images = sum(ex.get("metadata", {}).get("image_count", 0) for ex in raft_examples)
+
         if self.logger:
             self.logger.info(f"✅ Saved RAFT dataset (JSONL): {jsonl_path}")
             self.logger.info(f"   Examples: {len(training_data)}")
+            if vision_count > 0:
+                self.logger.info(f"   Vision examples: {vision_count} ({total_images} images)")
 
         # Also save as regular JSON for inspection
         json_path = self.output_dir / f"{filename}.json"

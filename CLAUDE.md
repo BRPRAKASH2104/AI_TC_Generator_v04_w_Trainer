@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Instruction
 
-Always read, understand and follow the guidelines from System_Instruction.md.
+Always read, understand and follow the guidelines from `System_Intructions.md` - this defines the "Vibe Coding" philosophy, review checklists, and documentation standards for this project.
 
 ## 📋 Quick Reference
 
@@ -14,38 +14,39 @@ Always read, understand and follow the guidelines from System_Instruction.md.
 **Python**: 3.14+ (no backward compatibility)
 **Ollama**: v0.12.9+.
 **Vision Support**: ✅ Hybrid llama3.2-vision:11b + llama3.1:8b strategy
+**Training**: ✅ RAFT training with vision support (v2.2.0+)
 
 **Essential Commands**:
 ```bash
 # Development setup
-pip install -e .[dev]              # Install with dev dependencies
-pip install -e .                   # Production install only
+pip install -e .[dev]              # Install with dev dependencies (includes ruff, pytest, mypy)
+pip install -e .[training]         # Add training dependencies (torch, transformers, peft)
+pip install -e .[all]              # Everything (dev + training)
 
 # Running the application
 ai-tc-generator input/file.reqifz --verbose           # Standard mode (hybrid vision/text)
-ai-tc-generator input/ --hp --max-concurrent 4        # HP mode (3-9x faster, hybrid)
-python3 main.py input/file.reqifz --model llama3.2-vision:11b --verbose  # Force vision model
-python3 main.py input/file.reqifz --debug             # Development mode
+ai-tc-generator input/ --hp --max-concurrent 4        # HP mode (3-9x faster)
+python3 main.py input/file.reqifz --debug             # Development mode with debug logging
 
-# Testing
+# Testing (per System_Instructions.md: testing is non-negotiable)
 python3 -m pytest tests/core/ -v                      # Core unit tests (fast)
-python3 -m pytest tests/ -v -m "not integration"      # All tests except integration
-python3 -m pytest tests/ -v --cov=src                 # With coverage
+python3 -m pytest tests/ -v -m "not integration"      # All except integration tests
+python3 -m pytest tests/ -v --cov=src                 # With coverage report
 
-# Code quality
+# Code quality (must pass before committing)
 ruff check src/ main.py utilities/ --fix             # Lint and auto-fix
 ruff format src/ main.py utilities/                   # Format code
 mypy src/ main.py --python-version 3.14               # Type checking
 
 # Validation
-ai-tc-generator --validate-prompts                    # Validate YAML templates
+ai-tc-generator --validate-prompts                    # Validate YAML templates after editing
 ```
 
 **Architecture Pattern**: `CLI → Processor → Generator → PromptBuilder → Ollama (hybrid vision/text) → Excel`
 
 **Hybrid Vision Strategy** (v2.2.0):
-- Requirements with images → `llama3.2-vision:11b` (vision understanding)
-- Requirements without images → `llama3.1:8b` (faster text-only)
+- Requirements **with images** → `llama3.2-vision:11b` (vision understanding of diagrams)
+- Requirements **without images** → `llama3.1:8b` (faster text-only processing)
 - Automatic per-requirement model selection via `ConfigManager.get_model_for_requirement()`
 
 ---
@@ -54,7 +55,7 @@ ai-tc-generator --validate-prompts                    # Validate YAML templates
 
 **DO NOT BREAK THIS - It's the heart of the system.**
 
-The system REQUIRES context-aware artifact processing in `BaseProcessor._build_augmented_requirements()` (lines 62-126) which ALL processors inherit:
+The system REQUIRES context-aware artifact processing in `BaseProcessor._build_augmented_requirements()` (src/processors/base_processor.py:62-126) which ALL processors inherit:
 
 ```python
 current_heading = "No Heading"
@@ -79,13 +80,13 @@ for obj in artifacts:
 
 **Why This Matters:**
 - AI generates better test cases with context (heading, info, interfaces)
-- Information context resets after each requirement (no carryover)
-- Both standard and HP processors share this logic via `BaseProcessor`
+- Information context resets after each requirement (no carryover between requirements)
+- Both standard and HP processors share this logic via `BaseProcessor` inheritance
 
 **DO NOT:**
-- Filter artifacts before iteration: `[obj for obj in artifacts if obj.get("type") == "System Requirement"]`
-- Duplicate context logic in processors (use inheritance)
-- Remove context fields from `PromptBuilder` templates
+- Filter artifacts before iteration: `[obj for obj in artifacts if obj.get("type") == "System Requirement"]` ❌
+- Duplicate context logic in processors (use inheritance) ❌
+- Remove context fields from `PromptBuilder` templates ❌
 
 ---
 
@@ -97,7 +98,7 @@ main.py (CLI entry)
   ↓
 Processor (standard or HP)
   ├─ BaseProcessor (shared context logic)
-  ├─ REQIFArtifactExtractor (parse REQIFZ)
+  ├─ REQIFArtifactExtractor (parse REQIFZ XML)
   │   ├─ Extract text artifacts from REQIF XML
   │   ├─ RequirementImageExtractor (extract & save images) [v2.1.1]
   │   └─ Augment artifacts with image metadata
@@ -153,7 +154,7 @@ Excel/JSON Output + Extracted Images
 - Supports PNG, JPEG, GIF, BMP, SVG, TIFF, WEBP
 - Validates images using PIL/Pillow (optional)
 - Saves images to `extracted_images/` directory
-- Augments artifacts with image references for future OCR/vision AI
+- Augments artifacts with image references for vision AI
 
 **PromptBuilder** (`src/core/prompt_builder.py`):
 - Stateless prompt construction
@@ -180,9 +181,19 @@ Excel/JSON Output + Extracted Images
 
 ## 🔧 Recent Fixes & Known Issues
 
+### ✅ Fixed (v2.2.0 - Nov 2, 2025)
+
+1. **Vision Training Infrastructure**: Extended RAFT training to support vision models
+   - `RAFTDataCollector` now captures images with base64 encoding
+   - `RAFTDatasetBuilder` builds hybrid vision/text datasets
+   - `VisionRAFTTrainer` - complete training pipeline for llama3.2-vision
+   - `QualityScorer` includes image quality and relevance metrics
+   - **Files Modified**: 5 files, ~810 lines added
+   - **Zero Breaking Changes**: Fully backward compatible
+
 ### ✅ Fixed (v2.2.0 - Nov 1, 2025)
 
-1. **Vision Model Support - Hybrid Strategy**: Implemented intelligent model selection
+2. **Vision Model Support - Hybrid Strategy**: Implemented intelligent model selection
    - Added `generate_response_with_vision()` to both sync and async Ollama clients
    - Generators automatically extract image paths and use vision methods when images present
    - `ConfigManager.get_model_for_requirement()` selects appropriate model per requirement
@@ -191,11 +202,10 @@ Excel/JSON Output + Extracted Images
    - Configuration: `vision_model`, `enable_vision`, `vision_context_window` settings
    - **Impact**: Requirements with diagrams use llama3.2-vision:11b, text-only use llama3.1:8b
    - **Files Modified**: 9 files, ~424 lines added
-   - **Zero Breaking Changes**: Fully backward compatible
 
 ### ✅ Fixed (v2.1.1 - Nov 1, 2025)
 
-1. **Image Extraction Integration**: Fully integrated image extraction into processing pipeline
+3. **Image Extraction Integration**: Fully integrated image extraction into processing pipeline
    - Updated `REQIFArtifactExtractor` and `HighPerformanceREQIFArtifactExtractor` to extract images
    - Added config parameter to extractors for image extraction settings
    - Processors now pass config to extractors (standard_processor.py:90, hp_processor.py:117)
@@ -203,21 +213,12 @@ Excel/JSON Output + Extracted Images
    - Saves images to `extracted_images/` directory with metadata
    - Configurable via `config.image_extraction.enable_image_extraction`
 
-### ✅ Fixed (v2.1.0 - Oct 31, 2025)
-
-1. **HP Processor API**: Added `generate_test_cases()` to `AsyncTestCaseGenerator`
-2. **Excel Formatter**: Fixed column names ("Feature Group", "LinkTest") - 16 columns total
-3. **CLI Entry Point**: Removed duplicate `src/main.py`, unified to root `main.py`
-4. **Dependencies**: `pyproject.toml` is single source of truth (requirements.txt deprecated)
-5. **Code Quality**: Fixed 33 ruff errors → 0 errors
-6. **HP Mode Logging**: Removed duplicate `max_concurrent` parameter in `main.py:284`
-
 ### ⚠️ Known Issues
 
 1. **HP Mode Extraction** (pre-existing):
    - HP mode may show "no text content" for some requirements
    - Standard mode works fine on same files
-   - Under investigation (not related to v2.1.0 fixes)
+   - Under investigation (not related to v2.1.0+ fixes)
 
 ---
 
@@ -287,9 +288,9 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 
 **Safe to Modify:**
 - `src/core/prompt_builder.py` - Prompt formatting (keep stateless)
-- `prompts/templates/*.yaml` - Prompt templates (validate after changes)
-- `src/config.py` - Configuration (Pydantic-based)
-- `tests/` - Test files
+- `prompts/templates/*.yaml` - Prompt templates (validate after changes with `--validate-prompts`)
+- `src/config.py` - Configuration (Pydantic-based, follow existing patterns)
+- `tests/` - Test files (required for all new features per System_Instructions.md)
 
 ---
 
@@ -313,6 +314,8 @@ pip install -e .[all]
 
 **Note**: `requirements.txt` is deprecated - use `pyproject.toml`
 
+**Python Version**: 3.14+ only (no backward compatibility per System_Instructions.md)
+
 ---
 
 ## 🚀 Performance
@@ -322,7 +325,7 @@ pip install -e .[all]
 - **HP mode**: ~65,000 artifacts/second (9x faster)
 - **Memory**: 0.008 MB per artifact (with `__slots__`)
 - **Ollama context**: 16K tokens (text), 32K-128K tokens (vision)
-- **Response length**: 4K tokens (2K → 4K with v0.12.5)
+- **Response length**: 4K tokens (2K → 4K with Ollama v0.12.5)
 
 ### Vision Model Performance (v2.2.0)
 - **llama3.1:8b (text)**: ~2-3 sec/requirement, 6-7 GB VRAM
@@ -341,28 +344,40 @@ pip install -e .[all]
 
 ## 📚 Documentation
 
+### Architecture & Design
 - `VISION_MODEL_IMPLEMENTATION_SUMMARY.md` - Vision model hybrid strategy (Nov 1, 2025)
+- `VISION_TRAINING_IMPLEMENTATION_SUMMARY.md` - Vision training infrastructure (Nov 2, 2025)
 - `LLAMA32_VISION_MIGRATION_PLAN.md` - Comprehensive vision migration guide
 - `IMAGE_TO_AI_GAP_ANALYSIS.md` - Image extraction to vision model analysis
 - `ENHANCEMENT_SUMMARY.md` - Recent fixes and improvements (Oct 31, 2025)
 - `TEST_REPORT.md` - End-to-end test verification
 - `UPGRADE_COMPLETE.md` - Python 3.14 + Ollama 0.12.5 upgrade summary
-- `System_Intructions.md` - Vibe coding principles and review guidelines
+
+### Development Guidelines
+- `System_Intructions.md` - **MUST READ**: Vibe coding principles, review guidelines, documentation standards
+- `.github/copilot-instructions.md` - Copilot-specific guidance (aligned with System_Instructions.md)
 - `docs/reviews/` - Comprehensive code review archive
-- `.github/copilot-instructions.md` - Copilot-specific guidance
+
+### Training Documentation
+- `docs/training/VISION_TRAINING_GUIDE.md` - **NEW (v2.2.0)**: Complete vision model training guide
+- `docs/training/TRAINING_GUIDE.md` - RAFT training for text models
+- `docs/training/RAFT_TECHNICAL.md` - RAFT implementation details
+- `docs/training/MODEL_TRAINING_GUIDE.md` - Model training and fine-tuning
 
 ---
 
 ## 🎯 Development Workflow
 
-1. **Make changes** to code
-2. **Run tests**: `python3 -m pytest tests/core/ -v`
-3. **Check quality**: `ruff check src/ main.py --fix`
-4. **Verify E2E**: Test with real REQIFZ file
-5. **Check Excel output**: Verify 16 columns if formatter changed
-6. **Commit** with descriptive message
-
----
+1. **Make changes** to code (follow System_Instructions.md principles)
+2. **Write tests** alongside implementation (per System_Instructions.md: testing is non-negotiable)
+3. **Run tests**: `python3 -m pytest tests/core/ -v`
+4. **Check quality**: `ruff check src/ main.py --fix` and `ruff format ...`
+5. **Type check**: `mypy src/ main.py --python-version 3.14`
+6. **Verify E2E**: Test with real REQIFZ file
+7. **Check Excel output**: Verify 16 columns if formatter changed
+8. **Validate prompts**: If templates modified: `ai-tc-generator --validate-prompts`
+9. **Update docs**: Per System_Instructions.md, documentation must be kept in sync
+10. **Commit** with descriptive message
 
 ---
 
@@ -423,4 +438,114 @@ ollama list | grep llama3.2-vision
 
 ---
 
-**Last Updated**: 2025-11-01 | **Python**: 3.14+ only | **Status**: Production-Ready ✅
+## 🎓 Vision Model Training (v2.2.0+)
+
+### RAFT Training with Images
+
+The training infrastructure now supports **vision model fine-tuning** using RAFT methodology with images:
+
+**Key Features**:
+- **Image Capture**: Automatically collects images during RAFT data collection
+- **Image Annotation**: Expert annotation of oracle/distractor images
+- **Hybrid Datasets**: Mix text-only and vision examples
+- **Quality Metrics**: Automated image quality and relevance scoring
+- **Vision Training Pipeline**: Complete pipeline for training custom vision models
+
+### Quick Training Workflow
+
+```bash
+# 1. Enable RAFT collection (images captured automatically)
+export AI_TG_ENABLE_RAFT=true
+export AI_TG_COLLECT_TRAINING_DATA=true
+
+# 2. Process requirements to collect data
+ai-tc-generator input/ --hp --verbose
+
+# 3. Check collection stats (includes image metrics)
+python3 -c "
+from src.training.raft_collector import RAFTDataCollector
+stats = RAFTDataCollector('training_data/collected').get_collection_stats()
+print(f'Collected: {stats[\"total_collected\"]} examples')
+print(f'With images: {stats[\"with_images\"]} ({stats[\"total_images\"]} images)')
+"
+
+# 4. Annotate examples (text context + images)
+# Edit JSON files in training_data/collected/
+# Mark oracle/distractor for both context and images
+
+# 5. Build vision RAFT dataset
+python3 -c "
+from src.training.raft_dataset_builder import RAFTDatasetBuilder
+builder = RAFTDatasetBuilder(
+    validated_dir='training_data/validated',
+    output_dir='training_data/raft_dataset'
+)
+examples = builder.build_dataset(min_quality=3)
+builder.save_dataset(examples, 'vision_raft_dataset')
+"
+
+# 6. Train vision model
+python3 -c "
+from src.training.vision_raft_trainer import create_vision_training_pipeline
+trainer = create_vision_training_pipeline(
+    dataset_path='training_data/raft_dataset/vision_raft_dataset.jsonl',
+    base_model='llama3.2-vision:11b',
+    output_model='automotive-tc-vision-raft-v1'
+)
+result = trainer.train()
+print(f'Training completed: {result[\"success\"]}')
+"
+
+# 7. Deploy trained model
+export OLLAMA__VISION_MODEL="automotive-tc-vision-raft-v1"
+```
+
+### Training Data Format
+
+Vision RAFT examples include base64-encoded images:
+
+```json
+{
+  "requirement_id": "REQ_001",
+  "requirement_text": "System shall process ACC signals...",
+  "images": [
+    {
+      "id": "IMG_0",
+      "base64": "iVBORw0KGgo...",
+      "image_type": "state_machine",
+      "relevance": "oracle",
+      "description": "ACC state machine with 4 states"
+    }
+  ],
+  "has_images": true,
+  "context_annotation": {
+    "oracle_context": ["HEADING", "IF_001", "IMG_0"],
+    "distractor_context": ["INFO_2", "IMG_1"]
+  }
+}
+```
+
+### Image Quality Metrics (v2.2.0)
+
+Automated quality assessment includes vision metrics:
+
+```python
+from src.training.quality_scorer import QualityScorer
+
+scorer = QualityScorer()
+assessment = scorer.assess_example_quality(example)
+
+print(f"Overall score: {assessment.metrics.overall_score:.2f}")
+print(f"Image quality: {assessment.metrics.image_quality_score:.2f}")
+print(f"Image relevance: {assessment.metrics.image_relevance_score:.2f}")
+```
+
+### Training Documentation
+
+- **Vision Training Guide**: `docs/training/VISION_TRAINING_GUIDE.md` (comprehensive user guide)
+- **RAFT Technical**: `docs/training/RAFT_TECHNICAL.md` (implementation details)
+- **Training Guide**: `docs/training/TRAINING_GUIDE.md` (text model training)
+
+---
+
+**Last Updated**: 2025-11-02 | **Python**: 3.14+ only | **Status**: Production-Ready ✅

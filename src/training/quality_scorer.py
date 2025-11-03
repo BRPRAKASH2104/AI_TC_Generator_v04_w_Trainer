@@ -20,12 +20,17 @@ type RAFTExample = dict[str, Any]
 
 @dataclass(slots=True)
 class QualityMetrics:
-    """Quality metrics for a RAFT training example"""
+    """Quality metrics for a RAFT training example (with vision support)"""
 
     relevance_score: float = 0.0  # How well oracle context relates to requirement
     context_diversity: float = 0.0  # Diversity of context types
     context_quantity: float = 0.0  # Amount of context provided
     requirement_complexity: float = 0.0  # Complexity of requirement text
+    # Vision metrics (v2.2.0+)
+    image_quality_score: float = 0.0  # Quality/usefulness of images
+    image_relevance_score: float = 0.0  # How relevant images are to requirement
+    has_images: bool = False  # Whether example includes images
+    # Overall
     overall_score: float = 0.0  # Combined quality score
 
 
@@ -52,8 +57,15 @@ class QualityScorer:
     def __init__(self, logger: Logger | None = None):
         self.logger = logger
 
-        # Scoring weights
-        self.weights = {"relevance": 0.4, "diversity": 0.2, "quantity": 0.2, "complexity": 0.2}
+        # Scoring weights (adjusted for vision support v2.2.0)
+        self.weights = {
+            "relevance": 0.30,
+            "diversity": 0.15,
+            "quantity": 0.15,
+            "complexity": 0.15,
+            "image_quality": 0.15,  # NEW: Image quality contribution
+            "image_relevance": 0.10,  # NEW: Image relevance contribution
+        }
 
         # Keyword sets for relevance scoring
         self.domain_keywords = {
@@ -110,7 +122,7 @@ class QualityScorer:
 
     def assess_example_quality(self, example: RAFTExample) -> QualityAssessment:
         """
-        Assess the quality of a single RAFT training example.
+        Assess the quality of a single RAFT training example (with vision support).
 
         Args:
             example: RAFT training example to assess
@@ -128,19 +140,47 @@ class QualityScorer:
         context_quantity = self._calculate_context_quantity(context)
         requirement_complexity = self._calculate_requirement_complexity(requirement_text)
 
-        # Calculate overall score
-        overall_score = (
-            relevance_score * self.weights["relevance"]
-            + context_diversity * self.weights["diversity"]
-            + context_quantity * self.weights["quantity"]
-            + requirement_complexity * self.weights["complexity"]
-        )
+        # Vision metrics (v2.2.0+)
+        has_images = example.get("has_images", False)
+        image_quality_score = 0.0
+        image_relevance_score = 0.0
+
+        if has_images:
+            images = example.get("images", [])
+            image_quality_score = self._calculate_image_quality_score(images)
+            image_relevance_score = self._calculate_image_relevance_score(requirement_text, images)
+
+        # Calculate overall score (adjusted for vision)
+        if has_images:
+            # Weight distribution includes image metrics
+            overall_score = (
+                relevance_score * self.weights["relevance"]
+                + context_diversity * self.weights["diversity"]
+                + context_quantity * self.weights["quantity"]
+                + requirement_complexity * self.weights["complexity"]
+                + image_quality_score * self.weights["image_quality"]
+                + image_relevance_score * self.weights["image_relevance"]
+            )
+        else:
+            # Text-only: Normalize without image weights
+            text_weight_sum = sum(
+                self.weights[k] for k in ["relevance", "diversity", "quantity", "complexity"]
+            )
+            overall_score = (
+                relevance_score * self.weights["relevance"]
+                + context_diversity * self.weights["diversity"]
+                + context_quantity * self.weights["quantity"]
+                + requirement_complexity * self.weights["complexity"]
+            ) / text_weight_sum
 
         metrics = QualityMetrics(
             relevance_score=relevance_score,
             context_diversity=context_diversity,
             context_quantity=context_quantity,
             requirement_complexity=requirement_complexity,
+            image_quality_score=image_quality_score,
+            image_relevance_score=image_relevance_score,
+            has_images=has_images,
             overall_score=overall_score,
         )
 
@@ -312,6 +352,145 @@ class QualityScorer:
 
         return complexity_score
 
+    def _calculate_image_quality_score(self, images: list[dict[str, Any]]) -> float:
+        """
+        Calculate quality of images for training.
+
+        Considers:
+        - Image size (larger = more detail)
+        - Format (vector > raster)
+        - Number of images (diversity)
+        - Proper encoding
+        """
+        if not images:
+            return 0.0
+
+        quality_score = 0.0
+
+        # Base score: Has images
+        quality_score += 0.3
+
+        # Size quality: Prefer larger images (more detail)
+        sizes = [img.get("size_bytes", 0) for img in images]
+        if sizes:
+            avg_size = sum(sizes) / len(sizes)
+            # Good size: 50KB - 500KB
+            if 50_000 <= avg_size <= 500_000:
+                quality_score += 0.3
+            elif avg_size > 500_000:
+                quality_score += 0.2  # Very large, might be excessive
+            else:
+                quality_score += 0.1  # Small, limited detail
+
+        # Format quality: Vector formats > raster
+        formats = [img.get("format", "").upper() for img in images]
+        vector_formats = {"SVG"}
+        high_quality_raster = {"PNG", "TIFF"}
+
+        vector_count = sum(1 for fmt in formats if fmt in vector_formats)
+        hq_raster_count = sum(1 for fmt in formats if fmt in high_quality_raster)
+
+        format_score = (vector_count * 0.15 + hq_raster_count * 0.10) / len(images)
+        quality_score += min(0.2, format_score)
+
+        # Diversity bonus: Multiple images provide different perspectives
+        image_count = len(images)
+        if image_count >= 3:
+            quality_score += 0.2
+        elif image_count == 2:
+            quality_score += 0.15
+        elif image_count == 1:
+            quality_score += 0.05
+
+        # Annotation quality: Check if images are annotated
+        annotated_count = sum(
+            1 for img in images if img.get("image_type") or img.get("description")
+        )
+        if annotated_count > 0:
+            quality_score += (annotated_count / len(images)) * 0.1
+
+        return min(1.0, quality_score)
+
+    def _calculate_image_relevance_score(
+        self, requirement_text: str, images: list[dict[str, Any]]
+    ) -> float:
+        """
+        Calculate how relevant images are to the requirement.
+
+        Uses image descriptions and types to assess relevance.
+        """
+        if not images or not requirement_text:
+            return 0.0
+
+        relevance_score = 0.0
+        req_lower = requirement_text.lower()
+
+        # Check for visual keywords in requirement
+        visual_keywords = [
+            "diagram",
+            "state",
+            "flow",
+            "chart",
+            "graph",
+            "timing",
+            "sequence",
+            "transition",
+            "ui",
+            "interface",
+            "display",
+            "screen",
+            "button",
+            "menu",
+            "visual",
+            "shown",
+            "depicted",
+        ]
+
+        visual_mention_count = sum(1 for kw in visual_keywords if kw in req_lower)
+        if visual_mention_count > 0:
+            relevance_score += 0.3  # Requirement explicitly references visuals
+
+        # Check image type annotations
+        image_types = [img.get("image_type") for img in images if img.get("image_type")]
+        if image_types:
+            # Relevant types for automotive requirements
+            relevant_types = {
+                "state_machine",
+                "timing_diagram",
+                "flow_chart",
+                "sequence_diagram",
+                "block_diagram",
+                "signal_flow",
+                "ui_mockup",
+                "parameter_table",
+            }
+
+            relevant_count = sum(
+                1 for img_type in image_types if img_type and img_type.lower() in relevant_types
+            )
+
+            if relevant_count > 0:
+                relevance_score += (relevant_count / len(images)) * 0.4
+
+        # Check image descriptions for keyword overlap
+        for img in images:
+            description = img.get("description", "").lower()
+            if description:
+                desc_words = set(re.findall(r"\b\w+\b", description))
+                req_words = set(re.findall(r"\b\w+\b", req_lower))
+
+                if desc_words and req_words:
+                    overlap = len(desc_words.intersection(req_words))
+                    overlap_score = min(0.3, overlap / len(req_words))
+                    relevance_score += overlap_score / len(images)
+
+        # Oracle annotation bonus
+        oracle_count = sum(1 for img in images if img.get("relevance") == "oracle")
+        if oracle_count > 0:
+            relevance_score += (oracle_count / len(images)) * 0.2
+
+        return min(1.0, relevance_score)
+
     def _generate_recommendations(self, metrics: QualityMetrics, example: RAFTExample) -> list[str]:
         """Generate specific recommendations based on quality metrics"""
         recommendations = []
@@ -348,6 +527,28 @@ class QualityScorer:
             recommendations.append(
                 "No interface context: Consider adding system interface definitions"
             )
+
+        # Vision-specific recommendations (v2.2.0+)
+        if metrics.has_images:
+            if metrics.image_quality_score < 0.4:
+                recommendations.append(
+                    "Low image quality: Use higher resolution or vector format diagrams"
+                )
+
+            if metrics.image_relevance_score < 0.3:
+                recommendations.append(
+                    "Images may not be relevant: Verify diagrams match requirement context"
+                )
+
+            # Check if images are annotated
+            images = example.get("images", [])
+            unannotated_count = sum(
+                1 for img in images if not img.get("image_type") and not img.get("description")
+            )
+            if unannotated_count > 0:
+                recommendations.append(
+                    f"{unannotated_count} image(s) need annotation: Add image_type and description"
+                )
 
         return recommendations
 
