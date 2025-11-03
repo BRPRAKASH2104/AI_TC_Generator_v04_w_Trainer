@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ai-tc-generator"
-version = "2.1.0"
+version = "2.2.0"
 description = "AI-powered test case generator for automotive REQIF requirements"
-readme = "docs/README.md"
+readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
     {name = "AI Test Case Generator Team"},
@@ -102,6 +102,7 @@ include = [
     "/utilities",
     "/input",
     "/docs",
+    "/README.md",
     "/CLAUDE.md",
     "/requirements.txt",
     "/pyproject.toml",

@@ -14,6 +14,12 @@ from unittest.mock import Mock
 from processors.base_processor import BaseProcessor
 from core.prompt_builder import PromptBuilder
 from core.generators import TestCaseGenerator, AsyncTestCaseGenerator
+from tests.helpers import (
+    create_test_heading,
+    create_test_information,
+    create_test_requirement,
+    create_test_interface,
+)
 
 
 class TestBaseProcessor:
@@ -39,17 +45,17 @@ class TestBaseProcessor:
         # Mock classified artifacts
         processor.extractor.classify_artifacts.return_value = {
             "System Interface": [
-                {"id": "IF_001", "text": "Speed signal"}
+                create_test_interface("Speed signal", interface_id="IF_001")
             ]
         }
 
-        # Simulate artifact sequence with context
+        # Simulate artifact sequence with context (using helpers for XHTML format)
         artifacts = [
-            {"type": "Heading", "text": "Door Lock System"},
-            {"type": "Information", "id": "INFO_001", "text": "Safety critical"},
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}},
-            {"type": "Heading", "text": "Window System"},
-            {"type": "System Requirement", "id": "REQ_002", "table": {"data": []}}
+            create_test_heading("Door Lock System"),
+            create_test_information("Safety critical", info_id="INFO_001"),
+            create_test_requirement("Door shall lock when speed exceeds threshold", requirement_id="REQ_001"),
+            create_test_heading("Window System"),
+            create_test_requirement("Window shall close automatically", requirement_id="REQ_002")
         ]
 
         augmented_reqs, interface_count = processor._build_augmented_requirements(artifacts)
@@ -57,13 +63,13 @@ class TestBaseProcessor:
         # Verify context preservation
         assert len(augmented_reqs) == 2
         assert augmented_reqs[0]["id"] == "REQ_001"
-        assert augmented_reqs[0]["heading"] == "Door Lock System"
+        assert "Door Lock System" in augmented_reqs[0]["heading"]  # Heading text in XHTML format
         assert len(augmented_reqs[0]["info_list"]) == 1
-        assert augmented_reqs[0]["info_list"][0]["text"] == "Safety critical"
+        assert "Safety critical" in augmented_reqs[0]["info_list"][0]["text"]
 
         # Second requirement should have different heading, no info
         assert augmented_reqs[1]["id"] == "REQ_002"
-        assert augmented_reqs[1]["heading"] == "Window System"
+        assert "Window System" in augmented_reqs[1]["heading"]  # Heading text in XHTML format
         assert len(augmented_reqs[1]["info_list"]) == 0
 
         # Both should have global interfaces
@@ -78,8 +84,8 @@ class TestBaseProcessor:
         processor.extractor.classify_artifacts.return_value = {"System Interface": []}
 
         artifacts = [
-            {"type": "Heading", "text": "Test"},
-            {"type": "Information", "id": "INFO_001", "text": "Info"}
+            create_test_heading("Test"),
+            create_test_information("Info", info_id="INFO_001")
         ]
 
         augmented_reqs, interface_count = processor._build_augmented_requirements(artifacts)
@@ -95,7 +101,7 @@ class TestBaseProcessor:
         processor.extractor.classify_artifacts.return_value = {"System Interface": []}
 
         artifacts = [
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}}
+            create_test_requirement("Requirement without heading", requirement_id="REQ_001")
         ]
 
         augmented_reqs, _ = processor._build_augmented_requirements(artifacts)

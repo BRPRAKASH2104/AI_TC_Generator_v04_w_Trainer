@@ -333,31 +333,19 @@ class REQIFArtifactExtractor:
             return None
 
     def _extract_xhtml_content(self, the_value_element: ET.Element) -> str:
-        """Extract text content from THE-VALUE element containing XHTML"""
-        # Find all HTML elements within THE-VALUE
-        html_elements = the_value_element.findall(
-            ".//html:*", {"html": "http://www.w3.org/1999/xhtml"}
-        )
+        """
+        Extract content from THE-VALUE element containing XHTML.
 
-        if not html_elements:
-            # Fallback to extracting all text content
-            return "".join(the_value_element.itertext()).strip()
+        Returns raw XHTML string to preserve image references (<object> tags)
+        which are needed for vision model integration.
+        """
+        # Convert THE-VALUE element to string to preserve all tags including <object>
+        # This is crucial for image linking in augment_artifacts_with_images()
+        xhtml_string = ET.tostring(the_value_element, encoding="unicode", method="xml")
 
-        # Extract content from HTML elements
-        content_parts = []
-        for html_elem in html_elements:
-            # Get text content while preserving some structure
-            elem_text = "".join(html_elem.itertext()).strip()
-            if elem_text:
-                content_parts.append(elem_text)
-
-        # Join all content parts
-        content = " ".join(content_parts)
-
-        # Clean up extra whitespace
-        content = " ".join(content.split())
-
-        return content
+        # Return the raw XHTML content
+        # The vision module will parse <object data="..."> tags to link images
+        return xhtml_string
 
     def _map_reqif_type_to_artifact_type(self, reqif_type_name: str) -> ArtifactType:
         """Map REQIF SPEC-OBJECT-TYPE LONG-NAME to our ArtifactType enum"""
@@ -630,7 +618,10 @@ class REQIFArtifactExtractor:
                                     f".//reqif:ATTRIBUTE-DEFINITION-STRING[@IDENTIFIER='{attr_def_id}']",
                                     namespaces,
                                 )
-                                if attr_def is not None and attr_def.get("LONG-NAME") == "ReqIF.ForeignID":
+                                if (
+                                    attr_def is not None
+                                    and attr_def.get("LONG-NAME") == "ReqIF.ForeignID"
+                                ):
                                     foreign_id = attr_value.get("THE-VALUE")
                                     if foreign_id:
                                         spec_obj_to_foreign_id[internal_id] = foreign_id

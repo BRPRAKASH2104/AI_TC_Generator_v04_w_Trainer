@@ -31,6 +31,12 @@ from core.ollama_client import AsyncOllamaClient, OllamaClient
 from processors.base_processor import BaseProcessor
 from processors.hp_processor import HighPerformanceREQIFZFileProcessor
 from processors.standard_processor import REQIFZFileProcessor
+from tests.helpers import (
+    create_test_heading,
+    create_test_information,
+    create_test_requirement,
+    create_test_interface,
+)
 
 
 # ============================================================================
@@ -349,23 +355,23 @@ class TestContextAwareProcessingIntegrity:
         processor.logger.debug = Mock()
         processor.logger.warning = Mock()
 
-        # Initialize a mock extractor
+        # Initialize a mock extractor (using helpers for XHTML format)
         processor.extractor = Mock()
         processor.extractor.classify_artifacts = Mock(return_value={
             "System Interface": [
-                {"id": "IF_001", "type": "System Interface", "text": "CAN Signal"}
+                create_test_interface("CAN Signal", interface_id="IF_001")
             ]
         })
 
-        # Create test artifacts in the exact order they would appear in a real REQIF file
+        # Create test artifacts in the exact order they would appear in a real REQIF file (using helpers)
         artifacts = [
-            {"id": "H_001", "type": "Heading", "text": "Door Control System"},
-            {"id": "I_001", "type": "Information", "text": "Voltage requirements"},
-            {"id": "I_002", "type": "Information", "text": "Temperature ranges"},
-            {"id": "REQ_001", "type": "System Requirement", "text": "Door shall lock", "table": {"data": []}},
-            {"id": "H_002", "type": "Heading", "text": "Window Control System"},
-            {"id": "I_003", "type": "Information", "text": "Motor specifications"},
-            {"id": "REQ_002", "type": "System Requirement", "text": "Window shall close", "table": {"data": []}},
+            create_test_heading("Door Control System", heading_id="H_001"),
+            create_test_information("Voltage requirements", info_id="I_001"),
+            create_test_information("Temperature ranges", info_id="I_002"),
+            create_test_requirement("Door shall lock", requirement_id="REQ_001"),
+            create_test_heading("Window Control System", heading_id="H_002"),
+            create_test_information("Motor specifications", info_id="I_003"),
+            create_test_requirement("Window shall close", requirement_id="REQ_002"),
         ]
 
         # Execute context-aware processing
@@ -379,7 +385,7 @@ class TestContextAwareProcessingIntegrity:
         # 2. First requirement should have first heading and first two info items
         req1 = augmented_requirements[0]
         assert req1["id"] == "REQ_001"
-        assert req1["heading"] == "Door Control System", "First requirement should have first heading"
+        assert "Door Control System" in req1["heading"], "First requirement should have first heading (XHTML format)"
         assert len(req1["info_list"]) == 2, "First requirement should have 2 info items"
         assert req1["info_list"][0]["id"] == "I_001"
         assert req1["info_list"][1]["id"] == "I_002"
@@ -387,7 +393,7 @@ class TestContextAwareProcessingIntegrity:
         # 3. Second requirement should have second heading and only the third info item
         req2 = augmented_requirements[1]
         assert req2["id"] == "REQ_002"
-        assert req2["heading"] == "Window Control System", "Second requirement should have second heading"
+        assert "Window Control System" in req2["heading"], "Second requirement should have second heading (XHTML format)"
         assert len(req2["info_list"]) == 1, "Second requirement should have only 1 info item"
         assert req2["info_list"][0]["id"] == "I_003"
 
@@ -413,14 +419,14 @@ class TestContextAwareProcessingIntegrity:
         processor.extractor = Mock()
         processor.extractor.classify_artifacts = Mock(return_value={"System Interface": []})
 
-        # Create artifacts with information that should NOT carry over
+        # Create artifacts with information that should NOT carry over (using helpers for XHTML format)
         artifacts = [
-            {"id": "H_001", "type": "Heading", "text": "Heading 1"},
-            {"id": "I_001", "type": "Information", "text": "Info before first req"},
-            {"id": "REQ_001", "type": "System Requirement", "text": "Req 1", "table": {"data": []}},
+            create_test_heading("Heading 1", heading_id="H_001"),
+            create_test_information("Info before first req", info_id="I_001"),
+            create_test_requirement("Req 1", requirement_id="REQ_001"),
             # This info should NOT appear in REQ_002 (context reset)
-            {"id": "I_002", "type": "Information", "text": "Info after first req"},
-            {"id": "REQ_002", "type": "System Requirement", "text": "Req 2", "table": {"data": []}},
+            create_test_information("Info after first req", info_id="I_002"),
+            create_test_requirement("Req 2", requirement_id="REQ_002"),
         ]
 
         augmented_requirements, _ = processor._build_augmented_requirements(artifacts)

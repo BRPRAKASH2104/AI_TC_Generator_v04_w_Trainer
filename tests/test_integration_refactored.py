@@ -12,6 +12,11 @@ import pytest
 from unittest.mock import MagicMock, patch
 from processors.standard_processor import REQIFZFileProcessor
 from processors.hp_processor import HighPerformanceREQIFZFileProcessor
+from tests.helpers import (
+    create_test_heading,
+    create_test_information,
+    create_test_requirement,
+)
 
 
 class TestStandardProcessorIntegration:
@@ -22,12 +27,12 @@ class TestStandardProcessorIntegration:
     @patch('processors.standard_processor.TestCaseFormatter')
     def test_standard_processor_complete_flow(self, MockFormatter, MockGenerator, MockExtractor):
         """Test complete standard processing flow (POSITIVE)"""
-        # Setup mocks
+        # Setup mocks (using helpers for XHTML format)
         mock_extractor = MockExtractor.return_value
         mock_extractor.extract_reqifz_content.return_value = [
-            {"type": "Heading", "text": "Test Heading"},
-            {"type": "Information", "id": "INFO_001", "text": "Test info"},
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}},
+            create_test_heading("Test Heading"),
+            create_test_information("Test info", info_id="INFO_001"),
+            create_test_requirement("Test requirement text", requirement_id="REQ_001"),
         ]
         mock_extractor.classify_artifacts.return_value = {"System Interface": []}
 
@@ -52,11 +57,11 @@ class TestStandardProcessorIntegration:
         assert result["requirements_processed"] == 1
         assert "output_file" in result
 
-        # Verify context was passed
+        # Verify context was passed (check for text within XHTML)
         call_args = mock_generator.generate_test_cases_for_requirement.call_args[0][0]
-        assert call_args["heading"] == "Test Heading"
+        assert "Test Heading" in call_args["heading"]  # Heading text in XHTML format
         assert len(call_args["info_list"]) == 1
-        assert call_args["info_list"][0]["text"] == "Test info"
+        assert "Test info" in call_args["info_list"][0]["text"]  # Info text in XHTML format
 
     @patch('processors.standard_processor.REQIFArtifactExtractor')
     def test_standard_processor_no_artifacts(self, MockExtractor):
@@ -76,7 +81,7 @@ class TestStandardProcessorIntegration:
         """Test when no test cases are generated (NEGATIVE)"""
         mock_extractor = MockExtractor.return_value
         mock_extractor.extract_reqifz_content.return_value = [
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}}
+            create_test_requirement("Test requirement", requirement_id="REQ_001")
         ]
         mock_extractor.classify_artifacts.return_value = {"System Interface": []}
 
@@ -96,7 +101,7 @@ class TestStandardProcessorIntegration:
         """Test Excel save failure (NEGATIVE)"""
         mock_extractor = MockExtractor.return_value
         mock_extractor.extract_reqifz_content.return_value = [
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}}
+            create_test_requirement("Test requirement", requirement_id="REQ_001")
         ]
         mock_extractor.classify_artifacts.return_value = {"System Interface": []}
 
@@ -125,12 +130,12 @@ class TestHPProcessorIntegration:
     @patch('processors.hp_processor.AsyncOllamaClient')
     async def test_hp_processor_complete_flow(self, MockClient, MockFormatter, MockGenerator, MockExtractor):
         """Test complete HP processing flow (POSITIVE)"""
-        # Setup mocks
+        # Setup mocks (using helpers for XHTML format)
         mock_extractor = MockExtractor.return_value
         mock_extractor.extract_reqifz_content.return_value = [
-            {"type": "Heading", "text": "HP Test"},
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}},
-            {"type": "System Requirement", "id": "REQ_002", "table": {"data": []}},
+            create_test_heading("HP Test"),
+            create_test_requirement("HP requirement 1", requirement_id="REQ_001"),
+            create_test_requirement("HP requirement 2", requirement_id="REQ_002"),
         ]
         mock_extractor.classify_artifacts.return_value = {"System Interface": []}
 
@@ -182,8 +187,8 @@ class TestHPProcessorIntegration:
         """Test HP processor with some errors (MIXED)"""
         mock_extractor = MockExtractor.return_value
         mock_extractor.extract_reqifz_content.return_value = [
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}},
-            {"type": "System Requirement", "id": "REQ_002", "table": {"data": []}},
+            create_test_requirement("HP requirement 1", requirement_id="REQ_001"),
+            create_test_requirement("HP requirement 2", requirement_id="REQ_002"),
         ]
         mock_extractor.classify_artifacts.return_value = {"System Interface": []}
 
@@ -217,11 +222,11 @@ class TestContextPreservation:
         """Test that info context resets between requirements (CRITICAL)"""
         mock_extractor = MockExtractor.return_value
         mock_extractor.extract_reqifz_content.return_value = [
-            {"type": "Heading", "text": "Section 1"},
-            {"type": "Information", "id": "INFO_001", "text": "Info for REQ_001"},
-            {"type": "System Requirement", "id": "REQ_001", "table": {"data": []}},
-            {"type": "Information", "id": "INFO_002", "text": "Info for REQ_002"},
-            {"type": "System Requirement", "id": "REQ_002", "table": {"data": []}},
+            create_test_heading("Section 1"),
+            create_test_information("Info for REQ_001", info_id="INFO_001"),
+            create_test_requirement("First requirement", requirement_id="REQ_001"),
+            create_test_information("Info for REQ_002", info_id="INFO_002"),
+            create_test_requirement("Second requirement", requirement_id="REQ_002"),
         ]
         mock_extractor.classify_artifacts.return_value = {"System Interface": []}
 

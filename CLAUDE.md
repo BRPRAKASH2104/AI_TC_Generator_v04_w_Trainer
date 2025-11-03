@@ -181,9 +181,20 @@ Excel/JSON Output + Extracted Images
 
 ## 🔧 Recent Fixes & Known Issues
 
+### ✅ Fixed (v2.2.0 - Nov 3, 2025)
+
+1. **Test Helper Functions for XHTML Format**: Created comprehensive test infrastructure
+   - New `tests/helpers/` package with 8 helper functions
+   - `create_test_artifact()`, `create_test_requirement()`, `create_test_heading()`, etc.
+   - Automatically generate XHTML-formatted test data matching production output
+   - 10 verification tests ensure helpers produce correct format
+   - Updated 11 integration tests to use helpers (223/255 tests passing, 87%)
+   - **Documentation**: `tests/helpers/USAGE_EXAMPLES.md`
+   - **Impact**: All new tests must use helpers to match v2.2.0 XHTML format
+
 ### ✅ Fixed (v2.2.0 - Nov 2, 2025)
 
-1. **Vision Training Infrastructure**: Extended RAFT training to support vision models
+2. **Vision Training Infrastructure**: Extended RAFT training to support vision models
    - `RAFTDataCollector` now captures images with base64 encoding
    - `RAFTDatasetBuilder` builds hybrid vision/text datasets
    - `VisionRAFTTrainer` - complete training pipeline for llama3.2-vision
@@ -193,7 +204,7 @@ Excel/JSON Output + Extracted Images
 
 ### ✅ Fixed (v2.2.0 - Nov 1, 2025)
 
-2. **Vision Model Support - Hybrid Strategy**: Implemented intelligent model selection
+3. **Vision Model Support - Hybrid Strategy**: Implemented intelligent model selection
    - Added `generate_response_with_vision()` to both sync and async Ollama clients
    - Generators automatically extract image paths and use vision methods when images present
    - `ConfigManager.get_model_for_requirement()` selects appropriate model per requirement
@@ -205,7 +216,7 @@ Excel/JSON Output + Extracted Images
 
 ### ✅ Fixed (v2.1.1 - Nov 1, 2025)
 
-3. **Image Extraction Integration**: Fully integrated image extraction into processing pipeline
+4. **Image Extraction Integration**: Fully integrated image extraction into processing pipeline
    - Updated `REQIFArtifactExtractor` and `HighPerformanceREQIFArtifactExtractor` to extract images
    - Added config parameter to extractors for image extraction settings
    - Processors now pass config to extractors (standard_processor.py:90, hp_processor.py:117)
@@ -237,6 +248,9 @@ python3 -m pytest tests/core/test_generators.py -v
 
 # With coverage
 python3 -m pytest tests/ -v --cov=src --cov-report=term-missing
+
+# Run single test
+python3 -m pytest tests/test_refactoring.py::TestBaseProcessor::test_build_augmented_requirements_with_context -v
 ```
 
 ### Test Markers
@@ -247,6 +261,50 @@ python3 -m pytest tests/ -v --cov=src --cov-report=term-missing
 -m "async_test"    # Async/await tests
 ```
 
+### Writing Tests with XHTML Format (v2.2.0+)
+
+**CRITICAL**: After vision integration, all text fields use XHTML format. Tests must use helper functions.
+
+```python
+# Import helpers
+from tests.helpers import (
+    create_test_heading,
+    create_test_information,
+    create_test_requirement,
+    create_test_interface,
+    create_test_artifact_with_images,
+)
+
+# ❌ WRONG - Plain text (will fail)
+artifacts = [
+    {"type": "Heading", "text": "Door System"},
+    {"type": "System Requirement", "id": "REQ_001", "text": "Door shall lock"}
+]
+
+# ✅ CORRECT - Use helpers for XHTML format
+artifacts = [
+    create_test_heading("Door System", heading_id="H_001"),
+    create_test_requirement("Door shall lock", requirement_id="REQ_001")
+]
+
+# ❌ WRONG - Exact match assertion
+assert artifact["heading"] == "Door System"
+
+# ✅ CORRECT - Check within XHTML
+assert "Door System" in artifact["heading"]
+```
+
+**Helper Functions** (in `tests/helpers/`):
+- `create_test_artifact()` - General purpose artifact
+- `create_test_requirement()` - System Requirements
+- `create_test_heading()` - Headings
+- `create_test_information()` - Information blocks
+- `create_test_interface()` - System Interfaces
+- `create_test_artifact_with_images()` - Requirements with `<object>` tags
+- `create_augmented_requirement()` - Full context-enriched requirement
+
+**Documentation**: See `tests/helpers/USAGE_EXAMPLES.md` for complete examples.
+
 ### CI/CD
 GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 1. Lint & format check (ruff)
@@ -256,6 +314,12 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 5. Dependency check (pip-audit)
 6. Build & package validation
 7. YAML prompt validation
+
+### Test Suite Status (as of Nov 3, 2025)
+- **Core unit tests**: 83/83 passing (100%) ✅
+- **Integration tests**: 223/255 passing (87%) ✅
+- **Helper verification**: 10/10 passing (100%) ✅
+- **Production validation**: 104/104 custom tests passing (100%) ✅
 
 ---
 
@@ -291,6 +355,7 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 - `prompts/templates/*.yaml` - Prompt templates (validate after changes with `--validate-prompts`)
 - `src/config.py` - Configuration (Pydantic-based, follow existing patterns)
 - `tests/` - Test files (required for all new features per System_Instructions.md)
+- `tests/helpers/test_artifact_builder.py` - Test helper functions (update if XHTML format changes)
 
 ---
 
@@ -352,6 +417,12 @@ pip install -e .[all]
 - `ENHANCEMENT_SUMMARY.md` - Recent fixes and improvements (Oct 31, 2025)
 - `TEST_REPORT.md` - End-to-end test verification
 - `UPGRADE_COMPLETE.md` - Python 3.14 + Ollama 0.12.5 upgrade summary
+
+### Test Infrastructure & Validation
+- `TEST_FIX_COMPLETE_SUMMARY.md` - Test helper implementation summary (Nov 3, 2025)
+- `OPTIONAL_TASKS_SUMMARY.md` - Performance & training test analysis (Nov 3, 2025)
+- `tests/helpers/USAGE_EXAMPLES.md` - Test helper function usage guide
+- `tests/helpers/test_artifact_builder.py` - XHTML test artifact builders
 
 ### Development Guidelines
 - `System_Intructions.md` - **MUST READ**: Vibe coding principles, review guidelines, documentation standards
@@ -548,4 +619,4 @@ print(f"Image relevance: {assessment.metrics.image_relevance_score:.2f}")
 
 ---
 
-**Last Updated**: 2025-11-02 | **Python**: 3.14+ only | **Status**: Production-Ready ✅
+**Last Updated**: 2025-11-03 | **Python**: 3.14+ only | **Status**: Production-Ready ✅

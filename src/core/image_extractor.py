@@ -17,6 +17,7 @@ from typing import Any
 
 try:
     from PIL import Image
+
     PILLOW_AVAILABLE = True
 except ImportError:
     PILLOW_AVAILABLE = False
@@ -108,9 +109,7 @@ class RequirementImageExtractor:
                 reqif_files = [f for f in zip_file.namelist() if f.endswith(".reqif")]
                 if reqif_files:
                     reqif_content = zip_file.read(reqif_files[0])
-                    embedded_images = self._extract_embedded_images(
-                        reqif_content, reqifz_file_path
-                    )
+                    embedded_images = self._extract_embedded_images(reqif_content, reqifz_file_path)
                     images.extend(embedded_images)
                     report["embedded_images"] = len(embedded_images)
 
@@ -131,9 +130,7 @@ class RequirementImageExtractor:
                 self.logger.error(f"Error extracting images from {reqifz_file_path}: {e}")
             return [], {"total_images": 0, "error": str(e)}
 
-    def _extract_external_images(
-        self, zip_file: zipfile.ZipFile, reqifz_path: Path
-    ) -> ImageList:
+    def _extract_external_images(self, zip_file: zipfile.ZipFile, reqifz_path: Path) -> ImageList:
         """Extract external image files from REQIFZ archive"""
         images = []
 
@@ -378,9 +375,7 @@ class RequirementImageExtractor:
 
         return validation
 
-    def _save_image(
-        self, image_data: bytes, filename: str, reqifz_path: Path
-    ) -> Path | None:
+    def _save_image(self, image_data: bytes, filename: str, reqifz_path: Path) -> Path | None:
         """Save image to output directory"""
         try:
             # Create subdirectory for this REQIFZ file
@@ -429,6 +424,8 @@ class RequirementImageExtractor:
         Augment artifacts with image references.
 
         This method adds image metadata to artifacts that reference images.
+        Supports both <img src="..."> and <object data="..."> tag formats
+        (REQIF files use <object> tags for image references).
 
         Args:
             artifacts: List of artifact dictionaries
@@ -437,13 +434,16 @@ class RequirementImageExtractor:
         Returns:
             List of artifacts augmented with image references
         """
-        # Create image lookup by hash and filename
+        # Create image lookup by hash, filename, and object_data
         image_lookup = {}
         for img in images:
             if "hash" in img:
                 image_lookup[img["hash"]] = img
             if "filename" in img:
                 image_lookup[img["filename"]] = img
+            if "object_data" in img:
+                # Add object_data path for REQIF <object> tag matching
+                image_lookup[img["object_data"]] = img
 
         # Augment each artifact
         for artifact in artifacts:
@@ -476,10 +476,29 @@ class RequirementImageExtractor:
                     if src in image_lookup:
                         artifact_images.append(image_lookup[src])
 
+            # Pattern 2: object data references (REQIF format)
+            # REQIF files use <object data="path/to/image.png"> instead of <img src="...">
+            obj_pattern = r'<(?:\w+:)?object[^>]*data=["\']([^"\']+)["\']'
+            obj_matches = re.finditer(obj_pattern, text, re.IGNORECASE | re.DOTALL)
+
+            for match in obj_matches:
+                data_path = match.group(1)  # e.g., "1472801/image-20240709-035006.png"
+
+                # Match against object_data in image_lookup
+                if data_path in image_lookup:
+                    artifact_images.append(image_lookup[data_path])
+
             # Add image references to artifact
             if artifact_images:
                 artifact["images"] = artifact_images
                 artifact["has_images"] = True
+
+                # Log successful image linking for debugging
+                if self.logger:
+                    artifact_id = artifact.get("id", "UNKNOWN")
+                    self.logger.debug(
+                        f"Linked {len(artifact_images)} image(s) to artifact {artifact_id}"
+                    )
             else:
                 artifact["has_images"] = False
 
