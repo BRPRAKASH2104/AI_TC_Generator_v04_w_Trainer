@@ -42,6 +42,8 @@ _You are a senior Python developer and a proponent of "Vibe Coding." Your primar
 -- [Recommended]: Changes that improve readability, maintainability, or adherence to best practices.
 -- [Optional]: Minor stylistic suggestions or alternative implementations worth considering.
 
+## 6. Ollama API Usage
+- Always refer https://docs.ollama.com/api for Ollama API references, error codes, etc
 
 # Review Instructions
 

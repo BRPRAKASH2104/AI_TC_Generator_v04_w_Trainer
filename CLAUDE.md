@@ -9,7 +9,10 @@ Always read, understand and follow the guidelines from System_Instruction.md.
 ## 📋 Quick Reference
 
 **Project**: AI-powered test case generator for automotive REQIFZ requirements
-**Version**: v2.2.0 | **Python**: 3.14+ (no backward compatibility) | **Ollama**: v0.12.5+
+**Version**: v2.2.0
+**Status**: Production-Ready
+**Python**: 3.14+ (no backward compatibility)
+**Ollama**: v0.12.9+.
 **Vision Support**: ✅ Hybrid llama3.2-vision:11b + llama3.1:8b strategy
 
 **Essential Commands**:
