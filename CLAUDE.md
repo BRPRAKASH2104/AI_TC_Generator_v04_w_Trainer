@@ -153,7 +153,7 @@ Excel/JSON Output + Extracted Images
 - Extracts images from REQIFZ files (external files and embedded base64)
 - Supports PNG, JPEG, GIF, BMP, SVG, TIFF, WEBP
 - Validates images using PIL/Pillow (optional)
-- Saves images to `extracted_images/` directory
+- Saves images to `TEMP/images/` directory (configurable)
 - Augments artifacts with image references for vision AI
 
 **PromptBuilder** (`src/core/prompt_builder.py`):
@@ -221,7 +221,7 @@ Excel/JSON Output + Extracted Images
    - Added config parameter to extractors for image extraction settings
    - Processors now pass config to extractors (standard_processor.py:90, hp_processor.py:117)
    - Extracts external images and base64-embedded images from REQIFZ files
-   - Saves images to `extracted_images/` directory with metadata
+   - Saves images to `TEMP/images/` directory with metadata (configurable)
    - Configurable via `config.image_extraction.enable_image_extraction`
 
 ### ⚠️ Known Issues
@@ -336,6 +336,8 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 | **HP Mode AttributeError** | `generate_test_cases` not found | Verify `AsyncTestCaseGenerator` has the method (v2.1.0 fix) |
 | **Vision Model Not Found** | `OllamaModelNotFoundError` for vision | Install: `ollama pull llama3.2-vision:11b` |
 | **Out of VRAM** | Vision model fails | Reduce concurrency or disable vision: `export OLLAMA__ENABLE_VISION=false` |
+| **Images Not Extracted** | No images in `TEMP/images/` | Check `config.image_extraction.enable_image_extraction=true` |
+| **Logs Not Saved** | No log files in `TEMP/logs/` | Enable: `config.logging.log_to_file=true` |
 
 ---
 
@@ -347,7 +349,7 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 - `src/core/formatters.py:363-447` - Streaming Excel formatter (16 columns)
 - `src/core/ollama_client.py:146-266,578-689` - Vision model support (v2.2.0)
 - `src/core/generators.py:41-62,85-98,200-221,351-367` - Image path extraction & vision logic (v2.2.0)
-- `src/config.py:79-92,475-498` - Vision model config & hybrid selection (v2.2.0)
+- `src/config.py:79-92,211,378,475-498` - Vision model config, TEMP paths, hybrid selection
 - `main.py:278-285` - HP mode logging (no duplicate parameters)
 
 **Safe to Modify:**
