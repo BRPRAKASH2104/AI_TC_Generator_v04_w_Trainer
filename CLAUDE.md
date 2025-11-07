@@ -11,8 +11,8 @@ Always read, understand and follow the guidelines from `System_Intructions.md` -
 **Project**: AI-powered test case generator for automotive REQIFZ requirements
 **Version**: v2.2.0
 **Status**: Production-Ready
-**Python**: 3.14+ (no backward compatibility)
-**Ollama**: v0.12.9+.
+**Python**: 3.14 or higher (no backward compatibility)
+**Ollama**: v0.12.9+
 **Vision Support**: ✅ Hybrid llama3.2-vision:11b + llama3.1:8b strategy
 **Training**: ✅ RAFT training with vision support (v2.2.0+)
 
@@ -40,6 +40,11 @@ mypy src/ main.py --python-version 3.14               # Type checking
 
 # Validation
 ai-tc-generator --validate-prompts                    # Validate YAML templates after editing
+
+# Quick verification (useful after installation)
+ai-tc-generator --version                             # Check installed version
+ai-tc-gen --help                                      # Test short alias (ai-tc-gen)
+ollama list                                            # Verify Ollama models installed
 ```
 
 **Architecture Pattern**: `CLI → Processor → Generator → PromptBuilder → Ollama (hybrid vision/text) → Excel`
@@ -176,6 +181,34 @@ Excel/JSON Output + Extracted Images
   - Column 13: "Feature Group"
   - Column 16: "LinkTest" (not "Tests")
   - Total: 16 columns
+
+---
+
+## 🎯 Architectural Decisions
+
+**Why BaseProcessor exists:**
+- **DRY Principle**: Context logic shared between standard and HP modes
+- Both processors need identical context-building (heading, info, interfaces)
+- Changes to context logic automatically apply to both modes
+- Zero code duplication = easier maintenance and fewer bugs
+
+**Why hybrid vision strategy:**
+- Vision models are **slower** (4-5s vs 2-3s per requirement)
+- Vision models use **more VRAM** (10-12GB vs 6-7GB)
+- Auto-selection optimizes: use vision only when images present
+- **Result**: Best of both worlds (speed + accuracy)
+
+**Why async in HP mode only:**
+- **Standard mode** is simpler, easier to debug, more predictable
+- **HP mode** trades complexity for 3-9x performance improvement
+- Users choose based on their needs (correctness/simplicity vs speed)
+- Async adds cognitive overhead - only worth it for large-scale processing
+
+**Why Pydantic for config:**
+- Type validation at runtime (catches config errors early)
+- Environment variable support built-in (12-factor app pattern)
+- Auto-documentation of config schema
+- IDE autocomplete for config fields
 
 ---
 
@@ -339,6 +372,62 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 
 ---
 
+## 🔍 Debugging Workflow
+
+**Common debugging pattern:**
+
+1. **Check logs first** (structured JSON logs):
+   ```bash
+   tail -f output/logs/*.json | jq '.'  # Live log monitoring (if jq installed)
+   tail -f output/logs/*.json            # Without jq
+   ```
+
+2. **Enable debug mode** for verbose output:
+   ```bash
+   python3 main.py input/file.reqifz --debug
+   ```
+
+3. **Test single requirement** (modify extractor temporarily):
+   ```python
+   # In src/core/extractors.py, add after artifact extraction:
+   artifacts = artifacts[:5]  # Test with first 5 artifacts only
+   ```
+
+4. **Validate Ollama connection**:
+   ```bash
+   # Check if Ollama is running
+   curl http://localhost:11434/api/tags
+
+   # Test model generation
+   curl http://localhost:11434/api/generate -d '{
+     "model": "llama3.1:8b",
+     "prompt": "test",
+     "stream": false
+   }'
+   ```
+
+5. **Isolate the problem**:
+   - Extractor issue? Check `extracted_images/` directory
+   - Generator issue? Look at Ollama logs
+   - Formatter issue? Check Excel output structure
+   - Context issue? Add logging in `BaseProcessor._build_augmented_requirements()`
+
+6. **Compare with working example**:
+   ```bash
+   # Process a known-good file first
+   ai-tc-generator input/sample_working.reqifz --verbose
+   # Then process the problematic file
+   ai-tc-generator input/problematic.reqifz --debug
+   ```
+
+**Debugging Tips:**
+- Use `--verbose` for progress info, `--debug` for detailed logs
+- Check `output/logs/` for structured error information
+- HP mode failures: Try standard mode first to isolate concurrency issues
+- Vision model issues: Disable vision to test text-only path
+
+---
+
 ## 🔍 Critical Files & Line Numbers
 
 **DO NOT MODIFY WITHOUT UNDERSTANDING:**
@@ -356,6 +445,39 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push:
 - `src/config.py` - Configuration (Pydantic-based, follow existing patterns)
 - `tests/` - Test files (required for all new features per System_Instructions.md)
 - `tests/helpers/test_artifact_builder.py` - Test helper functions (update if XHTML format changes)
+
+---
+
+## ⚠️ When NOT to Modify Core Logic
+
+**Before modifying these areas, understand the full system impact:**
+
+**Context-Aware Processing** (`BaseProcessor._build_augmented_requirements()`):
+- ❌ Do NOT filter artifacts before iteration
+- ❌ Do NOT duplicate this logic in processors
+- ❌ Do NOT change the reset behavior for `info_since_heading`
+- ✅ DO make changes here (not in individual processors) if context logic needs updating
+
+**Attribute Definition Mapping** (extractor lines 151-172, 191, 235):
+- ❌ Do NOT remove or bypass the mapping logic
+- ❌ Do NOT assume attribute names without mapping
+- ✅ DO add new attribute types to the mapping if needed
+
+**Excel Formatter Structure** (16 columns, specific names):
+- ❌ Do NOT change column count without updating formatters
+- ❌ Do NOT rename columns without updating both formatters
+- ✅ DO update both `TestCaseFormatter` and `StreamingTestCaseFormatter` together
+
+**Hybrid Vision Model Selection**:
+- ❌ Do NOT bypass `ConfigManager.get_model_for_requirement()`
+- ❌ Do NOT hardcode model selection in processors
+- ✅ DO modify selection logic in `ConfigManager` only
+
+**When in doubt:**
+1. Search for usages: `rg "function_name" src/`
+2. Run full test suite: `python3 -m pytest tests/ -v`
+3. Test with real REQIFZ files before committing
+4. Ask in code review if the change affects core logic
 
 ---
 
@@ -379,7 +501,7 @@ pip install -e .[all]
 
 **Note**: `requirements.txt` is deprecated - use `pyproject.toml`
 
-**Python Version**: 3.14+ only (no backward compatibility per System_Instructions.md)
+**Python Version**: 3.14 or higher (no backward compatibility per System_Instructions.md)
 
 ---
 
@@ -434,6 +556,87 @@ pip install -e .[all]
 - `docs/training/TRAINING_GUIDE.md` - RAFT training for text models
 - `docs/training/RAFT_TECHNICAL.md` - RAFT implementation details
 - `docs/training/MODEL_TRAINING_GUIDE.md` - Model training and fine-tuning
+
+---
+
+## 🚀 Quick Start for New Contributors
+
+**First time working on this codebase?**
+
+### Step 1: Read Documentation (in this order)
+1. **`System_Intructions.md`** - Coding philosophy and "Vibe Coding" principles
+2. **This file (CLAUDE.md)** - Architecture, commands, and critical patterns
+3. **`README.md`** - User-facing documentation and features
+
+### Step 2: Set Up Environment
+```bash
+# Clone and install
+git clone <repository-url>
+cd AI_TC_Generator_v04_w_Trainer
+pip install -e .[dev]
+
+# Verify installation
+ai-tc-generator --version
+python3 -m pytest tests/core/ -v    # Should pass 83/83 tests
+
+# Install Ollama models
+ollama pull llama3.1:8b
+ollama pull llama3.2-vision:11b
+```
+
+### Step 3: Understand the Flow
+Make a small change to see how data flows through the system:
+
+```python
+# Add a log statement in src/processors/base_processor.py:
+# Around line 75 (inside _build_augmented_requirements)
+print(f"DEBUG: Processing requirement {obj.get('id')} with heading: {current_heading}")
+```
+
+Run it:
+```bash
+python3 main.py input/sample.reqifz --debug
+```
+
+Observe how context (heading, info, interfaces) flows through each requirement.
+
+### Step 4: Make Your First Change
+Try something simple first:
+- Add a new validation rule in `src/core/validators.py`
+- Write a test for it in `tests/core/test_validators.py`
+- Run tests: `python3 -m pytest tests/core/test_validators.py -v`
+- Check code quality: `ruff check src/core/validators.py --fix`
+
+### Step 5: Before Your First Commit
+```bash
+# Run full test suite
+python3 -m pytest tests/ -v
+
+# Check code quality
+ruff check src/ main.py utilities/ --fix
+ruff format src/ main.py utilities/
+
+# Type checking
+mypy src/ main.py --python-version 3.14
+
+# If you modified prompts
+ai-tc-generator --validate-prompts
+```
+
+### Key Concepts to Understand
+1. **Context-Aware Processing**: See "CRITICAL: Context-Aware Processing Architecture" section
+2. **Hybrid Vision Strategy**: Requirements with images use vision model, others use text model
+3. **BaseProcessor Inheritance**: Standard and HP processors share core logic
+4. **Test Helpers**: Use `tests/helpers/` functions for XHTML-formatted test data
+
+### Common First Contributions
+- Add new prompt templates in `prompts/templates/`
+- Improve error messages in `src/core/exceptions.py`
+- Add new validators in `src/core/validators.py`
+- Enhance documentation in `docs/`
+- Write tests for uncovered code paths
+
+**Need help?** Check the "Common Issues & Solutions" and "Debugging Workflow" sections below.
 
 ---
 
@@ -619,4 +822,4 @@ print(f"Image relevance: {assessment.metrics.image_relevance_score:.2f}")
 
 ---
 
-**Last Updated**: 2025-11-03 | **Python**: 3.14+ only | **Status**: Production-Ready ✅
+**Last Updated**: 2025-11-07 | **Python**: 3.14 or higher | **Status**: Production-Ready ✅
