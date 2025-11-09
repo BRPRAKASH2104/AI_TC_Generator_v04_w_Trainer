@@ -403,13 +403,13 @@ All changes are **backward compatible**:
 
 ## Related Documentation
 
-- **Vision Model Integration**: `VISION_MODEL_IMPLEMENTATION_SUMMARY.md`
-- **Vision Migration Plan**: `LLAMA32_VISION_MIGRATION_PLAN.md`
-- **Image Extraction**: `IMAGE_EXTRACTION_INTEGRATION_SUMMARY.md`
-- **RAFT Technical**: `docs/training/RAFT_TECHNICAL.md`
-- **Training Guide**: `docs/training/TRAINING_GUIDE.md` (text-only models)
-- **Vision Training Guide**: `docs/training/training_guideline.md` (consolidated vision training guide)
-- **Utility Scripts**: `utilities/build_vision_dataset.py`, `utilities/train_vision_model.py`
+- **Vision Model Integration**: `03_VISION_MODEL_IMPLEMENTATION_SUMMARY.md`
+- **Vision Migration Plan**: `02_LLAMA32_VISION_MIGRATION_PLAN.md`
+- **Image Extraction**: `../../../IMAGE_EXTRACTION_INTEGRATION_SUMMARY.md` (if in root)
+- **RAFT Technical**: `../../../docs/training/RAFT_TECHNICAL.md`
+- **Training Guide**: `../../../docs/training/TRAINING_GUIDE.md` (text-only models)
+- **Vision Training Guide**: `../../../docs/training/training_guideline.md` (consolidated vision training guide)
+- **Utility Scripts**: `../../../utilities/build_vision_dataset.py`, `../../../utilities/train_vision_model.py`
 
 ---
 

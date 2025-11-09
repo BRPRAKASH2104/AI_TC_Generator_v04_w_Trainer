@@ -189,9 +189,10 @@ See `tests/helpers/USAGE_EXAMPLES.md` for complete examples.
 
 ### Architecture & Implementation
 
-- [Vision Model Implementation](VISION_MODEL_IMPLEMENTATION_SUMMARY.md) - Hybrid vision/text strategy
+- [Implementation Index](docs/implementation/INDEX.md) - **Complete implementation documentation guide**
+- [Vision Model Implementation](docs/implementation/vision/03_VISION_MODEL_IMPLEMENTATION_SUMMARY.md) - Hybrid vision/text strategy
 - [Vision Training Guide](docs/training/training_guideline.md) - Complete RAFT training guide with utility scripts
-- [Test Infrastructure](TEST_FIX_COMPLETE_SUMMARY.md) - Test helper functions and validation
+- [Test Infrastructure](docs/implementation/testing/TEST_FIX_COMPLETE_SUMMARY.md) - Test helper functions and validation
 
 ### Configuration
 

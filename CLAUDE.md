@@ -29,9 +29,11 @@ ai-tc-generator input/ --hp --max-concurrent 4        # HP mode (3-9x faster)
 python3 main.py input/file.reqifz --debug             # Development mode with debug logging
 
 # Testing (per System_Instructions.md: testing is non-negotiable)
+python3 tests/run_tests.py                            # Full test suite (recommended)
 python3 -m pytest tests/core/ -v                      # Core unit tests (fast)
 python3 -m pytest tests/ -v -m "not integration"      # All except integration tests
 python3 -m pytest tests/ -v --cov=src                 # With coverage report
+python3 -m pytest tests/core/test_generators.py::TestGeneratorClass::test_method -v  # Single test
 
 # Code quality (must pass before committing)
 ruff check src/ main.py utilities/ --fix             # Lint and auto-fix
@@ -40,6 +42,16 @@ mypy src/ main.py --python-version 3.14               # Type checking
 
 # Validation
 ai-tc-generator --validate-prompts                    # Validate YAML templates after editing
+
+# Utility scripts
+python3 utilities/create_mock_reqifz.py               # Generate mock REQIFZ files for testing
+python3 utilities/build_vision_dataset.py             # Build RAFT training dataset
+python3 utilities/train_vision_model.py               # Train custom vision model
+python3 utilities/annotate_raft.py                    # Annotate RAFT examples
+
+# Build & package (for releases)
+python3 -m build                                       # Build distribution packages
+twine check dist/*                                     # Validate package before upload
 
 # Quick verification (useful after installation)
 ai-tc-generator --version                             # Check installed version
@@ -53,6 +65,17 @@ ollama list                                            # Verify Ollama models in
 - Requirements **with images** → `llama3.2-vision:11b` (vision understanding of diagrams)
 - Requirements **without images** → `llama3.1:8b` (faster text-only processing)
 - Automatic per-requirement model selection via `ConfigManager.get_model_for_requirement()`
+
+**Output Files & Data Flow**:
+- **Naming Convention**: `{filename}_TCD_{mode}_{model}_{timestamp}.xlsx`
+  - Example: `requirements_TCD_standard_llama3.1_8b_2025-11-09_15-30-45.xlsx`
+- **Location**: Saved alongside input files (e.g., `input/file.reqifz` → `input/file_TCD_*.xlsx`)
+- **Logs**: JSON format in `output/logs/` directory
+
+**Environment Variables**:
+- Use `AI_TG_` prefix for all environment variables (e.g., `AI_TG_ENABLE_RAFT`, `AI_TG_COLLECT_TRAINING_DATA`)
+- Vision settings: `OLLAMA__VISION_MODEL`, `OLLAMA__ENABLE_VISION`
+- Connection: `OLLAMA__BASE_URL`, `OLLAMA__TIMEOUT`
 
 ---
 
@@ -512,7 +535,7 @@ pip install -e .[all]
 - **HP mode**: ~65,000 artifacts/second (9x faster)
 - **Memory**: 0.008 MB per artifact (with `__slots__`)
 - **Ollama context**: 16K tokens (text), 32K-128K tokens (vision)
-- **Response length**: 4K tokens (2K → 4K with Ollama v0.12.5)
+- **Response length**: 4K tokens (2K → 4K with Ollama v0.12.9+)
 
 ### Vision Model Performance (v2.2.0)
 - **llama3.1:8b (text)**: ~2-3 sec/requirement, 6-7 GB VRAM
@@ -525,24 +548,25 @@ pip install -e .[all]
 - HP mode uses `asyncio.TaskGroup` (Python 3.14+)
 - Only `AsyncOllamaClient` has semaphore (not `AsyncTestCaseGenerator`)
 - All classes use `__slots__` for 20-30% memory savings
-- GPU concurrency: 2 parallel requests (Ollama 0.12.5)
+- GPU concurrency: 2 parallel requests (Ollama 0.12.9+)
 
 ---
 
 ## 📚 Documentation
 
 ### Architecture & Design
-- `VISION_MODEL_IMPLEMENTATION_SUMMARY.md` - Vision model hybrid strategy (Nov 1, 2025)
-- `VISION_TRAINING_IMPLEMENTATION_SUMMARY.md` - Vision training infrastructure (Nov 2, 2025)
-- `LLAMA32_VISION_MIGRATION_PLAN.md` - Comprehensive vision migration guide
-- `IMAGE_TO_AI_GAP_ANALYSIS.md` - Image extraction to vision model analysis
+- `docs/implementation/INDEX.md` - **Implementation documentation index** (complete navigation guide)
+- `docs/implementation/vision/03_VISION_MODEL_IMPLEMENTATION_SUMMARY.md` - Vision model hybrid strategy (Nov 1, 2025)
+- `docs/implementation/vision/04_VISION_TRAINING_IMPLEMENTATION_SUMMARY.md` - Vision training infrastructure (Nov 2, 2025)
+- `docs/implementation/vision/02_LLAMA32_VISION_MIGRATION_PLAN.md` - Comprehensive vision migration guide
+- `docs/implementation/vision/01_IMAGE_TO_AI_GAP_ANALYSIS.md` - Image extraction to vision model analysis
 - `ENHANCEMENT_SUMMARY.md` - Recent fixes and improvements (Oct 31, 2025)
 - `TEST_REPORT.md` - End-to-end test verification
 - `UPGRADE_COMPLETE.md` - Python 3.14 + Ollama 0.12.5 upgrade summary
 
 ### Test Infrastructure & Validation
-- `TEST_FIX_COMPLETE_SUMMARY.md` - Test helper implementation summary (Nov 3, 2025)
-- `OPTIONAL_TASKS_SUMMARY.md` - Performance & training test analysis (Nov 3, 2025)
+- `docs/implementation/testing/TEST_FIX_COMPLETE_SUMMARY.md` - Test helper implementation summary (Nov 3, 2025)
+- `docs/implementation/testing/OPTIONAL_TASKS_SUMMARY.md` - Performance & training test analysis (Nov 3, 2025)
 - `tests/helpers/USAGE_EXAMPLES.md` - Test helper function usage guide
 - `tests/helpers/test_artifact_builder.py` - XHTML test artifact builders
 
@@ -830,4 +854,4 @@ print(f"Image relevance: {assessment.metrics.image_relevance_score:.2f}")
 
 ---
 
-**Last Updated**: 2025-11-07 | **Python**: 3.14 or higher | **Status**: Production-Ready ✅
+**Last Updated**: 2025-11-09 | **Python**: 3.14 or higher | **Status**: Production-Ready ✅
