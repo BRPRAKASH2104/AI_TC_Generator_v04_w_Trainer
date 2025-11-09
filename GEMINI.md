@@ -20,6 +20,7 @@ The project is built with Python 3.14+ and uses modern tooling like `pyproject.t
 *   **Pytest:** For running tests.
 *   **Ruff:** For linting and formatting.
 *   **Hatchling:** For building the project.
+*   **torch & transformers:** For model training and fine-tuning.
 
 ### Architecture
 
@@ -28,6 +29,7 @@ The project follows a modular architecture, with the core logic organized into t
 *   **`src/core`:** Contains the core components for extraction, generation, formatting, and interaction with Ollama. This now includes a vision-capable client for handling image-based requirements.
 *   **`src/processors`:** Contains the high-level processors that orchestrate the test case generation workflow. There are two processors: a standard processor and a high-performance asynchronous processor.
 *   **`src/prompts`:** Contains the prompt templates used for generating test cases.
+*   **`src/training`:** Implements the training and fine-tuning pipelines for the models, including progressive curriculum learning and vision-aware RAFT training.
 *   **`main.py`:** The main entry point for the CLI application.
 
 ### Vision Analysis

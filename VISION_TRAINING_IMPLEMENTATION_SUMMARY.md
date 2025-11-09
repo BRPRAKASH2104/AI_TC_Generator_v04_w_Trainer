@@ -29,9 +29,13 @@ Successfully extended the RAFT training infrastructure to support **vision model
 ### Files Created
 
 1. **`src/training/vision_raft_trainer.py`** - Complete vision training pipeline
-2. **`docs/training/VISION_TRAINING_GUIDE.md`** - Comprehensive user guide
+2. **`docs/training/training_guideline.md`** - Comprehensive user guide (consolidated v2.0, Nov 2025)
+   - Originally created as `VISION_TRAINING_GUIDE.md` (v1.0, Nov 2 2025)
+   - Consolidated with `training_guidelines.md` for single source of truth
+3. **`utilities/build_vision_dataset.py`** - Dataset preparation utility script
+4. **`utilities/train_vision_model.py`** - Model training utility script
 
-**Total**: 2 new files, 5 modified files, ~810 lines added
+**Total**: 4 new files, 5 modified files, ~810 lines added (vision training v2.2.0)
 
 ---
 
@@ -198,9 +202,12 @@ if result["success"]:
 
 ### 5. Documentation
 
-**Created**: `docs/training/VISION_TRAINING_GUIDE.md` (comprehensive guide)
+**Created**: `docs/training/training_guideline.md` (comprehensive consolidated guide)
+- Originally `VISION_TRAINING_GUIDE.md` (Nov 2 2025)
+- Consolidated with `training_guidelines.md` (Nov 9 2025) for single source of truth
+- Added utility scripts documentation
 
-**Updated**: `CLAUDE.md` (added vision training section)
+**Updated**: `CLAUDE.md`, `README.md` (added vision training sections)
 
 **Sections**:
 - Quick Start (5-minute setup)
@@ -400,8 +407,9 @@ All changes are **backward compatible**:
 - **Vision Migration Plan**: `LLAMA32_VISION_MIGRATION_PLAN.md`
 - **Image Extraction**: `IMAGE_EXTRACTION_INTEGRATION_SUMMARY.md`
 - **RAFT Technical**: `docs/training/RAFT_TECHNICAL.md`
-- **Training Guide**: `docs/training/TRAINING_GUIDE.md`
-- **Vision Training Guide**: `docs/training/VISION_TRAINING_GUIDE.md` (NEW)
+- **Training Guide**: `docs/training/TRAINING_GUIDE.md` (text-only models)
+- **Vision Training Guide**: `docs/training/training_guideline.md` (consolidated vision training guide)
+- **Utility Scripts**: `utilities/build_vision_dataset.py`, `utilities/train_vision_model.py`
 
 ---
 

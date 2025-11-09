@@ -552,10 +552,15 @@ pip install -e .[all]
 - `docs/reviews/` - Comprehensive code review archive
 
 ### Training Documentation
-- `docs/training/VISION_TRAINING_GUIDE.md` - **NEW (v2.2.0)**: Complete vision model training guide
+- `docs/training/training_guideline.md` - **Complete vision model training guide** (consolidated v2.0, Nov 2025)
+  - Includes RAFT methodology, image annotation, dataset preparation
+  - Step-by-step workflow with utility scripts
+  - Hardware requirements, best practices, troubleshooting
 - `docs/training/TRAINING_GUIDE.md` - RAFT training for text models
 - `docs/training/RAFT_TECHNICAL.md` - RAFT implementation details
 - `docs/training/MODEL_TRAINING_GUIDE.md` - Model training and fine-tuning
+- `utilities/build_vision_dataset.py` - Script to build vision RAFT dataset
+- `utilities/train_vision_model.py` - Script to train custom vision models
 
 ---
 
@@ -816,7 +821,10 @@ print(f"Image relevance: {assessment.metrics.image_relevance_score:.2f}")
 
 ### Training Documentation
 
-- **Vision Training Guide**: `docs/training/VISION_TRAINING_GUIDE.md` (comprehensive user guide)
+- **Vision Training Guide**: `docs/training/training_guideline.md` (complete consolidated guide)
+  - Comprehensive RAFT training for vision models
+  - Includes utility scripts: `utilities/build_vision_dataset.py`, `utilities/train_vision_model.py`
+  - Hardware requirements, monitoring, evaluation, troubleshooting
 - **RAFT Technical**: `docs/training/RAFT_TECHNICAL.md` (implementation details)
 - **Training Guide**: `docs/training/TRAINING_GUIDE.md` (text model training)
 
