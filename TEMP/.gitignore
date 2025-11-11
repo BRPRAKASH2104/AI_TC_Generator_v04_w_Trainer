@@ -1,0 +1,6 @@
+# Ignore all files in TEMP directory
+*
+
+# Except README.md and this .gitignore
+!README.md
+!.gitignore

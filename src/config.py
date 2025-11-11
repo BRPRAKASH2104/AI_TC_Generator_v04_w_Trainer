@@ -208,7 +208,7 @@ class ImageExtractionConfig(BaseModel):
         True, description="Enable extraction of images from REQIFZ files"
     )
     save_images: bool = Field(True, description="Save extracted images to disk")
-    output_dir: str = Field("extracted_images", description="Directory for saving extracted images")
+    output_dir: str = Field("TEMP/images", description="Directory for saving extracted images")
     validate_images: bool = Field(
         True, description="Validate images using PIL/Pillow (requires Pillow)"
     )
@@ -375,7 +375,7 @@ class LoggingConfig(BaseModel):
     # Log levels and settings
     log_level: str = "INFO"
     log_to_file: bool = False
-    log_directory: str = "logs"
+    log_directory: str = "TEMP/logs"
 
     # Performance monitoring
     monitor_performance: bool = True
