@@ -475,8 +475,8 @@ python3 main.py input/file.reqifz --verbose 2>&1 | grep "Using llama3.2-vision"
 
 ## Related Documentation
 
-- **Migration Plan**: `LLAMA32_VISION_MIGRATION_PLAN.md` (comprehensive implementation guide)
-- **Gap Analysis**: `IMAGE_TO_AI_GAP_ANALYSIS.md` (problem statement and options)
+- **Migration Plan**: `02_LLAMA32_VISION_MIGRATION_PLAN.md` (comprehensive implementation guide)
+- **Gap Analysis**: `01_IMAGE_TO_AI_GAP_ANALYSIS.md` (problem statement and options)
 - **Image Extraction**: `IMAGE_EXTRACTION_INTEGRATION_SUMMARY.md` (v2.1.1 feature)
 - **Main Docs**: `CLAUDE.md` (project overview and critical files)
 

@@ -250,10 +250,12 @@ Without XHTML preservation, image references were lost and vision model couldn't
 3. `tests/test_critical_improvements.py` - 2 tests updated
 
 ### Documentation (4 files):
-1. `TEST_HELPER_IMPLEMENTATION_SUMMARY.md` - Task 1 summary
-2. `TEST_UPDATE_PROGRESS.md` - Progress tracking
+1. `TEST_HELPER_IMPLEMENTATION_SUMMARY.md` - Task 1 summary (in this directory)
+2. `TEST_UPDATE_PROGRESS.md` - Progress tracking (archived)
 3. `TEST_FIX_COMPLETE_SUMMARY.md` - Final summary (this file)
-4. Updated `USAGE_EXAMPLES.md` - Helper usage guide
+4. Updated `../../../tests/helpers/USAGE_EXAMPLES.md` - Helper usage guide
+
+**Note**: All test infrastructure summaries are now organized in `docs/implementation/testing/`
 
 ---
 

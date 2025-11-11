@@ -189,9 +189,10 @@ See `tests/helpers/USAGE_EXAMPLES.md` for complete examples.
 
 ### Architecture & Implementation
 
-- [Vision Model Implementation](VISION_MODEL_IMPLEMENTATION_SUMMARY.md) - Hybrid vision/text strategy
-- [Vision Training Guide](docs/training/VISION_TRAINING_GUIDE.md) - Fine-tune models with RAFT
-- [Test Infrastructure](TEST_FIX_COMPLETE_SUMMARY.md) - Test helper functions and validation
+- [Implementation Index](docs/implementation/INDEX.md) - **Complete implementation documentation guide**
+- [Vision Model Implementation](docs/implementation/vision/03_VISION_MODEL_IMPLEMENTATION_SUMMARY.md) - Hybrid vision/text strategy
+- [Vision Training Guide](docs/training/training_guideline.md) - Complete RAFT training guide with utility scripts
+- [Test Infrastructure](docs/implementation/testing/TEST_FIX_COMPLETE_SUMMARY.md) - Test helper functions and validation
 
 ### Configuration
 
@@ -212,43 +213,38 @@ See `src/config.py` for all configuration options (Pydantic-based with environme
 
 ## 🎓 Training Custom Models
 
-Fine-tune models on your automotive domain data:
+Fine-tune vision models on your automotive domain data using RAFT methodology:
 
 ```bash
 # 1. Enable RAFT data collection
 export AI_TG_ENABLE_RAFT=true
 export AI_TG_COLLECT_TRAINING_DATA=true
 
-# 2. Process requirements (collects training data)
+# 2. Process requirements (automatically collects training data with images)
 ai-tc-generator input/ --hp --verbose
 
-# 3. Annotate collected data
-# Edit JSON files in training_data/collected/
+# 3. Annotate collected examples
+# Edit JSON files in training_data/collected/ to mark oracle/distractor context and images
+# Move annotated files to training_data/validated/
 
-# 4. Build RAFT dataset
-python3 -c "
-from src.training.raft_dataset_builder import RAFTDatasetBuilder
-builder = RAFTDatasetBuilder(
-    validated_dir='training_data/validated',
-    output_dir='training_data/raft_dataset'
-)
-examples = builder.build_dataset(min_quality=3)
-builder.save_dataset(examples, 'automotive_raft_dataset')
-"
+# 4. Build RAFT dataset (using utility script)
+python3 utilities/build_vision_dataset.py
 
-# 5. Train model
-python3 -c "
-from src.training.vision_raft_trainer import create_vision_training_pipeline
-trainer = create_vision_training_pipeline(
-    dataset_path='training_data/raft_dataset/automotive_raft_dataset.jsonl',
-    base_model='llama3.2-vision:11b',
-    output_model='automotive-tc-vision-v1'
-)
-result = trainer.train()
-"
+# 5. Train custom vision model (using utility script)
+python3 utilities/train_vision_model.py
+
+# 6. Deploy trained model
+export OLLAMA__VISION_MODEL="automotive-tc-vision-raft-v1"
+ai-tc-generator input/ --hp --verbose
 ```
 
-See [Vision Training Guide](docs/training/VISION_TRAINING_GUIDE.md) for details.
+**Expected Results**: 40-60% better test case quality for requirements with diagrams.
+
+See [Vision Training Guide](docs/training/training_guideline.md) for complete guide including:
+- Hardware requirements (12+ GB VRAM)
+- Image annotation best practices
+- Monitoring and evaluation
+- Troubleshooting common issues
 
 ## 🐛 Troubleshooting
 
