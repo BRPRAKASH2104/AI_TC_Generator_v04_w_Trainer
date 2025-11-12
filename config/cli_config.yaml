@@ -153,3 +153,26 @@ validation:
   # Output validation
   validate_output_format: true
   backup_existing_outputs: false
+
+# =================================================================
+# Training and Fine-Tuning Settings
+# =================================================================
+
+training:
+  # RAFT (Retrieval Augmented Fine-Tuning) settings
+  enable_raft: true                    # Enable RAFT data collection
+  collect_training_data: true          # Collect examples during processing
+  training_data_dir: "training_data"   # Directory for training data
+  
+  # Training thresholds
+  min_examples_for_training: 50        # Minimum examples needed (vision: 50, text: 100)
+  
+  # RAFT-specific settings
+  raft_collect_context: true           # Collect context for RAFT training
+  raft_min_oracle_docs: 1             # Minimum oracle documents per example
+  raft_min_distractor_docs: 1         # Minimum distractor documents per example
+  raft_context_window: 5              # Max context items to include
+  
+  # Quality settings
+  min_quality_score: 0.7              # Minimum quality score for examples
+  auto_approve_threshold: 0.9         # Auto-approve examples above this score
