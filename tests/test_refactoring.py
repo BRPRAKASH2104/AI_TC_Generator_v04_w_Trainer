@@ -257,7 +257,7 @@ class TestPromptBuilder:
 
         result = PromptBuilder.format_table(table_data)
 
-        assert "... (5 more rows)" in result
+        assert "... (showing first 10 and last 10 of 15 total rows) ..." in result
         assert "val9" in result  # 10th row (0-indexed)
         assert "val14" not in result  # Should be truncated
 

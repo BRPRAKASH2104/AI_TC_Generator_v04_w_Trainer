@@ -112,7 +112,7 @@ class RAFTDataCollector:
 
         # Save to file
         req_id = requirement.get("id", "UNKNOWN").replace("/", "_")
-        filename = f"raft_{req_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"raft_{req_id}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.json"
         output_path = self.output_dir / filename
 
         try:

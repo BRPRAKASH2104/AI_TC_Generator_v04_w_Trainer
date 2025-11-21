@@ -5,6 +5,7 @@ Tests cover positive, negative, and corner cases for RAFT dataset building.
 """
 
 import json
+import copy
 import pytest
 from unittest.mock import Mock
 from training.raft_dataset_builder import RAFTDatasetBuilder
@@ -144,11 +145,11 @@ class TestRAFTDatasetBuilder:
         validated_dir, output_dir = temp_dirs
 
         # Create high and low quality examples
-        high_quality = annotated_example.copy()
+        high_quality = copy.deepcopy(annotated_example)
         high_quality["requirement_id"] = "REQ_HIGH"
         high_quality["context_annotation"]["quality_rating"] = 5
 
-        low_quality = annotated_example.copy()
+        low_quality = copy.deepcopy(annotated_example)
         low_quality["requirement_id"] = "REQ_LOW"
         low_quality["context_annotation"]["quality_rating"] = 2
 
@@ -309,7 +310,7 @@ class TestRAFTDatasetBuilder:
 
         # Verify Unicode preserved
         with open(jsonl_path, encoding="utf-8") as f:
-            data = json.load(f.readline())
+            data = json.loads(f.readline())
             user_msg = data["messages"][1]["content"]
             assert "°C" in user_msg
             assert "🌡️" in user_msg
