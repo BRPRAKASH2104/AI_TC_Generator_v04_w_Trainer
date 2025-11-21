@@ -31,7 +31,7 @@ from src.processors.standard_processor import REQIFZFileProcessor
 from src.yaml_prompt_manager import YAMLPromptManager
 
 # Version and metadata (matches pyproject.toml)
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __architecture__ = "Modular"
 
 console = Console()
@@ -322,10 +322,10 @@ def _validate_templates() -> None:
         for template_name in manager.test_prompts:
             try:
                 template = manager.get_test_prompt(template_name)
-                if template and template.get("prompt"):
+                if template and isinstance(template, str) and len(template.strip()) > 0:
                     console.print(f"✅ {template_name}")
                 else:
-                    console.print(f"❌ {template_name} - Invalid structure")
+                    console.print(f"❌ {template_name} - Invalid or empty template")
             except Exception as e:
                 console.print(f"❌ {template_name} - Error: {e}")
 
