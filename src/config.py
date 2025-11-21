@@ -488,13 +488,11 @@ class ConfigManager(BaseSettings):
         Returns:
             Model name to use for generation
         """
-        # Use vision model if images present and vision enabled
-        if (
-            self.ollama.enable_vision
-            and requirement.get("has_images", False)
-            and requirement.get("images")
-        ):
-            return self.ollama.vision_model
+        # Use vision model only if vision enabled AND valid saved images exist
+        if self.ollama.enable_vision:
+            images = requirement.get("images", [])
+            if images and any(img.get("saved_path") for img in images):
+                return self.ollama.vision_model
 
         # Fallback to standard synthesizer model for text-only
         return self.ollama.synthesizer_model
