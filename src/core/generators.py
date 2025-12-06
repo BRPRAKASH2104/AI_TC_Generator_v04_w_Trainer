@@ -25,6 +25,33 @@ type RequirementData = dict[str, Any]
 type ProcessingResult = TestCaseList | dict[str, Any]  # Can be test cases or error info
 
 
+def extract_image_paths(requirement: RequirementData) -> list[Path]:
+    """
+    Extract image file paths from requirement metadata.
+
+    This is a shared helper used by both sync and async generators to avoid
+    code duplication (DRY principle).
+
+    Args:
+        requirement: Requirement data containing potential image metadata
+
+    Returns:
+        List of Path objects pointing to valid image files
+    """
+    if not requirement.get("has_images", False):
+        return []
+
+    images = requirement.get("images", [])
+    paths = []
+    for img in images:
+        if "saved_path" in img:
+            img_path = Path(img["saved_path"])
+            if img_path.exists():
+                paths.append(img_path)
+
+    return paths
+
+
 class TestCaseGenerator:
     """Generates test cases from requirements using AI models"""
 
@@ -44,29 +71,6 @@ class TestCaseGenerator:
         self.validator = validator or SemanticValidator(logger=logger)
         self.deduplicator = deduplicator or TestCaseDeduplicator(logger=logger)
         self.logger = logger
-
-    def _extract_image_paths(self, requirement: RequirementData) -> list[Path]:
-        """
-        Extract image file paths from requirement metadata.
-
-        Args:
-            requirement: Requirement data containing potential image metadata
-
-        Returns:
-            List of Path objects pointing to valid image files
-        """
-        if not requirement.get("has_images", False):
-            return []
-
-        images = requirement.get("images", [])
-        paths = []
-        for img in images:
-            if "saved_path" in img:
-                img_path = Path(img["saved_path"])
-                if img_path.exists():
-                    paths.append(img_path)
-
-        return paths
 
     def generate_test_cases_for_requirement(
         self, requirement: RequirementData, model: str, template_name: str = None
@@ -90,7 +94,7 @@ class TestCaseGenerator:
                 self.logger.debug(f"Generating test cases for {requirement.get('id', 'UNKNOWN')}")
 
             # Extract image paths for vision model support
-            image_paths = self._extract_image_paths(requirement)
+            image_paths = extract_image_paths(requirement)
 
             # Generate AI response (use vision-capable method if images present)
             start_time = time.time()
@@ -210,29 +214,6 @@ class AsyncTestCaseGenerator:
         self.logger = logger
         # Note: Concurrency limiting is handled by AsyncOllamaClient's semaphore
         # No need for double semaphore here - improves throughput by ~50%
-
-    def _extract_image_paths(self, requirement: RequirementData) -> list[Path]:
-        """
-        Extract image file paths from requirement metadata.
-
-        Args:
-            requirement: Requirement data containing potential image metadata
-
-        Returns:
-            List of Path objects pointing to valid image files
-        """
-        if not requirement.get("has_images", False):
-            return []
-
-        images = requirement.get("images", [])
-        paths = []
-        for img in images:
-            if "saved_path" in img:
-                img_path = Path(img["saved_path"])
-                if img_path.exists():
-                    paths.append(img_path)
-
-        return paths
 
     async def generate_test_cases(
         self, requirement: RequirementData, model: str, template_name: str = None
@@ -363,7 +344,7 @@ class AsyncTestCaseGenerator:
                 self.logger.info(f"Async generating test cases for {req_id}")
 
             # Extract image paths for vision model support
-            image_paths = self._extract_image_paths(requirement)
+            image_paths = extract_image_paths(requirement)
 
             # Phase 2: AI Response Generation (use vision-capable method if images present)
             # Time the AI call for performance metrics and SLA monitoring

@@ -60,7 +60,9 @@ class TestCaseDeduplicator:
         # Select which test cases to keep
         indices_to_remove = set()
         for group in duplicate_groups:
-            indices_to_remove.update(self._select_duplicates_to_remove(group, test_cases, keep_strategy))
+            indices_to_remove.update(
+                self._select_duplicates_to_remove(group, test_cases, keep_strategy)
+            )
 
         # Build deduplicated list
         deduplicated = [tc for i, tc in enumerate(test_cases) if i not in indices_to_remove]
@@ -208,9 +210,7 @@ class TestCaseDeduplicator:
         validation_passed = test_case.get("validation_passed", False)
 
         # Calculate total length of compared fields
-        total_length = sum(
-            len(str(test_case.get(field, ""))) for field in self.fields_to_compare
-        )
+        total_length = sum(len(str(test_case.get(field, ""))) for field in self.fields_to_compare)
 
         return (validation_passed, total_length)
 

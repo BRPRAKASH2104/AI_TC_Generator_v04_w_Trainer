@@ -69,9 +69,7 @@ class SemanticValidator:
 
         return is_valid, issues
 
-    def _extract_signal_names(
-        self, interface_list: list[dict[str, Any]]
-    ) -> set[str]:
+    def _extract_signal_names(self, interface_list: list[dict[str, Any]]) -> set[str]:
         """
         Extract valid signal names from interface dictionary.
 
@@ -98,9 +96,7 @@ class SemanticValidator:
 
         return signal_names
 
-    def _validate_signals(
-        self, test_case: dict[str, Any], valid_signals: set[str]
-    ) -> list[str]:
+    def _validate_signals(self, test_case: dict[str, Any], valid_signals: set[str]) -> list[str]:
         """
         Validate signal names in test case action and data fields.
 
@@ -115,7 +111,9 @@ class SemanticValidator:
         # Check action field
         action = test_case.get("action", "")
         # Match signal names: ALL_CAPS (3+ chars to avoid ON/OFF) or CamelCase (multiple parts)
-        detected_signals = re.findall(r"\b([A-Z]{3,}[A-Z0-9_]*|[A-Z][a-z]+(?:[A-Z][a-z]+)+)\b", action)
+        detected_signals = re.findall(
+            r"\b([A-Z]{3,}[A-Z0-9_]*|[A-Z][a-z]+(?:[A-Z][a-z]+)+)\b", action
+        )
 
         for signal in detected_signals:
             if signal not in valid_signals:
@@ -217,7 +215,9 @@ class SemanticValidator:
 
         return report
 
-    def _validate_table_coverage(self, test_cases: list[dict[str, Any]], requirement: dict[str, Any]) -> list[dict[str, Any]]:
+    def _validate_table_coverage(
+        self, test_cases: list[dict[str, Any]], requirement: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Validate that table-based requirements have adequate test coverage.
 
@@ -250,40 +250,48 @@ class SemanticValidator:
 
         # Validate coverage
         if positive_count < required_rows:
-            issues.append({
-                "test_case_index": 0,  # Global issue, not specific to one test case
-                "summary": "Table Coverage Deficiency",
-                "issues": [
-                    f"Generated {positive_count} positive test cases but table has {required_rows} rows. "
-                    f"Required: at least one positive test per table row."
-                ]
-            })
+            issues.append(
+                {
+                    "test_case_index": 0,  # Global issue, not specific to one test case
+                    "summary": "Table Coverage Deficiency",
+                    "issues": [
+                        f"Generated {positive_count} positive test cases but table has {required_rows} rows. "
+                        f"Required: at least one positive test per table row."
+                    ],
+                }
+            )
 
         if negative_count < 3:
-            issues.append({
-                "test_case_index": 0,
-                "summary": "Negative Test Deficiency",
-                "issues": [
-                    f"Generated {negative_count} negative test cases but minimum 3 required for table-based requirements."
-                ]
-            })
+            issues.append(
+                {
+                    "test_case_index": 0,
+                    "summary": "Negative Test Deficiency",
+                    "issues": [
+                        f"Generated {negative_count} negative test cases but minimum 3 required for table-based requirements."
+                    ],
+                }
+            )
 
         total_expected_min = required_rows + 3  # At least one per row + 3 negative
         total_expected_max = required_rows + 8  # Reasonable maximum for negatives
 
         if len(test_cases) < total_expected_min:
-            issues.append({
-                "test_case_index": 0,
-                "summary": "Total Test Case Count",
-                "issues": [
-                    f"Generated {len(test_cases)} test cases. Expected minimum: {total_expected_min} "
-                    f"({required_rows} positive + 3 negative). Expected maximum: {total_expected_max}."
-                ]
-            })
+            issues.append(
+                {
+                    "test_case_index": 0,
+                    "summary": "Total Test Case Count",
+                    "issues": [
+                        f"Generated {len(test_cases)} test cases. Expected minimum: {total_expected_min} "
+                        f"({required_rows} positive + 3 negative). Expected maximum: {total_expected_max}."
+                    ],
+                }
+            )
 
         return issues
 
-    def _analyze_table_coverage(self, test_cases: list[dict[str, Any]], requirement: dict[str, Any]) -> dict[str, Any]:
+    def _analyze_table_coverage(
+        self, test_cases: list[dict[str, Any]], requirement: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Analyze table coverage and return statistics.
 
@@ -314,5 +322,5 @@ class SemanticValidator:
             "adequate_coverage": positive_count >= required_rows and negative_count >= 3,
             "expected_min_total": required_rows + 3,
             "expected_max_total": required_rows + 8,
-            "actual_total": len(test_cases)
+            "actual_total": len(test_cases),
         }

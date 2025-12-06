@@ -257,16 +257,16 @@ Return ONLY valid JSON with the exact field names shown above."""
     @staticmethod
     def format_image_context(images: list[dict[str, Any]]) -> str:
         """
-        Format image context for vision models (v2.2.0).
+        Format image context with specific analysis guidance for vision models (v2.3.0).
 
-        This method provides helpful context about attached images to guide
-        vision models in analyzing diagrams, flowcharts, and visual requirements.
+        Provides structured instructions tailored to different diagram types to help
+        vision models extract actionable test information from visual requirements.
 
         Args:
             images: List of image metadata dictionaries
 
         Returns:
-            Formatted string describing images and analysis instructions
+            Formatted string with image count, formats, and specific analysis instructions
         """
         if not images:
             return "No diagrams or images provided."
@@ -274,18 +274,26 @@ Return ONLY valid JSON with the exact field names shown above."""
         image_count = len(images)
         formats = ", ".join(sorted({img.get("format", "unknown").upper() for img in images}))
 
-        # Build context with analysis guidance
-        context = f"{image_count} diagram(s) provided ({formats}). "
+        # Build context header
+        context = f"{image_count} diagram(s) attached ({formats}). "
 
+        # Specific instructions based on count
         if image_count == 1:
-            context += "Analyze the visual information to better understand "
+            context += "\n\nWhen analyzing the diagram:\n"
         else:
-            context += "Analyze the visual information across all diagrams to better understand "
+            context += "\n\nWhen analyzing the diagrams:\n"
 
-        context += (
-            "system behavior, state transitions, signal flows, parameter values, "
-            "timing sequences, and test scenarios. Use insights from the diagrams "
-            "to generate more comprehensive and accurate test cases."
-        )
+        context += """1. DESCRIBE what you see - identify the type of diagram (state machine, flowchart, timing diagram, architecture, UI mockup, table)
+2. EXTRACT key information:
+   - For state machines: List all states and transitions with conditions
+   - For flowcharts: Identify decision points and branches
+   - For timing diagrams: Note signal sequences and timing constraints
+   - For tables: Extract parameter values and thresholds
+   - For UI mockups: Describe expected user interactions
+3. CROSS-REFERENCE the diagram with the requirement text to identify:
+   - Test scenarios that validate the visual logic
+   - Edge cases visible in the diagram but not explicit in text
+   - Boundary values from any numerical data shown
+4. If the diagram contradicts or extends the text description, note this in your test cases."""
 
         return context

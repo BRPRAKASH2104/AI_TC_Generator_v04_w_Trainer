@@ -8,6 +8,7 @@ for Python 3.13.7+.
 
 import asyncio
 import base64
+import logging
 from pathlib import Path  # noqa: TC003 - Used at runtime for file operations
 from typing import TYPE_CHECKING, Any
 
@@ -23,6 +24,9 @@ from .exceptions import (
 
 if TYPE_CHECKING:
     from src.config import OllamaConfig
+
+# Module logger for Ollama client
+_logger = logging.getLogger(__name__)
 
 # Type aliases for better readability (PEP 695 style)
 type JSONResponse = dict[str, Any]
@@ -171,6 +175,9 @@ class OllamaClient:
             OllamaModelNotFoundError: When requested model is not available
             OllamaResponseError: When response is invalid
         """
+        # Use vision_context_window for vision models (larger context for image patches)
+        context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
+
         payload = {
             "model": model_name,
             "prompt": prompt,
@@ -178,7 +185,7 @@ class OllamaClient:
             "keep_alive": self.config.keep_alive,
             "options": {
                 "temperature": self.config.temperature,
-                "num_ctx": self.config.num_ctx,
+                "num_ctx": context_window,
                 "num_predict": self.config.num_predict,
                 "top_k": 40,
                 "top_p": 0.9,
@@ -192,16 +199,28 @@ class OllamaClient:
         # Add images if provided (for vision models)
         if image_paths:
             images_base64 = []
+            failed_count = 0
             for img_path in image_paths:
                 try:
                     with open(img_path, "rb") as img_file:
                         img_data = img_file.read()
                         img_b64 = base64.b64encode(img_data).decode("utf-8")
                         images_base64.append(img_b64)
-                except Exception:
-                    # Log warning but continue with other images
-                    # Vision models can still work with partial images
-                    pass
+                except FileNotFoundError:
+                    failed_count += 1
+                    _logger.warning(f"Image file not found: {img_path}")
+                except PermissionError:
+                    failed_count += 1
+                    _logger.warning(f"Permission denied reading image: {img_path}")
+                except Exception as e:
+                    failed_count += 1
+                    _logger.warning(f"Failed to load image {img_path}: {e}")
+
+            if failed_count > 0:
+                _logger.warning(
+                    f"Failed to load {failed_count}/{len(image_paths)} image(s). "
+                    "Vision model will proceed with available images."
+                )
 
             if images_base64:
                 payload["images"] = images_base64
@@ -604,6 +623,9 @@ class AsyncOllamaClient:
         if not self.session:
             raise RuntimeError("AsyncOllamaClient must be used as async context manager")
 
+        # Use vision_context_window for vision models (larger context for image patches)
+        context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
+
         payload = {
             "model": model_name,
             "prompt": prompt,
@@ -611,7 +633,7 @@ class AsyncOllamaClient:
             "keep_alive": self.config.keep_alive,
             "options": {
                 "temperature": self.config.temperature,
-                "num_ctx": self.config.num_ctx,
+                "num_ctx": context_window,
                 "num_predict": self.config.num_predict,
                 "top_k": 40,
                 "top_p": 0.9,
@@ -625,15 +647,28 @@ class AsyncOllamaClient:
         # Add images if provided (for vision models)
         if image_paths:
             images_base64 = []
+            failed_count = 0
             for img_path in image_paths:
                 try:
                     with open(img_path, "rb") as img_file:
                         img_data = img_file.read()
                         img_b64 = base64.b64encode(img_data).decode("utf-8")
                         images_base64.append(img_b64)
-                except Exception:
-                    # Skip failed images silently - vision models can work with partial images
-                    pass
+                except FileNotFoundError:
+                    failed_count += 1
+                    _logger.warning(f"Image file not found: {img_path}")
+                except PermissionError:
+                    failed_count += 1
+                    _logger.warning(f"Permission denied reading image: {img_path}")
+                except Exception as e:
+                    failed_count += 1
+                    _logger.warning(f"Failed to load image {img_path}: {e}")
+
+            if failed_count > 0:
+                _logger.warning(
+                    f"Failed to load {failed_count}/{len(image_paths)} image(s). "
+                    "Vision model will proceed with available images."
+                )
 
             if images_base64:
                 payload["images"] = images_base64

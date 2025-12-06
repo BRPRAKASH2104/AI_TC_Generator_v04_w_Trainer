@@ -8,9 +8,12 @@ including external image files, base64-encoded images, and embedded objects.
 import base64
 import hashlib
 import io
+import logging
 import re
+import shutil
 import xml.etree.ElementTree as ET
 import zipfile
+from contextlib import contextmanager
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -21,6 +24,15 @@ try:
     PILLOW_AVAILABLE = True
 except ImportError:
     PILLOW_AVAILABLE = False
+
+# Module logger for image extraction
+_logger = logging.getLogger(__name__)
+
+# Image preprocessing constants
+MAX_DIMENSION = 1024  # Max dimension for vision model efficiency
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB warning threshold
+MIN_DIMENSION = 32  # Below this is likely useless
+EXTREME_ASPECT_RATIO = 10  # Width/height ratio threshold
 
 # Type aliases for better readability (PEP 695 style)
 type ImageData = dict[str, Any]
@@ -352,8 +364,23 @@ class RequirementImageExtractor:
         return ImageFormat.UNKNOWN
 
     def _validate_image(self, image_data: bytes) -> dict[str, Any]:
-        """Validate image data using PIL/Pillow"""
-        validation = {"valid": False}
+        """
+        Validate image data using PIL/Pillow with comprehensive checks.
+
+        Returns validation info including warnings for:
+        - Very large dimensions (>4096px)
+        - Very small dimensions (<32px)
+        - Extreme aspect ratios (>10:1)
+        - Large file sizes (>10MB)
+        - Animated GIFs
+
+        Args:
+            image_data: Raw image bytes
+
+        Returns:
+            Dictionary with validation results and warnings
+        """
+        validation = {"valid": False, "warnings": [], "size_bytes": len(image_data)}
 
         if not PILLOW_AVAILABLE:
             validation["error"] = "Pillow not available"
@@ -370,6 +397,50 @@ class RequirementImageExtractor:
                     "pil_format": img.format,
                 }
             )
+
+            # Check for large dimensions
+            if max(img.width, img.height) > 4096:
+                validation["warnings"].append(
+                    f"Image is very large ({img.width}x{img.height}). "
+                    f"Consider resizing to max {MAX_DIMENSION}px for efficiency."
+                )
+
+            # Check for tiny dimensions
+            if min(img.width, img.height) < MIN_DIMENSION:
+                validation["warnings"].append(
+                    f"Image is very small ({img.width}x{img.height}). "
+                    "May not provide useful visual information."
+                )
+
+            # Check aspect ratio
+            aspect_ratio = max(img.width, img.height) / max(min(img.width, img.height), 1)
+            if aspect_ratio > EXTREME_ASPECT_RATIO:
+                validation["warnings"].append(
+                    f"Extreme aspect ratio ({aspect_ratio:.1f}:1). "
+                    "Vision models may struggle with very tall/wide images."
+                )
+                validation["aspect_ratio"] = aspect_ratio
+
+            # Check file size
+            if len(image_data) > MAX_FILE_SIZE:
+                size_mb = len(image_data) / 1024 / 1024
+                validation["warnings"].append(
+                    f"Large file size ({size_mb:.1f}MB). "
+                    "Consider compression for faster processing."
+                )
+
+            # Check for animated GIF
+            if img.format == "GIF":
+                try:
+                    img.seek(1)
+                    validation["warnings"].append(
+                        "Animated GIF detected. Only first frame will be analyzed."
+                    )
+                    validation["animated"] = True
+                    img.seek(0)
+                except EOFError:
+                    validation["animated"] = False
+
         except Exception as e:
             validation["error"] = str(e)
 
@@ -416,6 +487,120 @@ class RequirementImageExtractor:
     def _compute_hash(self, data: bytes) -> str:
         """Compute SHA256 hash of data"""
         return hashlib.sha256(data).hexdigest()
+
+    def _preprocess_image(self, image_data: bytes) -> bytes:
+        """
+        Preprocess image for vision model efficiency.
+
+        Resizes large images to max 1024px dimension to reduce memory usage
+        and token consumption. Also converts RGBA to RGB for compatibility.
+
+        Args:
+            image_data: Raw image bytes
+
+        Returns:
+            Processed image bytes (or original if processing fails)
+        """
+        if not PILLOW_AVAILABLE:
+            return image_data
+
+        try:
+            img = Image.open(io.BytesIO(image_data))
+
+            # Check if resize is needed
+            needs_resize = max(img.width, img.height) > MAX_DIMENSION
+            needs_convert = img.mode not in ("RGB", "L")
+
+            if not needs_resize and not needs_convert:
+                return image_data
+
+            # Resize if too large (maintain aspect ratio)
+            if needs_resize:
+                img.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.Resampling.LANCZOS)
+                if self.logger:
+                    self.logger.debug(f"Resized image from original to {img.width}x{img.height}")
+
+            # Convert RGBA/P to RGB for compatibility
+            if img.mode not in ("RGB", "L"):
+                if img.mode == "RGBA":
+                    # Create white background for transparency
+                    background = Image.new("RGB", img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[3])
+                    img = background
+                elif img.mode == "P":
+                    img = img.convert("RGB")
+                else:
+                    img = img.convert("RGB")
+
+            # Save with compression
+            buffer = io.BytesIO()
+            output_format = "JPEG" if img.mode == "RGB" else "PNG"
+            if output_format == "JPEG":
+                img.save(buffer, format=output_format, quality=85, optimize=True)
+            else:
+                img.save(buffer, format=output_format, optimize=True)
+
+            return buffer.getvalue()
+
+        except Exception as e:
+            # Graceful degradation - return original if processing fails
+            _logger.warning(f"Image preprocessing failed, using original: {e}")
+            return image_data
+
+    def cleanup_extracted_images(self, reqifz_path: Path | None = None) -> int:
+        """
+        Clean up extracted images from the output directory.
+
+        Args:
+            reqifz_path: If provided, clean only images for this REQIFZ file.
+                        If None, clean all extracted images.
+
+        Returns:
+            Number of files removed
+        """
+        count = 0
+        try:
+            if reqifz_path:
+                # Clean only images for specific REQIFZ
+                target_dir = self.output_dir / reqifz_path.stem
+                if target_dir.exists():
+                    count = sum(1 for f in target_dir.rglob("*") if f.is_file())
+                    shutil.rmtree(target_dir)
+                    if self.logger:
+                        self.logger.info(f"Cleaned up {count} image(s) for {reqifz_path.name}")
+            else:
+                # Clean all extracted images
+                if self.output_dir.exists():
+                    count = sum(1 for f in self.output_dir.rglob("*") if f.is_file())
+                    shutil.rmtree(self.output_dir)
+                    self.output_dir.mkdir(parents=True, exist_ok=True)
+                    if self.logger:
+                        self.logger.info(f"Cleaned up {count} extracted image(s)")
+
+        except Exception as e:
+            _logger.error(f"Error during image cleanup: {e}")
+            if self.logger:
+                self.logger.error(f"Error during image cleanup: {e}")
+
+        return count
+
+    @contextmanager
+    def auto_cleanup(self, reqifz_path: Path):
+        """
+        Context manager for automatic cleanup after processing.
+
+        Usage:
+            with extractor.auto_cleanup(reqifz_path):
+                # Process images...
+            # Images automatically cleaned up
+
+        Args:
+            reqifz_path: Path to the REQIFZ file being processed
+        """
+        try:
+            yield self
+        finally:
+            self.cleanup_extracted_images(reqifz_path)
 
     def augment_artifacts_with_images(
         self, artifacts: list[dict[str, Any]], images: ImageList

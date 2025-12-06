@@ -26,6 +26,7 @@ from src.app_logger import get_app_logger, shutdown_app_logger
 
 # Import utilities
 from src.config import ConfigManager
+from src.core.image_extractor import RequirementImageExtractor
 from src.processors.hp_processor import HighPerformanceREQIFZFileProcessor
 from src.processors.standard_processor import REQIFZFileProcessor
 from src.yaml_prompt_manager import YAMLPromptManager
@@ -85,6 +86,11 @@ def show_banner(mode: str = "standard") -> None:
 @click.option(
     "--max-concurrent", type=int, default=None, help="Maximum concurrent requirements (HP mode)"
 )
+@click.option(
+    "--clean-temp",
+    is_flag=True,
+    help="Clean up temporary extracted images after processing",
+)
 @click.version_option(version=__version__)
 def main(
     input_path: str | None,
@@ -100,6 +106,7 @@ def main(
     debug: bool,
     performance: bool,
     max_concurrent: int | None,
+    clean_temp: bool,
 ) -> None:
     """
     AI Test Case Generator - Modular Architecture
@@ -172,15 +179,17 @@ def main(
         app_logger.info(
             "Starting high-performance processing mode", mode=mode, input_path=input_path
         )
-        _run_hp_mode(input_path, output_dir, effective_config)
+        _run_hp_mode(input_path, output_dir, effective_config, clean_temp)
     else:
         mode = "standard"
         show_banner(mode)
         app_logger.info("Starting standard processing mode", mode=mode, input_path=input_path)
-        _run_standard_mode(input_path, output_dir, effective_config)
+        _run_standard_mode(input_path, output_dir, effective_config, clean_temp)
 
 
-def _run_standard_mode(input_path: str, output_dir: str | None, config: ConfigManager) -> None:
+def _run_standard_mode(
+    input_path: str, output_dir: str | None, config: ConfigManager, clean_temp: bool
+) -> None:
     """Execute standard processing using modular components"""
     app_logger = get_app_logger()
 
@@ -229,13 +238,27 @@ def _run_standard_mode(input_path: str, output_dir: str | None, config: ConfigMa
             console.print(f"\n❌ [red]Processing failed: {error_msg}[/red]")
             sys.exit(1)
 
+        # Clean up temporary extracted images if requested
+        if clean_temp:
+            extractor = RequirementImageExtractor(
+                output_dir=config.image_extraction.output_dir,
+                save_images=False,
+                validate_images=False,
+            )
+            count = extractor.cleanup_extracted_images()
+            if count > 0:
+                console.print(f"🧹 Cleaned up {count} temporary image(s)")
+                app_logger.info(f"Cleaned up {count} temporary images", mode="standard")
+
     except Exception as e:
         app_logger.error(f"Error in standard mode: {e}", mode="standard", exception=str(e))
         console.print(f"[red]💥 Error in standard mode: {e}[/red]")
         sys.exit(1)
 
 
-def _run_hp_mode(input_path: str, output_dir: str | None, config: ConfigManager) -> None:
+def _run_hp_mode(
+    input_path: str, output_dir: str | None, config: ConfigManager, clean_temp: bool
+) -> None:
     """Execute high-performance processing using async modular components"""
     app_logger = get_app_logger()
 
@@ -303,6 +326,18 @@ def _run_hp_mode(input_path: str, output_dir: str | None, config: ConfigManager)
             app_logger.error(f"HP Processing failed: {error_msg}", mode="high-performance")
             console.print(f"\n❌ [red]HP Processing failed: {error_msg}[/red]")
             sys.exit(1)
+
+        # Clean up temporary extracted images if requested
+        if clean_temp:
+            extractor = RequirementImageExtractor(
+                output_dir=config.image_extraction.output_dir,
+                save_images=False,
+                validate_images=False,
+            )
+            count = extractor.cleanup_extracted_images()
+            if count > 0:
+                console.print(f"🧹 Cleaned up {count} temporary image(s)")
+                app_logger.info(f"Cleaned up {count} temporary images", mode="high-performance")
 
     except Exception as e:
         app_logger.error(f"Error in HP mode: {e}", mode="high-performance", exception=str(e))

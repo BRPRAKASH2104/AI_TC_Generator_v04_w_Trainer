@@ -287,7 +287,11 @@ class RequirementRelationshipParser:
             rel_type = relationship["relation_type"]
 
             # Only process dependency-type relationships
-            if rel_type in [RelationType.DEPENDS_ON, RelationType.DERIVES_FROM, RelationType.REFINES]:
+            if rel_type in [
+                RelationType.DEPENDS_ON,
+                RelationType.DERIVES_FROM,
+                RelationType.REFINES,
+            ]:
                 # source depends on target
                 if source_id not in dependencies:
                     dependencies[source_id] = []
@@ -306,9 +310,7 @@ class RequirementRelationshipParser:
 
         return {"dependencies": dependencies, "dependents": dependents}
 
-    def find_root_requirements(
-        self, requirements: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def find_root_requirements(self, requirements: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Find root requirements (those with no parent).
 
@@ -325,9 +327,7 @@ class RequirementRelationshipParser:
 
         return root_requirements
 
-    def find_leaf_requirements(
-        self, requirements: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def find_leaf_requirements(self, requirements: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Find leaf requirements (those with no children).
 

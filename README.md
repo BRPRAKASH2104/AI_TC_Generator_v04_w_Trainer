@@ -1,4 +1,4 @@
-# AI Test Case Generator v2.2.0
+# AI Test Case Generator v2.3.0
 
 [![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -58,6 +58,9 @@ ai-tc-generator input/ --hp --max-concurrent 4
 
 # With specific model
 ai-tc-generator input/file.reqifz --model llama3.1:8b
+
+# Clean up temp images after processing (v2.3.0)
+ai-tc-generator input/file.reqifz --clean-temp
 
 # Process entire directory
 ai-tc-generator input/ --verbose
