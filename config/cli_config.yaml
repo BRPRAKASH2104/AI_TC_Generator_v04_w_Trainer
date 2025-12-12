@@ -66,6 +66,15 @@ presets:
     debug: true
     template: "driver_information_default"
 
+  # Qwen 3 Vision preset
+  qwen_vision:
+    mode: "standard"
+    model: "qwen3-vl:32b"       # Synthesizer model
+    verbose: true
+    ollama:
+      vision_model: "qwen3-vl:32b"  # Vision model
+      enable_vision: true
+
 # =================================================================
 # Environment-Specific Overrides
 # =================================================================
@@ -117,6 +126,11 @@ model_configs:
     timeout: 600               # 10 minutes (larger model)
     temperature: 0.0
     recommended_concurrent: 3   # More resource intensive
+
+  "qwen3-vl:32b":
+    timeout: 600               # 10 minutes (large VL model)
+    temperature: 0.1           # Slight temperature for creativity if needed, but usually 0 is best for tests
+    recommended_concurrent: 2   # Heavier model
 
 # =================================================================
 # Team/Project Specific Settings
