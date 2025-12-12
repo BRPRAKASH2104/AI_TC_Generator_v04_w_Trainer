@@ -14,6 +14,7 @@ from .deduplicator import TestCaseDeduplicator
 from .parsers import FastJSONResponseParser, JSONResponseParser
 from .prompt_builder import PromptBuilder
 from .validators import SemanticValidator
+import math  # Added for confidence calculation
 
 if TYPE_CHECKING:
     from .ollama_client import AsyncOllamaClient, OllamaClient
@@ -50,6 +51,59 @@ def extract_image_paths(requirement: RequirementData) -> list[Path]:
                 paths.append(img_path)
 
     return paths
+
+
+def calculate_confidence(response_data: dict[str, Any]) -> float | None:
+    """
+    Calculate confidence score from logprobs if available.
+    
+    Uses perplexity-based confidence: exp(mean(logprobs))
+    """
+    try:
+        if not response_data:
+            return None
+            
+        # Try to locate logprobs in response
+        # Ollama structure for /api/generate with logprobs=true
+        # Usually it is 'context' (IDs) but logprobs might be under a different key or currently not fully exposed in all versions
+        # Documentation says `logprobs` parameter returns logprobs in response?
+        # Let's check for "logprobs" key which might contain token info
+        # Note: As of Ollama 0.13.3 release notes, structure isn't fully detailed, checking standard paths
+        
+        # Possible structure: {"logprobs": [{"token": "Foo", "logprob": -0.1}, ...]} 
+        # CAUTION: This is speculative based on common patterns. 
+        # If 'logprobs' is missing, return None.
+        
+        # Defensive check for different possible structures
+        logprobs_data = response_data.get("logprobs")
+        
+        if not logprobs_data:
+            return None
+            
+        token_logprobs = []
+        
+        if isinstance(logprobs_data, list):
+             # List of objects?
+             for item in logprobs_data:
+                 if isinstance(item, dict) and "logprob" in item:
+                     token_logprobs.append(item["logprob"])
+                 elif isinstance(item, (int, float)):
+                     # Maybe direct list of floats? Unlikely but possible
+                     token_logprobs.append(item)
+        elif isinstance(logprobs_data, dict):
+            # Maybe {"tokens": [...], "token_logprobs": [...]}
+            if "token_logprobs" in logprobs_data:
+                token_logprobs = logprobs_data["token_logprobs"]
+        
+        if not token_logprobs:
+            return None
+            
+        # Calculate mean logprob
+        mean_logprob = sum(token_logprobs) / len(token_logprobs)
+        return math.exp(mean_logprob)
+        
+    except Exception:
+        return None
 
 
 class TestCaseGenerator:
@@ -98,18 +152,32 @@ class TestCaseGenerator:
 
             # Generate AI response (use vision-capable method if images present)
             start_time = time.time()
+            
+            # Use generate_completion (or vision equiv) to get full response including logprobs
             if image_paths:
                 if self.logger:
                     self.logger.debug(f"Using vision model with {len(image_paths)} image(s)")
-                response = self.client.generate_response_with_vision(
-                    model, prompt, image_paths, is_json=True
+                # Updated generic Vision method supports return_full_response
+                full_response = self.client.generate_response_with_vision(
+                    model, prompt, image_paths, is_json=True, return_full_response=True
                 )
             else:
-                response = self.client.generate_response(model, prompt, is_json=True)
+                full_response = self.client.generate_completion(
+                    model, prompt, is_json=True, return_full_response=True
+                )
+                
             generation_time = time.time() - start_time
 
+            # Extract text and confidence
+            if isinstance(full_response, dict):
+                response_text = str(full_response.get("response", ""))
+                confidence_score = calculate_confidence(full_response)
+            else:
+                response_text = str(full_response)
+                confidence_score = None
+            
             # Parse JSON response
-            test_cases_data = self.json_parser.extract_json_from_response(response)
+            test_cases_data = self.json_parser.extract_json_from_response(response_text)
 
             if test_cases_data and "test_cases" in test_cases_data:
                 test_cases = test_cases_data["test_cases"]
@@ -169,6 +237,9 @@ class TestCaseGenerator:
                         entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
                     )
                     test_case["validation_passed"] = is_valid
+                    # Add confidence score
+                    if confidence_score is not None:
+                        test_case["confidence_score"] = confidence_score
 
                 if self.logger:
                     self.logger.info(
@@ -354,12 +425,22 @@ class AsyncTestCaseGenerator:
                     self.logger.debug(
                         f"Using vision model with {len(image_paths)} image(s) for {req_id}"
                     )
-                response = await self.client.generate_response_with_vision(
-                    model, prompt, image_paths, is_json=True
+                full_response = await self.client.generate_response_with_vision(
+                    model, prompt, image_paths, is_json=True, return_full_response=True
                 )
             else:
-                response = await self.client.generate_response(model, prompt, is_json=True)
+                full_response = await self.client.generate_completion(
+                    model, prompt, is_json=True, return_full_response=True
+                )
             generation_time = time.time() - start_time
+
+            # Extract text and confidence
+            if isinstance(full_response, dict):
+                response_text = str(full_response.get("response", ""))
+                confidence_score = calculate_confidence(full_response)
+            else:
+                response_text = str(full_response)
+                confidence_score = None
 
             # Record timing metrics for performance analysis and optimization
             if self.logger:
@@ -367,7 +448,7 @@ class AsyncTestCaseGenerator:
 
             # Phase 3: Response Validation - Empty Response Check
             # Handle cases where AI returns empty or whitespace-only responses
-            if not response or not response.strip():
+            if not response_text or not response_text.strip():
                 error_info = {
                     "error": True,
                     "requirement_id": req_id,
@@ -386,7 +467,7 @@ class AsyncTestCaseGenerator:
 
             # Phase 4: JSON Parsing and Structure Validation
             # Use fast JSON parser optimized for AI responses
-            test_cases_data = self.json_parser.extract_json_from_response(response)
+            test_cases_data = self.json_parser.extract_json_from_response(response_text)
 
             if test_cases_data and "test_cases" in test_cases_data:
                 test_cases = test_cases_data["test_cases"]
@@ -447,6 +528,9 @@ class AsyncTestCaseGenerator:
                         entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
                     )
                     test_case["validation_passed"] = is_valid
+                    # Add confidence score
+                    if confidence_score is not None:
+                        test_case["confidence_score"] = confidence_score
 
                 if self.logger:
                     self.logger.info(

@@ -5,6 +5,7 @@ This module provides the base class with shared logic for both standard
 and high-performance processors, eliminating code duplication.
 """
 
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -56,6 +57,17 @@ class BaseProcessor:
                 logger=None,  # Logger will be set per file
                 enabled=True,
             )
+
+    @staticmethod
+    def _clean_text_for_logging(text: str) -> str:
+        """Clean XML/HTML text for readable logging"""
+        if not text:
+            return ""
+        # Remove XML tags
+        clean = re.sub(r'<[^>]+>', ' ', text)
+        # Normalize whitespace
+        clean = " ".join(clean.split())
+        return clean
 
     def _initialize_logger(self, reqifz_path: Path) -> None:
         """Initialize file-specific logger"""
@@ -120,7 +132,7 @@ class BaseProcessor:
             if obj.get("type") == "Heading":
                 current_heading = obj.get("text", "No Heading")
                 info_since_heading = []
-                self.logger.debug(f"📌 Context heading: {current_heading}")
+                self.logger.debug(f"📌 Context heading: {self._clean_text_for_logging(current_heading)}")
                 continue
 
             elif obj.get("type") == "Information":
@@ -140,7 +152,7 @@ class BaseProcessor:
                     continue
 
                 self.logger.debug(
-                    f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})"
+                    f"⚡ Augmenting requirement: {req_id} (heading: {self._clean_text_for_logging(current_heading)})"
                 )
 
                 augmented_requirement = obj.copy()

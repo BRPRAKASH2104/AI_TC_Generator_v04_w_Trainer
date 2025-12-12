@@ -96,6 +96,14 @@ class OllamaConfig(BaseModel):
         description="Context window for vision model (llama3.2-vision supports 32K-128K)",
     )
 
+    # Logprobs for confidence scoring (Ollama 0.13.3+)
+    enable_logprobs: bool = Field(
+        True, description="Enable logprobs generation for confidence scoring"
+    )
+    top_logprobs: int = Field(
+        1, ge=1, le=10, description="Number of top logprobs to return (default 1)"
+    )
+
     @model_validator(mode="after")
     def audit_config(self) -> Self:
         """Post-initialization validation and audit logging"""
