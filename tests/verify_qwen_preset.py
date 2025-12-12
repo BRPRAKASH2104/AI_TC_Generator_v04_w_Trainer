@@ -14,7 +14,9 @@ def verify_qwen_preset():
     config = ConfigManager()
     
     # Load CLI config (which contains the preset)
-    config.load_cli_config(Path("config/cli_config.yaml"))
+    # Load CLI config (simulating main.py call without args)
+    # This verifies that default paths (config/cli_config.yaml) are correctly resolved
+    config.load_cli_config()
     
     # Get the preset
     preset = config.get_preset_config("qwen_vision")

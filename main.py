@@ -71,6 +71,9 @@ def show_banner(mode: str = "standard") -> None:
 @click.option("--model", default="llama3.1:8b", help="AI model to use for generation")
 @click.option("--template", type=str, default=None, help="Specific prompt template to use")
 @click.option(
+    "--preset", type=str, default=None, help="Use a named configuration preset (e.g., qwen_vision)"
+)
+@click.option(
     "--output-dir", type=click.Path(), default=None, help="Output directory for generated files"
 )
 @click.option(
@@ -98,6 +101,7 @@ def main(
     training: bool,
     model: str,
     template: str | None,
+    preset: str | None,
     output_dir: str | None,
     config: str | None,
     validate_prompts: bool,
@@ -142,12 +146,70 @@ def main(
         console.print("[blue]ℹ️  Training logic would be implemented here[/blue]")
         return
 
-    # Initialize configuration with CLI overrides applied
+    # Initialize configuration
     base_config = ConfigManager()
+    
+    # Load CLI defaults and presets from config file
+    # This must be done BEFORE accessing presets
+    base_config.load_cli_config()
+    
+    # 1. Load Preset if specified (This merges preset values into base config)
+    if preset:
+        preset_config = base_config.get_preset_config(preset)
+        if preset_config:
+            # Map simple preset keys to nested config structure
+            # This fixes "Extra inputs not permitted" Pydantic errors
+            nested_update = {}
+            
+            # Helper to set nested dict values
+            def set_nested(d, path, value):
+                for key in path[:-1]:
+                    d = d.setdefault(key, {})
+                d[path[-1]] = value
 
-    # Apply CLI overrides to create effective configuration
+            # Mapping definitions (flat key -> nested path list)
+            key_mapping = {
+                "model": ["ollama", "synthesizer_model"],
+                "mode": ["cli", "mode"],
+                "verbose": ["cli", "verbose"],
+                "debug": ["cli", "debug"],
+                "performance": ["cli", "performance"],
+                "max_concurrent": ["ollama", "concurrent_requests"] # or cli.max_concurrent? config.py env_mapping says ollama.concurrent_requests
+            }
+            
+            for key, value in preset_config.items():
+                if key in key_mapping:
+                    # Create a separate dict for this mapped key to avoid structure conflicts
+                    # Then merge it into the main nested_update
+                    temp_dict = {}
+                    set_nested(temp_dict, key_mapping[key], value)
+                    ConfigManager._deep_merge_dict(nested_update, temp_dict)
+                else:
+                    # For already nested keys like 'ollama', copy them as is
+                    # But we must deep merge them too, in case 'ollama' was already created by a mapped key
+                    temp_dict = {key: value}
+                    ConfigManager._deep_merge_dict(nested_update, temp_dict)
+
+            # We use the internal deep merge helper to apply the preset
+            current_data = base_config.model_dump()
+            ConfigManager._deep_merge_dict(current_data, nested_update)
+            # Re-validate to ensure type safety and apply changes
+            base_config = ConfigManager.model_validate(current_data)
+            console.print(f"🔧 Applied preset: [cyan]{preset}[/cyan]")
+
+    # 2. Apply CLI overrides (These invoke logic to create *effective* config)
+    # Note: We pass the *potentially modified* base_config's values as defaults if not overridden?
+    # Actually, apply_cli_overrides creates a NEW instance from self.
+    # So since we updated base_config above, apply_cli_overrides will start with those preset values!
+    
     effective_config = base_config.apply_cli_overrides(
-        model=model,
+        model=model if model != "llama3.1:8b" else None, # Only override if user changed default? 
+        # CAUTION: Click default is "llama3.1:8b". If user doesn't specify --model, 
+        # we get that default string. If we pass it to apply_cli_overrides, it might 
+        # override the preset's model!
+        # We need to detect if --model was explicitly passed or just default.
+        # Allow preset to win if model is default.
+        
         template=template,
         max_concurrent=max_concurrent,
         verbose=verbose,
