@@ -90,6 +90,12 @@ def show_banner(mode: str = "standard") -> None:
     "--max-concurrent", type=int, default=None, help="Maximum concurrent requirements (HP mode)"
 )
 @click.option(
+    "--num-ctx",
+    type=int,
+    default=None,
+    help="Context window size (e.g., 2048, 4096)",
+)
+@click.option(
     "--clean-temp",
     is_flag=True,
     help="Clean up temporary extracted images after processing",
@@ -110,6 +116,7 @@ def main(
     debug: bool,
     performance: bool,
     max_concurrent: int | None,
+    num_ctx: int | None,
     clean_temp: bool,
 ) -> None:
     """
@@ -212,6 +219,7 @@ def main(
         
         template=template,
         max_concurrent=max_concurrent,
+        num_ctx=num_ctx,
         verbose=verbose,
         debug=debug,
         performance=performance,

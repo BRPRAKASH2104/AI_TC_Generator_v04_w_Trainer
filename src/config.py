@@ -613,7 +613,7 @@ class ConfigManager(BaseSettings):
         providing a single source of truth for configuration throughout the application.
 
         Args:
-            **kwargs: CLI arguments to override (model, template, max_concurrent, etc.)
+            **kwargs: CLI arguments to override (model, template, max_concurrent, num_ctx, etc.)
 
         Returns:
             New ConfigManager instance with overrides applied
@@ -626,6 +626,7 @@ class ConfigManager(BaseSettings):
             "AI_TG_MODEL": ("ollama", "synthesizer_model"),
             "AI_TG_TEMPLATE": ("cli", "template"),
             "AI_TG_MAX_CONCURRENT": ("ollama", "concurrent_requests"),
+            "AI_TG_NUM_CTX": ("ollama", "num_ctx"),
             "AI_TG_VERBOSE": ("cli", "verbose"),
             "AI_TG_DEBUG": ("cli", "debug"),
             "AI_TG_PERFORMANCE": ("cli", "performance"),
@@ -641,7 +642,7 @@ class ConfigManager(BaseSettings):
             if env_value := os.getenv(env_var):
                 if key in ["verbose", "debug", "performance"]:
                     config_dict[section][key] = env_value.lower() in ("true", "1", "yes", "on")
-                elif key in ["max_concurrent", "concurrent_requests", "timeout"]:
+                elif key in ["max_concurrent", "concurrent_requests", "timeout", "num_ctx"]:
                     try:
                         config_dict[section][key] = int(env_value)
                     except ValueError:
@@ -665,6 +666,8 @@ class ConfigManager(BaseSettings):
             cli_overrides["template"] = kwargs["template"]
         if "max_concurrent" in kwargs and kwargs["max_concurrent"] is not None:
             ollama_overrides["concurrent_requests"] = kwargs["max_concurrent"]
+        if "num_ctx" in kwargs and kwargs["num_ctx"] is not None:
+            ollama_overrides["num_ctx"] = kwargs["num_ctx"]
         if "verbose" in kwargs and kwargs["verbose"] is not None:
             cli_overrides["verbose"] = kwargs["verbose"]
         if "debug" in kwargs and kwargs["debug"] is not None:
@@ -724,6 +727,9 @@ class ConfigManager(BaseSettings):
                 
             if "recommended_concurrent" in m_config:
                 update_if_not_overridden("ollama", "concurrent_requests", m_config["recommended_concurrent"], ollama_overrides)
+
+            if "num_ctx" in m_config:
+                update_if_not_overridden("ollama", "num_ctx", m_config["num_ctx"], ollama_overrides)
                 
             # Log this internal application if debugging
             # print(f"ℹ️  Applied specific settings for model: {effective_model}")

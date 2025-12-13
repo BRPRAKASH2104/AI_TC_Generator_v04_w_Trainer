@@ -29,6 +29,7 @@ ai-tc-generator input/ --hp --max-concurrent 4        # HP mode (3-9x faster)
 ai-tc-generator input/file.reqifz --clean-temp        # Clean up temp images after processing
 python3 main.py input/file.reqifz --debug             # Development mode with debug logging
 python main.py input/ --preset qwen_vision --max-concurrent 1
+python main.py input/ --preset qwen_moe
 
 # Testing (per System_Instructions.md: testing is non-negotiable)
 python3 tests/run_tests.py                            # Full test suite (recommended)
