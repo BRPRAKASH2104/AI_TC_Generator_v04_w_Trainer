@@ -59,6 +59,10 @@ ai-tc-generator input/ --hp --max-concurrent 4
 # With specific model
 ai-tc-generator input/file.reqifz --model llama3.1:8b
 
+python main.py .\input\REQIFZ_Files --preset qwen_vision --max-concurrent 1
+
+python main.py input/ --preset qwen_moe
+
 # Clean up temp images after processing (v2.3.0)
 ai-tc-generator input/file.reqifz --clean-temp
 

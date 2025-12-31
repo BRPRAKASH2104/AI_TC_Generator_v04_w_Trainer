@@ -96,6 +96,14 @@ class OllamaConfig(BaseModel):
         description="Context window for vision model (llama3.2-vision supports 32K-128K)",
     )
 
+    # Logprobs for confidence scoring (Ollama 0.13.3+)
+    enable_logprobs: bool = Field(
+        True, description="Enable logprobs generation for confidence scoring"
+    )
+    top_logprobs: int = Field(
+        1, ge=1, le=10, description="Number of top logprobs to return (default 1)"
+    )
+
     @model_validator(mode="after")
     def audit_config(self) -> Self:
         """Post-initialization validation and audit logging"""
@@ -605,7 +613,7 @@ class ConfigManager(BaseSettings):
         providing a single source of truth for configuration throughout the application.
 
         Args:
-            **kwargs: CLI arguments to override (model, template, max_concurrent, etc.)
+            **kwargs: CLI arguments to override (model, template, max_concurrent, num_ctx, etc.)
 
         Returns:
             New ConfigManager instance with overrides applied
@@ -618,6 +626,7 @@ class ConfigManager(BaseSettings):
             "AI_TG_MODEL": ("ollama", "synthesizer_model"),
             "AI_TG_TEMPLATE": ("cli", "template"),
             "AI_TG_MAX_CONCURRENT": ("ollama", "concurrent_requests"),
+            "AI_TG_NUM_CTX": ("ollama", "num_ctx"),
             "AI_TG_VERBOSE": ("cli", "verbose"),
             "AI_TG_DEBUG": ("cli", "debug"),
             "AI_TG_PERFORMANCE": ("cli", "performance"),
@@ -633,7 +642,7 @@ class ConfigManager(BaseSettings):
             if env_value := os.getenv(env_var):
                 if key in ["verbose", "debug", "performance"]:
                     config_dict[section][key] = env_value.lower() in ("true", "1", "yes", "on")
-                elif key in ["max_concurrent", "concurrent_requests", "timeout"]:
+                elif key in ["max_concurrent", "concurrent_requests", "timeout", "num_ctx"]:
                     try:
                         config_dict[section][key] = int(env_value)
                     except ValueError:
@@ -657,6 +666,8 @@ class ConfigManager(BaseSettings):
             cli_overrides["template"] = kwargs["template"]
         if "max_concurrent" in kwargs and kwargs["max_concurrent"] is not None:
             ollama_overrides["concurrent_requests"] = kwargs["max_concurrent"]
+        if "num_ctx" in kwargs and kwargs["num_ctx"] is not None:
+            ollama_overrides["num_ctx"] = kwargs["num_ctx"]
         if "verbose" in kwargs and kwargs["verbose"] is not None:
             cli_overrides["verbose"] = kwargs["verbose"]
         if "debug" in kwargs and kwargs["debug"] is not None:
@@ -677,6 +688,51 @@ class ConfigManager(BaseSettings):
             config_dict["cli"].update(cli_overrides)
         if ollama_overrides:
             config_dict["ollama"].update(ollama_overrides)
+
+        # -------------------------------------------------------------------------
+        # Critical Fix: Auto-apply model-specific settings (timeout, temperature, etc.)
+        # -------------------------------------------------------------------------
+        # Determine the effective model to use for lookup
+        # Priority: 1. CLI Override -> 2. Environment Var -> 3. Current Config (Preset/Default)
+        effective_model = ollama_overrides.get("synthesizer_model") or config_dict["ollama"].get(
+            "synthesizer_model"
+        )
+        
+        # Check if we have specific config for this model
+        # Access model_configs from the current instance's CLI config
+        model_configs = self.cli.model_configs
+        
+        if effective_model and effective_model in model_configs:
+            m_config = model_configs[effective_model]
+            
+            # Apply timeout if not explicitly overridden by CLI/Env
+            # (We check if 'timeout' was in the overrides dicts passed to this method or env vars)
+            # Actually, simplest safe way: apply defaults from model_config IF they are unset/default
+            # OR just overwrite, assuming model_config is the specific intent for that model.
+            # BUT CLI args should always win.
+            
+            # Helper to update if NOT in overrides
+            def update_if_not_overridden(section, key, value, override_dict):
+                # Check if it was manually overridden in this call OR via env vars (checked earlier)
+                # To check env vars accurately we'd need to track them, but strict CLI overrides 
+                # are tracked in ollama_overrides/cli_overrides.
+                if key not in override_dict:
+                    config_dict[section][key] = value
+
+            if "timeout" in m_config:
+                update_if_not_overridden("ollama", "timeout", m_config["timeout"], ollama_overrides)
+                
+            if "temperature" in m_config:
+                update_if_not_overridden("ollama", "temperature", m_config["temperature"], ollama_overrides)
+                
+            if "recommended_concurrent" in m_config:
+                update_if_not_overridden("ollama", "concurrent_requests", m_config["recommended_concurrent"], ollama_overrides)
+
+            if "num_ctx" in m_config:
+                update_if_not_overridden("ollama", "num_ctx", m_config["num_ctx"], ollama_overrides)
+                
+            # Log this internal application if debugging
+            # print(f"ℹ️  Applied specific settings for model: {effective_model}")
 
         # Create new ConfigManager instance with updated configuration
         return ConfigManager.model_validate(config_dict)

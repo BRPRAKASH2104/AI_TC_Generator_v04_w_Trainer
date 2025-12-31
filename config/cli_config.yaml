@@ -66,6 +66,24 @@ presets:
     debug: true
     template: "driver_information_default"
 
+  # Qwen 3 Vision preset
+  qwen_vision:
+    mode: "standard"
+    model: "qwen3-vl:32b"       # Synthesizer model
+    verbose: true
+    ollama:
+      vision_model: "qwen3-vl:32b"  # Vision model
+      enable_vision: true
+
+  # Qwen MoE preset (Fast/Efficient)
+  qwen_moe:
+    mode: "standard"
+    model: "qwen3-vl:30b"       # MoE Synthesizer
+    verbose: true
+    ollama:
+      vision_model: "qwen3-vl:30b"  # MoE Vision
+      enable_vision: true
+
 # =================================================================
 # Environment-Specific Overrides
 # =================================================================
@@ -117,6 +135,21 @@ model_configs:
     timeout: 600               # 10 minutes (larger model)
     temperature: 0.0
     recommended_concurrent: 3   # More resource intensive
+
+  "qwen3-vl:32b":
+    timeout: 1500              # 25 minutes (large VL model needing more time)
+    temperature: 0.0           # Slight temperature for creativity if needed, but usually 0 is best for tests
+    recommended_concurrent: 1   # Heavier model
+
+  "llama3.2-vision:11b":
+    timeout: 600               # 10 minutes
+    temperature: 0.0
+    recommended_concurrent: 4   # Medium sized vision model
+
+  "qwen3-vl:30b":
+    timeout: 600               # 5 minutes (Fast MoE model)
+    temperature: 0.1
+    recommended_concurrent: 1   # Efficient MoE architecture
 
 # =================================================================
 # Team/Project Specific Settings

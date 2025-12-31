@@ -50,42 +50,47 @@ class OllamaClient:
         self._version_validated = False
         self._available_features: dict[str, bool] = {}
 
-    def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
+    def generate_completion(
+        self,
+        model_name: str,
+        prompt: str,
+        is_json: bool = False,
+        return_full_response: bool = True,
+    ) -> dict | str:
         """
-        Generate response from Ollama model with proper error handling.
+        Generate completion from Ollama model with full response control.
 
         Args:
             model_name: Name of the Ollama model to use
             prompt: Input prompt for generation
             is_json: Whether to request JSON-formatted output
+            return_full_response: If True, returns full JSON dict. If False, returns just text.
 
         Returns:
-            Generated response text
-
-        Raises:
-            OllamaConnectionError: When connection to Ollama fails
-            OllamaTimeoutError: When request times out
-            OllamaModelNotFoundError: When requested model is not available
-            OllamaResponseError: When response is invalid
+            Full response dictionary (if return_full_response=True) or response text string.
         """
         payload = {
             "model": model_name,
             "prompt": prompt,
             "stream": False,
-            "keep_alive": self.config.keep_alive,  # Ollama v0.11.10+ optimization
+            "keep_alive": self.config.keep_alive,
             "options": {
                 "temperature": self.config.temperature,
-                "num_ctx": self.config.num_ctx,  # Context window size
-                "num_predict": self.config.num_predict,  # Response length limit
+                "num_ctx": self.config.num_ctx,
+                "num_predict": self.config.num_predict,
                 "top_k": 40,
                 "top_p": 0.9,
                 "repeat_penalty": 1.1,
-                # Advanced sampling parameters for improved determinism
-                "tfs_z": self.config.tfs_z,  # Tail-free sampling
-                "typical_p": self.config.typical_p,  # Typical sampling
-                "repeat_last_n": self.config.repeat_last_n,  # Repetition penalty window
+                "tfs_z": self.config.tfs_z,
+                "typical_p": self.config.typical_p,
+                "repeat_last_n": self.config.repeat_last_n,
             },
         }
+
+        # Add logprobs if enabled (new in Ollama 0.13.3)
+        if getattr(self.config, "enable_logprobs", False):
+            payload["logprobs"] = True
+            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
 
         if is_json:
             payload["format"] = "json"
@@ -105,6 +110,8 @@ class OllamaClient:
                     f"Invalid JSON response from Ollama: {e}", status_code=response.status_code
                 ) from e
 
+            if return_full_response:
+                return data
             return str(data.get("response", ""))
 
         except requests.ConnectionError as e:
@@ -129,7 +136,6 @@ class OllamaClient:
                     model=model_name,
                 ) from e
             else:
-                # Ollama 0.12.5 may include detailed error JSON
                 try:
                     error_details = e.response.json()
                     error_msg = error_details.get("error", e.response.text)
@@ -147,13 +153,31 @@ class OllamaClient:
                 f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
             ) from e
 
+    def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
+        """
+        Generate response from Ollama model (backward compatibility wrapper).
+
+        Args:
+            model_name: Name of the Ollama model to use
+            prompt: Input prompt for generation
+            is_json: Whether to request JSON-formatted output
+
+        Returns:
+            Generated response text
+        """
+        # Call the new method but request only text (implicit backward compatibility)
+        return self.generate_completion(
+            model_name, prompt, is_json, return_full_response=False
+        )
+
     def generate_response_with_vision(
         self,
         model_name: str,
         prompt: str,
         image_paths: list[Path] | None = None,
         is_json: bool = False,
-    ) -> str:
+        return_full_response: bool = False,
+    ) -> dict | str:
         """
         Generate response from Ollama vision model with optional image inputs.
 
@@ -165,9 +189,10 @@ class OllamaClient:
             prompt: Input prompt for generation
             image_paths: Optional list of image file paths to include
             is_json: Whether to request JSON-formatted output
+            return_full_response: If True, returns full JSON dict. If False, returns just text.
 
         Returns:
-            Generated response text
+            Full response dictionary (if return_full_response=True) or response text string.
 
         Raises:
             OllamaConnectionError: When connection to Ollama fails
@@ -228,6 +253,11 @@ class OllamaClient:
         if is_json:
             payload["format"] = "json"
 
+        # Add logprobs if enabled
+        if getattr(self.config, "enable_logprobs", False):
+            payload["logprobs"] = True
+            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
+
         try:
             response = self._session.post(
                 self.config.api_url,
@@ -243,6 +273,8 @@ class OllamaClient:
                     f"Invalid JSON response from Ollama: {e}", status_code=response.status_code
                 ) from e
 
+            if return_full_response:
+                return data
             return str(data.get("response", ""))
 
         except requests.ConnectionError as e:
@@ -503,23 +535,24 @@ class AsyncOllamaClient:
         if self.session:
             await self.session.close()
 
-    async def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
+    async def generate_completion(
+        self,
+        model_name: str,
+        prompt: str,
+        is_json: bool = False,
+        return_full_response: bool = True,
+    ) -> dict | str:
         """
-        Generate response from Ollama model asynchronously with proper error handling.
+        Generate completion from Ollama model asynchronously with full response control.
 
         Args:
             model_name: Name of the Ollama model to use
             prompt: Input prompt for generation
             is_json: Whether to request JSON-formatted output
+            return_full_response: If True, returns full JSON dict. If False, returns just text.
 
         Returns:
-            Generated response text
-
-        Raises:
-            OllamaConnectionError: When connection to Ollama fails
-            OllamaTimeoutError: When request times out
-            OllamaModelNotFoundError: When requested model is not available
-            OllamaResponseError: When response is invalid
+            Full response dictionary (if return_full_response=True) or response text string.
         """
         if not self.session:
             raise RuntimeError("AsyncOllamaClient must be used as async context manager")
@@ -536,12 +569,16 @@ class AsyncOllamaClient:
                 "top_k": 40,
                 "top_p": 0.9,
                 "repeat_penalty": 1.1,
-                # Advanced sampling parameters for improved determinism
-                "tfs_z": self.config.tfs_z,  # Tail-free sampling
-                "typical_p": self.config.typical_p,  # Typical sampling
-                "repeat_last_n": self.config.repeat_last_n,  # Repetition penalty window
+                "tfs_z": self.config.tfs_z,
+                "typical_p": self.config.typical_p,
+                "repeat_last_n": self.config.repeat_last_n,
             },
         }
+
+        # Add logprobs if enabled
+        if getattr(self.config, "enable_logprobs", False):
+            payload["logprobs"] = True
+            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
 
         if is_json:
             payload["format"] = "json"
@@ -557,6 +594,8 @@ class AsyncOllamaClient:
                             f"Invalid JSON response from Ollama: {e}", status_code=response.status
                         ) from e
 
+                    if return_full_response:
+                        return data
                     return str(data.get("response", ""))
 
             except TimeoutError as e:
@@ -592,13 +631,31 @@ class AsyncOllamaClient:
                     f"Ollama async client error: {e}", host=self.config.host, port=self.config.port
                 ) from e
 
+    async def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
+        """
+        Generate response from Ollama model asynchronously (backward compatibility wrapper).
+
+        Args:
+            model_name: Name of the Ollama model to use
+            prompt: Input prompt for generation
+            is_json: Whether to request JSON-formatted output
+
+        Returns:
+            Generated response text
+        """
+        # Call the new method but request only text
+        return await self.generate_completion(
+            model_name, prompt, is_json, return_full_response=False
+        )
+
     async def generate_response_with_vision(
         self,
         model_name: str,
         prompt: str,
         image_paths: list[Path] | None = None,
         is_json: bool = False,
-    ) -> str:
+        return_full_response: bool = False,
+    ) -> dict | str:
         """
         Generate response from Ollama vision model with optional image inputs (async version).
 
@@ -610,9 +667,10 @@ class AsyncOllamaClient:
             prompt: Input prompt for generation
             image_paths: Optional list of image file paths to include
             is_json: Whether to request JSON-formatted output
+            return_full_response: If True, returns full JSON dict. If False, returns just text.
 
         Returns:
-            Generated response text
+            Full response dictionary (if return_full_response=True) or response text string.
 
         Raises:
             OllamaConnectionError: When connection to Ollama fails
@@ -676,6 +734,11 @@ class AsyncOllamaClient:
         if is_json:
             payload["format"] = "json"
 
+        # Add logprobs if enabled
+        if getattr(self.config, "enable_logprobs", False):
+            payload["logprobs"] = True
+            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
+
         async with self.semaphore:  # Limit concurrent requests
             try:
                 async with self.session.post(self.config.api_url, json=payload) as response:
@@ -687,6 +750,8 @@ class AsyncOllamaClient:
                             f"Invalid JSON response from Ollama: {e}", status_code=response.status
                         ) from e
 
+                    if return_full_response:
+                        return data
                     return str(data.get("response", ""))
 
             except TimeoutError as e:
