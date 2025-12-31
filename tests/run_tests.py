@@ -5,15 +5,16 @@ Test runner for AI Test Case Generator.
 Runs the complete test suite with coverage reporting.
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
+
 
 def run_tests():
     """Run the test suite with pytest."""
     print("🧪 Running AI Test Case Generator Test Suite")
     print("=" * 60)
-    
+
     # Run pytest with coverage
     cmd = [
         "python3", "-m", "pytest",
@@ -24,9 +25,9 @@ def run_tests():
         "--cov-report=term-missing",  # Show missing lines
         "--cov-report=html:htmlcov",  # HTML coverage report
     ]
-    
+
     try:
-        result = subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True)
         print("\n✅ All tests passed!")
         print("📊 Coverage report generated in htmlcov/")
         return True
@@ -40,9 +41,9 @@ def run_tests():
 def run_specific_test(test_path):
     """Run a specific test file or test function."""
     print(f"🧪 Running specific test: {test_path}")
-    
+
     cmd = ["python", "-m", "pytest", test_path, "-v", "--tb=short"]
-    
+
     try:
         subprocess.run(cmd, check=True)
         print("\n✅ Test passed!")

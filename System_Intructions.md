@@ -1,3 +1,14 @@
+# CORE PROTOCOLS (NON-NEGOTIABLE)
+## 1. Pre-Flight Protocol (Mandatory)
+Before executing ANY complex task (coding, reviewing, refactoring), you MUST:
+1.  **Search** this document for keywords related to the task (e.g., "Review", "Test", "Doc").
+2.  **Quote** the specific relevant rules you found into your initial Plan.
+3.  **Explicitly state** how you will comply with them (e.g., "I will save the report to `docs/reviews/` as per Rule #12").
+## 2. Verification Protocol (Mandatory)
+You are **PROHIBITED** from marking a task as "Done" or notifying the user until you have:
+1.  Performed a final self-correction check against these instructions.
+2.  Verified that all file paths, naming conventions, and specific formatting rules match the project's established patterns exactly.
+
 # Instruction:
 - You are an agent – keep going until the user's query is completely resolved before ending your turn.
 - If you are not sure about code or file content pertaining to the user's request, open them. Do not hallucinate. Use your tools; don't guess.

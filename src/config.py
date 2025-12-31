@@ -697,40 +697,40 @@ class ConfigManager(BaseSettings):
         effective_model = ollama_overrides.get("synthesizer_model") or config_dict["ollama"].get(
             "synthesizer_model"
         )
-        
+
         # Check if we have specific config for this model
         # Access model_configs from the current instance's CLI config
         model_configs = self.cli.model_configs
-        
+
         if effective_model and effective_model in model_configs:
             m_config = model_configs[effective_model]
-            
+
             # Apply timeout if not explicitly overridden by CLI/Env
             # (We check if 'timeout' was in the overrides dicts passed to this method or env vars)
             # Actually, simplest safe way: apply defaults from model_config IF they are unset/default
             # OR just overwrite, assuming model_config is the specific intent for that model.
             # BUT CLI args should always win.
-            
+
             # Helper to update if NOT in overrides
             def update_if_not_overridden(section, key, value, override_dict):
                 # Check if it was manually overridden in this call OR via env vars (checked earlier)
-                # To check env vars accurately we'd need to track them, but strict CLI overrides 
+                # To check env vars accurately we'd need to track them, but strict CLI overrides
                 # are tracked in ollama_overrides/cli_overrides.
                 if key not in override_dict:
                     config_dict[section][key] = value
 
             if "timeout" in m_config:
                 update_if_not_overridden("ollama", "timeout", m_config["timeout"], ollama_overrides)
-                
+
             if "temperature" in m_config:
                 update_if_not_overridden("ollama", "temperature", m_config["temperature"], ollama_overrides)
-                
+
             if "recommended_concurrent" in m_config:
                 update_if_not_overridden("ollama", "concurrent_requests", m_config["recommended_concurrent"], ollama_overrides)
 
             if "num_ctx" in m_config:
                 update_if_not_overridden("ollama", "num_ctx", m_config["num_ctx"], ollama_overrides)
-                
+
             # Log this internal application if debugging
             # print(f"ℹ️  Applied specific settings for model: {effective_model}")
 

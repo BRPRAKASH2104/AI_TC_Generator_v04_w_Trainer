@@ -4,8 +4,8 @@ Unit tests for YAML prompt manager - Fixed to match actual implementation.
 Tests template loading, variable substitution, and auto-selection using real interface.
 """
 
-from unittest.mock import patch, mock_open
 from pathlib import Path
+from unittest.mock import mock_open, patch
 
 from yaml_prompt_manager import YAMLPromptManager
 
@@ -18,7 +18,7 @@ class TestYAMLPromptManagerFixed:
         with patch.object(YAMLPromptManager, 'load_configuration') as mock_load_config:
             with patch.object(YAMLPromptManager, 'load_all_prompts') as mock_load_prompts:
                 manager = YAMLPromptManager()
-                
+
                 mock_load_config.assert_called_once()
                 mock_load_prompts.assert_called_once()
                 assert manager.test_prompts == {}
@@ -34,10 +34,10 @@ class TestYAMLPromptManagerFixed:
             "file_paths": {"test_generation_prompts": "prompts/test.yaml"},
             "defaults": {"template_selection": "default_template"}
         }
-        
+
         with patch.object(YAMLPromptManager, 'load_all_prompts'):
             manager = YAMLPromptManager()
-            
+
             # Check that configuration was loaded
             assert "file_paths" in manager.config
             assert "defaults" in manager.config
@@ -53,14 +53,14 @@ class TestYAMLPromptManagerFixed:
                         "variables": ["requirement_text"]
                     }
                 }
-                
+
                 result = manager.get_test_prompt(requirement_text="Test requirement")
-                
+
                 assert "Test requirement" in result
                 assert "Generate test cases" in result
 
     def test_get_test_prompt_with_template_name(self):
-        """Test getting a specific template.""" 
+        """Test getting a specific template."""
         with patch.object(YAMLPromptManager, 'load_configuration'):
             with patch.object(YAMLPromptManager, 'load_all_prompts'):
                 manager = YAMLPromptManager()
@@ -70,9 +70,9 @@ class TestYAMLPromptManagerFixed:
                         "variables": ["requirement_id"]
                     }
                 }
-                
+
                 result = manager.get_test_prompt("custom_template", requirement_id="REQ_001")
-                
+
                 assert "REQ_001" in result
                 assert "Custom prompt" in result
 
@@ -81,15 +81,15 @@ class TestYAMLPromptManagerFixed:
         with patch.object(YAMLPromptManager, 'load_configuration'):
             with patch.object(YAMLPromptManager, 'load_all_prompts'):
                 manager = YAMLPromptManager()
-                
+
                 template = "Test for {requirement_id}: {requirement_text}"
                 variables = {
                     "requirement_id": "REQ_001",
                     "requirement_text": "System shall validate input"
                 }
-                
+
                 result = manager._substitute_variables(template, variables)
-                
+
                 expected = "Test for REQ_001: System shall validate input"
                 assert result == expected
 
@@ -98,12 +98,12 @@ class TestYAMLPromptManagerFixed:
         with patch.object(YAMLPromptManager, 'load_configuration'):
             with patch.object(YAMLPromptManager, 'load_all_prompts'):
                 manager = YAMLPromptManager()
-                
+
                 template = "Test {requirement_id}: {missing_var}"
                 variables = {"requirement_id": "REQ_001"}
-                
+
                 result = manager._substitute_variables(template, variables)
-                
+
                 # Should leave placeholder for missing variable
                 assert "REQ_001" in result
                 assert "{missing_var}" in result
@@ -120,9 +120,9 @@ class TestYAMLPromptManagerFixed:
                 manager.error_prompts = {
                     "error1": {"prompt": "Error 1"}
                 }
-                
+
                 templates = manager.list_templates()
-                
+
                 assert "test_generation" in templates
                 assert "error_handling" in templates
                 assert "template1" in templates["test_generation"]
@@ -140,9 +140,9 @@ class TestYAMLPromptManagerFixed:
                         "variables": ["var1", "var2"]
                     }
                 }
-                
+
                 info = manager.get_template_info("test_template")
-                
+
                 assert info["description"] == "A test template"
                 assert "var1" in info["variables"]
                 assert "var2" in info["variables"]
@@ -156,9 +156,9 @@ class TestYAMLPromptManagerFixed:
                     "template1": 5,
                     "template2": 3
                 }
-                
+
                 usage = manager.get_template_usage_summary()
-                
+
                 assert usage["template1"] == 5
                 assert usage["template2"] == 3
 
@@ -168,9 +168,9 @@ class TestYAMLPromptManagerFixed:
             with patch.object(YAMLPromptManager, 'load_all_prompts'):
                 manager = YAMLPromptManager()
                 manager.template_usage_count = {"template1": 5}
-                
+
                 manager.reset_template_usage()
-                
+
                 assert manager.template_usage_count == {}
 
     @patch('builtins.print')
@@ -179,7 +179,7 @@ class TestYAMLPromptManagerFixed:
         with patch.object(Path, 'exists', return_value=False):
             with patch.object(YAMLPromptManager, 'load_all_prompts'):
                 manager = YAMLPromptManager()
-                
+
                 # Should use default configuration
                 assert manager.config != {}
 
@@ -190,9 +190,9 @@ class TestYAMLPromptManagerFixed:
         """Test handling of YAML parsing errors."""
         with patch.object(Path, 'exists', return_value=True):
             mock_yaml_load.side_effect = Exception("YAML parsing error")
-            
+
             with patch.object(YAMLPromptManager, 'load_all_prompts'):
-                manager = YAMLPromptManager()
-                
+                YAMLPromptManager()
+
                 # Should handle gracefully and use defaults
                 mock_print.assert_called()

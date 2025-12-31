@@ -1,6 +1,6 @@
-import requests
-import json
 import sys
+
+import requests
 
 BASE_URL = "http://127.0.0.1:11434"
 
@@ -52,15 +52,15 @@ def test_generate(model_name):
 def main():
     if not test_version():
         sys.exit(1)
-    
+
     model_name = test_tags()
     if not model_name:
         print("No models found to test generation.")
         sys.exit(1)
-        
+
     if not test_generate(model_name):
         sys.exit(1)
-        
+
     print("\nAll compatibility tests passed!")
 
 if __name__ == "__main__":

@@ -271,14 +271,14 @@ def main():
 
     if not check_ollama_service():
         print(f"{RED}✗ Ollama service not running{RESET}")
-        print(f"  Start Ollama: ollama serve")
+        print("  Start Ollama: ollama serve")
         sys.exit(1)
     print(f"{GREEN}✓ Ollama service running{RESET}")
 
     llama_available, deepseek_available = check_models_available()
     if not llama_available:
         print(f"{RED}✗ llama3.1:8b not available{RESET}")
-        print(f"  Install: ollama pull llama3.1:8b")
+        print("  Install: ollama pull llama3.1:8b")
         sys.exit(1)
     print(f"{GREEN}✓ llama3.1:8b available{RESET}")
 

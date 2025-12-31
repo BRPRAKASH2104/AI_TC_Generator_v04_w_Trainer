@@ -6,15 +6,15 @@ that matches production code output after vision integration (v2.2.0).
 """
 
 import pytest
+
 from tests.helpers.test_artifact_builder import (
+    create_augmented_requirement,
     create_test_artifact,
-    create_test_requirement,
+    create_test_artifact_with_images,
     create_test_heading,
     create_test_information,
     create_test_interface,
-    create_test_artifact_with_images,
-    create_test_table,
-    create_augmented_requirement,
+    create_test_requirement,
 )
 
 

@@ -4,9 +4,11 @@ Integration tests for RAFT with core processors
 Tests verify that RAFT collection does NOT affect core logic or test case generation.
 """
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock
+
+import pytest
+
 from config import ConfigManager
 from processors.base_processor import BaseProcessor
 

@@ -12,10 +12,7 @@ Test Categories:
 5. Enhanced Image Validation (MEDIUM) - Better validation
 """
 
-import asyncio
-import base64
 import io
-import shutil
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -25,7 +22,6 @@ import pytest
 
 # Import modules under test
 from src.core.image_extractor import (
-    ImageFormat,
     RequirementImageExtractor,
 )
 
@@ -227,8 +223,8 @@ class TestImageLoadingErrorHandling:
 
     def test_missing_image_file_logs_warning(self, temp_output_dir, caplog):
         """Missing image files should log a warning, not fail silently."""
-        from src.core.ollama_client import OllamaClient
         from src.config import OllamaConfig
+        from src.core.ollama_client import OllamaClient
 
         config = OllamaConfig()
         client = OllamaClient(config)
@@ -262,8 +258,8 @@ class TestImageLoadingErrorHandling:
 
     def test_permission_denied_logs_specific_error(self, temp_output_dir, caplog):
         """Permission denied errors should log specific message."""
-        from src.core.ollama_client import OllamaClient
         from src.config import OllamaConfig
+        from src.core.ollama_client import OllamaClient
 
         # Create a file we can't read (platform-dependent)
         restricted_path = temp_output_dir / "restricted.png"
@@ -296,8 +292,8 @@ class TestImageLoadingErrorHandling:
 
     def test_failed_images_returns_count(self, temp_output_dir):
         """Method should return count of failed image loads."""
-        from src.core.ollama_client import OllamaClient
         from src.config import OllamaConfig
+        from src.core.ollama_client import OllamaClient
 
         config = OllamaConfig()
         client = OllamaClient(config)
@@ -323,7 +319,7 @@ class TestImageLoadingErrorHandling:
 
             # The new implementation should track failed loads
             # This tests the enhanced return value
-            result = client.generate_response_with_vision(
+            client.generate_response_with_vision(
                 "llama3.2-vision:11b", "test", image_paths
             )
 
@@ -344,8 +340,8 @@ class TestAsyncImageLoadingErrorHandling:
     @pytest.mark.asyncio
     async def test_async_missing_image_logs_warning(self, temp_output_dir, caplog):
         """Async client should log warnings for missing images."""
-        from src.core.ollama_client import AsyncOllamaClient
         from src.config import OllamaConfig
+        from src.core.ollama_client import AsyncOllamaClient
 
         config = OllamaConfig()
 
@@ -387,8 +383,8 @@ class TestVisionContextWindow:
 
     def test_vision_model_uses_vision_context_window(self, temp_output_dir):
         """Vision requests should use vision_context_window, not num_ctx."""
-        from src.core.ollama_client import OllamaClient
         from src.config import OllamaConfig
+        from src.core.ollama_client import OllamaClient
 
         config = OllamaConfig(
             num_ctx=16384,
@@ -425,8 +421,8 @@ class TestVisionContextWindow:
 
     def test_text_only_uses_standard_context_window(self):
         """Text-only requests should use num_ctx."""
-        from src.core.ollama_client import OllamaClient
         from src.config import OllamaConfig
+        from src.core.ollama_client import OllamaClient
 
         config = OllamaConfig(
             num_ctx=16384,

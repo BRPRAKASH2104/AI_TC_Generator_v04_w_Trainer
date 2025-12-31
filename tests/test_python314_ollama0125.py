@@ -1,6 +1,7 @@
 """Test Python 3.14 and Ollama 0.12.5 specific features"""
 import asyncio
 import sys
+
 import pytest
 import requests
 
@@ -25,7 +26,7 @@ def test_ollama_version():
 
 def test_type_aliases():
     """Test Python 3.14 type parameter syntax"""
-    from core.generators import TestCaseData, TestCaseList, ProcessingResult
+    from core.generators import ProcessingResult, TestCaseData, TestCaseList
 
     # Type aliases should be accessible
     assert TestCaseData is not None

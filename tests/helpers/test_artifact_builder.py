@@ -8,8 +8,8 @@ The vision fix changed text extraction from plain text to raw XHTML preservation
 to maintain <object> tag references for images. Tests need to match this format.
 """
 
-from typing import Any, Dict, List, Optional
 import random
+from typing import Any
 
 
 def _wrap_in_xhtml(text: str, include_namespace: bool = True) -> str:
@@ -34,11 +34,11 @@ def _wrap_in_xhtml(text: str, include_namespace: bool = True) -> str:
 def create_test_artifact(
     text: str,
     artifact_type: str = "System Requirement",
-    artifact_id: Optional[str] = None,
+    artifact_id: str | None = None,
     include_table: bool = False,
     include_namespace: bool = True,
     **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create a test artifact with XHTML-formatted text.
 
@@ -84,11 +84,11 @@ def create_test_artifact(
 
 def create_test_requirement(
     requirement_text: str,
-    requirement_id: Optional[str] = None,
+    requirement_id: str | None = None,
     include_table: bool = True,
-    test_table_data: Optional[List[List[str]]] = None,
+    test_table_data: list[list[str]] | None = None,
     **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create a test System Requirement artifact with optional test table.
 
@@ -128,9 +128,9 @@ def create_test_requirement(
 
 def create_test_heading(
     heading_text: str,
-    heading_id: Optional[str] = None,
+    heading_id: str | None = None,
     **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create a test Heading artifact.
 
@@ -156,9 +156,9 @@ def create_test_heading(
 
 def create_test_information(
     info_text: str,
-    info_id: Optional[str] = None,
+    info_id: str | None = None,
     **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create a test Information artifact.
 
@@ -184,10 +184,10 @@ def create_test_information(
 
 def create_test_interface(
     interface_text: str,
-    interface_id: Optional[str] = None,
+    interface_id: str | None = None,
     input_output: str = "Input",
     **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create a test System Interface artifact.
 
@@ -217,12 +217,12 @@ def create_test_interface(
 
 def create_test_artifact_with_images(
     text: str,
-    image_paths: List[str],
+    image_paths: list[str],
     artifact_type: str = "System Requirement",
-    artifact_id: Optional[str] = None,
-    image_types: Optional[List[str]] = None,
+    artifact_id: str | None = None,
+    image_types: list[str] | None = None,
     **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create a test artifact with embedded image references.
 
@@ -289,9 +289,9 @@ def create_test_artifact_with_images(
 
 
 def create_test_table(
-    headers: List[str],
-    rows: List[List[str]],
-) -> Dict[str, Any]:
+    headers: list[str],
+    rows: list[list[str]],
+) -> dict[str, Any]:
     """
     Create a test table structure.
 
@@ -320,11 +320,11 @@ def create_test_table(
 def create_augmented_requirement(
     requirement_text: str,
     heading: str = "No Heading",
-    info_list: Optional[List[Dict[str, Any]]] = None,
-    interface_list: Optional[List[Dict[str, Any]]] = None,
-    requirement_id: Optional[str] = None,
+    info_list: list[dict[str, Any]] | None = None,
+    interface_list: list[dict[str, Any]] | None = None,
+    requirement_id: str | None = None,
     **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Create an augmented requirement with context (heading, info, interfaces).
 

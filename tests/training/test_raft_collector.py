@@ -6,8 +6,10 @@ works correctly without affecting core logic.
 """
 
 import json
-import pytest
 from unittest.mock import Mock
+
+import pytest
+
 from training.raft_collector import RAFTDataCollector
 
 

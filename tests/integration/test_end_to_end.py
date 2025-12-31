@@ -232,7 +232,7 @@ class TestEndToEndWorkflows:
         assert len(templates) > 0
 
         # Test template structure validation
-        for template_name, template_data in templates.items():
+        for _template_name, template_data in templates.items():
             assert "prompt" in template_data
             assert "description" in template_data
             assert isinstance(template_data["prompt"], str)

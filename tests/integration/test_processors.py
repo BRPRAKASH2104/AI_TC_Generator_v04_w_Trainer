@@ -5,12 +5,13 @@ Tests the full workflow integration between components.
 """
 
 import asyncio
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
-from processors.standard_processor import REQIFZFileProcessor
-from processors.hp_processor import HighPerformanceREQIFZFileProcessor
+import pytest
+
 from config import ConfigManager
+from processors.hp_processor import HighPerformanceREQIFZFileProcessor
+from processors.standard_processor import REQIFZFileProcessor
 
 
 class TestREQIFZFileProcessor:
@@ -41,9 +42,9 @@ class TestREQIFZFileProcessor:
         }
 
         # Create processor with injected mocks
-        from core.generators import TestCaseGenerator
-        from core.formatters import TestCaseFormatter
         from core.extractors import REQIFArtifactExtractor
+        from core.formatters import TestCaseFormatter
+        from core.generators import TestCaseGenerator
 
         mock_extractor = Mock(spec=REQIFArtifactExtractor)
         mock_extractor.extract_reqifz_content.return_value = [{"type": "System Requirement", "id": "REQ_001", "table": True}]
@@ -68,7 +69,7 @@ class TestREQIFZFileProcessor:
         result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
 
         # Verify result
-        assert result["success"] == True
+        assert result["success"]
         assert result["total_test_cases"] == 1
         assert "processing_time" in result
         assert result["artifacts_found"] == 1
@@ -110,23 +111,23 @@ class TestREQIFZFileProcessor:
         </REQ-IF-CONTENT>
     </CORE-CONTENT>
 </REQ-IF>"""
-        
+
         # Create REQIFZ file
         import zipfile
         reqifz_path = tmp_path / "empty.reqifz"
         with zipfile.ZipFile(reqifz_path, 'w') as zf:
             zf.writestr("empty.reqif", reqifz_content)
-        
+
         mock_yaml_instance = Mock()
         mock_yaml_instance.test_prompts = {"default": {}}
         mock_yaml_manager.return_value = mock_yaml_instance
-        
+
         config = ConfigManager()
         processor = REQIFZFileProcessor(config)
-        
+
         result = processor.process_file(reqifz_path, "llama3.1:8b")
-        
-        assert result["success"] == False
+
+        assert not result["success"]
         assert "No System Requirements found" in result["error"]
 
     @patch('processors.standard_processor.OllamaClient')
@@ -159,19 +160,19 @@ class TestREQIFZFileProcessor:
         </REQ-IF-CONTENT>
     </CORE-CONTENT>
 </REQ-IF>"""
-            
+
             import zipfile
             reqifz_path = tmp_path / f"test_{i}.reqifz"
             with zipfile.ZipFile(reqifz_path, 'w') as zf:
                 zf.writestr(f"test_{i}.reqif", reqifz_content)
-        
+
         # Setup mocks
         mock_client_instance = Mock()
         mock_client_instance.generate_response.return_value = """
         {"test_cases": [{"summary": "Test case"}]}
         """
         mock_ollama_client.return_value = mock_client_instance
-        
+
         mock_yaml_instance = Mock()
         mock_yaml_instance.get_test_prompt.return_value = "Generate test cases"
         mock_yaml_instance.test_prompts = {"default": {}}
@@ -179,12 +180,12 @@ class TestREQIFZFileProcessor:
 
         config = ConfigManager()
         processor = REQIFZFileProcessor(config)
-        
+
         results = processor.process_directory(tmp_path, "llama3.1:8b")
-        
+
         assert len(results) == 2
         for result in results:
-            assert result["success"] == True
+            assert result["success"]
 
     def test_validate_environment(self):
         """Test environment validation."""
@@ -192,11 +193,11 @@ class TestREQIFZFileProcessor:
             mock_yaml_instance = Mock()
             mock_yaml_instance.test_prompts = {"template1": {}}
             mock_yaml.return_value = mock_yaml_instance
-            
+
             config = ConfigManager()
             processor = REQIFZFileProcessor(config)
-            
-            assert processor.validate_environment() == True
+
+            assert processor.validate_environment()
 
     def test_validate_environment_no_templates(self):
         """Test environment validation with no templates."""
@@ -204,11 +205,11 @@ class TestREQIFZFileProcessor:
             mock_yaml_instance = Mock()
             mock_yaml_instance.test_prompts = {}
             mock_yaml.return_value = mock_yaml_instance
-            
+
             config = ConfigManager()
             processor = REQIFZFileProcessor(config)
-            
-            assert processor.validate_environment() == False
+
+            assert not processor.validate_environment()
 
 
 class TestHighPerformanceREQIFZFileProcessor:
@@ -233,7 +234,7 @@ class TestHighPerformanceREQIFZFileProcessor:
         mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         mock_async_ollama_client.return_value = mock_client_instance
-        
+
         mock_yaml_instance = Mock()
         mock_yaml_instance.get_test_prompt.return_value = "Generate test cases"
         mock_yaml_instance.test_prompts = {"default": {}}
@@ -247,13 +248,13 @@ class TestHighPerformanceREQIFZFileProcessor:
                 {"error": True, "requirement_id": "REQ_001", "test_cases": []}  # Failed requirement
             ])
             mock_generator_class.return_value = mock_generator
-            
+
             config = ConfigManager()
             processor = HighPerformanceREQIFZFileProcessor(config)
-            
+
             result = await processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
-            
-            assert result["success"] == False  # Processing failed due to no test cases
+
+            assert not result["success"]  # Processing failed due to no test cases
             assert result["error"] == "No test cases were generated"
 
     @pytest.mark.asyncio
@@ -261,16 +262,16 @@ class TestHighPerformanceREQIFZFileProcessor:
         """Test that performance monitoring works."""
         config = ConfigManager()
         processor = HighPerformanceREQIFZFileProcessor(config)
-        
+
         # Start monitoring
         monitor_task = asyncio.create_task(processor._monitor_performance())
-        
+
         # Let it run briefly
         await asyncio.sleep(0.1)
-        
+
         # Stop monitoring
         monitor_task.cancel()
-        
+
         # Should have collected some metrics
         assert len(processor.metrics["cpu_usage_samples"]) > 0 or len(processor.metrics["memory_usage_samples"]) > 0
 
@@ -278,20 +279,20 @@ class TestHighPerformanceREQIFZFileProcessor:
         """Test performance metrics calculation."""
         config = ConfigManager()
         processor = HighPerformanceREQIFZFileProcessor(config)
-        
+
         # Set up test metrics
         processor.metrics = {
             "total_artifacts": 100,
-            "total_requirements": 50, 
+            "total_requirements": 50,
             "total_test_cases": 150,
             "successful_requirements": 45,
             "ai_calls_made": 50,
             "cpu_usage_samples": [50.0, 60.0, 70.0],
             "memory_usage_samples": [40.0, 45.0, 50.0]
         }
-        
+
         metrics = processor._calculate_performance_metrics(10.0)  # 10 second processing time
-        
+
         assert metrics["artifacts_per_second"] == 10.0
         assert metrics["requirements_per_second"] == 5.0
         assert metrics["test_cases_per_second"] == 15.0

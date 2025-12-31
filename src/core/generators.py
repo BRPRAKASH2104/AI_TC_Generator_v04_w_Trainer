@@ -6,6 +6,7 @@ using AI models, with support for both synchronous and asynchronous processing.
 """
 
 import asyncio
+import math  # Added for confidence calculation
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -14,7 +15,6 @@ from .deduplicator import TestCaseDeduplicator
 from .parsers import FastJSONResponseParser, JSONResponseParser
 from .prompt_builder import PromptBuilder
 from .validators import SemanticValidator
-import math  # Added for confidence calculation
 
 if TYPE_CHECKING:
     from .ollama_client import AsyncOllamaClient, OllamaClient
@@ -56,32 +56,32 @@ def extract_image_paths(requirement: RequirementData) -> list[Path]:
 def calculate_confidence(response_data: dict[str, Any]) -> float | None:
     """
     Calculate confidence score from logprobs if available.
-    
+
     Uses perplexity-based confidence: exp(mean(logprobs))
     """
     try:
         if not response_data:
             return None
-            
+
         # Try to locate logprobs in response
         # Ollama structure for /api/generate with logprobs=true
         # Usually it is 'context' (IDs) but logprobs might be under a different key or currently not fully exposed in all versions
         # Documentation says `logprobs` parameter returns logprobs in response?
         # Let's check for "logprobs" key which might contain token info
         # Note: As of Ollama 0.13.3 release notes, structure isn't fully detailed, checking standard paths
-        
-        # Possible structure: {"logprobs": [{"token": "Foo", "logprob": -0.1}, ...]} 
-        # CAUTION: This is speculative based on common patterns. 
+
+        # Possible structure: {"logprobs": [{"token": "Foo", "logprob": -0.1}, ...]}
+        # CAUTION: This is speculative based on common patterns.
         # If 'logprobs' is missing, return None.
-        
+
         # Defensive check for different possible structures
         logprobs_data = response_data.get("logprobs")
-        
+
         if not logprobs_data:
             return None
-            
+
         token_logprobs = []
-        
+
         if isinstance(logprobs_data, list):
              # List of objects?
              for item in logprobs_data:
@@ -90,18 +90,17 @@ def calculate_confidence(response_data: dict[str, Any]) -> float | None:
                  elif isinstance(item, (int, float)):
                      # Maybe direct list of floats? Unlikely but possible
                      token_logprobs.append(item)
-        elif isinstance(logprobs_data, dict):
+        elif isinstance(logprobs_data, dict) and "token_logprobs" in logprobs_data:
             # Maybe {"tokens": [...], "token_logprobs": [...]}
-            if "token_logprobs" in logprobs_data:
-                token_logprobs = logprobs_data["token_logprobs"]
-        
+            token_logprobs = logprobs_data["token_logprobs"]
+
         if not token_logprobs:
             return None
-            
+
         # Calculate mean logprob
         mean_logprob = sum(token_logprobs) / len(token_logprobs)
         return math.exp(mean_logprob)
-        
+
     except Exception:
         return None
 
@@ -152,7 +151,7 @@ class TestCaseGenerator:
 
             # Generate AI response (use vision-capable method if images present)
             start_time = time.time()
-            
+
             # Use generate_completion (or vision equiv) to get full response including logprobs
             if image_paths:
                 if self.logger:
@@ -165,7 +164,7 @@ class TestCaseGenerator:
                 full_response = self.client.generate_completion(
                     model, prompt, is_json=True, return_full_response=True
                 )
-                
+
             generation_time = time.time() - start_time
 
             # Extract text and confidence
@@ -175,7 +174,7 @@ class TestCaseGenerator:
             else:
                 response_text = str(full_response)
                 confidence_score = None
-            
+
             # Parse JSON response
             test_cases_data = self.json_parser.extract_json_from_response(response_text)
 

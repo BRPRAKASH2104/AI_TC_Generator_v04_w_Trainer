@@ -5,12 +5,13 @@ Tests to ensure performance does not regress between versions.
 Run these benchmarks after major changes to verify performance improvements/nullify regressions.
 """
 
-import pytest
 import time
 from unittest.mock import Mock
 
-from src.processors.standard_processor import REQIFZFileProcessor
+import pytest
+
 from src.config import ConfigManager
+from src.processors.standard_processor import REQIFZFileProcessor
 
 
 @pytest.fixture
@@ -114,7 +115,7 @@ class TestPerformanceRegressionBenchmarks:
             result = benchmark(run_processing)
 
             # Verify basic functionality still works
-            assert result["success"] == True
+            assert result["success"]
             assert result["total_test_cases"] == 1
 
             # Performance assertion (adjust thresholds based on your environment)
@@ -177,7 +178,7 @@ class TestPerformanceRegressionBenchmarks:
     @pytest.mark.parametrize("num_runs", [3])
     def test_processor_consistency(self, temp_reqifz_file, tmp_path, num_runs):
         """Test that processor results are consistent across multiple runs."""
-        from statistics import stdev, mean
+        from statistics import mean, stdev
 
         config = ConfigManager()
         processing_times = []
@@ -199,7 +200,7 @@ class TestPerformanceRegressionBenchmarks:
             ])
             processor.formatter.format_to_excel = Mock(return_value=True)
 
-            start_time = time.time()
+            time.time()
             result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
             processing_times.append(result["processing_time"])
 
@@ -216,8 +217,9 @@ class TestPerformanceRegressionBenchmarks:
 
     def test_memory_efficiency_regression(self, temp_reqifz_file, tmp_path):
         """Test that memory usage doesn't regress significantly."""
-        import psutil
         import os
+
+        import psutil
 
         config = ConfigManager()
         processor = REQIFZFileProcessor(config)
@@ -246,14 +248,16 @@ class TestPerformanceRegressionBenchmarks:
         # Memory increase should be reasonable (< 50MB)
         assert memory_delta < 50, f"Memory usage increased by {memory_delta:.1f}MB, expected < 50MB"
 
-        assert result["success"] == True
+        assert result["success"]
 
     @pytest.mark.slow
     def test_streaming_xml_memory_efficiency(self, tmp_path):
         """Test that streaming XML parsing provides memory efficiency for large files."""
-        from src.core.extractors import REQIFArtifactExtractor
-        import psutil
         import os
+
+        import psutil
+
+        from src.core.extractors import REQIFArtifactExtractor
 
         # Create a moderately large REQIF content with 100 spec objects
         large_xml_parts = ['<?xml version="1.0" encoding="UTF-8"?><REQ-IF xmlns:reqif="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd" xmlns:html="http://www.w3.org/1999/xhtml"><reqif:CORE-CONTENT><reqif:SPEC-OBJECT-TYPE IDENTIFIER="TYPE_001" LONG-NAME="System Requirement"><reqif:ATTRIBUTE-DEFINITION-STRING LONG-NAME="ReqIF.ForeignID" IDENTIFIER="ATTR_001"/></reqif:SPEC-OBJECT-TYPE>']

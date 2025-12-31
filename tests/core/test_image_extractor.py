@@ -13,7 +13,6 @@ from core.image_extractor import (
     RequirementImageExtractor,
 )
 
-
 # Sample 1x1 PNG image (base64-encoded)
 SAMPLE_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 SAMPLE_PNG_BYTES = base64.b64decode(SAMPLE_PNG_BASE64)

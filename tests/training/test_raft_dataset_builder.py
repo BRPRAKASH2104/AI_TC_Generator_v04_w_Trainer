@@ -4,10 +4,12 @@ Unit tests for RAFT Dataset Builder
 Tests cover positive, negative, and corner cases for RAFT dataset building.
 """
 
-import json
 import copy
-import pytest
+import json
 from unittest.mock import Mock
+
+import pytest
+
 from training.raft_dataset_builder import RAFTDatasetBuilder
 
 

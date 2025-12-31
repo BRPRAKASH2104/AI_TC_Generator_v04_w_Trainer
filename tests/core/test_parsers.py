@@ -5,7 +5,7 @@ Tests JSON response parsing with multiple fallback strategies and HTML table par
 """
 
 
-from core.parsers import JSONResponseParser, FastJSONResponseParser, HTMLTableParser
+from core.parsers import FastJSONResponseParser, HTMLTableParser, JSONResponseParser
 
 
 class TestJSONResponseParser:
@@ -15,7 +15,7 @@ class TestJSONResponseParser:
         """Test direct JSON parsing from clean response."""
         response = '{"test_cases": [{"summary": "Test case 1"}]}'
         result = JSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is not None
         assert "test_cases" in result
         assert len(result["test_cases"]) == 1
@@ -28,9 +28,9 @@ class TestJSONResponseParser:
 {"test_cases": [{"summary": "Test case from markdown"}]}
 ```
 Some text after"""
-        
+
         result = JSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is not None
         assert "test_cases" in result
         assert result["test_cases"][0]["summary"] == "Test case from markdown"
@@ -41,9 +41,9 @@ Some text after"""
 ```
 {"test_cases": [{"summary": "Test without language"}]}
 ```"""
-        
+
         result = JSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is not None
         assert "test_cases" in result
         assert result["test_cases"][0]["summary"] == "Test without language"
@@ -53,9 +53,9 @@ Some text after"""
         response = """The AI model responded with this data:
         {"test_cases": [{"summary": "Extracted with braces"}]}
         Additional text here"""
-        
+
         result = JSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is not None
         assert "test_cases" in result
         assert result["test_cases"][0]["summary"] == "Extracted with braces"
@@ -64,14 +64,14 @@ Some text after"""
         """Test that invalid JSON returns None."""
         response = "This is not JSON at all"
         result = JSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is None
 
     def test_empty_response_returns_none(self):
         """Test that empty response returns None."""
         result = JSONResponseParser.extract_json_from_response("")
         assert result is None
-        
+
         result = JSONResponseParser.extract_json_from_response(None)
         assert result is None
 
@@ -96,9 +96,9 @@ Second block:
 ```json
 {"test_cases": [{"summary": "Second valid"}]}
 ```"""
-        
+
         result = JSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is not None
         assert result["test_cases"][0]["summary"] == "First valid"
 
@@ -110,7 +110,7 @@ class TestFastJSONResponseParser:
         """Test that FastJSONResponseParser works with basic JSON."""
         response = '{"test_cases": [{"summary": "Fast parser test"}]}'
         result = FastJSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is not None
         assert "test_cases" in result
         assert result["test_cases"][0]["summary"] == "Fast parser test"
@@ -121,9 +121,9 @@ class TestFastJSONResponseParser:
         response = """```json
 {"test_cases": [{"summary": "Fast fallback test"}]}
 ```"""
-        
+
         result = FastJSONResponseParser.extract_json_from_response(response)
-        
+
         assert result is not None
         assert "test_cases" in result
 
@@ -145,9 +145,9 @@ class TestHTMLTableParser:
             </tr>
         </table>
         """
-        
+
         result = HTMLTableParser.extract_tables_from_html(html)
-        
+
         assert len(result) == 1
         assert result[0]["Header 1"] == "Value 1"
         assert result[0]["Header 2"] == "Value 2"
@@ -161,30 +161,30 @@ class TestHTMLTableParser:
             <tr><td>2</td><td>Test 2</td></tr>
         </table>
         """
-        
+
         result = HTMLTableParser.extract_tables_from_html(html)
-        
+
         assert len(result) == 2
         assert result[0]["ID"] == "1"
         assert result[0]["Name"] == "Test 1"
-        assert result[1]["ID"] == "2" 
+        assert result[1]["ID"] == "2"
         assert result[1]["Name"] == "Test 2"
 
     def test_parse_empty_table(self):
         """Test parsing an empty table."""
         html = "<table></table>"
-        
+
         result = HTMLTableParser.extract_tables_from_html(html)
-        
+
         assert result == []
 
     def test_parse_malformed_html(self):
         """Test handling of malformed HTML."""
         html = "<table><tr><th>Header</th><tr><td>Unclosed tags"
-        
+
         # Should not raise exception, return empty or partial result
         result = HTMLTableParser.extract_tables_from_html(html)
-        
+
         assert isinstance(result, list)
 
     def test_parse_table_with_nested_elements(self):
@@ -201,9 +201,9 @@ class TestHTMLTableParser:
             </tr>
         </table>
         """
-        
+
         result = HTMLTableParser.extract_tables_from_html(html)
-        
+
         assert len(result) == 1
         assert "REQ-001" in result[0]["Requirement"]
         assert "shall" in result[0]["Description"]

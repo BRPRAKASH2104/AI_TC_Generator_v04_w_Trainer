@@ -39,7 +39,7 @@ def mock_async_ollama_client():
     {
         "test_cases": [
             {
-                "summary": "Test async functionality", 
+                "summary": "Test async functionality",
                 "action": "Execute async test",
                 "data": "Async test data",
                 "expected_result": "Async expected outcome"
@@ -71,14 +71,14 @@ def sample_requirements_list():
     return [
         {
             "id": "REQ_001",
-            "type": "System Requirement", 
+            "type": "System Requirement",
             "text": "The system shall validate user input",
             "description": "Input validation requirement"
         },
         {
             "id": "REQ_002",
             "type": "System Requirement",
-            "text": "The system shall handle errors gracefully", 
+            "text": "The system shall handle errors gracefully",
             "description": "Error handling requirement"
         },
         {
@@ -98,18 +98,18 @@ def sample_test_cases():
             "issue_id": "TC_001",
             "summary": "Test input validation",
             "action": "Enter invalid data",
-            "data": "Special characters: @#$%", 
+            "data": "Special characters: @#$%",
             "expected_result": "System displays error message",
             "test_type": "negative",
             "requirement_id": "REQ_001"
         },
         {
-            "issue_id": "TC_002", 
+            "issue_id": "TC_002",
             "summary": "Test valid input",
             "action": "Enter valid data",
             "data": "Normal user input",
             "expected_result": "System processes successfully",
-            "test_type": "positive", 
+            "test_type": "positive",
             "requirement_id": "REQ_001"
         }
     ]
@@ -153,13 +153,13 @@ def temp_reqifz_file(tmp_path):
         </REQ-IF-CONTENT>
     </CORE-CONTENT>
 </REQ-IF>"""
-    
+
     # Create REQIFZ (ZIP) file
     import zipfile
     reqifz_path = tmp_path / "test.reqifz"
     with zipfile.ZipFile(reqifz_path, 'w') as zf:
         zf.writestr("test.reqif", reqifz_content)
-    
+
     return reqifz_path
 
 
@@ -168,7 +168,7 @@ def mock_logger():
     """Mock logger for testing."""
     mock = Mock()
     mock.info = Mock()
-    mock.warning = Mock() 
+    mock.warning = Mock()
     mock.error = Mock()
     mock.add_requirement_failure = Mock()
     mock.add_ai_response_time = Mock()

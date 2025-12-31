@@ -155,11 +155,11 @@ def main(
 
     # Initialize configuration
     base_config = ConfigManager()
-    
+
     # Load CLI defaults and presets from config file
     # This must be done BEFORE accessing presets
     base_config.load_cli_config()
-    
+
     # 1. Load Preset if specified (This merges preset values into base config)
     if preset:
         preset_config = base_config.get_preset_config(preset)
@@ -167,7 +167,7 @@ def main(
             # Map simple preset keys to nested config structure
             # This fixes "Extra inputs not permitted" Pydantic errors
             nested_update = {}
-            
+
             # Helper to set nested dict values
             def set_nested(d, path, value):
                 for key in path[:-1]:
@@ -183,7 +183,7 @@ def main(
                 "performance": ["cli", "performance"],
                 "max_concurrent": ["ollama", "concurrent_requests"] # or cli.max_concurrent? config.py env_mapping says ollama.concurrent_requests
             }
-            
+
             for key, value in preset_config.items():
                 if key in key_mapping:
                     # Create a separate dict for this mapped key to avoid structure conflicts
@@ -208,15 +208,15 @@ def main(
     # Note: We pass the *potentially modified* base_config's values as defaults if not overridden?
     # Actually, apply_cli_overrides creates a NEW instance from self.
     # So since we updated base_config above, apply_cli_overrides will start with those preset values!
-    
+
     effective_config = base_config.apply_cli_overrides(
-        model=model if model != "llama3.1:8b" else None, # Only override if user changed default? 
-        # CAUTION: Click default is "llama3.1:8b". If user doesn't specify --model, 
-        # we get that default string. If we pass it to apply_cli_overrides, it might 
+        model=model if model != "llama3.1:8b" else None, # Only override if user changed default?
+        # CAUTION: Click default is "llama3.1:8b". If user doesn't specify --model,
+        # we get that default string. If we pass it to apply_cli_overrides, it might
         # override the preset's model!
         # We need to detect if --model was explicitly passed or just default.
         # Allow preset to win if model is default.
-        
+
         template=template,
         max_concurrent=max_concurrent,
         num_ctx=num_ctx,

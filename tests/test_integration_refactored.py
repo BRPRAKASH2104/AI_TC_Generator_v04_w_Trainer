@@ -6,12 +6,15 @@ Tests complete workflows with BaseProcessor, standard and HP processors.
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import pytest
 from unittest.mock import MagicMock, patch
-from processors.standard_processor import REQIFZFileProcessor
+
+import pytest
+
 from processors.hp_processor import HighPerformanceREQIFZFileProcessor
+from processors.standard_processor import REQIFZFileProcessor
 from tests.helpers import (
     create_test_heading,
     create_test_information,

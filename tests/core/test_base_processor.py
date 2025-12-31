@@ -5,12 +5,11 @@ Tests the critical context-aware processing logic that enriches requirements
 with heading, information, and interface context.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 
-from src.processors.base_processor import BaseProcessor
 from src.config import ConfigManager
+from src.processors.base_processor import BaseProcessor
 
 
 class TestBaseProcessorInitialization:
@@ -363,7 +362,7 @@ class TestOutputPathGeneration:
         model = "llama3.1:8b"
 
         output_path1 = processor._generate_output_path(reqifz_path, model)
-        output_path2 = processor._generate_output_path(reqifz_path, model)
+        processor._generate_output_path(reqifz_path, model)
 
         # Timestamps should make filenames unique (within same second they'll be equal)
         # Just verify format contains timestamp pattern YYYY-MM-DD_HH-MM-SS

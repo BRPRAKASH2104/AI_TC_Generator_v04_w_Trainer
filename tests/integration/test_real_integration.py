@@ -5,8 +5,9 @@ Tests for API compatibility and real component interaction.
 Focuses on non-mocked integration where feasible.
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from src.config import ConfigManager
 from src.core.ollama_client import OllamaClient
@@ -18,7 +19,7 @@ class TestAPICompatibility:
     def test_ollama_client_model_validation(self):
         """Test that OllamaClient handles model validation gracefully."""
         # This doesn't require a running Ollama instance - just tests client logic
-        config = ConfigManager()
+        ConfigManager()
         client = OllamaClient(base_url="http://localhost:11434", timeout=1)
 
         # Test with invalid URL (should handle connection errors gracefully)
@@ -63,7 +64,7 @@ class TestAPICompatibility:
         assert len(parsed["test_cases"]) == 2
 
         # Verify structure validation
-        assert JSONResponseParser.validate_test_cases_structure(parsed) == True
+        assert JSONResponseParser.validate_test_cases_structure(parsed)
 
     def test_markdown_json_extraction(self):
         """Test extraction of JSON from markdown code blocks (common AI response format)."""
@@ -100,6 +101,7 @@ class TestConfigurationValidation:
     def test_config_manager_environment_variables(self):
         """Test that ConfigManager can read environment variables."""
         import os
+
         from src.config import ConfigManager
 
         # Set test environment variables
@@ -118,6 +120,8 @@ class TestConfigurationValidation:
 
     def test_pydantic_validation_real(self):
         """Test actual Pydantic validation in config."""
+        from pydantic import ValidationError
+
         from src.config import OllamaConfig
 
         # Test valid config
@@ -131,7 +135,7 @@ class TestConfigurationValidation:
         assert ollama_config.timeout_seconds == 30.0
 
         # Test invalid config (should raise validation error)
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(ValidationError):  # Pydantic validation error
             OllamaConfig(
                 base_url="not-a-url",  # Invalid URL
                 timeout_seconds=-5,     # Invalid timeout
@@ -145,6 +149,7 @@ class TestPerformanceValidation:
         """Test that ujson optimization is actually faster than standard json."""
         import json
         import time
+
         from src.core.parsers import JSON_PARSER
 
         # Create a substantial JSON payload
@@ -168,14 +173,14 @@ class TestPerformanceValidation:
         start_time = time.time()
         for _ in range(iterations):
             parsed = JSON_PARSER.loads(json_string)
-            back_to_string = JSON_PARSER.dumps(parsed)
+            JSON_PARSER.dumps(parsed)
         parser_time = time.time() - start_time
 
         # Test standard json for comparison
         start_time = time.time()
         for _ in range(iterations):
             parsed = json.loads(json_string)
-            back_to_string = json.dumps(parsed)
+            json.dumps(parsed)
         std_json_time = time.time() - start_time
 
         # ujson should be faster (or at least not slower)
@@ -194,8 +199,8 @@ class TestFileProcessingIntegration:
     def test_processor_component_validation(self):
         """Test that processor components work together correctly."""
         from src.core.extractors import REQIFArtifactExtractor
-        from src.core.generators import TestCaseGenerator
         from src.core.formatters import TestCaseFormatter
+        from src.core.generators import TestCaseGenerator
 
         config = ConfigManager()
 

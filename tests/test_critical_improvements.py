@@ -34,10 +34,9 @@ from processors.standard_processor import REQIFZFileProcessor
 from tests.helpers import (
     create_test_heading,
     create_test_information,
-    create_test_requirement,
     create_test_interface,
+    create_test_requirement,
 )
-
 
 # ============================================================================
 # TEST 1: Custom Exceptions - Proper Error Handling
@@ -132,8 +131,9 @@ class TestOllamaClientErrorHandling:
     @patch('requests.Session.post')
     def test_model_not_found_raises_ollama_model_not_found_error(self, mock_post):
         """404 errors should raise OllamaModelNotFoundError"""
-        import requests
         from unittest.mock import Mock
+
+        import requests
 
         mock_response = Mock()
         mock_response.status_code = 404
@@ -207,7 +207,7 @@ class TestAsyncOllamaClientErrorHandling:
 
         async with AsyncOllamaClient(config.ollama) as client:
             with patch.object(client.session, 'post') as mock_post:
-                mock_post.side_effect = asyncio.TimeoutError()
+                mock_post.side_effect = TimeoutError()
 
                 with pytest.raises(OllamaTimeoutError) as exc_info:
                     await client.generate_response("llama3.1:8b", "test prompt")
@@ -225,7 +225,7 @@ class TestNoDoubleSemaphore:
 
     def test_async_generator_has_no_semaphore_attribute(self):
         """AsyncTestCaseGenerator should not have a semaphore attribute"""
-        config = ConfigManager()
+        ConfigManager()
         mock_client = AsyncMock(spec=AsyncOllamaClient)
         mock_client.semaphore = asyncio.Semaphore(4)
 
@@ -241,7 +241,7 @@ class TestNoDoubleSemaphore:
 
     def test_async_generator_only_uses_client_semaphore(self):
         """AsyncTestCaseGenerator should rely only on client's semaphore"""
-        config = ConfigManager()
+        ConfigManager()
         mock_client = AsyncMock(spec=AsyncOllamaClient)
         mock_client.semaphore = asyncio.Semaphore(4)
 
@@ -320,7 +320,7 @@ class TestConcurrentBatchProcessing:
                     with patch.object(processor, 'formatter') as mock_formatter:
                         mock_formatter.format_to_excel_streaming = Mock(return_value=True)
 
-                        result = await processor.process_file(
+                        await processor.process_file(
                             Path("/fake/file.reqifz"),
                             model="llama3.1:8b",
                             template=None,
@@ -514,7 +514,7 @@ class TestPerformanceRegression:
     @pytest.mark.asyncio
     async def test_no_semaphore_allows_full_concurrency(self):
         """Verify that removing double semaphore allows full concurrency"""
-        config = ConfigManager()
+        ConfigManager()
 
         # Create mock client with semaphore value of 4
         mock_client = AsyncMock(spec=AsyncOllamaClient)
@@ -548,7 +548,7 @@ class TestPerformanceRegression:
         ]
 
         # Process all requirements
-        results = await generator.generate_test_cases_batch(requirements, "llama3.1:8b", None)
+        await generator.generate_test_cases_batch(requirements, "llama3.1:8b", None)
 
         # With no double semaphore, we should see higher concurrency
         # (limited only by the client's semaphore, not an additional generator semaphore)
