@@ -32,7 +32,7 @@ from src.processors.standard_processor import REQIFZFileProcessor
 from src.yaml_prompt_manager import YAMLPromptManager
 
 # Version and metadata (matches pyproject.toml)
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 __architecture__ = "Modular"
 
 console = Console()
@@ -53,7 +53,7 @@ def show_banner(mode: str = "standard") -> None:
     panel = Panel.fit(
         f"[bold cyan]{title}[/bold cyan]\n"
         f"[dim]{subtitle}[/dim]\n"
-        f"[dim]Modular Architecture • Python 3.13.7+[/dim]",
+        f"[dim]Modular Architecture • Python 3.14+[/dim]",
         border_style="cyan",
     )
     console.print(panel)

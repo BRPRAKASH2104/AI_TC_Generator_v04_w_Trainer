@@ -3,7 +3,7 @@ Ollama API clients for the AI Test Case Generator.
 
 This module provides both synchronous and asynchronous clients for interacting
 with Ollama API endpoints, with proper error handling and performance optimizations
-for Python 3.13.7+.
+for Python 3.14+.
 """
 
 import asyncio
@@ -42,7 +42,7 @@ class OllamaClient:
 
         self.config = config or OllamaConfig()
         self.proxies = {"http": None, "https": None}
-        # Reuse session for better performance (Python 3.13.7+ optimization)
+        # Reuse session for better performance (Python 3.14+ optimization)
         self._session = requests.Session()
         self._session.proxies.update(self.proxies)
 

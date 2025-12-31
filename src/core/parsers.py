@@ -2,7 +2,7 @@
 Response and data parsers for the AI Test Case Generator.
 
 This module provides parsers for JSON responses from AI models and HTML table parsing
-for REQIF files, with performance optimizations for Python 3.13.7+.
+for REQIF files, with performance optimizations for Python 3.14+.
 """
 
 import json
