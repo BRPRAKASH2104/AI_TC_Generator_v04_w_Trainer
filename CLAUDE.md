@@ -28,8 +28,11 @@ ai-tc-generator input/file.reqifz --verbose           # Standard mode (hybrid vi
 ai-tc-generator input/ --hp --max-concurrent 4        # HP mode (3-9x faster)
 ai-tc-generator input/file.reqifz --clean-temp        # Clean up temp images after processing
 python3 main.py input/file.reqifz --debug             # Development mode with debug logging
-python main.py input/ --preset qwen_vision --max-concurrent 1
-python main.py input/ --preset qwen_moe
+
+# Preset configurations (v2.3.0)
+ai-tc-generator input/ --preset qwen_vision --max-concurrent 1  # Use Qwen vision preset
+ai-tc-generator input/ --preset qwen_moe              # Use Qwen MoE preset
+ai-tc-generator input/ --num-ctx 4096                 # Custom context window size
 
 # Testing (per System_Instructions.md: testing is non-negotiable)
 python3 tests/run_tests.py                            # Full test suite (recommended)
@@ -910,4 +913,4 @@ print(f"Image relevance: {assessment.metrics.image_relevance_score:.2f}")
 
 ---
 
-**Last Updated**: 2025-12-06 | **Python**: 3.14 or higher | **Status**: Production-Ready ✅
+**Last Updated**: 2025-12-31 | **Python**: 3.14 or higher | **Status**: Production-Ready ✅
