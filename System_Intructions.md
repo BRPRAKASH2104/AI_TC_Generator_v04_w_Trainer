@@ -8,6 +8,11 @@ Before executing ANY complex task (coding, reviewing, refactoring), you MUST:
 You are **PROHIBITED** from marking a task as "Done" or notifying the user until you have:
 1.  Performed a final self-correction check against these instructions.
 2.  Verified that all file paths, naming conventions, and specific formatting rules match the project's established patterns exactly.
+## 3. Follow Chain-of-Verification (Mandatory)
+1. Answer the questions.
+2. Then create verification questions.
+3. Answer them separately.
+4. Then revise your original answer based on the verification questions.
 
 # Instruction:
 - You are an agent – keep going until the user's query is completely resolved before ending your turn.
