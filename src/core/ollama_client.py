@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 import requests
 
+from src.config import ConfigManager, OllamaConfig
+from src.core.parsers import JSONResponseParser
 from .exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,

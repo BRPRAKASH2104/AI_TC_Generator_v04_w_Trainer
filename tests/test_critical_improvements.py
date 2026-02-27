@@ -233,7 +233,7 @@ class TestNoDoubleSemaphore:
             client=mock_client,
             yaml_manager=None,
             logger=None,
-            max_concurrent=4
+            _max_concurrent=4
         )
 
         # AsyncTestCaseGenerator should NOT have its own semaphore
@@ -249,7 +249,7 @@ class TestNoDoubleSemaphore:
             client=mock_client,
             yaml_manager=None,
             logger=None,
-            max_concurrent=4
+            _max_concurrent=4
         )
 
         # Verify only client has semaphore
@@ -284,7 +284,7 @@ class TestConcurrentBatchProcessing:
         mock_logger.close = Mock()
         mock_logger.add_requirement_failure = Mock()
 
-        with patch.object(processor, '_initialize_logger'):
+        with patch("processors.hp_processor.HighPerformanceREQIFZFileProcessor._initialize_logger", return_value=None):
             processor.logger = mock_logger
 
             with patch.object(processor, '_extract_artifacts') as mock_extract, \
@@ -463,8 +463,7 @@ class TestProcessorExceptionHandling:
         mock_logger.error = Mock()
         mock_logger.close = Mock()
 
-        with patch.object(processor, '_initialize_logger') as mock_init:
-            mock_init.return_value = None
+        with patch("processors.standard_processor.REQIFZFileProcessor._initialize_logger", return_value=None):
             processor.logger = mock_logger
 
             with patch.object(processor, '_extract_artifacts', side_effect=OllamaConnectionError("Connection failed", "127.0.0.1", 11434)):
@@ -488,8 +487,7 @@ class TestProcessorExceptionHandling:
         mock_logger.error = Mock()
         mock_logger.close = Mock()
 
-        with patch.object(processor, '_initialize_logger') as mock_init:
-            mock_init.return_value = None
+        with patch("processors.standard_processor.REQIFZFileProcessor._initialize_logger", return_value=None):
             processor.logger = mock_logger
 
             with patch.object(processor, '_extract_artifacts', side_effect=OllamaModelNotFoundError("Model not found", "fake:model")):
@@ -538,7 +536,7 @@ class TestPerformanceRegression:
             client=mock_client,
             yaml_manager=None,
             logger=None,
-            max_concurrent=4
+            _max_concurrent=4
         )
 
         # Create 8 requirements (should process 4 at a time with semaphore)

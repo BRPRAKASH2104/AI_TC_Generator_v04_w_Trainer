@@ -165,13 +165,14 @@ test_generation_prompts:
 
       ## CRITICAL REQUIREMENTS:
       1. **MANDATORY JSON STRUCTURE**: Your ENTIRE response MUST be valid JSON with this exact structure:
-         ```
+         ```json
          {
+           "analysis": "Detailed chain-of-thought analysis of the requirement, parameters, edge/boundary cases, and visual diagrams.",
            "test_cases": [
              {
                "summary_suffix": "Brief descriptive title",
-               "action": "{voltage_precondition}",
-               "data": "1) Step one\n2) Step two\n3) Step three",
+               "preconditions": "{voltage_precondition}",
+               "test_steps": "1) Step one\n2) Step two\n3) Step three",
                "expected_result": "Verify specific observable outcome",
                "test_type": "positive"
              }
@@ -181,8 +182,8 @@ test_generation_prompts:
 
       2. **MANDATORY FIELDS**: Each test case MUST include:
          - `"summary_suffix"`: Short, specific test title (not generic)
-         - `"action"`: Use "{voltage_precondition}" for preconditions
-         - `"data"`: Numbered test steps (use \n for line breaks)
+         - `"preconditions"`: Use "{voltage_precondition}" for preconditions
+         - `"test_steps"`: Numbered test steps (use \n for line breaks)
          - `"expected_result"`: Clear, verifiable outcome
          - `"test_type"`: Either "positive" or "negative"
 

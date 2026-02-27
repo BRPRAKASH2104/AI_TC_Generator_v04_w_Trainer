@@ -78,7 +78,7 @@ class TestLoggerInitialization:
             processor._initialize_logger(reqifz_path)
 
             mock_logger.assert_called_once_with(
-                reqifz_file="test.reqifz", input_path="/fake/path"
+                reqifz_file="test.reqifz", input_path=str(Path("/fake/path"))
             )
             assert processor.logger is not None
 
@@ -389,7 +389,7 @@ class TestMetadataCreation:
 
         assert metadata["model"] == "llama3.1:8b"
         assert metadata["template"] == "default"
-        assert metadata["source_file"] == "/input/test.reqifz"
+        assert metadata["source_file"] == str(Path("/input/test.reqifz"))
         assert metadata["total_cases"] == 25
         assert metadata["requirements_processed"] == 10
         assert metadata["successful_requirements"] == 9
@@ -429,7 +429,7 @@ class TestResultCreation:
         )
 
         assert result["success"] is True
-        assert result["output_file"] == "/output/test_TCD.xlsx"
+        assert result["output_file"] == str(Path("/output/test_TCD.xlsx"))
         assert result["total_test_cases"] == 30
         assert result["requirements_processed"] == 12
         assert result["successful_requirements"] == 11

@@ -207,7 +207,11 @@ class TestHPProcessorIntegration:
         ]
 
         processor = HighPerformanceREQIFZFileProcessor()
-        result = await processor.process_file(Path("/test/file.reqifz"))
+        
+        with patch.object(processor, 'formatter') as mock_formatter:
+            mock_formatter.format_to_excel_streaming = Mock(return_value=True)
+
+            result = await processor.process_file(Path("/test/file.reqifz"))
 
         # Should still succeed with partial results
         assert result["success"] is True

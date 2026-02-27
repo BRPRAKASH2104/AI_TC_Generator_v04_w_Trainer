@@ -4,6 +4,10 @@ import requests
 
 BASE_URL = "http://127.0.0.1:11434"
 
+import pytest
+
+@pytest.mark.skip(reason="Not a standard pytest test")
+
 def test_version():
     print("Testing /api/version...")
     try:
@@ -15,6 +19,7 @@ def test_version():
         print(f"Failed: {e}")
         return False
 
+@pytest.mark.skip(reason="Not a standard pytest test")
 def test_tags():
     print("\nTesting /api/tags...")
     try:
@@ -29,6 +34,7 @@ def test_tags():
         print(f"Failed: {e}")
         return None
 
+@pytest.mark.skip(reason="Not a standard pytest test")
 def test_generate(model_name):
     print(f"\nTesting /api/generate with model '{model_name}'...")
     payload = {

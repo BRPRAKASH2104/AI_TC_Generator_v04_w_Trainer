@@ -151,9 +151,9 @@ class REQIFZFileProcessor(BaseProcessor):
                         # Format test cases to string for RAFT storage
                         test_cases_str = "\n".join(
                             [
-                                f"Test Case {i + 1}: {tc.get('summary', 'N/A')}\n"
-                                f"Action: {tc.get('action', 'N/A')}\n"
-                                f"Data: {tc.get('data', 'N/A')}\n"
+                                f"Test Case {i + 1}: {tc.get('summary', tc.get('summary_suffix', 'N/A'))}\n"
+                                f"Action: {tc.get('action', tc.get('preconditions', 'N/A'))}\n"
+                                f"Data: {tc.get('data', tc.get('test_steps', 'N/A'))}\n"
                                 f"Expected: {tc.get('expected_result', 'N/A')}\n"
                                 for i, tc in enumerate(test_cases)
                             ]

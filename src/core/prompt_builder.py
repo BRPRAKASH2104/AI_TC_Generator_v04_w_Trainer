@@ -119,11 +119,12 @@ Description: {text}
 --- YOUR TASK ---
 Generate test cases in JSON format with the following EXACT structure:
 {{
+    "analysis": "Chain of thought: Analyze the requirement, break it into functional blocks, describe any visual diagrams, identify boundary conditions, and list all edge cases/negative scenarios before generating the test cases.",
     "test_cases": [
         {{
             "summary_suffix": "Brief descriptive title for this specific test",
-            "action": "Preconditions (voltage, system state)",
-            "data": "Numbered list of test steps: 1) Step one\\n2) Step two",
+            "preconditions": "Preconditions (voltage, system state)",
+            "test_steps": "Numbered list of test steps: 1) Step one\\n2) Step two",
             "expected_result": "Specific observable outcome that indicates pass",
             "test_type": "positive or negative"
         }}
@@ -132,8 +133,8 @@ Generate test cases in JSON format with the following EXACT structure:
 
 REQUIREMENTS:
 1. Generate BOTH positive (valid inputs) AND negative (invalid/boundary/error) test cases
-2. Use "action" field for preconditions (e.g., "1. Voltage=12V\\n2. IGN ON")
-3. Use "data" field for numbered test steps
+2. Use "preconditions" field for preconditions (e.g., "1. Voltage=12V\\n2. IGN ON")
+3. Use "test_steps" field for numbered test steps
 4. Each test case MUST include "test_type" field marking it as "positive" or "negative"
 5. Focus on:
    - Boundary value testing
@@ -294,6 +295,7 @@ Return ONLY valid JSON with the exact field names shown above."""
    - Test scenarios that validate the visual logic
    - Edge cases visible in the diagram but not explicit in text
    - Boundary values from any numerical data shown
-4. If the diagram contradicts or extends the text description, note this in your test cases."""
+4. Describe your visual analysis explicitly in the "analysis" field of the JSON output.
+5. If the diagram contradicts or extends the text description, note this in your test cases."""
 
         return context

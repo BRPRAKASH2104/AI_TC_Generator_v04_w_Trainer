@@ -52,6 +52,7 @@ class TestMalformedFiles:
             # Write random bytes that are not a valid ZIP
             temp_file.write(b"This is definitely not a ZIP file content")
             temp_file.flush()
+            temp_file.close() # Close to allow extraction and unlinking
 
             try:
                 extractor = REQIFArtifactExtractor()
@@ -67,6 +68,7 @@ class TestMalformedFiles:
     def test_zip_without_reqif_files(self, mock_config):
         """Test handling of ZIP files without .reqif files"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
+            temp_file.close() # Close so zipfile can open it
             # Create a valid ZIP file but without .reqif files
             with zipfile.ZipFile(temp_file.name, 'w') as zip_file:
                 zip_file.writestr("readme.txt", "This ZIP has no REQIF files")
@@ -85,6 +87,7 @@ class TestMalformedFiles:
     def test_malformed_xml_in_reqif(self, mock_config):
         """Test handling of malformed XML in REQIF files"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
+            temp_file.close() # Close so zipfile can open it
             # Create ZIP with malformed XML
             with zipfile.ZipFile(temp_file.name, 'w') as zip_file:
                 malformed_xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -110,6 +113,7 @@ class TestMalformedFiles:
     def test_xml_with_invalid_namespaces(self, mock_config):
         """Test handling of XML with invalid or missing namespaces"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
+            temp_file.close() # Close so zipfile can open it
             # Create ZIP with XML using wrong namespaces
             with zipfile.ZipFile(temp_file.name, 'w') as zip_file:
                 invalid_namespace_xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -137,6 +141,7 @@ class TestMalformedFiles:
     def test_extremely_large_reqif_file(self, mock_config):
         """Test handling of very large REQIF files"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
+            temp_file.close() # Close so zipfile can open it
             # Create a large XML file (simulate many spec objects)
             with zipfile.ZipFile(temp_file.name, 'w', compression=zipfile.ZIP_DEFLATED) as zip_file:
                 large_xml = """<?xml version="1.0" encoding="UTF-8"?>

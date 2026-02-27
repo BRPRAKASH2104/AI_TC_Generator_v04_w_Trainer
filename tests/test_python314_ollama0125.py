@@ -119,7 +119,7 @@ def test_no_future_import_annotations():
     for module_path in modules_to_check:
         full_path = Path(module_path)
         if full_path.exists():
-            content = full_path.read_text()
+            content = full_path.read_text(encoding="utf-8")
             assert "from __future__ import annotations" not in content, \
                 f"{module_path} still contains 'from __future__ import annotations'"
 

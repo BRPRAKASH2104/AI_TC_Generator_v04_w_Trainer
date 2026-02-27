@@ -42,7 +42,7 @@ class REQIFArtifactExtractor:
 
     __slots__ = ("logger", "html_parser", "use_streaming", "config")
 
-    def __init__(self, logger=None, use_streaming: bool = False, config: ConfigManager = None):
+    def __init__(self, logger=None, use_streaming: bool = False, config: 'ConfigManager' = None):
         self.logger = logger
         self.html_parser = HTMLTableParser()
         self.use_streaming = use_streaming
@@ -309,12 +309,13 @@ class REQIFArtifactExtractor:
                             content = self._extract_xhtml_content(the_value)
 
                             # Determine artifact content based on attribute reference
-                            if "text" in attr_name.lower() or "info" in attr_name.lower():
+                            attr_name_lower = attr_name.lower()
+                            if any(keyword in attr_name_lower for keyword in ["text", "info", "desc", "req", "content", "detail"]):
                                 artifact["text"] = content
                                 # If type is still unknown, try content-based classification as fallback
                                 if artifact["type"] == ArtifactType.UNKNOWN:
                                     artifact["type"] = self._determine_artifact_type(content)
-                            elif "heading" in attr_name.lower() or "name" in attr_name.lower():
+                            elif "heading" in attr_name_lower or "name" in attr_name_lower:
                                 artifact["heading"] = content
                                 if artifact["type"] == ArtifactType.UNKNOWN:
                                     artifact["type"] = ArtifactType.HEADING
@@ -670,7 +671,7 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
     - Implementing intelligent fallback to sequential processing when needed
     """
 
-    def __init__(self, logger=None, max_workers: int = 4, config: ConfigManager = None):
+    def __init__(self, logger=None, max_workers: int = 4, config: 'ConfigManager' = None):
         super().__init__(logger, use_streaming=False, config=config)
         self.max_workers = max_workers
 

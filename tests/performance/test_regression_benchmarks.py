@@ -5,8 +5,10 @@ Tests to ensure performance does not regress between versions.
 Run these benchmarks after major changes to verify performance improvements/nullify regressions.
 """
 
+import os
 import time
-from unittest.mock import Mock
+from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -76,51 +78,70 @@ class TestPerformanceRegressionBenchmarks:
         }
         """
 
-        with pytest.fixture.autouse(lambda: mock_response):
-            # Use pytest-benchmark to measure performance
-            def run_processing():
-                processor = REQIFZFileProcessor(config)
-                # Mock the internal components to focus on core logic timing
-                processor._extract_artifacts = Mock(return_value=[{
+        # Use pytest-benchmark to measure performance
+        def run_processing():
+            processor = REQIFZFileProcessor(config)
+            # Mock the internal components to focus on core logic timing
+            processor._extract_artifacts = Mock(return_value=[{
+                "type": "System Requirement",
+                "id": "REQ_001",
+                "table": True,
+                "text": "Sample requirement text"
+            }])
+
+            processor._build_augmented_requirements = Mock(return_value=(
+                [{
                     "type": "System Requirement",
                     "id": "REQ_001",
                     "table": True,
-                    "text": "Sample requirement text"
-                }])
+                    "text": "Sample requirement text",
+                    "heading": "Test Heading",
+                    "info_list": [],
+                    "interface_list": []
+                }],
+                1
+            ))
 
-                processor._build_augmented_requirements = Mock(return_value=(
-                    [{
-                        "type": "System Requirement",
-                        "id": "REQ_001",
-                        "table": True,
-                        "text": "Sample requirement text",
-                        "heading": "Test Heading",
-                        "info_list": [],
-                        "interface_list": []
-                    }],
-                    1
-                ))
+            processor.generator.generate_test_cases_for_requirement = Mock(return_value=[{
+                "summary": "Test case",
+                "action": "Test action",
+                "data": "Test data",
+                "expected_result": "Test result"
+            }])
 
-                processor.generator.generate_test_cases_for_requirement = Mock(return_value=[{
-                    "summary": "Test case",
-                    "action": "Test action",
-                    "data": "Test data",
-                    "expected_result": "Test result"
-                }])
+            processor.formatter.format_to_excel = Mock(return_value=True)
 
-                processor.formatter.format_to_excel = Mock(return_value=True)
+            return processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
 
-                return processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
-
+        with patch("src.processors.base_processor.BaseProcessor._extract_artifacts", return_value=[{
+            "type": "System Requirement",
+            "id": "REQ_001",
+            "table": True,
+            "text": "Sample requirement text"
+        }]), patch("src.processors.base_processor.BaseProcessor._build_augmented_requirements", return_value=([{
+                "type": "System Requirement",
+                "id": "REQ_001",
+                "table": True,
+                "text": "Sample requirement text",
+                "heading": "Test Heading",
+                "info_list": [],
+                "interface_list": []
+            }], 1)), patch("src.core.generators.TestCaseGenerator.generate_test_cases_for_requirement", return_value=[{
+                "summary": "Test case",
+                "action": "Test action",
+                "data": "Test data",
+                "expected_result": "Test result"
+            }]), patch("src.core.formatters.TestCaseFormatter.format_to_excel", return_value=True):
+        
             result = benchmark(run_processing)
 
-            # Verify basic functionality still works
-            assert result["success"]
-            assert result["total_test_cases"] == 1
+        # Verify basic functionality still works
+        assert result["success"]
+        assert result["total_test_cases"] == 1
 
-            # Performance assertion (adjust thresholds based on your environment)
-            # This is a rough benchmark - absolute time will vary by machine
-            assert result["processing_time"] < 5.0, f"Processing took {result['processing_time']:.2f}s, expected < 5.0s"
+        # Performance assertion (adjust thresholds based on your environment)
+        # This is a rough benchmark - absolute time will vary by machine
+        assert result["processing_time"] < 5.0, f"Processing took {result['processing_time']:.2f}s, expected < 5.0s"
 
     def test_context_aware_processing_performance(self, benchmark):
         """Benchmark the context-aware requirement augmentation logic."""
@@ -154,7 +175,11 @@ class TestPerformanceRegressionBenchmarks:
                 "text": f"Requirement {i} text"
             })
 
+        # Setup mock logger so BaseProcessor calls to it succeed
+        processor.logger = Mock()
+
         # Mock classifier
+        processor.extractor = Mock()
         processor.extractor.classify_artifacts = Mock(return_value={
             "System Interface": [{"type": "System Interface", "text": "CAN Bus"}]
         })
@@ -184,25 +209,22 @@ class TestPerformanceRegressionBenchmarks:
         processing_times = []
 
         for _ in range(num_runs):
-            processor = REQIFZFileProcessor(config)
-            # Mock components for consistency
-            processor._extract_artifacts = Mock(return_value=[{
+            with patch("src.processors.base_processor.BaseProcessor._extract_artifacts", return_value=[{
                 "type": "System Requirement",
                 "id": "REQ_001",
                 "table": True
-            }])
-            processor._build_augmented_requirements = Mock(return_value=([
+            }]), patch("src.processors.base_processor.BaseProcessor._build_augmented_requirements", return_value=([
                 {"type": "System Requirement", "id": "REQ_001", "table": True,
                  "heading": "Test", "info_list": [], "interface_list": []}
-            ], 1))
-            processor.generator.generate_test_cases_for_requirement = Mock(return_value=[
+            ], 1)), patch("src.core.generators.TestCaseGenerator.generate_test_cases_for_requirement", return_value=[
                 {"summary": "Test case", "action": "Test", "data": "Data", "expected_result": "Result"}
-            ])
-            processor.formatter.format_to_excel = Mock(return_value=True)
+            ]), patch("src.core.formatters.TestCaseFormatter.format_to_excel", return_value=True):
 
-            time.time()
-            result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
-            processing_times.append(result["processing_time"])
+                processor = REQIFZFileProcessor(config)
+                
+                time.time()
+                result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
+                processing_times.append(result["processing_time"])
 
         # Check consistency - standard deviation should be reasonable
         if len(processing_times) > 1:
@@ -213,7 +235,17 @@ class TestPerformanceRegressionBenchmarks:
             assert time_stdev < (avg_time * 0.5), f"Processing times inconsistent: {processing_times}"
 
         # All runs should succeed
-        assert all(result["success"] for result in [processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path) for _ in range(num_runs)])
+        with patch("src.processors.base_processor.BaseProcessor._extract_artifacts", return_value=[{
+            "type": "System Requirement",
+            "id": "REQ_001",
+            "table": True
+        }]), patch("src.processors.base_processor.BaseProcessor._build_augmented_requirements", return_value=([
+            {"type": "System Requirement", "id": "REQ_001", "table": True,
+             "heading": "Test", "info_list": [], "interface_list": []}
+        ], 1)), patch("src.core.generators.TestCaseGenerator.generate_test_cases_for_requirement", return_value=[
+            {"summary": "Test case", "action": "Test", "data": "Data", "expected_result": "Result"}
+        ]), patch("src.core.formatters.TestCaseFormatter.format_to_excel", return_value=True):
+            assert all(processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)["success"] for _ in range(num_runs))
 
     def test_memory_efficiency_regression(self, temp_reqifz_file, tmp_path):
         """Test that memory usage doesn't regress significantly."""
@@ -224,23 +256,19 @@ class TestPerformanceRegressionBenchmarks:
         config = ConfigManager()
         processor = REQIFZFileProcessor(config)
 
-        # Mock components
-        processor._extract_artifacts = Mock(return_value=[{
+        with patch("src.processors.base_processor.BaseProcessor._extract_artifacts", return_value=[{
             "type": "System Requirement", "id": "REQ_001", "table": True
-        }])
-        processor._build_augmented_requirements = Mock(return_value=([
+        }]), patch("src.processors.base_processor.BaseProcessor._build_augmented_requirements", return_value=([
             {"type": "System Requirement", "id": "REQ_001", "table": True,
              "heading": "Test", "info_list": [], "interface_list": []}
-        ], 1))
-        processor.generator.generate_test_cases_for_requirement = Mock(return_value=[
+        ], 1)), patch("src.core.generators.TestCaseGenerator.generate_test_cases_for_requirement", return_value=[
             {"summary": "Test case", "action": "Test", "data": "Data", "expected_result": "Result"}
-        ])
-        processor.formatter.format_to_excel = Mock(return_value=True)
+        ]), patch("src.core.formatters.TestCaseFormatter.format_to_excel", return_value=True):
 
-        process = psutil.Process(os.getpid())
-        initial_memory = process.memory_info().rss / 1024 / 1024  # MB
-
-        result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
+            process = psutil.Process(os.getpid())
+            initial_memory = process.memory_info().rss / 1024 / 1024  # MB
+    
+            result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
 
         final_memory = process.memory_info().rss / 1024 / 1024  # MB
         memory_delta = final_memory - initial_memory
@@ -260,13 +288,13 @@ class TestPerformanceRegressionBenchmarks:
         from src.core.extractors import REQIFArtifactExtractor
 
         # Create a moderately large REQIF content with 100 spec objects
-        large_xml_parts = ['<?xml version="1.0" encoding="UTF-8"?><REQ-IF xmlns:reqif="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd" xmlns:html="http://www.w3.org/1999/xhtml"><reqif:CORE-CONTENT><reqif:SPEC-OBJECT-TYPE IDENTIFIER="TYPE_001" LONG-NAME="System Requirement"><reqif:ATTRIBUTE-DEFINITION-STRING LONG-NAME="ReqIF.ForeignID" IDENTIFIER="ATTR_001"/></reqif:SPEC-OBJECT-TYPE>']
-
+        large_xml_parts = ['<?xml version="1.0" encoding="UTF-8"?><reqif:REQ-IF xmlns:reqif="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd" xmlns:html="http://www.w3.org/1999/xhtml"><reqif:CORE-CONTENT><reqif:SPEC-OBJECT-TYPE IDENTIFIER="TYPE_001" LONG-NAME="System Requirement"><reqif:ATTRIBUTE-DEFINITION-STRING LONG-NAME="ReqIF.ForeignID" IDENTIFIER="ATTR_001"/></reqif:SPEC-OBJECT-TYPE><reqif:SPEC-OBJECTS>']
+        
         for i in range(100):
             spec_object = f'<reqif:SPEC-OBJECT IDENTIFIER="REQ_{i:03d}"><reqif:TYPE><reqif:SPEC-OBJECT-TYPE-REF>TYPE_001</reqif:SPEC-OBJECT-TYPE-REF></reqif:TYPE><reqif:VALUES><reqif:ATTRIBUTE-VALUE-STRING THE-VALUE="REQ_{i:03d}"><reqif:DEFINITION><reqif:ATTRIBUTE-DEFINITION-STRING-REF>ATTR_001</reqif:ATTRIBUTE-DEFINITION-STRING-REF></reqif:DEFINITION></reqif:ATTRIBUTE-VALUE-STRING><reqif:ATTRIBUTE-VALUE-XHTML><reqif:DEFINITION><reqif:ATTRIBUTE-DEFINITION-XHTML-REF>TEXT_ATTR</reqif:ATTRIBUTE-DEFINITION-XHTML-REF></reqif:DEFINITION><reqif:THE-VALUE><html:div>The system requirement {i} shall work properly with detailed description that makes the content larger and more realistic for memory testing purposes. This additional text helps simulate real-world REQIF files with substantial content.</html:div></reqif:THE-VALUE></reqif:ATTRIBUTE-VALUE-XHTML></reqif:VALUES></reqif:SPEC-OBJECT>'
             large_xml_parts.append(spec_object)
 
-        large_xml_parts.append('</reqif:CORE-CONTENT></REQ-IF>')
+        large_xml_parts.append('</reqif:SPEC-OBJECTS></reqif:CORE-CONTENT></reqif:REQ-IF>')
         large_xml_content = ''.join(large_xml_parts).encode('utf-8')
 
         # Create REQIFZ file

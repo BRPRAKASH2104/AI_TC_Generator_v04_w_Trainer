@@ -112,7 +112,7 @@ class TestCaseGenerator:
 
     def __init__(
         self,
-        client: OllamaClient,
+        client: 'OllamaClient',
         yaml_manager=None,
         logger=None,
         validator=None,
@@ -269,7 +269,7 @@ class AsyncTestCaseGenerator:
 
     def __init__(
         self,
-        client: AsyncOllamaClient,
+        client: 'AsyncOllamaClient',
         yaml_manager=None,
         logger=None,
         validator=None,
