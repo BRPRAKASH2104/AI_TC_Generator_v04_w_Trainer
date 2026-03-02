@@ -53,7 +53,7 @@ def extract_image_paths(requirement: RequirementData) -> list[Path]:
     return paths
 
 
-def calculate_confidence(response_data: dict[str, Any]) -> float | None:
+def calculate_confidence(response_data: dict[str, Any], logger=None) -> float | None:
     """
     Calculate confidence score from logprobs if available.
 
@@ -101,7 +101,9 @@ def calculate_confidence(response_data: dict[str, Any]) -> float | None:
         mean_logprob = sum(token_logprobs) / len(token_logprobs)
         return math.exp(mean_logprob)
 
-    except Exception:
+    except Exception as e:
+        if logger:
+            logger.debug(f"Could not parse logprobs: {e}. Keys found: {list(response_data.keys()) if response_data else 'None'}")
         return None
 
 
@@ -170,7 +172,7 @@ class TestCaseGenerator:
             # Extract text and confidence
             if isinstance(full_response, dict):
                 response_text = str(full_response.get("response", ""))
-                confidence_score = calculate_confidence(full_response)
+                confidence_score = calculate_confidence(full_response, self.logger)
             else:
                 response_text = str(full_response)
                 confidence_score = None
@@ -436,7 +438,7 @@ class AsyncTestCaseGenerator:
             # Extract text and confidence
             if isinstance(full_response, dict):
                 response_text = str(full_response.get("response", ""))
-                confidence_score = calculate_confidence(full_response)
+                confidence_score = calculate_confidence(full_response, self.logger)
             else:
                 response_text = str(full_response)
                 confidence_score = None

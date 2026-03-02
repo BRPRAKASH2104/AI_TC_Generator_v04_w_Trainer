@@ -81,36 +81,6 @@ class TestPerformanceRegressionBenchmarks:
         # Use pytest-benchmark to measure performance
         def run_processing():
             processor = REQIFZFileProcessor(config)
-            # Mock the internal components to focus on core logic timing
-            processor._extract_artifacts = Mock(return_value=[{
-                "type": "System Requirement",
-                "id": "REQ_001",
-                "table": True,
-                "text": "Sample requirement text"
-            }])
-
-            processor._build_augmented_requirements = Mock(return_value=(
-                [{
-                    "type": "System Requirement",
-                    "id": "REQ_001",
-                    "table": True,
-                    "text": "Sample requirement text",
-                    "heading": "Test Heading",
-                    "info_list": [],
-                    "interface_list": []
-                }],
-                1
-            ))
-
-            processor.generator.generate_test_cases_for_requirement = Mock(return_value=[{
-                "summary": "Test case",
-                "action": "Test action",
-                "data": "Test data",
-                "expected_result": "Test result"
-            }])
-
-            processor.formatter.format_to_excel = Mock(return_value=True)
-
             return processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
 
         with patch("src.processors.base_processor.BaseProcessor._extract_artifacts", return_value=[{
@@ -209,11 +179,11 @@ class TestPerformanceRegressionBenchmarks:
         processing_times = []
 
         for _ in range(num_runs):
-            with patch("src.processors.base_processor.BaseProcessor._extract_artifacts", return_value=[{
+            with patch.object(REQIFZFileProcessor, '_extract_artifacts', return_value=[{
                 "type": "System Requirement",
                 "id": "REQ_001",
                 "table": True
-            }]), patch("src.processors.base_processor.BaseProcessor._build_augmented_requirements", return_value=([
+            }]), patch.object(REQIFZFileProcessor, '_build_augmented_requirements', return_value=([
                 {"type": "System Requirement", "id": "REQ_001", "table": True,
                  "heading": "Test", "info_list": [], "interface_list": []}
             ], 1)), patch("src.core.generators.TestCaseGenerator.generate_test_cases_for_requirement", return_value=[
@@ -226,10 +196,10 @@ class TestPerformanceRegressionBenchmarks:
                 result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
                 processing_times.append(result["processing_time"])
 
-        # Check consistency - standard deviation should be reasonable
-        if len(processing_times) > 1:
-            time_stdev = stdev(processing_times)
-            avg_time = mean(processing_times)
+        # Check consistency - standard deviation should be reasonable (ignoring the first cold-start run)
+        if len(processing_times) > 2:
+            time_stdev = stdev(processing_times[1:])
+            avg_time = mean(processing_times[1:])
 
             # Std dev should be less than 50% of average time (reasonable consistency)
             assert time_stdev < (avg_time * 0.5), f"Processing times inconsistent: {processing_times}"

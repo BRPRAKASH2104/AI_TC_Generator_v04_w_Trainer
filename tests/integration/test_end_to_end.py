@@ -14,9 +14,9 @@ from unittest.mock import patch
 
 import pytest
 
-from config import ConfigManager
-from processors.hp_processor import HighPerformanceREQIFZFileProcessor
-from processors.standard_processor import REQIFZFileProcessor
+from src.config import ConfigManager
+from src.processors.hp_processor import HighPerformanceREQIFZFileProcessor
+from src.processors.standard_processor import REQIFZFileProcessor
 
 
 class TestEndToEndWorkflows:
@@ -82,7 +82,7 @@ class TestEndToEndWorkflows:
         # Mock AI client to avoid external dependencies
         with patch('src.processors.standard_processor.OllamaClient') as mock_client_class:
             mock_client = mock_client_class.return_value
-            mock_client.generate_response.return_value = json.dumps(mock_ai_response)
+            mock_client.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
 
             # Initialize processor
             processor = REQIFZFileProcessor(mock_config)
@@ -123,7 +123,7 @@ class TestEndToEndWorkflows:
         # Mock async AI client
         with patch('src.processors.hp_processor.AsyncOllamaClient') as mock_client_class:
             mock_client = mock_client_class.return_value
-            mock_client.generate_response.return_value = json.dumps(mock_ai_response)
+            mock_client.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
 
             # Initialize HP processor
             processor = HighPerformanceREQIFZFileProcessor(mock_config, max_concurrent_requirements=2)
@@ -181,7 +181,7 @@ class TestEndToEndWorkflows:
 
                 # Mock AI client
                 mock_client = mock_client_class.return_value
-                mock_client.generate_response.return_value = json.dumps(mock_ai_response)
+                mock_client.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
 
                 # Initialize processor
                 processor = REQIFZFileProcessor(mock_config)
@@ -239,7 +239,7 @@ class TestEndToEndWorkflows:
             # Validating against updated structure assuming 'system_prompt', 'prompt', or 'template'
             template_content = template_data.get("system_prompt", template_data.get("prompt", template_data.get("template")))
             assert isinstance(template_content, str), "Template must contain a string prompt/system_prompt/template field"
-            assert len(template_data["prompt"]) > 0
+            assert len(template_content) > 0
 
     def test_configuration_workflow(self, mock_config):
         """Test configuration management workflow"""
@@ -277,8 +277,8 @@ class TestEndToEndWorkflows:
                  patch('src.processors.hp_processor.AsyncOllamaClient') as mock_async_client:
 
                 # Configure mock responses
-                mock_sync_client.return_value.generate_response.return_value = json.dumps(mock_ai_response)
-                mock_async_client.return_value.generate_response.return_value = json.dumps(mock_ai_response)
+                mock_sync_client.return_value.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
+                mock_async_client.return_value.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
 
                 # Test standard mode
                 standard_processor = REQIFZFileProcessor(mock_config)
@@ -326,6 +326,8 @@ class TestEndToEndWorkflows:
             from src.app_logger import get_app_logger, shutdown_app_logger
 
             try:
+                # Ensure clean state from previous tests before applying mock config
+                shutdown_app_logger()
                 app_logger = get_app_logger(mock_config)
 
                 # Log some test messages
@@ -441,7 +443,7 @@ class TestErrorConditions:
         # Mock AI client to simulate timeout
         with patch('src.processors.standard_processor.OllamaClient') as mock_client_class:
             mock_client = mock_client_class.return_value
-            mock_client.generate_response.side_effect = TimeoutError("AI service timeout")
+            mock_client.generate_completion.side_effect = TimeoutError("AI service timeout")
 
             processor = REQIFZFileProcessor(mock_config)
             result = processor.process_file(

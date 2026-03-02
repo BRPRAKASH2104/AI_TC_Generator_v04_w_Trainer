@@ -618,8 +618,11 @@ class ConfigManager(BaseSettings):
         Returns:
             New ConfigManager instance with overrides applied
         """
-        # Start with current configuration
+        # Application of overrides
+        # We need to track which keys were explicitly populated via environment variables
+        # so they aren't incorrectly overwritten by model-specific defaults later.
         config_dict = self.model_dump()
+        env_overrides = {"cli": set(), "ollama": set(), "logging": set(), "secrets": set()}
 
         # Apply environment variables (AI_TG_* prefix)
         env_mapping = {
@@ -642,18 +645,22 @@ class ConfigManager(BaseSettings):
             if env_value := os.getenv(env_var):
                 if key in ["verbose", "debug", "performance"]:
                     config_dict[section][key] = env_value.lower() in ("true", "1", "yes", "on")
+                    env_overrides[section].add(key)
                 elif key in ["max_concurrent", "concurrent_requests", "timeout", "num_ctx"]:
                     try:
                         config_dict[section][key] = int(env_value)
+                        env_overrides[section].add(key)
                     except ValueError:
                         print(f"⚠️  Invalid {env_var} value: {env_value}")
                 elif key == "temperature":
                     try:
                         config_dict[section][key] = float(env_value)
+                        env_overrides[section].add(key)
                     except ValueError:
                         print(f"⚠️  Invalid {env_var} value: {env_value}")
                 else:
                     config_dict[section][key] = env_value
+                    env_overrides[section].add(key)
 
         # Apply direct kwargs (highest priority)
         cli_overrides = {}
@@ -683,11 +690,10 @@ class ConfigManager(BaseSettings):
             except Exception as e:
                 print(f"⚠️  Warning: Could not load config file {kwargs['config']}: {e}")
 
-        # Apply the overrides to respective sections
         if cli_overrides:
-            config_dict["cli"].update(cli_overrides)
+            self._deep_merge_dict(config_dict["cli"], cli_overrides)
         if ollama_overrides:
-            config_dict["ollama"].update(ollama_overrides)
+            self._deep_merge_dict(config_dict["ollama"], ollama_overrides)
 
         # -------------------------------------------------------------------------
         # Critical Fix: Auto-apply model-specific settings (timeout, temperature, etc.)
@@ -711,25 +717,22 @@ class ConfigManager(BaseSettings):
             # OR just overwrite, assuming model_config is the specific intent for that model.
             # BUT CLI args should always win.
 
-            # Helper to update if NOT in overrides
-            def update_if_not_overridden(section, key, value, override_dict):
-                # Check if it was manually overridden in this call OR via env vars (checked earlier)
-                # To check env vars accurately we'd need to track them, but strict CLI overrides
-                # are tracked in ollama_overrides/cli_overrides.
-                if key not in override_dict:
+            # Helper to update if NOT in overrides AND not in env_overrides
+            def update_if_not_overridden(section, key, value, override_dict, env_tracker):
+                if key not in override_dict and key not in env_tracker.get(section, set()):
                     config_dict[section][key] = value
 
             if "timeout" in m_config:
-                update_if_not_overridden("ollama", "timeout", m_config["timeout"], ollama_overrides)
+                update_if_not_overridden("ollama", "timeout", m_config["timeout"], ollama_overrides, env_overrides)
 
             if "temperature" in m_config:
-                update_if_not_overridden("ollama", "temperature", m_config["temperature"], ollama_overrides)
+                update_if_not_overridden("ollama", "temperature", m_config["temperature"], ollama_overrides, env_overrides)
 
             if "recommended_concurrent" in m_config:
-                update_if_not_overridden("ollama", "concurrent_requests", m_config["recommended_concurrent"], ollama_overrides)
+                update_if_not_overridden("ollama", "concurrent_requests", m_config["recommended_concurrent"], ollama_overrides, env_overrides)
 
             if "num_ctx" in m_config:
-                update_if_not_overridden("ollama", "num_ctx", m_config["num_ctx"], ollama_overrides)
+                update_if_not_overridden("ollama", "num_ctx", m_config["num_ctx"], ollama_overrides, env_overrides)
 
             # Log this internal application if debugging
             # print(f"ℹ️  Applied specific settings for model: {effective_model}")

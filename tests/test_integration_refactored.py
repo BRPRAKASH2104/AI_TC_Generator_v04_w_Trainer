@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 
 import pytest
 
@@ -148,7 +148,9 @@ class TestHPProcessorIntegration:
 
         mock_generator_instance = MagicMock()
         MockGenerator.return_value = mock_generator_instance
-        mock_generator_instance.generate_test_cases_batch.return_value = [
+        from unittest.mock import AsyncMock
+        mock_generator_instance.generate_test_cases = AsyncMock()
+        mock_generator_instance.generate_test_cases.side_effect = [
             [{"test_id": "TC_001"}],  # REQ_001 results
             [{"test_id": "TC_002"}],  # REQ_002 results
         ]
@@ -201,7 +203,9 @@ class TestHPProcessorIntegration:
         mock_generator_instance = MagicMock()
         MockGenerator.return_value = mock_generator_instance
         # First succeeds, second fails
-        mock_generator_instance.generate_test_cases_batch.return_value = [
+        from unittest.mock import AsyncMock
+        mock_generator_instance.generate_test_cases = AsyncMock()
+        mock_generator_instance.generate_test_cases.side_effect = [
             [{"test_id": "TC_001"}],
             {"error": True, "requirement_id": "REQ_002", "error_type": "EmptyResponse"}
         ]

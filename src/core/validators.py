@@ -252,7 +252,7 @@ class SemanticValidator:
         if positive_count < required_rows:
             issues.append(
                 {
-                    "test_case_index": 0,  # Global issue, not specific to one test case
+                    "test_case_index": -1,  # Global issue, not specific to one test case
                     "summary": "Table Coverage Deficiency",
                     "issues": [
                         f"Generated {positive_count} positive test cases but table has {required_rows} rows. "
@@ -264,7 +264,7 @@ class SemanticValidator:
         if negative_count < 3:
             issues.append(
                 {
-                    "test_case_index": 0,
+                    "test_case_index": -1,
                     "summary": "Negative Test Deficiency",
                     "issues": [
                         f"Generated {negative_count} negative test cases but minimum 3 required for table-based requirements."
@@ -278,7 +278,7 @@ class SemanticValidator:
         if len(test_cases) < total_expected_min:
             issues.append(
                 {
-                    "test_case_index": 0,
+                    "test_case_index": -1,
                     "summary": "Total Test Case Count",
                     "issues": [
                         f"Generated {len(test_cases)} test cases. Expected minimum: {total_expected_min} "

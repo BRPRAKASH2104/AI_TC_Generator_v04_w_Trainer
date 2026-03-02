@@ -71,42 +71,44 @@ class REQIFArtifactExtractor:
                 reqif_content = zip_file.read(reqif_files[0])
                 artifacts = self._parse_reqif_xml(reqif_content)
 
-            # Extract images if enabled in config
-            if self.config and self.config.image_extraction.enable_image_extraction:
-                if self.logger:
-                    self.logger.info("🖼️  Extracting images from REQIFZ file...")
-
-                image_extractor = RequirementImageExtractor(
-                    logger=self.logger,
-                    output_dir=Path(self.config.image_extraction.output_dir),
-                    save_images=self.config.image_extraction.save_images,
-                    validate_images=self.config.image_extraction.validate_images,
-                )
-
-                images, report = image_extractor.extract_images_from_reqifz(reqifz_file_path)
-
-                if self.logger:
-                    self.logger.info(
-                        f"🖼️  Extracted {report.get('total_images', 0)} images: "
-                        f"{report.get('external_files', 0)} external, "
-                        f"{report.get('embedded_images', 0)} embedded"
-                    )
-
-                # Augment artifacts with image references if enabled
-                if self.config.image_extraction.augment_artifacts and images:
-                    artifacts = image_extractor.augment_artifacts_with_images(artifacts, images)
-                    if self.logger:
-                        self.logger.info(
-                            f"🔗 Augmented artifacts with image metadata "
-                            f"({sum(1 for a in artifacts if a.get('has_images', False))} artifacts have images)"
-                        )
-
-            return artifacts
+            return self._extract_and_augment_images(reqifz_file_path, artifacts)
 
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Error extracting REQIFZ file {reqifz_file_path}: {e}")
             return []
+
+    def _extract_and_augment_images(self, reqifz_file_path: Path, artifacts: list) -> list:
+        """Extract images and augment artifacts using the shared configuration."""
+        if self.config and self.config.image_extraction.enable_image_extraction:
+            if self.logger:
+                self.logger.info("🖼️  Extracting images from REQIFZ file...")
+
+            image_extractor = RequirementImageExtractor(
+                logger=self.logger,
+                output_dir=Path(self.config.image_extraction.output_dir),
+                save_images=self.config.image_extraction.save_images,
+                validate_images=self.config.image_extraction.validate_images,
+            )
+
+            images, report = image_extractor.extract_images_from_reqifz(reqifz_file_path)
+
+            if self.logger:
+                self.logger.info(
+                    f"🖼️  Extracted {report.get('total_images', 0)} images: "
+                    f"{report.get('external_files', 0)} external, "
+                    f"{report.get('embedded_images', 0)} embedded"
+                )
+
+            # Augment artifacts with image references if enabled
+            if self.config.image_extraction.augment_artifacts and images:
+                artifacts = image_extractor.augment_artifacts_with_images(artifacts, images)
+                if self.logger:
+                    self.logger.info(
+                        f"🔗 Augmented artifacts with image metadata "
+                        f"({sum(1 for a in artifacts if a.get('has_images', False))} artifacts have images)"
+                    )
+        return artifacts
 
     def _parse_reqif_xml(self, xml_content: bytes) -> ArtifactList:
         """Parse REQIF XML content and extract artifacts"""
@@ -497,10 +499,9 @@ class REQIFArtifactExtractor:
                         if foreign_id:
                             foreign_id_map[type_id] = foreign_id
 
-                # Clear element to save memory
-                elem.clear()
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
+                # Clear large elements to save memory, but ONLY when fully parsed
+                if elem.tag.endswith("}SPEC-OBJECT-TYPE") or elem.tag.endswith("}SPEC-OBJECT") or elem.tag.endswith("}SPEC-RELATION"):
+                    elem.clear()
 
         except Exception as e:
             if self.logger:
@@ -534,10 +535,9 @@ class REQIFArtifactExtractor:
                     if artifact:
                         artifacts.append(artifact)
 
-                # Clear element to save memory (important for streaming)
-                elem.clear()
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
+                # Clear large elements to save memory (important for streaming)
+                if elem.tag.endswith("}SPEC-OBJECT") or elem.tag.endswith("}SPEC-OBJECT-TYPE") or elem.tag.endswith("}SPEC-RELATION"):
+                    elem.clear()
 
         except Exception as e:
             if self.logger:
@@ -695,37 +695,7 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
                 reqif_content = zip_file.read(reqif_files[0])
                 artifacts = self._parse_reqif_xml_parallel(reqif_content)
 
-            # Extract images if enabled in config
-            if self.config and self.config.image_extraction.enable_image_extraction:
-                if self.logger:
-                    self.logger.info("🖼️  Extracting images from REQIFZ file...")
-
-                image_extractor = RequirementImageExtractor(
-                    logger=self.logger,
-                    output_dir=Path(self.config.image_extraction.output_dir),
-                    save_images=self.config.image_extraction.save_images,
-                    validate_images=self.config.image_extraction.validate_images,
-                )
-
-                images, report = image_extractor.extract_images_from_reqifz(reqifz_file_path)
-
-                if self.logger:
-                    self.logger.info(
-                        f"🖼️  Extracted {report.get('total_images', 0)} images: "
-                        f"{report.get('external_files', 0)} external, "
-                        f"{report.get('embedded_images', 0)} embedded"
-                    )
-
-                # Augment artifacts with image references if enabled
-                if self.config.image_extraction.augment_artifacts and images:
-                    artifacts = image_extractor.augment_artifacts_with_images(artifacts, images)
-                    if self.logger:
-                        self.logger.info(
-                            f"🔗 Augmented artifacts with image metadata "
-                            f"({sum(1 for a in artifacts if a.get('has_images', False))} artifacts have images)"
-                        )
-
-            return artifacts
+            return self._extract_and_augment_images(reqifz_file_path, artifacts)
 
         except Exception as e:
             if self.logger:
