@@ -107,7 +107,12 @@ class TestCaseFormatter:
                 or default_values["voltage_precondition"]
             )
 
-            data_field = test_case.get("data") or test_case.get("test_steps") or "N/A"
+            # Enhanced fallback logic: first try 'data', then 'test_steps'
+            data_raw = test_case.get("data")
+            if not data_raw or not str(data_raw).strip():
+                data_raw = test_case.get("test_steps")
+            
+            data_field = data_raw or "N/A"
 
             # v03 data formatting logic
             if isinstance(data_field, str) and data_field.startswith("1)"):

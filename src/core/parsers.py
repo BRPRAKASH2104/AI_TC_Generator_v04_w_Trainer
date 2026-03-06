@@ -184,34 +184,88 @@ class HTMLTableParser:
 
     @staticmethod
     def _parse_single_table(table_element: ET.Element) -> HTMLTableData:
-        """Parse a single table element into structured data"""
+        """Parse a single table element into structured data, flattening rowspan/colspan."""
         rows = table_element.findall(".//tr")
         if not rows:
             return []
 
-        # Extract headers
-        header_row = rows[0]
+        # Find the maximum number of columns across all rows to initialize the matrix
+        max_cols = 0
+        for row in rows:
+            col_count = 0
+            cells = row.findall(".//th") or row.findall(".//td")
+            for cell in cells:
+                colspan = int(cell.get("colspan", 1))
+                col_count += colspan
+            max_cols = max(max_cols, col_count)
+
+        if max_cols == 0:
+            return []
+
+        # Initialize a matrix to keep track of the cell contents
+        # matrix[row_idx][col_idx] = text
+        matrix: list[list[str]] = [["" for _ in range(max_cols)] for _ in range(len(rows))]
+        
+        # Keep track of which cells are occupied by rowspans
+        # occupied[row_idx][col_idx] = True/False
+        occupied: list[list[bool]] = [[False for _ in range(max_cols)] for _ in range(len(rows))]
+
+        for row_idx, row in enumerate(rows):
+            cells = row.findall(".//th") or row.findall(".//td")
+            col_idx = 0
+            
+            for cell in cells:
+                # Find the next available column
+                while col_idx < max_cols and occupied[row_idx][col_idx]:
+                    col_idx += 1
+                    
+                if col_idx >= max_cols:
+                    break # Should not happen based on max_cols calculation, but safeguard
+                    
+                colspan = int(cell.get("colspan", 1))
+                rowspan = int(cell.get("rowspan", 1))
+                text = "".join(cell.itertext()).strip()
+
+                # Fill the matrix for the spanned area
+                for r in range(rowspan):
+                    for c in range(colspan):
+                        target_row = row_idx + r
+                        target_col = col_idx + c
+                        if target_row < len(rows) and target_col < max_cols:
+                            matrix[target_row][target_col] = text
+                            occupied[target_row][target_col] = True
+                            
+                col_idx += colspan
+                
+        # Extract headers from the first row of the matrix
+        # If a header spans multiple columns, it will be duplicated in the matrix,
+        # which would cause dictionary key overwrites. We need to make them unique.
         headers = []
-        for th in header_row.findall(".//th") or header_row.findall(".//td"):
-            text = ET.tostring(th, method="text", encoding="unicode").strip()
-            headers.append(text or f"Column_{len(headers)}")
+        header_counts = {}
+        for i, text in enumerate(matrix[0]):
+            base_name = text or f"Column_{i+1}"
+            if base_name in header_counts:
+                header_counts[base_name] += 1
+                headers.append(f"{base_name}_{header_counts[base_name]}")
+            else:
+                header_counts[base_name] = 1
+                headers.append(base_name)
 
         # Extract data rows
         table_data = []
-        for row in rows[1:]:
-            cells = row.findall(".//td") or row.findall(".//th")
-            if len(cells) == len(headers):
-                row_data = {}
-                for i, cell in enumerate(cells):
-                    cell_text = ET.tostring(cell, method="text", encoding="unicode").strip()
-                    row_data[headers[i]] = cell_text
+        for row_idx in range(1, len(rows)):
+            row_data = {}
+            for col_idx, header in enumerate(headers):
+                row_data[header] = matrix[row_idx][col_idx]
+            # Add to table data if not completely empty
+            if any(val for val in row_data.values()):
                 table_data.append(row_data)
 
         return table_data
 
     @staticmethod
     def _fallback_table_parsing(html_content: str) -> HTMLTableData:
-        """Simple regex-based fallback for malformed HTML"""
+        """Simple regex-based fallback for malformed HTML, without advanced span support"""
         table_pattern = r"<table[^>]*>(.*?)</table>"
         row_pattern = r"<tr[^>]*>(.*?)</tr>"
         cell_pattern = r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>"
@@ -231,11 +285,13 @@ class HTMLTableParser:
             # Data rows
             for row in rows[1:]:
                 cells = re.findall(cell_pattern, row, re.DOTALL | re.IGNORECASE)
+                # Fallback parser is simple and only works for uniform tables
                 if len(cells) == len(headers):
                     row_data = {}
                     for i, cell in enumerate(cells):
                         clean_cell = re.sub(r"<[^>]+>", "", cell).strip()
                         row_data[headers[i]] = clean_cell
-                    all_data.append(row_data)
+                    if any(val for val in row_data.values()):
+                        all_data.append(row_data)
 
         return all_data
