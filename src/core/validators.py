@@ -131,8 +131,8 @@ class SemanticValidator:
                         f"Valid signals: {', '.join(sorted(valid_signals))}"
                     )
 
-        # Check data field
-        data = test_case.get("data", "")
+        # Check data field (support both 'data' and 'test_steps' formats)
+        data = test_case.get("data", test_case.get("test_steps", ""))
         data_signals = re.findall(r"([A-Za-z_][A-Za-z0-9_]+)\s*=", data)
 
         for signal in data_signals:
@@ -142,7 +142,7 @@ class SemanticValidator:
                 )
                 if close_matches:
                     issues.append(
-                        f"Signal '{signal}' in data not found. Did you mean '{close_matches[0]}'?"
+                        f"Signal '{signal}' in data/test_steps not found. Did you mean '{close_matches[0]}'?"
                     )
 
         return issues
@@ -156,16 +156,17 @@ class SemanticValidator:
           - "1. Step one\n2. Step two"
         """
         issues = []
-        data = test_case.get("data", "")
+        # Support both 'data' and 'test_steps' keys
+        data = test_case.get("data", test_case.get("test_steps", ""))
 
-        if not data or not data.strip():
+        if not data or not str(data).strip():
             issues.append("Data field is empty")
             return issues
 
         # Check for common formatting issues
-        if "=" in data:
+        if "=" in str(data):
             # Should be "Signal=Value" format
-            parts = data.split(",")
+            parts = str(data).split(",")
             for part in parts:
                 part = part.strip()
                 if "=" not in part:

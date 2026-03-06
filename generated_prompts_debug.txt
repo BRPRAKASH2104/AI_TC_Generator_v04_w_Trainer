@@ -1,0 +1,150 @@
+=== TFDCX32348-137292 ===
+You are an expert automotive test engineer. Generate comprehensive test cases for the following requirement with provided context:
+
+--- CONTEXTUAL INFORMATION ---
+FEATURE HEADING: 
+ADDITIONAL INFORMATION: None
+SYSTEM INTERFACES: None
+VISUAL DIAGRAMS: No diagrams or images provided.
+
+--- PRIMARY REQUIREMENT TO TEST ---
+Requirement ID: TFDCX32348-137292
+Description: <ns0:THE-VALUE xmlns:html="http://www.w3.org/1999/xhtml" xmlns:ns0="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">
+                                <html:div><html:p>Screen Layout</html:p><html:table class="jira_table"><html:tr><html:td class="jira_cell"><html:p><html:strong>Layout name</html:strong></html:p></html:td><html:td class="jira_cell"><html:p><html:strong>Screen Layout</html:strong></html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>[Layout1 : 1Dial_Speedometer for Lexus]</html:p></html:td><html:td class="jira_cell"><html:object data="3785490/1Dial speedometer 10km of 180km.png" type="image/png" /><html:object data="3785489/1Dial speedometer Max of 180km.png" type="image/png" /></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>[Layout2 : 2Dial_Speedometer for Lexus]</html:p></html:td><html:td class="jira_cell"><html:object data="3785491/2Dial speedometer 20km of 180km.png" type="image/png" /><html:object data="3785488/2Dial speedometer Max of 180km.png" type="image/png" /></html:td></html:tr></html:table></html:div>
+                            </ns0:THE-VALUE>
+                        
+
+--- YOUR TASK ---
+Generate test cases in JSON format with the following EXACT structure:
+{
+    "analysis": "Chain of thought: Analyze the requirement, break it into functional blocks, describe any visual diagrams, identify boundary conditions, and list all edge cases/negative scenarios before generating the test cases.",
+    "test_cases": [
+        {
+            "summary_suffix": "Brief descriptive title for this specific test",
+            "preconditions": "Preconditions (voltage, system state)",
+            "test_steps": "Numbered list of test steps: 1) Step one\n2) Step two",
+            "expected_result": "Specific observable outcome that indicates pass",
+            "test_type": "positive or negative"
+        }
+    ]
+}
+
+REQUIREMENTS:
+1. Generate BOTH positive (valid inputs) AND negative (invalid/boundary/error) test cases
+2. Use "preconditions" field for preconditions (e.g., "1. Voltage=12V\n2. IGN ON")
+3. Use "test_steps" field for numbered test steps
+4. Each test case MUST include "test_type" field marking it as "positive" or "negative"
+5. Focus on:
+   - Boundary value testing
+   - Positive and negative scenarios
+   - Automotive-specific conditions (voltage, temperature, CAN signals)
+   - Error handling and safety considerations
+6. If diagrams are provided, analyze them to understand:
+   - System state machines and transitions
+   - Signal flows and timing sequences
+   - Parameter tables and threshold values
+   - Architectural dependencies and interactions
+   - UI behaviors and expected responses
+
+Return ONLY valid JSON with the exact field names shown above.
+
+=== TFDCX32348-137299 ===
+You are an expert automotive test engineer. Generate comprehensive test cases for the following requirement with provided context:
+
+--- CONTEXTUAL INFORMATION ---
+FEATURE HEADING: 
+ADDITIONAL INFORMATION: None
+SYSTEM INTERFACES: None
+VISUAL DIAGRAMS: No diagrams or images provided.
+
+--- PRIMARY REQUIREMENT TO TEST ---
+Requirement ID: TFDCX32348-137299
+Description: <ns0:THE-VALUE xmlns:html="http://www.w3.org/1999/xhtml" xmlns:ns0="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">
+                                <html:div><html:table class="jira_table"><html:tr><html:td class="jira_cell" rowspan="2" style="background: #f4f5f7"><html:p><html:strong>#</html:strong></html:p></html:td><html:td class="jira_cell" colspan="2" style="background: #f4f5f7"><html:p><html:strong>Input</html:strong></html:p></html:td><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>Output</html:strong></html:p></html:td><html:td class="jira_cell" rowspan="2" style="background: #f4f5f7"><html:p><html:strong>Design Spec Reference</html:strong></html:p></html:td></html:tr><html:tr><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>Speedometer</html:strong></html:p></html:td><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>Speedometer Layout</html:strong></html:p></html:td><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>Sample Image</html:strong></html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>1</html:p></html:td><html:td class="jira_cell" rowspan="2"><html:p>Display</html:p></html:td><html:td class="jira_cell"><html:p>Layout1 : 1Dial_Speedometer for Lexus</html:p></html:td><html:td class="jira_cell"><html:object data="3785531/1Dial ScalePoint0.png" type="image/png" /></html:td><html:td class="jira_cell" rowspan="2"><html:p>Refer to Godot Design</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>2</html:p></html:td><html:td class="jira_cell"><html:p>Layout2 : 2Dial_Speedometer for Lexus</html:p></html:td><html:td class="jira_cell"><html:object data="3785532/2Dial ScalePoint0.png" type="image/png" /></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>3</html:p></html:td><html:td class="jira_cell"><html:p>Do not display</html:p></html:td><html:td class="jira_cell"><html:p>Not applicable</html:p></html:td><html:td class="jira_cell"><html:p>No Display(Not applicable)</html:p></html:td><html:td class="jira_cell"><html:p /></html:td></html:tr></html:table></html:div>
+                            </ns0:THE-VALUE>
+                        
+
+--- YOUR TASK ---
+Generate test cases in JSON format with the following EXACT structure:
+{
+    "analysis": "Chain of thought: Analyze the requirement, break it into functional blocks, describe any visual diagrams, identify boundary conditions, and list all edge cases/negative scenarios before generating the test cases.",
+    "test_cases": [
+        {
+            "summary_suffix": "Brief descriptive title for this specific test",
+            "preconditions": "Preconditions (voltage, system state)",
+            "test_steps": "Numbered list of test steps: 1) Step one\n2) Step two",
+            "expected_result": "Specific observable outcome that indicates pass",
+            "test_type": "positive or negative"
+        }
+    ]
+}
+
+REQUIREMENTS:
+1. Generate BOTH positive (valid inputs) AND negative (invalid/boundary/error) test cases
+2. Use "preconditions" field for preconditions (e.g., "1. Voltage=12V\n2. IGN ON")
+3. Use "test_steps" field for numbered test steps
+4. Each test case MUST include "test_type" field marking it as "positive" or "negative"
+5. Focus on:
+   - Boundary value testing
+   - Positive and negative scenarios
+   - Automotive-specific conditions (voltage, temperature, CAN signals)
+   - Error handling and safety considerations
+6. If diagrams are provided, analyze them to understand:
+   - System state machines and transitions
+   - Signal flows and timing sequences
+   - Parameter tables and threshold values
+   - Architectural dependencies and interactions
+   - UI behaviors and expected responses
+
+Return ONLY valid JSON with the exact field names shown above.
+
+=== TFDCX32348-137314 ===
+You are an expert automotive test engineer. Generate comprehensive test cases for the following requirement with provided context:
+
+--- CONTEXTUAL INFORMATION ---
+FEATURE HEADING: 
+ADDITIONAL INFORMATION: None
+SYSTEM INTERFACES: None
+VISUAL DIAGRAMS: No diagrams or images provided.
+
+--- PRIMARY REQUIREMENT TO TEST ---
+Requirement ID: TFDCX32348-137314
+Description: <ns0:THE-VALUE xmlns:html="http://www.w3.org/1999/xhtml" xmlns:ns0="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">
+                                <html:div><html:table class="jira_table"><html:tr><html:td class="jira_cell" rowspan="2" style="background: #f4f5f7"><html:p><html:strong>#</html:strong></html:p></html:td><html:td class="jira_cell" colspan="2" style="background: #f4f5f7"><html:p><html:strong>Input</html:strong></html:p></html:td><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>Output</html:strong></html:p></html:td><html:td class="jira_cell" rowspan="2" style="background: #f4f5f7"><html:p><html:strong>Design Spec Reference</html:strong></html:p></html:td></html:tr><html:tr><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>HMI_TC_MAX_RPM</html:strong></html:p></html:td><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>HMI_TC_RED_START_RPM (a)</html:strong></html:p></html:td><html:td class="jira_cell" style="background: #f4f5f7"><html:p><html:strong>Scale Number to use</html:strong></html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>1</html:p></html:td><html:td class="jira_cell" rowspan="2"><html:p>60[6000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>39[3900rpm]&lt;=(a) &lt;=40[4000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>6000RPM_Scale_Number[0]-[3] : <html:strong>【*1】</html:strong><html:br />6000RPM_Scale_Number[4]-[6] : Red display</html:p></html:td><html:td class="jira_cell" rowspan="20"><html:p>Refer to Godot Design</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>2</html:p></html:td><html:td class="jira_cell"><html:p>40[4000rpm]&lt;(a)&lt;=50[5000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>6000RPM_Scale_Number[0]-[4] : <html:strong>【*1】</html:strong><html:br />6000RPM_Scale_Number[5]-[6] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>3</html:p></html:td><html:td class="jira_cell" rowspan="3"><html:p>70[7000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>39[3900rpm]&lt;=(a) &lt;=40[4000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>7000RPM_Scale_Number[0]-[3] : <html:strong>【*1】</html:strong><html:br />7000RPM_Scale_Number[4]-[7] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>4</html:p></html:td><html:td class="jira_cell"><html:p>40[4000rpm]&lt;(a)&lt;=50[5000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>7000RPM_Scale_Number[0]-[4] : <html:strong>【*1】</html:strong><html:br />7000RPM_Scale_Number[5]-[7] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>5</html:p></html:td><html:td class="jira_cell"><html:p>50[5000rpm]&lt;(a)&lt;=60[6000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>7000RPM_Scale_Number[0]-[5] : <html:strong>【*1】</html:strong><html:br />7000RPM_Scale_Number[6]-[7] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>6</html:p></html:td><html:td class="jira_cell" rowspan="4"><html:p>80[8000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>39[3900rpm]&lt;=(a) &lt;=40[4000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>8000RPM_Scale_Number[0]-[3] : <html:strong>【*1】</html:strong><html:br />8000RPM_Scale_Number[4]-[8] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>7</html:p></html:td><html:td class="jira_cell"><html:p>40[4000rpm]&lt;(a)&lt;=50[5000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>8000RPM_Scale_Number[0]-[4] : <html:strong>【*1】</html:strong><html:br />8000RPM_Scale_Number[5]-[8] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>8</html:p></html:td><html:td class="jira_cell"><html:p>50[5000rpm]&lt;(a)&lt;=60[6000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>8000RPM_Scale_Number[0]-[5] : <html:strong>【*1】</html:strong><html:br />8000RPM_Scale_Number[6]-[8] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>9</html:p></html:td><html:td class="jira_cell"><html:p>60[6000rpm]&lt;(a)&lt;=70[7000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>8000RPM_Scale_Number[0]-[6] : <html:strong>【*1】</html:strong><html:br />8000RPM_Scale_Number[7]-[8] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>10</html:p></html:td><html:td class="jira_cell" rowspan="5"><html:p>90[9000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>39[3900rpm]&lt;=(a) &lt;=40[4000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>9000RPM_Scale_Number[0]-[3] : <html:strong>【*1】</html:strong><html:br />9000RPM_Scale_Number[4]-[9] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>11</html:p></html:td><html:td class="jira_cell"><html:p>40[4000rpm]&lt;(a)&lt;=50[5000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>9000RPM_Scale_Number[0]-[4] : <html:strong>【*1】</html:strong><html:br />9000RPM_Scale_Number[5]-[9] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>12</html:p></html:td><html:td class="jira_cell"><html:p>50[5000rpm]&lt;(a)&lt;=60[6000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>9000RPM_Scale_Number[0]-[5] : <html:strong>【*1】</html:strong><html:br />9000RPM_Scale_Number[6]-[9] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>13</html:p></html:td><html:td class="jira_cell"><html:p>60[6000rpm]&lt;(a)&lt;=70[7000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>9000RPM_Scale_Number[0]-[6] : <html:strong>【*1】</html:strong><html:br />9000RPM_Scale_Number[7]-[9] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>14</html:p></html:td><html:td class="jira_cell"><html:p>70[7000rpm]&lt;(a)&lt;=80[8000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>9000RPM_Scale_Number[0]-[7] : <html:strong>【*1】</html:strong><html:br />9000RPM_Scale_Number[8]-[9] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>15</html:p></html:td><html:td class="jira_cell" rowspan="6"><html:p>100[10000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>39[3900rpm]&lt;=(a) &lt;=40[4000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>10000RPM_Scale_Number[0]-[3] : <html:strong>【*1】</html:strong><html:br />10000RPM_Scale_Number[4]-[10] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>16</html:p></html:td><html:td class="jira_cell"><html:p>40[4000rpm]&lt;(a)&lt;=50[5000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>10000RPM_Scale_Number[0]-[4] : <html:strong>【*1】</html:strong><html:br />10000RPM_Scale_Number[5]-[10] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>17</html:p></html:td><html:td class="jira_cell"><html:p>50[5000rpm]&lt;(a)&lt;=60[6000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>10000RPM_Scale_Number[0]-[5] : <html:strong>【*1】</html:strong><html:br />10000RPM_Scale_Number[6]-[10] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>18</html:p></html:td><html:td class="jira_cell"><html:p>60[6000rpm]&lt;(a)&lt;=70[7000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>10000RPM_Scale_Number[0]-[6] : <html:strong>【*1】</html:strong><html:br />10000RPM_Scale_Number[7]-[10] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>19</html:p></html:td><html:td class="jira_cell"><html:p>70[7000rpm]&lt;(a)&lt;=80[8000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>10000RPM_Scale_Number[0]-[7] : <html:strong>【*1】</html:strong><html:br />10000RPM_Scale_Number[8]-[10] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>20</html:p></html:td><html:td class="jira_cell"><html:p>80[8000rpm]&lt;(a)&lt;=90[9000rpm]</html:p></html:td><html:td class="jira_cell"><html:p>10000RPM_Scale_Number[0]-[8] : <html:strong>【*1】</html:strong><html:br />10000RPM_Scale_Number[9]-[10] : Red display</html:p></html:td></html:tr><html:tr><html:td class="jira_cell"><html:p>21</html:p></html:td><html:td class="jira_cell" colspan="2"><html:p>Other than above</html:p></html:td><html:td class="jira_cell"><html:p>No Display(Not applicable)</html:p></html:td><html:td class="jira_cell"><html:p>NA</html:p></html:td></html:tr></html:table></html:div>
+                            </ns0:THE-VALUE>
+                        
+
+--- YOUR TASK ---
+Generate test cases in JSON format with the following EXACT structure:
+{
+    "analysis": "Chain of thought: Analyze the requirement, break it into functional blocks, describe any visual diagrams, identify boundary conditions, and list all edge cases/negative scenarios before generating the test cases.",
+    "test_cases": [
+        {
+            "summary_suffix": "Brief descriptive title for this specific test",
+            "preconditions": "Preconditions (voltage, system state)",
+            "test_steps": "Numbered list of test steps: 1) Step one\n2) Step two",
+            "expected_result": "Specific observable outcome that indicates pass",
+            "test_type": "positive or negative"
+        }
+    ]
+}
+
+REQUIREMENTS:
+1. Generate BOTH positive (valid inputs) AND negative (invalid/boundary/error) test cases
+2. Use "preconditions" field for preconditions (e.g., "1. Voltage=12V\n2. IGN ON")
+3. Use "test_steps" field for numbered test steps
+4. Each test case MUST include "test_type" field marking it as "positive" or "negative"
+5. Focus on:
+   - Boundary value testing
+   - Positive and negative scenarios
+   - Automotive-specific conditions (voltage, temperature, CAN signals)
+   - Error handling and safety considerations
+6. If diagrams are provided, analyze them to understand:
+   - System state machines and transitions
+   - Signal flows and timing sequences
+   - Parameter tables and threshold values
+   - Architectural dependencies and interactions
+   - UI behaviors and expected responses
+
+Return ONLY valid JSON with the exact field names shown above.
+

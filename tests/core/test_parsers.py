@@ -207,3 +207,54 @@ class TestHTMLTableParser:
         assert len(result) == 1
         assert "REQ-001" in result[0]["Requirement"]
         assert "shall" in result[0]["Description"]
+
+    def test_parse_table_with_colspan(self):
+        """Test parsing table with colspan handled correctly."""
+        html = """
+        <table>
+            <tr>
+                <th>Category</th>
+                <th colspan="2">Details</th>
+            </tr>
+            <tr>
+                <td>System</td>
+                <td>Value 1</td>
+                <td>Value 2</td>
+            </tr>
+        </table>
+        """
+
+        result = HTMLTableParser.extract_tables_from_html(html)
+
+        assert len(result) == 1
+        assert result[0]["Category"] == "System"
+        assert result[0]["Details"] == "Value 1"
+        assert result[0]["Details_2"] == "Value 2"
+
+    def test_parse_table_with_rowspan(self):
+        """Test parsing table with rowspan handled correctly."""
+        html = """
+        <table>
+            <tr>
+                <th>RPM</th>
+                <th>Result</th>
+            </tr>
+            <tr>
+                <td rowspan="2">6000</td>
+                <td>Valid Range</td>
+            </tr>
+            <tr>
+                <td>Red display</td>
+            </tr>
+        </table>
+        """
+
+        result = HTMLTableParser.extract_tables_from_html(html)
+
+        assert len(result) == 2
+        # First row
+        assert result[0]["RPM"] == "6000"
+        assert result[0]["Result"] == "Valid Range"
+        # Second row should inherit "6000" from rowspan
+        assert result[1]["RPM"] == "6000"
+        assert result[1]["Result"] == "Red display"
