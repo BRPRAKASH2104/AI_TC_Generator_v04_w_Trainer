@@ -57,6 +57,10 @@ ai-tc-generator --validate-prompts    # after editing YAML templates
 
 # Utilities
 python3 utilities/create_mock_reqifz.py    # generate mock REQIFZ for testing
+
+# Training (requires pip install -e .[training])
+ai-tc-generator input/ --hp              # normal run collects RAFT examples if enabled in config/cli_config.yaml
+# Enable in config/cli_config.yaml: training.enable_raft: true, training.collect_training_data: true
 ```
 
 ---
@@ -68,6 +72,7 @@ main.py (CLI)
   -> Processor (standard_processor.py | hp_processor.py)
       -> BaseProcessor._build_augmented_requirements()   # SHARED CONTEXT LOGIC
       -> REQIFArtifactExtractor (extractors.py)
+          -> RequirementRelationshipParser (relationship_parser.py)  # SPEC-RELATION parsing
           -> RequirementImageExtractor (image_extractor.py)
       -> Generator (generators.py)
           -> PromptBuilder (prompt_builder.py)
@@ -75,9 +80,17 @@ main.py (CLI)
           -> FastJSONResponseParser -> SemanticValidator -> TestCaseDeduplicator
       -> Formatter (formatters.py)
   -> Excel output + JSON logs
+
+src/training/                          # RAFT fine-tuning pipeline
+  -> RAFTDataCollector (raft_collector.py)       # collects examples during normal runs
+  -> RAFTAnnotator (raft_annotator.py)           # expert annotation support
+  -> RAFTDatasetBuilder (raft_dataset_builder.py)
+  -> ProgressiveRAFTTrainer (progressive_trainer.py)  # curriculum learning
+  -> VisionRAFTTrainer (vision_raft_trainer.py)
+  -> QualityScorer (quality_scorer.py)
 ```
 
-**Config**: `src/config.py` — Pydantic-based, reads env vars automatically. Env var prefix: `AI_TG_` for app flags, `OLLAMA__` for Ollama settings (e.g. `OLLAMA__ENABLE_VISION=false`).
+**Config**: `src/config.py` — Pydantic-based, reads env vars automatically. Env var prefix: `AI_TG_` for app flags, `OLLAMA__` for Ollama settings (e.g. `OLLAMA__ENABLE_VISION=false`). Runtime overrides also accepted via `config/cli_config.yaml` (training/vision settings).
 
 **Logging**: Structured JSON via `src/app_logger.py`. Logs in `output/logs/`.
 
@@ -185,11 +198,9 @@ See `tests/helpers/USAGE_EXAMPLES.md` for full examples.
 
 ---
 
-## Test Suite Status
+## Test Markers
 
-- Core unit tests: 94/94 (100%)
-- Integration tests: 223/255 (87%)
-- Test markers: `unit`, `integration`, `slow`, `async_test`
+`unit`, `integration`, `slow`, `async_test`
 
 ---
 
