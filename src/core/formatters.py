@@ -320,32 +320,6 @@ class TestCaseFormatter:
             if key not in ["model", "template", "total_cases"]:
                 ws.append([key, str(value)])
 
-    def export_to_json(
-        self, test_cases: TestCaseList, output_path: Path, metadata: dict[str, Any] | None = None
-    ) -> bool:
-        """Export test cases to JSON format"""
-        try:
-            output_data = {
-                "metadata": metadata or {},
-                "generated_at": datetime.now().isoformat(),
-                "test_cases": test_cases,
-                "total_count": len(test_cases),
-            }
-
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with output_path.open("w", encoding="utf-8") as f:
-                json.dump(output_data, f, indent=2, ensure_ascii=False)
-
-            if self.logger:
-                self.logger.info(f"Exported {len(test_cases)} test cases to JSON: {output_path}")
-
-            return True
-
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error exporting to JSON: {e}")
-            return False
 
 
 class StreamingTestCaseFormatter(TestCaseFormatter):

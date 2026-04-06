@@ -103,14 +103,6 @@ class FastJSONResponseParser(JSONResponseParser):
     __slots__ = ()
 
     @staticmethod
-    def extract_json_batch(responses: list[str]) -> list[JSONObject | None]:
-        """Extract JSON from multiple responses in batch for better performance"""
-        results = []
-        for response in responses:
-            results.append(JSONResponseParser.extract_json_from_response(response))
-        return results
-
-    @staticmethod
     def extract_json_from_response(response_text: str) -> JSONObject | None:
         """Optimized JSON extraction with faster regex patterns"""
         if not response_text or not response_text.strip():

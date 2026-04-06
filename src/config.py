@@ -119,11 +119,6 @@ class OllamaConfig(BaseModel):
         return f"http://{self.host}:{self.port}/api/generate"
 
     @property
-    def tags_url(self) -> str:
-        """Get the URL for listing available models"""
-        return f"http://{self.host}:{self.port}/api/tags"
-
-    @property
     def version_url(self) -> str:
         """Get the URL for version endpoint (Ollama 0.12.5+)"""
         return f"http://{self.host}:{self.port}/api/version"

@@ -267,33 +267,6 @@ class AppLogger:
             **kwargs,
         )
 
-    def log_ai_api_call(
-        self,
-        model: str,
-        response_time: float,
-        success: bool,
-        requirement_id: str | None = None,
-        **kwargs,
-    ) -> None:
-        """Log AI API call metrics"""
-        self.metrics["ai_api_calls"] += 1
-
-        # Update average response time
-        current_avg = self.metrics["performance_stats"]["avg_response_time"]
-        call_count = self.metrics["ai_api_calls"]
-        new_avg = ((current_avg * (call_count - 1)) + response_time) / call_count
-        self.metrics["performance_stats"]["avg_response_time"] = new_avg
-
-        self.debug(
-            f"AI API call {'successful' if success else 'failed'}: {model}",
-            model=model,
-            response_time_seconds=response_time,
-            success=success,
-            requirement_id=requirement_id,
-            event_type="ai_api_call",
-            **kwargs,
-        )
-
     def log_application_metrics(self) -> None:
         """Log current application metrics"""
         # Update performance stats
@@ -394,23 +367,3 @@ def shutdown_app_logger() -> None:
             _app_logger_instance.shutdown()
             _app_logger_instance = None
 
-
-# Convenience functions for common logging operations
-def log_info(message: str, **kwargs) -> None:
-    """Convenience function for info logging"""
-    get_app_logger().info(message, **kwargs)
-
-
-def log_error(message: str, **kwargs) -> None:
-    """Convenience function for error logging"""
-    get_app_logger().error(message, **kwargs)
-
-
-def log_warning(message: str, **kwargs) -> None:
-    """Convenience function for warning logging"""
-    get_app_logger().warning(message, **kwargs)
-
-
-def log_debug(message: str, **kwargs) -> None:
-    """Convenience function for debug logging"""
-    get_app_logger().debug(message, **kwargs)
