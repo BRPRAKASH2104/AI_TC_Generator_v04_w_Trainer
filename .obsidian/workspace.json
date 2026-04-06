@@ -1,0 +1,217 @@
+{
+  "main": {
+    "id": "c32c8c3898706bb6",
+    "type": "split",
+    "children": [
+      {
+        "id": "ded1df976f3c4f98",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1760ae6e0c07a895",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/configuration/CLI_CONFIG_EXAMPLE_SUMMARY.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "CLI_CONFIG_EXAMPLE_SUMMARY"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "b1f21d8763ed1e8f",
+    "type": "split",
+    "children": [
+      {
+        "id": "1c962a686f82be3b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "79009933c1279d67",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "7dfdc4806f3033aa",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "44c4bb951da3494a",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "3629be6fd36756fd",
+    "type": "split",
+    "children": [
+      {
+        "id": "ce5307d5a6083348",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8cff5a7c39652f71",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "docs/configuration/CLI_CONFIG_EXAMPLE_SUMMARY.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for CLI_CONFIG_EXAMPLE_SUMMARY"
+            }
+          },
+          {
+            "id": "f0b8b5208a656781",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "docs/configuration/CLI_CONFIG_EXAMPLE_SUMMARY.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from CLI_CONFIG_EXAMPLE_SUMMARY"
+            }
+          },
+          {
+            "id": "38618bb6e2327319",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "dae5e9632a5fe3ba",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "d6cc4c8e4ef704f2",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "docs/configuration/CLI_CONFIG_EXAMPLE_SUMMARY.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of CLI_CONFIG_EXAMPLE_SUMMARY"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "1760ae6e0c07a895",
+  "lastOpenFiles": [
+    "src/processors/__pycache__/standard_processor.cpython-314.pyc",
+    "src/core/__pycache__/exceptions.cpython-314.pyc",
+    "src/core/__pycache__/ollama_client.cpython-314.pyc",
+    "src/core/__pycache__/validators.cpython-314.pyc",
+    "src/core/__pycache__/prompt_builder.cpython-314.pyc",
+    "src/core/__pycache__/deduplicator.cpython-314.pyc",
+    "src/core/__pycache__/generators.cpython-314.pyc",
+    "src/core/__pycache__/formatters.cpython-314.pyc",
+    "src/core/__pycache__/formatters.cpython-314.pyc.4505208432",
+    "src/core/__pycache__/image_extractor.cpython-314.pyc",
+    "src/core/__pycache__/relationship_parser.cpython-314.pyc",
+    "docs/reviews/parts/audit_arch.md",
+    "docs/reviews/parts/audit_code.md",
+    "htmlcov/keybd_closed_cb_ce680311.png",
+    "htmlcov/favicon_32_cb_58284776.png",
+    "docs/reviews/Review_Comments_2026_04_06.md",
+    "docs/reviews/parts/test_review.md",
+    "docs/reviews/parts/config_review.md",
+    "docs/reviews/parts/docs_review.md",
+    "docs/reviews/parts/arch_review.md",
+    "GEMINI.md",
+    "example.md",
+    "docs/archive/V03_COMPATIBILITY_FIXES.md",
+    "docs/archive/INIT_V03_COMPATIBILITY_SUMMARY.md",
+    "docs/archive/CRITICAL_IMPROVEMENTS_SUMMARY.md",
+    "CLAUDE.md",
+    "README.md",
+    "System_Intructions.md"
+  ]
+}

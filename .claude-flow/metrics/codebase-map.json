@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-04-06T12:14:47.288Z",
+  "projectRoot": "/Users/ramprakash/Documents/GitHub/AI_TC_Generator_v04_w_Trainer",
+  "structure": {
+    "hasPackageJson": false,
+    "hasTsConfig": false,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1775477687288
+}

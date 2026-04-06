@@ -107,21 +107,33 @@ src/training/                          # RAFT fine-tuning pipeline
 
 ## Critical Architecture: Context-Aware Processing
 
-**DO NOT BREAK** — `BaseProcessor._build_augmented_requirements()` (`src/processors/base_processor.py:62-126`):
+**DO NOT BREAK** — `BaseProcessor._build_augmented_requirements()` (`src/processors/base_processor.py:103`):
 
 ```python
+# Interface text fields normalised once before the loop
+system_interfaces = [
+    {**iface, "text": self._clean_text_for_logging(iface.get("text", ""))}
+    for iface in raw_interfaces
+]
+
 current_heading = "No Heading"
 info_since_heading = []
 
 for obj in artifacts:
     if obj.get("type") == "Heading":
-        current_heading = obj.get("text", "No Heading")
+        raw_heading = obj.get("text", "No Heading")
+        current_heading = self._clean_text_for_logging(raw_heading) or "No Heading"
         info_since_heading = []          # reset on new heading
     elif obj.get("type") == "Information":
-        info_since_heading.append(obj)
+        clean_info = {**obj, "text": self._clean_text_for_logging(obj.get("text", ""))}
+        info_since_heading.append(clean_info)
     elif obj.get("type") == "System Requirement":
+        req_text = self._clean_text_for_logging(obj.get("text", ""))
+        if not req_text:
+            continue
         augmented_requirement = obj.copy()
         augmented_requirement.update({
+            "text": req_text,            # normalised plain string
             "heading": current_heading,
             "info_list": info_since_heading.copy(),
             "interface_list": system_interfaces
@@ -134,6 +146,7 @@ Rules:
 - Never filter artifacts before this loop (kills context)
 - Never duplicate this logic in individual processors (use inheritance)
 - Never remove `heading`, `info_list`, `interface_list` from `PromptBuilder` templates
+- `_clean_text_for_logging` handles `str | list | None` — the extractor can return `text` as a Python list of XML node strings; all downstream code (validators, prompt_builder) expects plain strings
 
 ---
 
@@ -191,7 +204,7 @@ See `tests/helpers/USAGE_EXAMPLES.md` for full examples.
 
 | File | Lines | Why Critical |
 |------|-------|--------------|
-| `src/processors/base_processor.py` | 62-126 | Context-aware processing core |
+| `src/processors/base_processor.py` | 103-188 | Context-aware processing core |
 | `src/core/extractors.py` | 151-172, 191, 235 | Attribute definition mapping |
 | `src/core/formatters.py` | 363-447 | 16-column Excel structure |
 | `src/core/ollama_client.py` | 146-266, 578-689 | Vision model support |
@@ -223,12 +236,13 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 | Vision model OOM | Too much concurrency | Lower `--max-concurrent` or `OLLAMA__ENABLE_VISION=false` |
 | Tests fail with XHTML mismatches | Not using test helpers | Use `tests/helpers/` functions |
 | `generate_test_cases` AttributeError | Wrong generator class | `AsyncTestCaseGenerator` has this method |
+| `TypeError: expected str` in validators on `test_steps` | AI returns `test_steps` as a list, not a string | `validators.py` normalises with `"\n".join(raw_data) if isinstance(raw_data, list)` — do not change this pattern |
 | Unexpected `training_data/` files written during normal runs | RAFT collection was previously opt-out | Both `enable_raft` and `collect_training_data` default to `false` in `config/cli_config.yaml`; set both to `true` to opt in |
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (3265 symbols, 6463 relationships, 189 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (3273 symbols, 6435 relationships, 184 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
