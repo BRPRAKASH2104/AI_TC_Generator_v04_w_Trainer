@@ -9,15 +9,12 @@ The AI Test Case Generator uses external YAML files for prompt management, allow
 ```
 prompts/
 ├── templates/              # YAML template files
-│   ├── test_generation.yaml
-│   └── error_handling.yaml
+│   ├── test_generation_adaptive.yaml
+│   └── test_generation_v3_structured.yaml
 ├── config/                 # Configuration files
 │   └── prompt_config.yaml
-├── examples/               # Documentation and examples
-│   ├── README.md
-│   └── sample_outputs/
 └── tools/                  # Validation and testing tools
-    └── validate_and_test.py
+    └── validation_and_tools.py
 ```
 
 ## Quick Start
@@ -25,45 +22,40 @@ prompts/
 ### 1. Basic Usage (Auto-Selection)
 ```bash
 # Use automatic template selection based on content
-python src/generate_contextual_tests_v002.py input.reqifz
+ai-tc-generator input.reqifz
 ```
 
 ### 2. Specific Template Usage
 ```bash
 # Use a specific prompt template
-python src/generate_contextual_tests_v002.py input.reqifz --template door_control_specialized
+ai-tc-generator input.reqifz --template test_generation_v3_structured
 ```
 
 ### 3. List Available Templates
 ```bash
 # See all available prompt templates
-python src/generate_contextual_tests_v002.py --list-templates
+ai-tc-generator --list-templates
 ```
 
 ### 4. Validate Templates
 ```bash
 # Validate all prompt template files
-python src/generate_contextual_tests_v002.py --validate-prompts
+ai-tc-generator --validate-prompts
 ```
 
 ## Available Templates
 
 ### Test Generation Templates
 
-1. **automotive_default**
-   - General purpose automotive testing prompt
-   - Used as fallback for unknown requirement types
+1. **test_generation_adaptive** (`prompts/templates/test_generation_adaptive.yaml`)
+   - Adaptive template that adjusts to requirement content
+   - Used as the general-purpose fallback for all requirement types
    - Suitable for most standard automotive requirements
 
-2. **door_control_specialized**
-   - Specialized for door control and locking systems
-   - Emphasizes safety-critical scenarios
-   - Auto-selected for requirements containing: "door", "lock", "DCS"
-
-3. **window_control_specialized**
-   - Specialized for window control with rain detection
-   - Focuses on weather response and safety features
-   - Auto-selected for requirements containing: "window", "rain", "WCS"
+2. **test_generation_v3_structured** (`prompts/templates/test_generation_v3_structured.yaml`)
+   - Structured v3 template with explicit output format
+   - Recommended for requirements where consistent JSON structure is important
+   - Produces well-formed test case arrays with all required fields
 
 ## Editing Templates
 
@@ -109,20 +101,16 @@ All test generation templates have access to these variables:
 
 Templates are automatically selected based on:
 
-1. **Heading Keywords**: Words in the feature heading
-   - "door", "lock" → door_control_specialized
-   - "window", "rain" → window_control_specialized
+1. **Content Analysis**: Requirement content, heading keywords, and table presence
+   - Requirements with tables or structured data → `test_generation_v3_structured`
+   - General requirements → `test_generation_adaptive`
 
-2. **Requirement ID Patterns**: Patterns in requirement IDs
-   - "DCS", "DOOR" → door_control_specialized
-   - "WCS", "WINDOW" → window_control_specialized
-
-3. **Default Fallback**: automotive_default for unmatched requirements
+2. **Default Fallback**: `test_generation_adaptive` for all unmatched requirements
 
 ## Creating New Templates
 
 ### Step 1: Add Template to YAML
-Edit `prompts/templates/test_generation.yaml`:
+Edit the appropriate file in `prompts/templates/`:
 
 ```yaml
 my_new_template:
@@ -165,10 +153,10 @@ prompt_selection:
 ### Step 3: Test Your Template
 ```bash
 # Validate the new template
-python src/generate_contextual_tests_v002.py --validate-prompts
+ai-tc-generator --validate-prompts
 
 # Test with specific template
-python src/generate_contextual_tests_v002.py input.reqifz --template my_new_template
+ai-tc-generator input.reqifz --template my_new_template
 ```
 
 ## Configuration
@@ -180,7 +168,7 @@ Key settings you can modify:
 ```yaml
 # Default template when auto-selection fails
 defaults:
-  template_selection: "automotive_default"
+  template_selection: "test_generation_adaptive"
 
 # Enable/disable auto-selection
 auto_selection:
@@ -190,9 +178,9 @@ auto_selection:
 # Model-specific preferences
 model_configurations:
   "llama3.1:8b":
-    recommended_templates: ["automotive_default", "door_control_specialized"]
+    recommended_templates: ["test_generation_adaptive", "test_generation_v3_structured"]
   "deepseek-coder-v2:16b":
-    recommended_templates: ["door_control_specialized", "window_control_specialized"]
+    recommended_templates: ["test_generation_v3_structured", "test_generation_adaptive"]
 ```
 
 ## Troubleshooting
@@ -204,7 +192,7 @@ model_configurations:
    ❌ Template 'my_template' not found
    ```
    - Check template name spelling
-   - Verify template exists in `prompts/templates/test_generation.yaml`
+   - Verify template exists in `prompts/templates/` directory
    - Use `--list-templates` to see available templates
 
 2. **Missing Required Variables**
@@ -235,13 +223,13 @@ model_configurations:
 
 ```bash
 # Check all template files for errors
-python src/generate_contextual_tests_v002.py --validate-prompts
+ai-tc-generator --validate-prompts
 
 # Test template rendering
-python prompts/tools/validate_and_test.py
+python prompts/tools/validation_and_tools.py
 
 # List available templates and their info
-python src/generate_contextual_tests_v002.py --list-templates
+ai-tc-generator --list-templates
 ```
 
 ## Best Practices
@@ -275,7 +263,7 @@ template: |
 
 ### Template Organization
 
-1. **Name Consistently**: Use `domain_purpose` format (e.g., `door_control_specialized`)
+1. **Name Consistently**: Use `domain_purpose` format (e.g., `test_generation_adaptive`)
 2. **Document Purpose**: Clear description and tags for each template
 3. **Group Related**: Keep similar templates together in YAML files
 4. **Version Control**: Track template changes in git with clear commit messages
@@ -293,9 +281,9 @@ The YAML prompt system maintains full backward compatibility:
 
 ### Output File Changes
 
-Files generated with YAML prompts use `_YAML` suffix:
-- Current: `file_TCD_llama3_1_8b_YAML.xlsx`
-- Format: Excel (.xlsx) files only
+Files generated use a timestamp-based naming convention:
+- Format: `{filename}_TCD_{mode}_{model}_{timestamp}.xlsx`
+- Example: `file_TCD_standard_llama3.1_8b_2025-11-03_20-51-49.xlsx`
 
 This ensures consistent, professional output format for all generated test cases.
 
@@ -305,7 +293,7 @@ This ensures consistent, professional output format for all generated test cases
 
 ```bash
 # Reload templates without restarting
-python src/generate_contextual_tests_v002.py --reload-prompts
+ai-tc-generator --reload-prompts
 ```
 
 ### Testing New Templates
@@ -391,11 +379,11 @@ base_automotive:
     {common_sections}
 
 # Inherit from base
-door_control_specialized:
+test_generation_v3_structured:
   inherits: "base_automotive"
   template: |
     {inherited_content}
-    Specialized door control instructions...
+    Structured output instructions...
 ```
 
 ### Performance Monitoring (Future)
@@ -414,25 +402,24 @@ Future features planned:
 ### Commands
 ```bash
 # Basic usage
-python src/generate_contextual_tests_v002.py input.reqifz
+ai-tc-generator input.reqifz
 
 # With specific template
-python src/generate_contextual_tests_v002.py input.reqifz --template door_control_specialized
+ai-tc-generator input.reqifz --template test_generation_v3_structured
 
 # Management commands
-python src/generate_contextual_tests_v002.py --list-templates
-python src/generate_contextual_tests_v002.py --validate-prompts
-python src/generate_contextual_tests_v002.py --reload-prompts
+ai-tc-generator --list-templates
+ai-tc-generator --validate-prompts
+ai-tc-generator --reload-prompts
 
 # Testing and validation
-python prompts/tools/validate_and_test.py
+python prompts/tools/validation_and_tools.py
 ```
 
 ### File Locations
-- Templates: `prompts/templates/test_generation.yaml`
+- Templates: `prompts/templates/` (see `test_generation_adaptive.yaml`, `test_generation_v3_structured.yaml`)
 - Configuration: `prompts/config/prompt_config.yaml`
-- Documentation: `prompts/examples/README.md`
-- Tools: `prompts/tools/validate_and_test.py`
+- Tools: `prompts/tools/validation_and_tools.py`
 
 ### Template Variables
 - `{heading}` - Current section heading
@@ -446,5 +433,5 @@ python prompts/tools/validate_and_test.py
 ### Output Format
 - **Format**: Excel (.xlsx) files only
 - **Location**: Same directory as input files
-- **Naming**: `{filename}_TCD_{model}_YAML.xlsx`
+- **Naming**: `{filename}_TCD_{mode}_{model}_{timestamp}.xlsx`
 - **Benefits**: Professional presentation, universal compatibility, direct editing capability

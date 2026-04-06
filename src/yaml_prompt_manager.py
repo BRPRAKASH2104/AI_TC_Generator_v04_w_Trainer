@@ -23,6 +23,7 @@ class YAMLPromptManager:
         "error_prompts",
         "last_selected_template",
         "template_usage_count",
+        "_selection_rules",
     )
 
     def __init__(self, config_file: str = "prompts/config/prompt_config.yaml"):
@@ -38,6 +39,7 @@ class YAMLPromptManager:
         self.error_prompts: dict[str, Any] = {}
         self.last_selected_template: str | None = None
         self.template_usage_count: dict[str, int] = {}  # Track template usage for summary
+        self._selection_rules: dict | None = None  # Cached prompt selection rules
 
         self.load_configuration()
         self.load_all_prompts()
@@ -119,6 +121,8 @@ class YAMLPromptManager:
                 with test_path.open(encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                     self.test_prompts = data.get("test_generation_prompts", {})
+                    # Cache selection rules at load time to avoid repeated disk reads
+                    self._selection_rules = data.get("prompt_selection", {})
                 print(f"✅ Loaded {len(self.test_prompts)} test generation templates")
             else:
                 print(f"⚠️  Test prompts file not found: {test_file}")
@@ -210,16 +214,11 @@ class YAMLPromptManager:
         heading = variables.get("heading", "").lower()
         req_id = variables.get("requirement_id", "").upper()
 
-        # Load selection rules from test prompts file
-        try:
-            test_file = self.config["file_paths"]["test_generation_prompts"]
-            test_path = self._resolve_config_path(test_file)
-            with test_path.open(encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-                selection_rules = data.get("prompt_selection", {})
-        except Exception:
+        # Use cached selection rules loaded during load_all_prompts
+        if self._selection_rules is None:
             defaults = self.config.get("defaults", {})
             return defaults.get("template_selection", "default")
+        selection_rules = self._selection_rules
 
         # Check heading keywords
         heading_rules = selection_rules.get("heading_keywords", {})
@@ -324,6 +323,7 @@ class YAMLPromptManager:
 
     def reload_prompts(self):
         """Reload all prompt templates (useful for development)"""
+        self._selection_rules = None  # Reset cache so a failed reload doesn't serve stale rules
         self.load_all_prompts()
         print("🔄 All prompt templates reloaded")
 

@@ -71,7 +71,7 @@ class TrainingConfig(BaseModel):
 
 ### System Requirements
 
-- **Python**: 3.13.7+
+- **Python**: 3.14+
 - **GPU**: NVIDIA GPU with 8GB+ VRAM (recommended)
 - **RAM**: 16GB+ system memory
 - **Storage**: 50GB+ free space for model storage

@@ -25,7 +25,7 @@ The AI Test Case Generator is an intelligent tool that automatically creates con
 Before you begin, ensure you have:
 
 - [x] **Operating System**: macOS, Linux, or Windows with WSL
-- [x] **Python**: Version 3.13.7+ (required)
+- [x] **Python**: Version 3.14+ (required)
 - [x] **RAM**: 8GB minimum, 16GB recommended
 - [x] **Disk Space**: 2GB free space
 - [x] **Internet**: Required for AI model downloads
@@ -51,11 +51,10 @@ ai-tc-generator --validate-prompts
 
 **Expected Output:**
 ```
-AI Test Case Generator v4.0.0
-🚀 AI Test Case Generator v1.4.0
+AI Test Case Generator v2.3.0
 📋 Found 5 template(s)
-✅ test_generation_v1 validated
-✅ test_generation_v2 validated
+✅ test_generation_adaptive validated
+✅ test_generation_v3_structured validated
 ...
 ```
 
@@ -331,7 +330,7 @@ ai-tc-generator very_large.reqifz --mode standard  # More memory efficient
 **"Python version not compatible"**
 ```bash
 # Check your Python version
-python --version  # Should be 3.13.7 or higher
+python --version  # Should be 3.14+ 
 
 # Use python3 if python is older
 python3 --version
@@ -446,6 +445,20 @@ top -p $(pgrep -f ai-tc)
 ---
 
 ## 📈 Advanced Usage
+
+### Profile-Based Configuration
+
+Run with a named configuration profile that bundles model, mode, and options:
+
+```bash
+ai-tc-generator input/file.reqifz --profile Llama31.HP.Quality
+```
+
+| Option | Description |
+|--------|-------------|
+| `--profile TEXT` | Run with a named configuration profile (e.g. `Llama31.HP.Quality`). Profiles are defined in `profiles/profiles.yaml`. |
+
+Profile format: `Model.Mode[.Modifier]`
 
 ### Custom Templates
 

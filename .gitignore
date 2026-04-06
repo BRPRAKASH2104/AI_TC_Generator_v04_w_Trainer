@@ -31,7 +31,25 @@ Thumbs.db
 output/
 *.log
 *.xlsx
-*.json
+
+# JSON output files (specific paths instead of broad *.json)
+output/**/*.json
+training_data/**/*.json
+bandit-report.json
+test_report_*.json
+REQIFZ_ANALYSIS_REPORT.json
+
+# Training data
+training_data/collected/
+training_data/validated/
+training_data/rejected/
+training_data/raft_dataset/
+training_data/models/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
 
 # Testing and coverage
 .pytest_cache/

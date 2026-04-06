@@ -24,12 +24,12 @@
 - **❌ Legacy OS**: Windows without WSL, macOS <12.0
 
 #### Python Requirements
-- **Version**: 3.13.7 exactly (required)
+- **Version**: 3.14+ (required)
 - **Architecture**: 64-bit only
 - **Package Manager**: pip 20.0+ recommended
 
 #### External Dependencies
-- **Ollama**: AI service provider (1.0.0+)
+- **Ollama**: AI service provider (0.17.4+)
 - **MS Excel**: For output file viewing (optional)
 
 ---
@@ -44,7 +44,7 @@ curl -fsSL https://raw.githubusercontent.com/your-org/ai-tc-generator/main/insta
 ```
 
 This script will:
-- Install Python 3.13.7 if not present
+- Install Python 3.14+ if not present
 - Install Ollama AI service
 - Install AI Test Case Generator
 - Download default AI model
@@ -56,12 +56,12 @@ This script will:
 
 **macOS (with Homebrew):**
 ```bash
-# Install Python 3.13.7
-brew install python@3.13
+# Install Python 3.14+
+brew install python@3.14
 
 # Verify installation
-python3.13 --version  # Should show 3.13.7
-python3.13 -m pip --version  # Should work
+python3.14 --version  # Should show 3.14+
+python3.14 -m pip --version  # Should work
 ```
 
 **Ubuntu/Debian:**
@@ -70,11 +70,11 @@ python3.13 -m pip --version  # Should work
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
 
-# Install Python 3.13.7
-sudo apt install python3.13 python3.13-venv python3.13-pip
+# Install Python 3.14+
+sudo apt install python3.14 python3.14-venv python3.14-pip
 
 # Set as default
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.14 1
 ```
 
 **Windows (WSL2):**
@@ -83,8 +83,8 @@ sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 
 wsl --update
 wsl --set-version Ubuntu 2
 
-# Install Python 3.13 in WSL Ubuntu
-sudo apt update && sudo apt install python3.13 python3.13-venv python3.13-pip
+# Install Python 3.14+ in WSL Ubuntu
+sudo apt update && sudo apt install python3.14 python3.14-venv python3.14-pip
 ```
 
 **Enterprise/Corporate Environments:**
@@ -124,10 +124,7 @@ ollama serve &
 #### Step 3: AI Test Case Generator Installation
 
 ```bash
-# Install from PyPI (recommended)
-pip install ai-tc-generator[dev]
-
-# OR install from source (development)
+# Install from source (recommended)
 git clone https://github.com/your-org/ai-tc-generator.git
 cd ai-tc-generator
 pip install -e .[dev]
@@ -308,7 +305,7 @@ environments:
 
 ### Common Installation Issues
 
-**1. "Python version 3.13.7 required"**
+**1. "Python version 3.14+ required"**
 
 ```bash
 # Check current version
@@ -316,20 +313,20 @@ python --version
 
 # Install correct version
 # macOS
-brew install python@3.13
+brew install python@3.14
 
 # Ubuntu
-sudo apt install python3.13 python3.13-venv
+sudo apt install python3.14 python3.14-venv
 
 # Verify
-python3.13 --version  # Should be 3.13.7
+python3.14 --version  # Should be 3.14+
 ```
 
 **2. "Permission denied" during installation**
 
 ```bash
 # Use user-level installation
-pip install --user ai-tc-generator[dev]
+pip install --user -e .[dev]
 
 # Add to PATH
 export PATH=$PATH:~/.local/bin
@@ -372,6 +369,7 @@ kill -9 <PID>
 
 # Or change Ollama port
 export OLLAMA_HOST=0.0.0.0:11435
+# Note: The application uses OLLAMA__BASE_URL environment variable (see src/config.py). OLLAMA_HOST may not be recognized.
 ollama serve
 ```
 
@@ -399,11 +397,11 @@ ollama pull llama3.1:8b
 
 ```bash
 # Create isolated environment
-python3.13 -m venv ai-tc-generator-env
+python3.14 -m venv ai-tc-generator-env
 source ai-tc-generator-env/bin/activate
 
 # Install development version
-pip install -e ../ai-tc-generator/[dev]
+pip install -e .[dev]
 
 # Run tests
 pytest tests/
@@ -428,7 +426,7 @@ sudo systemctl start ollama
 
 **Dockerfile:**
 ```dockerfile
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -439,7 +437,7 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://ollama.ai/install.sh | sh
 
 # Install AI Test Case Generator
-RUN pip install --no-cache-dir ai-tc-generator[dev]
+RUN pip install --no-cache-dir -e .[dev]
 
 # Create non-root user
 RUN useradd -m ai-user
@@ -478,10 +476,10 @@ services:
 ```bash
 # Install on EC2 instance
 sudo yum update -y
-sudo yum install python3.13 -y
+sudo yum install python3.14 -y
 
 # Install AI Test Case Generator
-pip3 install ai-tc-generator
+pip3 install -e .[dev]
 
 # Configure Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
@@ -609,7 +607,7 @@ fi
 
 Before contacting support, verify:
 
-- [ ] Python 3.13.7 installed: `python --version`
+- [ ] Python 3.14+ installed: `python --version`
 - [ ] Package installed: `ai-tc-generator --version`
 - [ ] Ollama running: `curl http://localhost:11434/api/tags`
 - [ ] Models available: `ollama list`
@@ -663,6 +661,6 @@ echo "Support bundle created in: $(pwd)"
 
 ---
 
-*This installation guide covers all supported deployment scenarios for the AI Test Case Generator. For operational guidance, see the OPERATIONAL_GUIDE.md. For troubleshooting, see TROUBLESHOOTING_GUIDE.md.*
+*This installation guide covers all supported deployment scenarios for the AI Test Case Generator. For additional help, see the project README.md and docs/FAQ.md.*
 
 *Version: 4.0 | Last Updated: October 2025 | Document Reference: INST-001*

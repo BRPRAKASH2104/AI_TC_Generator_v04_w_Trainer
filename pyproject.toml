@@ -86,10 +86,10 @@ ai-tc-generator = "main:main"
 ai-tc-gen = "main:main"
 
 [project.urls]
-Documentation = "https://github.com/your-username/AI_TC_Generator_v04_w_Trainer#readme"
-Repository = "https://github.com/your-username/AI_TC_Generator_v04_w_Trainer"
-Issues = "https://github.com/your-username/AI_TC_Generator_v04_w_Trainer/issues"
-Changelog = "https://github.com/your-username/AI_TC_Generator_v04_w_Trainer/releases"
+Documentation = "https://github.com/BRPRAKASH2104/AI_TC_Generator_v04_w_Trainer#readme"
+Repository = "https://github.com/BRPRAKASH2104/AI_TC_Generator_v04_w_Trainer"
+Issues = "https://github.com/BRPRAKASH2104/AI_TC_Generator_v04_w_Trainer/issues"
+Changelog = "https://github.com/BRPRAKASH2104/AI_TC_Generator_v04_w_Trainer/releases"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
@@ -100,7 +100,6 @@ include = [
     "/tests",
     "/prompts",
     "/utilities",
-    "/input",
     "/docs",
     "/README.md",
     "/CLAUDE.md",

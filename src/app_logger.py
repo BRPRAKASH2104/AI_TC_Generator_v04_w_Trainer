@@ -22,7 +22,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 # Global logger instance
-_app_logger_instance: AppLogger | None = None
+_app_logger_instance: "AppLogger | None" = None
 _logger_lock = threading.Lock()
 
 

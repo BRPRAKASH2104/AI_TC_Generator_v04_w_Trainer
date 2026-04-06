@@ -1,38 +1,31 @@
-# Input Directory
+# Documentation Index
 
-This directory is for organizing your REQIFZ input files for easy management.
+This directory contains all documentation for the AI Test Case Generator.
 
-## Usage
+## Core Documentation
 
-Place your `.reqifz` files here and reference them in commands:
+| File | Description |
+|------|-------------|
+| [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) | Installation and setup for all platforms (Linux, macOS, Windows/WSL2, Docker) |
+| [USER_MANUAL.md](USER_MANUAL.md) | Complete user guide: usage patterns, configuration, troubleshooting, best practices |
+| [FAQ.md](FAQ.md) | Frequently asked questions covering installation, usage, performance, and models |
+| [REQIFZ_REFERENCE.md](REQIFZ_REFERENCE.md) | REQIFZ format reference: file structure, XML schema, attribute mapping, code locations |
+| [ARCHITECTURE_DIAGRAM.md](ARCHITECTURE_DIAGRAM.md) | System architecture overview and component relationships |
+| [SECURITY_GUIDELINES.md](SECURITY_GUIDELINES.md) | Security best practices for deployment and configuration |
+| [prompt_documentation.md](prompt_documentation.md) | Prompt template reference: YAML structure, variables, auto-selection rules |
 
-```bash
-# Process single file
-python3 main.py input/your_file.reqifz
+## Subdirectories
 
-# Process all REQIFZ files in input directory
-python3 main.py input/
+| Directory | Description |
+|-----------|-------------|
+| [training/](training/) | RAFT training pipeline documentation, vision training guide, and model training guide |
+| [reviews/](reviews/) | Code and architecture review history (`Review_Comments_YYYY_MM_DD.md`) |
 
-# High-performance processing
-python3 main.py input/your_file.reqifz --hp --performance
-```
+## Quick Links
 
-## Test Data
-
-- `automotive_door_window_system.reqifz` - Generated test file with automotive door/window requirements
-
-## File Organization
-
-You can organize files in subdirectories:
-```
-input/
-├── project1/
-│   ├── requirements_v1.reqifz
-│   └── requirements_v2.reqifz
-├── project2/
-│   └── specs.reqifz
-└── test_data/
-    └── automotive_door_window_system.reqifz
-```
-
-The system will process individual files or entire directories as specified in your command.
+- For first-time setup: [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md)
+- For day-to-day usage: [USER_MANUAL.md](USER_MANUAL.md)
+- For common problems: [FAQ.md](FAQ.md)
+- For REQIFZ format questions: [REQIFZ_REFERENCE.md](REQIFZ_REFERENCE.md)
+- For prompt customization: [prompt_documentation.md](prompt_documentation.md)
+- For training custom models: [training/MODEL_TRAINING_GUIDE.md](training/MODEL_TRAINING_GUIDE.md)

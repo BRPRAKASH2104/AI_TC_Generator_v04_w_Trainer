@@ -21,7 +21,7 @@ def run_tests():
         ".",
         "-v",  # Verbose output
         "--tb=short",  # Short traceback format
-        "--cov=../src",  # Coverage for src directory
+        "--cov=src",  # Coverage for src directory
         "--cov-report=term-missing",  # Show missing lines
         "--cov-report=html:htmlcov",  # HTML coverage report
     ]
@@ -42,7 +42,7 @@ def run_specific_test(test_path):
     """Run a specific test file or test function."""
     print(f"🧪 Running specific test: {test_path}")
 
-    cmd = ["python", "-m", "pytest", test_path, "-v", "--tb=short"]
+    cmd = ["python3", "-m", "pytest", test_path, "-v", "--tb=short"]
 
     try:
         subprocess.run(cmd, check=True)

@@ -1,5 +1,5 @@
 # REQIFZ Complete Reference Guide
-**AI Test Case Generator v2.1.0**
+**AI Test Case Generator v2.3.0**
 
 **Last Updated**: 2025-10-31
 **Purpose**: Comprehensive reference for REQIFZ file handling, structure, and implementation
@@ -40,7 +40,7 @@ REQIFZ is the **Requirements Interchange Format ZIP** format used in automotive 
 - **Standard Mode**: ~4 req/sec test case generation
 - **HP Mode**: ~14.5 req/sec test case generation (3-7x faster)
 - **Memory**: 0.008-0.010 MB per artifact
-- **Context Window**: 16K tokens (Ollama 0.12.5)
+- **Context Window**: 16K tokens (Ollama 0.17.4+)
 
 ---
 
@@ -467,7 +467,7 @@ Excel Output (.xlsx)
 **Prompt Quality**:
 - Adaptive templates (table vs text-only)
 - Full context injection
-- 16K token context window (Ollama 0.12.5)
+- 16K token context window (Ollama 0.17.4+)
 
 ### Performance - 9.5/10
 
@@ -644,7 +644,7 @@ analyze_image_with_vision_ai(image_path, requirement_context)
 5. `TestCaseFormatter.format_to_excel()` - Output generation
 
 ### Version History
-- **v2.1.0** (Current) - Python 3.14 + Ollama 0.12.5, 16K context, GPU offload
+- **v2.3.0** (Current) - Python 3.14 + Ollama 0.17.4+, 16K context, GPU offload
 - **v1.5.0** - Custom exceptions, concurrent batch processing (3x speedup)
 - **v2.0** - Attribute mapping fix (0% → 100% extraction)
 
@@ -653,7 +653,7 @@ analyze_image_with_vision_ai(image_path, requirement_context)
 - **Standard**: ~4 req/sec test generation
 - **HP Mode**: ~14.5 req/sec test generation
 - **Memory**: 0.008-0.010 MB per artifact
-- **Context**: 16K tokens (Ollama 0.12.5)
+- **Context**: 16K tokens (Ollama 0.17.4+)
 
 ---
 
@@ -674,6 +674,6 @@ analyze_image_with_vision_ai(image_path, requirement_context)
 ---
 
 **Document Generated**: 2025-10-31
-**Version**: v2.1.0
+**Version**: v2.3.0
 **Project**: AI Test Case Generator for Automotive REQIFZ Files
 **Status**: Production-Ready ✅

@@ -66,6 +66,7 @@ presets:
     debug: true
     template: "driver_information_default"
 
+  # NOTE: This model is not in the default supported set (llama3.1:8b, llama3.2-vision:11b). Ensure it is available in your Ollama instance.
   # Qwen 3 Vision preset
   qwen_vision:
     mode: "standard"
@@ -75,6 +76,7 @@ presets:
       vision_model: "qwen3-vl:32b"  # Vision model
       enable_vision: true
 
+  # NOTE: This model is not in the default supported set (llama3.1:8b, llama3.2-vision:11b). Ensure it is available in your Ollama instance.
   # Qwen MoE preset (Fast/Efficient)
   qwen_moe:
     mode: "standard"
@@ -193,8 +195,9 @@ validation:
 
 training:
   # RAFT (Retrieval Augmented Fine-Tuning) settings
-  enable_raft: true                    # Enable RAFT data collection
-  collect_training_data: true          # Collect examples during processing
+  # Set to true to collect RAFT training examples during processing (opt-in)
+  enable_raft: false                   # Enable RAFT data collection
+  collect_training_data: false         # Collect examples during processing
   training_data_dir: "training_data"   # Directory for training data
   
   # Training thresholds

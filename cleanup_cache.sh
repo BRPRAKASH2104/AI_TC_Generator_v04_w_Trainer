@@ -42,7 +42,7 @@ find . -name "Thumbs.db" -type f -delete 2>/dev/null || true
 
 # Old log files (keep current)
 echo "  Removing old rotated log files..."
-find logs/ -name "*.jsonl.*" -type f -delete 2>/dev/null || true
+find output/logs/ -name "*.jsonl.*" -type f -delete 2>/dev/null || true
 
 echo "✅ Cleanup complete!"
 echo ""

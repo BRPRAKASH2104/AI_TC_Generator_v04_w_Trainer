@@ -215,7 +215,7 @@ class TestHPProcessorIntegration:
         with patch.object(processor, 'formatter') as mock_formatter:
             mock_formatter.format_to_excel_streaming = Mock(return_value=True)
 
-            result = await processor.process_file(Path("/test/file.reqifz"))
+            result = await processor.process_file(Path("/tmp/file.reqifz"))
 
         # Should still succeed with partial results
         assert result["success"] is True

@@ -54,7 +54,7 @@ profiles:
   IC.Llama31.Default.HP:
     description: "IC project with Llama3.1, default template, high-performance mode"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 4
     timeout: 300
@@ -81,7 +81,7 @@ profiles:
   IC.Deepseek.Telltale.HP:
     description: "IC project with DeepSeek, Telltale template, high-performance mode"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "telltale-v3"
     max_concurrent: 6
     timeout: 600
@@ -127,7 +127,7 @@ profiles:
   AUTO.Llama31.ECU.HP:
     description: "Automotive ECU testing with Llama3.1, high-performance mode"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "automotive-ecu-v3"
     max_concurrent: 4
     timeout: 400
@@ -156,7 +156,7 @@ profiles:
   AUTO.Deepseek.Infotainment.HP:
     description: "Automotive infotainment with DeepSeek, high-performance mode"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "automotive-infotainment-v2"
     max_concurrent: 6
     timeout: 500
@@ -171,7 +171,7 @@ profiles:
   AUTO.Deepseek.Safety.HP:
     description: "Automotive safety systems with DeepSeek, high-performance mode"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "automotive-safety-critical-v3"
     max_concurrent: 4
     timeout: 800
@@ -204,7 +204,7 @@ profiles:
   AERO.Deepseek.FlightControl.HP:
     description: "Aerospace flight control with DeepSeek, high-performance mode"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "aerospace-flight-control-v2"
     max_concurrent: 4
     timeout: 900
@@ -219,7 +219,7 @@ profiles:
   AERO.Qwen.Navigation.HP:
     description: "Aerospace navigation systems with Qwen, high-performance mode"
     model: "qwen2.5-coder:14b"
-    mode: "high-performance"
+    mode: "hp"
     template: "aerospace-navigation-v2"
     max_concurrent: 4
     timeout: 700
@@ -252,7 +252,7 @@ profiles:
   TELE.Deepseek.Protocol.HP:
     description: "Telecommunications protocol testing with DeepSeek, high-performance"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "telecommunications-protocol-v2"
     max_concurrent: 6
     timeout: 400
@@ -285,7 +285,7 @@ profiles:
   MED.Deepseek.Safety.HP:
     description: "Medical device safety testing with DeepSeek, high-performance"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "medical-device-safety-v3"
     max_concurrent: 3
     timeout: 1200
@@ -318,7 +318,7 @@ profiles:
   DEV.Llama31.Quick.HP:
     description: "Quick development testing with Llama3.1, high-performance"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "development-quick-v1"
     max_concurrent: 4
     timeout: 200
@@ -366,7 +366,7 @@ profiles:
   PROD.Deepseek.Comprehensive.HP:
     description: "Production comprehensive testing with DeepSeek, high-performance"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "production-comprehensive-v3"
     max_concurrent: 8
     timeout: 1200
@@ -382,7 +382,7 @@ profiles:
   PROD.Llama31.Fast.HP:
     description: "Production fast processing with Llama3.1, high-performance"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "production-fast-v2"
     max_concurrent: 8
     timeout: 300
@@ -416,7 +416,7 @@ environments:
   ci-pipeline:
     description: "CI/CD pipeline environment"
     ollama:
-      host: "ci-ollama.internal"
+      host: "http://localhost:11434"  # CONFIGURE: Set to your CI Ollama server URL per environment
       port: 11434
       timeout: 180
       concurrent_requests: 8
@@ -424,7 +424,7 @@ environments:
   staging-environment:
     description: "Staging environment for pre-production testing"
     ollama:
-      host: "staging-ollama.company.com"
+      host: "http://localhost:11434"  # CONFIGURE: Set to your staging Ollama server URL per environment
       port: 11434
       timeout: 600
     static_test:
@@ -434,7 +434,7 @@ environments:
   production-environment:
     description: "Production environment"
     ollama:
-      host: "prod-ollama.company.com"
+      host: "http://localhost:11434"  # CONFIGURE: Set to your production Ollama server URL per environment
       port: 11434
       timeout: 900
       concurrent_requests: 2

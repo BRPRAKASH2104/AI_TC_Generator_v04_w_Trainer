@@ -5,13 +5,18 @@ Tests the full workflow integration between components.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, Mock, patch
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
 from config import ConfigManager
 from processors.hp_processor import HighPerformanceREQIFZFileProcessor
 from processors.standard_processor import REQIFZFileProcessor
+from tests.helpers import (
+    create_test_heading,
+    create_test_requirement,
+)
 
 
 class TestREQIFZFileProcessor:
@@ -179,46 +184,137 @@ class TestHighPerformanceREQIFZFileProcessor:
     """Integration tests for high-performance processor."""
 
     @pytest.mark.asyncio
-    async def test_process_file_success(self, temp_reqifz_file, tmp_path):
+    @patch('processors.hp_processor.HighPerformanceREQIFArtifactExtractor')
+    @patch('processors.hp_processor.AsyncTestCaseGenerator')
+    @patch('processors.hp_processor.StreamingTestCaseFormatter')
+    @patch('processors.hp_processor.AsyncOllamaClient')
+    async def test_process_file_success(
+        self,
+        MockClient,
+        MockFormatter,
+        MockGenerator,
+        MockExtractor,
+        tmp_path,
+    ):
         """Test successful async file processing."""
-        # Skip this test for now - mocking infrastructure needs refinement
-        # The actual HP processor logic works correctly, but the test mocking is complex
-        pytest.skip("Async mocking infrastructure needs refinement - HP processor logic verified manually")
-        # Note: According to test summary, HP processor successfully processes artifacts
-        # This is a test infrastructure issue, not a code issue
+        # Setup extractor mock with XHTML-formatted artifacts
+        mock_extractor = MockExtractor.return_value
+        mock_extractor.extract_reqifz_content.return_value = [
+            create_test_heading("HP Test Section"),
+            create_test_requirement("HP requirement 1", requirement_id="REQ_001"),
+            create_test_requirement("HP requirement 2", requirement_id="REQ_002"),
+        ]
+        mock_extractor.classify_artifacts.return_value = {"System Interface": []}
+
+        # Async context-manager for OllamaClient
+        mock_client_instance = MagicMock()
+        MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        MockClient.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        # Generator mock — generate_test_cases is an async method
+        mock_generator_instance = MagicMock()
+        MockGenerator.return_value = mock_generator_instance
+        mock_generator_instance.generate_test_cases = AsyncMock(
+            side_effect=[
+                [{"test_id": "TC_001", "summary": "Test case 1"}],
+                [{"test_id": "TC_002", "summary": "Test case 2"}],
+            ]
+        )
+
+        mock_formatter = MockFormatter.return_value
+        mock_formatter.format_to_excel_streaming.return_value = True
+
+        config = ConfigManager()
+        processor = HighPerformanceREQIFZFileProcessor(config)
+
+        result = await processor.process_file(
+            Path("/test/file.reqifz"),
+            model="llama3.1:8b",
+            output_dir=tmp_path,
+        )
+
+        assert result["success"] is True
+        assert result["total_test_cases"] == 2
+        assert result["requirements_processed"] == 2
 
     @pytest.mark.asyncio
+    @patch('processors.hp_processor.HighPerformanceREQIFArtifactExtractor')
+    @patch('processors.hp_processor.AsyncTestCaseGenerator')
     @patch('processors.hp_processor.AsyncOllamaClient')
-    @patch('processors.base_processor.YAMLPromptManager')
-    async def test_process_file_with_failures(self, mock_yaml_manager, mock_async_ollama_client, temp_reqifz_file, tmp_path):
-        """Test async processing with some requirement failures."""
-        # Setup mocks
-        mock_client_instance = Mock()
-        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-        mock_client_instance.__aexit__ = AsyncMock(return_value=None)
-        mock_async_ollama_client.return_value = mock_client_instance
+    async def test_process_file_no_test_cases_generated(
+        self,
+        MockClient,
+        MockGenerator,
+        MockExtractor,
+        tmp_path,
+    ):
+        """Test HP processor returns failure when generator produces no test cases."""
+        mock_extractor = MockExtractor.return_value
+        mock_extractor.extract_reqifz_content.return_value = [
+            create_test_requirement("Sample requirement", requirement_id="REQ_001"),
+        ]
+        mock_extractor.classify_artifacts.return_value = {"System Interface": []}
 
-        mock_yaml_instance = Mock()
-        mock_yaml_instance.get_test_prompt.return_value = "Generate test cases"
-        mock_yaml_instance.test_prompts = {"default": {}}
-        mock_yaml_manager.return_value = mock_yaml_instance
+        mock_client_instance = MagicMock()
+        MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        MockClient.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        # Mock generator with mixed results - this test only has 1 requirement, so we can't test mixed results
-        # Instead, let's test a pure failure case and expect the processor to handle it gracefully
-        with patch('processors.hp_processor.AsyncTestCaseGenerator') as mock_generator_class:
-            mock_generator = Mock()
-            mock_generator.generate_test_cases_batch = AsyncMock(return_value=[
-                {"error": True, "requirement_id": "REQ_001", "test_cases": []}  # Failed requirement
-            ])
-            mock_generator_class.return_value = mock_generator
+        mock_generator_instance = MagicMock()
+        MockGenerator.return_value = mock_generator_instance
+        # Generator returns an empty list — no test cases produced
+        mock_generator_instance.generate_test_cases = AsyncMock(return_value=[])
 
-            config = ConfigManager()
-            processor = HighPerformanceREQIFZFileProcessor(config)
+        config = ConfigManager()
+        processor = HighPerformanceREQIFZFileProcessor(config)
 
-            result = await processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
+        result = await processor.process_file(
+            Path("/test/file.reqifz"),
+            model="llama3.1:8b",
+            output_dir=tmp_path,
+        )
 
-            assert not result["success"]  # Processing failed due to no test cases
-            assert "unhandled errors in a TaskGroup" in result["error"] or "No test cases were generated" in result["error"]
+        assert not result["success"]
+        assert "No test cases were generated" in result["error"]
+
+    @pytest.mark.asyncio
+    @patch('processors.hp_processor.HighPerformanceREQIFArtifactExtractor')
+    @patch('processors.hp_processor.AsyncTestCaseGenerator')
+    @patch('processors.hp_processor.AsyncOllamaClient')
+    async def test_process_file_with_generator_exception(
+        self,
+        MockClient,
+        MockGenerator,
+        MockExtractor,
+        tmp_path,
+    ):
+        """Test HP processor returns failure when generator raises an exception."""
+        mock_extractor = MockExtractor.return_value
+        mock_extractor.extract_reqifz_content.return_value = [
+            create_test_requirement("Sample requirement", requirement_id="REQ_001"),
+        ]
+        mock_extractor.classify_artifacts.return_value = {"System Interface": []}
+
+        mock_client_instance = MagicMock()
+        MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        MockClient.return_value.__aexit__ = AsyncMock(return_value=None)
+
+        mock_generator_instance = MagicMock()
+        MockGenerator.return_value = mock_generator_instance
+        # Generator raises so the TaskGroup propagates an error
+        mock_generator_instance.generate_test_cases = AsyncMock(
+            side_effect=RuntimeError("Simulated generation failure")
+        )
+
+        config = ConfigManager()
+        processor = HighPerformanceREQIFZFileProcessor(config)
+
+        result = await processor.process_file(
+            Path("/test/file.reqifz"),
+            model="llama3.1:8b",
+            output_dir=tmp_path,
+        )
+
+        assert not result["success"]
 
     @pytest.mark.asyncio
     async def test_performance_monitoring(self, tmp_path):

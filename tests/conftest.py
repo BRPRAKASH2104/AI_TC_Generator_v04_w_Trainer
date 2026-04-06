@@ -4,12 +4,14 @@ Pytest configuration and shared fixtures for AI Test Case Generator tests.
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 # Add src to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from tests.helpers import create_test_requirement
 
 
 @pytest.fixture
@@ -34,8 +36,8 @@ def mock_ollama_client():
 @pytest.fixture
 def mock_async_ollama_client():
     """Mock AsyncOllamaClient for testing async functionality."""
-    mock_client = Mock()
-    mock_client.generate_response_async.return_value = """
+    mock_client = AsyncMock()
+    _response = """
     {
         "test_cases": [
             {
@@ -47,46 +49,39 @@ def mock_async_ollama_client():
         ]
     }
     """
+    mock_client.generate_response = AsyncMock(return_value=_response)
+    mock_client.generate_response_with_vision = AsyncMock(return_value=_response)
+    # Context-manager support (async with client as c:)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
     return mock_client
 
 
 @pytest.fixture
 def sample_requirement():
-    """Sample requirement artifact for testing."""
-    return {
-        "id": "REQ_001",
-        "type": "System Requirement",
-        "text": "The system shall validate user input and respond within 2 seconds",
-        "description": "Input validation requirement",
-        "attributes": {
-            "priority": "high",
-            "category": "performance"
-        }
-    }
+    """Sample requirement artifact for testing (XHTML-formatted text)."""
+    return create_test_requirement(
+        "The system shall validate user input and respond within 2 seconds",
+        requirement_id="REQ_001",
+    )
 
 
 @pytest.fixture
 def sample_requirements_list():
-    """List of sample requirements for batch testing."""
+    """List of sample requirements for batch testing (XHTML-formatted text)."""
     return [
-        {
-            "id": "REQ_001",
-            "type": "System Requirement",
-            "text": "The system shall validate user input",
-            "description": "Input validation requirement"
-        },
-        {
-            "id": "REQ_002",
-            "type": "System Requirement",
-            "text": "The system shall handle errors gracefully",
-            "description": "Error handling requirement"
-        },
-        {
-            "id": "REQ_003",
-            "type": "System Requirement",
-            "text": "The system shall log all transactions",
-            "description": "Logging requirement"
-        }
+        create_test_requirement(
+            "The system shall validate user input",
+            requirement_id="REQ_001",
+        ),
+        create_test_requirement(
+            "The system shall handle errors gracefully",
+            requirement_id="REQ_002",
+        ),
+        create_test_requirement(
+            "The system shall log all transactions",
+            requirement_id="REQ_003",
+        ),
     ]
 
 

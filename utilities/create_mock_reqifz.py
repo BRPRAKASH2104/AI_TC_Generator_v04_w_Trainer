@@ -468,4 +468,5 @@ if __name__ == "__main__":
     print("💡 This file follows the exact artifact types defined in your project!")
     print()
     print("📝 Usage:")
-    print(f"  python src/generate_contextual_tests_Llama31_v1.0.py {filename}")
+    print(f"  ai-tc-generator {filename}")
+    print(f"  python3 main.py {filename}")

@@ -41,7 +41,7 @@ profiles:
   Llama31.HP:
     description: "Llama3.1 high-performance processing"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 4
     timeout: 300
@@ -51,7 +51,7 @@ profiles:
   Llama31.HP.Verbose:
     description: "Llama3.1 high-performance with verbose output"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 4
     timeout: 300
@@ -61,7 +61,7 @@ profiles:
   Llama31.HP.Debug:
     description: "Llama3.1 high-performance with debug mode"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 2
     timeout: 600
@@ -82,7 +82,7 @@ profiles:
   Llama31.Fast:
     description: "Llama3.1 optimized for fast processing"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "development-quick-v1"
     max_concurrent: 8
     timeout: 200
@@ -93,6 +93,7 @@ profiles:
   # DEEPSEEK MODEL PROFILES
   # =================================================================
 
+  # NOTE: This model is not in the default supported set (llama3.1:8b, llama3.2-vision:11b). Ensure it is available in your Ollama instance.
   Deepseek.Standard:
     description: "DeepSeek standard processing"
     model: "deepseek-coder-v2:16b"
@@ -106,7 +107,7 @@ profiles:
   Deepseek.HP:
     description: "DeepSeek high-performance processing"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 6
     timeout: 600
@@ -116,7 +117,7 @@ profiles:
   Deepseek.HP.Verbose:
     description: "DeepSeek high-performance with verbose output"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 6
     timeout: 600
@@ -145,7 +146,7 @@ profiles:
   Deepseek.Telltale.HP:
     description: "DeepSeek Telltale high-performance"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "telltale-v3"
     max_concurrent: 6
     timeout: 600
@@ -155,7 +156,7 @@ profiles:
   Deepseek.Telltale.HP.Verbose:
     description: "DeepSeek Telltale high-performance with verbose output"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "telltale-v3"
     max_concurrent: 6
     timeout: 600
@@ -166,6 +167,7 @@ profiles:
   # QWEN MODEL PROFILES
   # =================================================================
 
+  # NOTE: This model is not in the default supported set (llama3.1:8b, llama3.2-vision:11b). Ensure it is available in your Ollama instance.
   Qwen.Standard:
     description: "Qwen standard processing"
     model: "qwen2.5-coder:14b"
@@ -179,7 +181,7 @@ profiles:
   Qwen.HP:
     description: "Qwen high-performance processing"
     model: "qwen2.5-coder:14b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 5
     timeout: 500
@@ -189,7 +191,7 @@ profiles:
   Qwen.HP.Verbose:
     description: "Qwen high-performance with verbose output"
     model: "qwen2.5-coder:14b"
-    mode: "high-performance"
+    mode: "hp"
     template: "default-v2"
     max_concurrent: 5
     timeout: 500
@@ -203,7 +205,7 @@ profiles:
   Deepseek.Automotive:
     description: "DeepSeek optimized for automotive requirements"
     model: "deepseek-coder-v2:16b"
-    mode: "high-performance"
+    mode: "hp"
     template: "automotive-ecu-v3"
     max_concurrent: 4
     timeout: 700
@@ -218,7 +220,7 @@ profiles:
   Llama31.Development:
     description: "Llama3.1 optimized for development workflow"
     model: "llama3.1:8b"
-    mode: "high-performance"
+    mode: "hp"
     template: "development-quick-v1"
     max_concurrent: 4
     timeout: 300
@@ -258,7 +260,8 @@ environments:
   ci-pipeline:
     description: "CI/CD pipeline environment"
     ollama:
-      host: "ci-ollama.internal"
+      # CONFIGURE: Set to your Ollama server URL
+      host: "http://localhost:11434"
       port: 11434
       timeout: 180
       concurrent_requests: 8
@@ -266,7 +269,8 @@ environments:
   production:
     description: "Production environment"
     ollama:
-      host: "prod-ollama.company.com"
+      # CONFIGURE: Set to your Ollama server URL
+      host: "http://localhost:11434"
       port: 11434
       timeout: 900
       concurrent_requests: 2
@@ -306,7 +310,7 @@ meta:
   created: "2025-09-16"
   description: "AI Test Case Generator profile configuration"
   format: "Model.Mode[.Modifier]"
-  contact: "engineering@company.com"
+  contact: "# Configure: set to your team email"
 
 # =================================================================
 # USAGE EXAMPLES

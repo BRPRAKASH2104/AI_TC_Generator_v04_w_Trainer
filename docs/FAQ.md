@@ -25,11 +25,11 @@
 wsl --install -d Ubuntu
 
 # Then follow Linux installation instructions
-sudo apt update && sudo apt install python3.13 python3.13-venv python3.13-pip
+sudo apt update && sudo apt install python3.14 python3.14-venv python3.14-pip
 ```
 
 **Why WSL2?**
-- Native Windows has limited Python 3.13.7 support
+- Native Windows has limited Python 3.14+ support
 - WSL2 provides full Linux compatibility
 - Access to all Linux tools (apt, systemctl, etc.)
 - Better performance for AI workloads
@@ -38,7 +38,7 @@ sudo apt update && sudo apt install python3.13 python3.13-venv python3.13-pip
 
 ### What if I get "Python version not compatible"?
 
-**Problem:** Messages like "Python 3.13.7 required but found 3.11.6"
+**Problem:** Messages like "Python 3.14+ required but found 3.11.6"
 
 **Solutions:**
 
@@ -47,21 +47,21 @@ sudo apt update && sudo apt install python3.13 python3.13-venv python3.13-pip
    # Add deadsnakes PPA
    sudo add-apt-repository ppa:deadsnakes/ppa
    sudo apt update
-   sudo apt install python3.13 python3.13-venv
+   sudo apt install python3.14 python3.14-venv
 
    # Set as default
-   sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.13 1
+   sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.14 1
    ```
 
 2. **macOS:**
    ```bash
-   brew install python@3.13
-   export PATH="/opt/homebrew/opt/python@3.13/bin:$PATH"
+   brew install python@3.14
+   export PATH="/opt/homebrew/opt/python@3.14/bin:$PATH"
    ```
 
 3. **Check version:**
    ```bash
-   python --version  # Should show 3.13.7
+   python --version  # Should show 3.14+
    ```
 
 ### How do I know if Ollama is running?
@@ -82,9 +82,9 @@ ps aux | grep ollama  # Should show running process
 **Best practice:** Always use virtual environments:
 
 ```bash
-python3.13 -m venv ~/ai-tc-env
+python3.14 -m venv ~/ai-tc-env
 source ~/ai-tc-env/bin/activate
-pip install ai-tc-generator[dev]
+pip install -e .[dev]
 ```
 
 ---

@@ -32,7 +32,16 @@ class TestAPICompatibility:
             assert isinstance(result, str)
         except Exception as e:
             # Expected when Ollama refuses or throws model error - verify error is handled
-            assert "Connection" in str(e) or "timeout" in str(e) or "refused" in str(e) or "not found" in str(e).lower()
+            # Ollama may be: not running (Connection/refused), timed out, model not found (404),
+            # or reject the model name as invalid (400 → OllamaResponseError)
+            assert (
+                "Connection" in str(e)
+                or "timeout" in str(e)
+                or "refused" in str(e)
+                or "not found" in str(e).lower()
+                or "invalid" in str(e).lower()
+                or "400" in str(e)
+            )
 
     def test_response_parser_real_json(self):
         """Test JSON response parsing with real JSON."""

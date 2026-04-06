@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Docstrings**: Follow Google Python Style Guide for all modules, classes, functions, and methods.
 
-**CHANGELOG.md**: Update `[Unreleased]` section (Added/Changed/Fixed/Removed) for every significant change.
+**CHANGELOG.md**: No CHANGELOG.md exists yet. If one is created, update the `[Unreleased]` section (Added/Changed/Fixed/Removed) for every significant change.
 
 ---
 
@@ -57,6 +57,11 @@ ai-tc-generator --validate-prompts    # after editing YAML templates
 
 # Utilities
 python3 utilities/create_mock_reqifz.py    # generate mock REQIFZ for testing
+
+# Profiles — run with a named preset (model + mode + modifier)
+ai-tc-generator input/file.reqifz --profile Llama31.HP.Quality
+# Profile format: Model.Mode[.Modifier]  (defined in profiles/profiles.yaml)
+# Models: Llama31, Deepseek, Qwen  |  Modes: Standard, HP  |  Modifiers: Verbose, Debug, Fast, Quality
 
 # Training (requires pip install -e .[training])
 ai-tc-generator input/ --hp              # normal run collects RAFT examples if enabled in config/cli_config.yaml
@@ -193,10 +198,15 @@ See `tests/helpers/USAGE_EXAMPLES.md` for full examples.
 | `src/core/image_extractor.py` | 203-244, 354-395, 415-454 | Image preprocessing & cleanup |
 | `src/core/generators.py` | 41-62, 85-98, 200-221, 351-367 | Vision path extraction |
 | `src/config.py` | 79-92, 211, 378, 475-498 | Vision config & hybrid selection |
+| `src/yaml_prompt_manager.py` | `load_all_prompts`, `_selection_rules` | Selection rules are cached at load time into `_selection_rules`; bypassing or resetting this cache causes repeated disk reads on every template selection call |
 
 **Safe to modify**: `src/core/prompt_builder.py`, `prompts/templates/*.yaml`, `tests/`, `src/config.py` (follow Pydantic patterns).
 
 ---
+
+## Test Layout
+
+Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/training/`, `tests/unit/`, `tests/performance/`. Several test files also live directly at `tests/` root (`test_critical_improvements.py`, `test_integration_refactored.py`, `test_python314_ollama0125.py`, `test_refactoring.py`) — these are intentional, not misplaced; do not move or duplicate them into subdirectories.
 
 ## Test Markers
 
@@ -213,11 +223,12 @@ See `tests/helpers/USAGE_EXAMPLES.md` for full examples.
 | Vision model OOM | Too much concurrency | Lower `--max-concurrent` or `OLLAMA__ENABLE_VISION=false` |
 | Tests fail with XHTML mismatches | Not using test helpers | Use `tests/helpers/` functions |
 | `generate_test_cases` AttributeError | Wrong generator class | `AsyncTestCaseGenerator` has this method |
+| Unexpected `training_data/` files written during normal runs | RAFT collection was previously opt-out | Both `enable_raft` and `collect_training_data` default to `false` in `config/cli_config.yaml`; set both to `true` to opt in |
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (4618 symbols, 7924 relationships, 207 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (3265 symbols, 6463 relationships, 189 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -313,25 +324,5 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Tests area (181 symbols) | `.claude/skills/generated/tests/SKILL.md` |
-| Work in the Integration area (111 symbols) | `.claude/skills/generated/integration/SKILL.md` |
-| Work in the Training area (94 symbols) | `.claude/skills/generated/training/SKILL.md` |
-| Work in the Utilities area (58 symbols) | `.claude/skills/generated/utilities/SKILL.md` |
-| Work in the Processors area (24 symbols) | `.claude/skills/generated/processors/SKILL.md` |
-| Work in the Unit area (24 symbols) | `.claude/skills/generated/unit/SKILL.md` |
-| Work in the Cluster_89 area (21 symbols) | `.claude/skills/generated/cluster-89/SKILL.md` |
-| Work in the Cluster_74 area (17 symbols) | `.claude/skills/generated/cluster-74/SKILL.md` |
-| Work in the Cluster_86 area (11 symbols) | `.claude/skills/generated/cluster-86/SKILL.md` |
-| Work in the Cluster_105 area (9 symbols) | `.claude/skills/generated/cluster-105/SKILL.md` |
-| Work in the Cluster_44 area (8 symbols) | `.claude/skills/generated/cluster-44/SKILL.md` |
-| Work in the Cluster_79 area (8 symbols) | `.claude/skills/generated/cluster-79/SKILL.md` |
-| Work in the Cluster_39 area (7 symbols) | `.claude/skills/generated/cluster-39/SKILL.md` |
-| Work in the Cluster_75 area (7 symbols) | `.claude/skills/generated/cluster-75/SKILL.md` |
-| Work in the Cluster_77 area (7 symbols) | `.claude/skills/generated/cluster-77/SKILL.md` |
-| Work in the Cluster_78 area (7 symbols) | `.claude/skills/generated/cluster-78/SKILL.md` |
-| Work in the Cluster_83 area (7 symbols) | `.claude/skills/generated/cluster-83/SKILL.md` |
-| Work in the Tools area (6 symbols) | `.claude/skills/generated/tools/SKILL.md` |
-| Work in the Cluster_76 area (6 symbols) | `.claude/skills/generated/cluster-76/SKILL.md` |
-| Work in the Cluster_84 area (6 symbols) | `.claude/skills/generated/cluster-84/SKILL.md` |
 
 <!-- gitnexus:end -->

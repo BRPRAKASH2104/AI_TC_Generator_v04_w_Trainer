@@ -3,7 +3,7 @@
 Python Version Enforcement Script
 File: utilities/check_python_version.py
 
-Ensures Python 3.13.5+ is being used before running the AI Test Case Generator.
+Ensures Python 3.14+ is being used before running the AI Test Case Generator.
 This script should be run before any main application code.
 """
 
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 # Minimum required version
-REQUIRED_VERSION = (3, 13, 7)
+REQUIRED_VERSION = (3, 14, 0)
 PROJECT_NAME = "AI Test Case Generator"
 
 
@@ -59,7 +59,7 @@ class VersionChecker:
         print(f"Current: Python {current_str}")
         print(f"Required: Python >= {required_str}")
         print()
-        print("💡 Why Python 3.13.5+ is required:")
+        print("💡 Why Python 3.14+ is required:")
         print("   • Enhanced error handling with exception groups")
         print("   • Pattern matching for cleaner code structure")
         print("   • Advanced typing with PEP 695 syntax")
@@ -75,34 +75,34 @@ class VersionChecker:
 
         if system == "windows":
             print("📦 Windows:")
-            print("   1. Download Python 3.13.5+ from https://python.org/downloads/")
+            print("   1. Download Python 3.14+ from https://python.org/downloads/")
             print("   2. Run installer with 'Add to PATH' checked")
             print("   3. Restart terminal and run this check again")
             print("   Alternative: Use Windows Store or Chocolatey")
-            print("      choco install python --version=3.13.5")
+            print("      choco install python --version=3.14.0")
 
         elif system == "darwin":  # macOS
             print("🍎 macOS:")
             print("   Option 1 - Homebrew (recommended):")
-            print("      brew install python@3.13")
+            print("      brew install python@3.14")
             print("   Option 2 - Official installer:")
             print("      Download from https://python.org/downloads/")
             print("   Option 3 - pyenv:")
-            print("      pyenv install 3.13.5")
-            print("      pyenv global 3.13.5")
+            print("      pyenv install 3.14.0")
+            print("      pyenv global 3.14.0")
 
         elif system == "linux":
             print("🐧 Linux:")
             print("   Ubuntu/Debian:")
             print("      sudo apt update")
-            print("      sudo apt install python3.13")
+            print("      sudo apt install python3.14")
             print("   CentOS/RHEL/Fedora:")
-            print("      sudo dnf install python3.13")
+            print("      sudo dnf install python3.14")
             print("   Arch Linux:")
             print("      sudo pacman -S python")
             print("   Universal - pyenv:")
             print("      curl https://pyenv.run | bash")
-            print("      pyenv install 3.13.5")
+            print("      pyenv install 3.14.0")
 
         print("\n🔄 After upgrading:")
         print(f"   python3 --version  # Should show >= {required_str}")
@@ -110,7 +110,7 @@ class VersionChecker:
 
     def check_required_features(self) -> bool:
         """
-        Check for specific Python 3.13.5+ features
+        Check for specific Python 3.14+ features
 
         Returns:
             bool: True if all features are available
@@ -190,7 +190,7 @@ class VersionChecker:
         print(f"📊 Feature Check: {features_passed}/{total_features} features available")
 
         if features_passed == total_features:
-            print("🎉 All Python 3.13.5+ features are available!")
+            print("🎉 All Python 3.14+ features are available!")
             return True
         if features_passed >= total_features * 0.8:  # 80% threshold
             print("⚠️ Most features available, but some optimizations missing")
@@ -382,14 +382,14 @@ class VersionChecker:
             print("🎉 ALL CHECKS PASSED!")
             print(f"✅ Environment is ready for {PROJECT_NAME}")
             print("\n💡 You can now run:")
-            print("   python src/generate_contextual_tests_v002.py --validate-prompts")
-            print("   python src/generate_contextual_tests_v002.py input.reqifz")
+            print("   ai-tc-generator --validate-prompts")
+            print("   ai-tc-generator input.reqifz")
         else:
             print("🚨 VALIDATION FAILED!")
             print("❌ Environment is not ready - please fix the issues above")
             print("\n🔧 Next steps:")
             if not version_ok:
-                print("   1. Upgrade Python to 3.13.5 or higher")
+                print("   1. Upgrade Python to 3.14.0 or higher")
             if not features_ok:
                 print("   2. Verify Python installation completeness")
             if not deps_ok:

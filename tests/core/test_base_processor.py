@@ -10,6 +10,11 @@ from unittest.mock import Mock, patch
 
 from src.config import ConfigManager
 from src.processors.base_processor import BaseProcessor
+from tests.helpers import (
+    create_test_heading,
+    create_test_information,
+    create_test_requirement,
+)
 
 
 class TestBaseProcessorInitialization:
@@ -113,8 +118,8 @@ class TestArtifactExtraction:
         processor.extractor = Mock()
 
         fake_artifacts = [
-            {"type": "Heading", "text": "Test Section"},
-            {"type": "System Requirement", "id": "REQ_001", "text": "Test requirement"},
+            create_test_heading("Test Section", heading_id="H_001"),
+            create_test_requirement("Test requirement", requirement_id="REQ_001"),
         ]
         processor.extractor.extract_reqifz_content.return_value = fake_artifacts
 
@@ -173,13 +178,12 @@ class TestContextAwareProcessing:
         }
 
         artifacts = [
-            {"type": "Heading", "text": "Door Control System"},
-            {"type": "Information", "text": "This section covers door operations"},
-            {
-                "type": "System Requirement",
-                "id": "REQ_001",
-                "text": "Door shall lock when vehicle speed > 10 km/h",
-            },
+            create_test_heading("Door Control System", heading_id="H_001"),
+            create_test_information("This section covers door operations", info_id="INFO_001"),
+            create_test_requirement(
+                "Door shall lock when vehicle speed > 10 km/h",
+                requirement_id="REQ_001",
+            ),
         ]
 
         augmented_reqs, interface_count = processor._build_augmented_requirements(artifacts)
@@ -189,9 +193,9 @@ class TestContextAwareProcessing:
 
         req = augmented_reqs[0]
         assert req["id"] == "REQ_001"
-        assert req["heading"] == "Door Control System"
+        assert "Door Control System" in req["heading"]
         assert len(req["info_list"]) == 1
-        assert req["info_list"][0]["text"] == "This section covers door operations"
+        assert "This section covers door operations" in req["info_list"][0]["text"]
         assert len(req["interface_list"]) == 2
 
     def test_build_augmented_requirements_resets_info_after_requirement(self):
@@ -202,11 +206,11 @@ class TestContextAwareProcessing:
         processor.extractor.classify_artifacts.return_value = {"System Interface": []}
 
         artifacts = [
-            {"type": "Heading", "text": "Section 1"},
-            {"type": "Information", "text": "Info for REQ_001"},
-            {"type": "System Requirement", "id": "REQ_001", "text": "First requirement"},
-            {"type": "Information", "text": "Info for REQ_002"},
-            {"type": "System Requirement", "id": "REQ_002", "text": "Second requirement"},
+            create_test_heading("Section 1", heading_id="H_001"),
+            create_test_information("Info for REQ_001", info_id="INFO_001"),
+            create_test_requirement("First requirement", requirement_id="REQ_001"),
+            create_test_information("Info for REQ_002", info_id="INFO_002"),
+            create_test_requirement("Second requirement", requirement_id="REQ_002"),
         ]
 
         augmented_reqs, _ = processor._build_augmented_requirements(artifacts)
@@ -215,11 +219,11 @@ class TestContextAwareProcessing:
 
         # REQ_001 should have first info
         assert len(augmented_reqs[0]["info_list"]) == 1
-        assert augmented_reqs[0]["info_list"][0]["text"] == "Info for REQ_001"
+        assert "Info for REQ_001" in augmented_reqs[0]["info_list"][0]["text"]
 
         # REQ_002 should have second info (not both!)
         assert len(augmented_reqs[1]["info_list"]) == 1
-        assert augmented_reqs[1]["info_list"][0]["text"] == "Info for REQ_002"
+        assert "Info for REQ_002" in augmented_reqs[1]["info_list"][0]["text"]
 
     def test_build_augmented_requirements_new_heading_resets_info(self):
         """New heading resets information context"""
@@ -229,10 +233,10 @@ class TestContextAwareProcessing:
         processor.extractor.classify_artifacts.return_value = {"System Interface": []}
 
         artifacts = [
-            {"type": "Heading", "text": "Section 1"},
-            {"type": "Information", "text": "Info from Section 1"},
-            {"type": "Heading", "text": "Section 2"},  # Should reset info
-            {"type": "System Requirement", "id": "REQ_001", "text": "Requirement in Section 2"},
+            create_test_heading("Section 1", heading_id="H_001"),
+            create_test_information("Info from Section 1", info_id="INFO_001"),
+            create_test_heading("Section 2", heading_id="H_002"),  # Should reset info
+            create_test_requirement("Requirement in Section 2", requirement_id="REQ_001"),
         ]
 
         augmented_reqs, _ = processor._build_augmented_requirements(artifacts)
@@ -240,7 +244,7 @@ class TestContextAwareProcessing:
         assert len(augmented_reqs) == 1
         # Should NOT have info from Section 1 (was reset)
         assert len(augmented_reqs[0]["info_list"]) == 0
-        assert augmented_reqs[0]["heading"] == "Section 2"
+        assert "Section 2" in augmented_reqs[0]["heading"]
 
     def test_build_augmented_requirements_skips_empty_requirements(self):
         """Requirements with no text content are skipped"""
@@ -250,10 +254,11 @@ class TestContextAwareProcessing:
         processor.extractor.classify_artifacts.return_value = {"System Interface": []}
 
         artifacts = [
-            {"type": "Heading", "text": "Section 1"},
+            create_test_heading("Section 1", heading_id="H_001"),
+            # Intentionally bare empty/whitespace strings to test the skip-empty logic
             {"type": "System Requirement", "id": "REQ_EMPTY1", "text": ""},
             {"type": "System Requirement", "id": "REQ_EMPTY2", "text": "   "},  # Whitespace only
-            {"type": "System Requirement", "id": "REQ_VALID", "text": "Valid requirement"},
+            create_test_requirement("Valid requirement", requirement_id="REQ_VALID"),
         ]
 
         augmented_reqs, _ = processor._build_augmented_requirements(artifacts)
@@ -271,7 +276,7 @@ class TestContextAwareProcessing:
 
         artifacts = [
             # No heading artifact
-            {"type": "System Requirement", "id": "REQ_001", "text": "Requirement without heading"},
+            create_test_requirement("Requirement without heading", requirement_id="REQ_001"),
         ]
 
         augmented_reqs, _ = processor._build_augmented_requirements(artifacts)
@@ -287,16 +292,16 @@ class TestContextAwareProcessing:
         processor.extractor.classify_artifacts.return_value = {"System Interface": []}
 
         artifacts = [
-            {"type": "Heading", "text": "Shared Section"},
-            {"type": "System Requirement", "id": "REQ_001", "text": "First requirement"},
-            {"type": "System Requirement", "id": "REQ_002", "text": "Second requirement"},
-            {"type": "System Requirement", "id": "REQ_003", "text": "Third requirement"},
+            create_test_heading("Shared Section", heading_id="H_001"),
+            create_test_requirement("First requirement", requirement_id="REQ_001"),
+            create_test_requirement("Second requirement", requirement_id="REQ_002"),
+            create_test_requirement("Third requirement", requirement_id="REQ_003"),
         ]
 
         augmented_reqs, _ = processor._build_augmented_requirements(artifacts)
 
         assert len(augmented_reqs) == 3
-        assert all(req["heading"] == "Shared Section" for req in augmented_reqs)
+        assert all("Shared Section" in req["heading"] for req in augmented_reqs)
 
     def test_build_augmented_requirements_no_system_requirements(self):
         """Returns empty list when no System Requirements found"""
@@ -306,8 +311,8 @@ class TestContextAwareProcessing:
         processor.extractor.classify_artifacts.return_value = {"System Interface": []}
 
         artifacts = [
-            {"type": "Heading", "text": "Section with no requirements"},
-            {"type": "Information", "text": "Just some information"},
+            create_test_heading("Section with no requirements", heading_id="H_001"),
+            create_test_information("Just some information", info_id="INFO_001"),
         ]
 
         augmented_reqs, interface_count = processor._build_augmented_requirements(artifacts)

@@ -24,7 +24,7 @@ This tool automatically generates comprehensive test cases from automotive requi
 ### Prerequisites
 
 - **Python 3.14+** (no backward compatibility)
-- **Ollama 0.12.9+** with models:
+- **Ollama 0.17.4+** with models:
   ```bash
   ollama pull llama3.1:8b          # Text-only processing
   ollama pull llama3.2-vision:11b  # Vision + text processing
@@ -69,6 +69,21 @@ ai-tc-generator input/file.reqifz --clean-temp
 # Process entire directory
 ai-tc-generator input/ --verbose
 ```
+
+### Profile-Based Configuration
+
+Run with a named preset that bundles model + mode + options:
+
+```bash
+ai-tc-generator input/file.reqifz --profile Llama31.HP.Quality
+```
+
+Profile format: `Model.Mode[.Modifier]`
+- **Models**: `Llama31`, `Deepseek`, `Qwen`
+- **Modes**: `Standard`, `HP`
+- **Modifiers**: `Verbose`, `Debug`, `Fast`, `Quality`
+
+Profiles are defined in `profiles/profiles.yaml`. See `profiles/sample-profiles.yaml` for examples.
 
 ### Output
 
@@ -196,10 +211,7 @@ See `tests/helpers/USAGE_EXAMPLES.md` for complete examples.
 
 ### Architecture & Implementation
 
-- [Implementation Index](docs/implementation/INDEX.md) - **Complete implementation documentation guide**
-- [Vision Model Implementation](docs/implementation/vision/03_VISION_MODEL_IMPLEMENTATION_SUMMARY.md) - Hybrid vision/text strategy
 - [Vision Training Guide](docs/training/training_guideline.md) - Complete RAFT training guide with utility scripts
-- [Test Infrastructure](docs/implementation/testing/TEST_FIX_COMPLETE_SUMMARY.md) - Test helper functions and validation
 
 ### Configuration
 
@@ -220,10 +232,12 @@ See `src/config.py` for all configuration options (Pydantic-based with environme
 
 ## 🎓 Training Custom Models
 
-Fine-tune vision models on your automotive domain data using RAFT methodology:
+Fine-tune vision models on your automotive domain data using RAFT methodology.
+
+**RAFT collection is opt-in and disabled by default.** Enable it in `config/cli_config.yaml` (`training.enable_raft: true`, `training.collect_training_data: true`) or via environment variables before running.
 
 ```bash
-# 1. Enable RAFT data collection
+# 1. Enable RAFT data collection (opt-in — off by default)
 export AI_TG_ENABLE_RAFT=true
 export AI_TG_COLLECT_TRAINING_DATA=true
 
@@ -288,7 +302,7 @@ Current test coverage (as of Nov 3, 2025):
 ## 🔒 Requirements
 
 - **Python**: 3.14+ only (no backward compatibility)
-- **Ollama**: 0.12.9+ with GPU support (recommended: 12+ GB VRAM for vision models)
+- **Ollama**: 0.17.4+ with GPU support (recommended: 12+ GB VRAM for vision models)
 - **Dependencies**: Managed in `pyproject.toml`
   - Core: pandas, pydantic, click, rich, openpyxl
   - Performance: aiohttp, ujson, psutil
@@ -318,7 +332,7 @@ See [System_Instructions.md](System_Intructions.md) for detailed coding guidelin
 
 ## 🎯 Project Status
 
-**Version**: v2.2.0
+**Version**: v2.3.0
 **Status**: Production Ready ✅
 **Python**: 3.14+ only
 **Last Updated**: November 3, 2025

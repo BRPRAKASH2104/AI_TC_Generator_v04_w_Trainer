@@ -423,11 +423,9 @@ class OllamaClient:
         Returns:
             Dictionary containing model information, or None if not available
         """
-        # For async client, we use session for show endpoint (similar to version check)
+        # Use the existing session for model info retrieval
         try:
-            # Use synchronous requests for model info since it's simple metadata
-            temp_session = requests.Session()
-            response = temp_session.post(
+            response = self._session.post(
                 self.config.show_url,
                 json={"name": model_name},
                 timeout=self.config.timeout,
@@ -792,19 +790,34 @@ class AsyncOllamaClient:
         self, model_name: str, prompt: str, is_json: bool = False, max_retries: int = 3
     ) -> str:
         """Generate response with exponential backoff retry logic"""
+        # Exception types that should not be retried
+        non_retriable = (OllamaModelNotFoundError,)
+
+        last_exception: Exception | None = None
         for attempt in range(max_retries + 1):
             try:
                 result = await self.generate_response(model_name, prompt, is_json)
                 if result:  # Success
                     return result
-            except Exception:
-                pass  # Continue to retry
+            except non_retriable:
+                raise
+            except Exception as exc:
+                last_exception = exc
+                _logger.warning(
+                    "generate_with_retry: attempt %d/%d failed for model '%s': %s",
+                    attempt + 1,
+                    max_retries + 1,
+                    model_name,
+                    exc,
+                )
 
             if attempt < max_retries:
                 # Exponential backoff: 1s, 2s, 4s
                 await asyncio.sleep(2**attempt)
 
-        return ""  # All retries failed
+        if last_exception is not None:
+            raise last_exception
+        return ""  # All retries returned empty without raising
 
     def _check_version_compatibility(self) -> None:
         """
@@ -819,11 +832,11 @@ class AsyncOllamaClient:
 
         try:
             # Use synchronous requests for version checking (works for both sync/async clients)
-            temp_session = requests.Session()
-            response = temp_session.get(
-                self.config.version_url,
-                timeout=10,  # Shorter timeout for version check
-            )
+            with requests.Session() as temp_session:
+                response = temp_session.get(
+                    self.config.version_url,
+                    timeout=10,  # Shorter timeout for version check
+                )
             response.raise_for_status()
 
             try:

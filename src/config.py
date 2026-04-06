@@ -565,10 +565,12 @@ class ConfigManager(BaseSettings):
                     # Update CLI configuration
                     if "cli_defaults" in config_data:
                         cli_data = config_data["cli_defaults"]
-                        # Merge with existing CLI config
+                        # Merge with existing CLI config through Pydantic validation
+                        current = self.cli.model_dump()
                         for key, value in cli_data.items():
-                            if hasattr(self.cli, key):
-                                setattr(self.cli, key, value)
+                            if key in current:
+                                current[key] = value
+                        self.cli = self.cli.__class__.model_validate(current)
 
                     # Load presets, environments, and model configs
                     if "presets" in config_data:
