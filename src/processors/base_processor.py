@@ -59,10 +59,12 @@ class BaseProcessor:
             )
 
     @staticmethod
-    def _clean_text_for_logging(text: str) -> str:
-        """Clean XML/HTML text for readable logging"""
+    def _clean_text_for_logging(text) -> str:
+        """Clean XML/HTML text for readable output. Handles str, list, or None."""
         if not text:
             return ""
+        if isinstance(text, list):
+            text = " ".join(str(item) for item in text)
         # Remove XML tags
         clean = re.sub(r'<[^>]+>', ' ', text)
         # Normalize whitespace
@@ -117,7 +119,12 @@ class BaseProcessor:
         """
         # Classify artifacts and separate system interfaces (global context)
         classified_artifacts = self.extractor.classify_artifacts(artifacts)
-        system_interfaces = classified_artifacts.get("System Interface", [])
+        raw_interfaces = classified_artifacts.get("System Interface", [])
+        # Normalise interface text fields once (shared across all requirements)
+        system_interfaces = [
+            {**iface, "text": self._clean_text_for_logging(iface.get("text", ""))}
+            for iface in raw_interfaces
+        ]
 
         # Context-aware artifact processing (v03 restoration)
         augmented_requirements = []
@@ -130,13 +137,15 @@ class BaseProcessor:
         for obj in artifacts:
             # Update context based on artifact type
             if obj.get("type") == "Heading":
-                current_heading = obj.get("text", "No Heading")
+                raw_heading = obj.get("text", "No Heading")
+                current_heading = self._clean_text_for_logging(raw_heading) or "No Heading"
                 info_since_heading = []
                 self.logger.debug(f"📌 Context heading: {self._clean_text_for_logging(current_heading)}")
                 continue
 
             elif obj.get("type") == "Information":
-                info_since_heading.append(obj)
+                clean_info = {**obj, "text": self._clean_text_for_logging(obj.get("text", ""))}
+                info_since_heading.append(clean_info)
                 self.logger.debug(f"📝 Stored information artifact: {id(obj)}")
                 continue
 
@@ -144,20 +153,21 @@ class BaseProcessor:
                 # Augment requirement with collected context
                 # FIX: Process ALL System Requirements, not just those with tables (v03 compatibility)
                 req_id = obj.get("id", "UNKNOWN")
-                req_text = obj.get("text", "")
+                req_text = self._clean_text_for_logging(obj.get("text", ""))
 
                 # Skip if no text content (empty requirements)
-                if not req_text or not req_text.strip():
+                if not req_text:
                     self.logger.debug(f"⚠️  Skipping requirement {req_id}: no text content")
                     continue
 
                 self.logger.debug(
-                    f"⚡ Augmenting requirement: {req_id} (heading: {self._clean_text_for_logging(current_heading)})"
+                    f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})"
                 )
 
                 augmented_requirement = obj.copy()
                 augmented_requirement.update(
                     {
+                        "text": req_text,
                         "heading": current_heading,
                         "info_list": info_since_heading.copy(),
                         "interface_list": system_interfaces,

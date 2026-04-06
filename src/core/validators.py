@@ -132,7 +132,9 @@ class SemanticValidator:
                     )
 
         # Check data field (support both 'data' and 'test_steps' formats)
-        data = test_case.get("data", test_case.get("test_steps", ""))
+        # test_steps may be a list (AI returns numbered steps as a list)
+        raw_data = test_case.get("data", test_case.get("test_steps", ""))
+        data = "\n".join(raw_data) if isinstance(raw_data, list) else str(raw_data)
         data_signals = re.findall(r"([A-Za-z_][A-Za-z0-9_]+)\s*=", data)
 
         for signal in data_signals:
@@ -156,10 +158,11 @@ class SemanticValidator:
           - "1. Step one\n2. Step two"
         """
         issues = []
-        # Support both 'data' and 'test_steps' keys
-        data = test_case.get("data", test_case.get("test_steps", ""))
+        # Support both 'data' and 'test_steps' keys (may be a list)
+        raw_data = test_case.get("data", test_case.get("test_steps", ""))
+        data = "\n".join(raw_data) if isinstance(raw_data, list) else str(raw_data)
 
-        if not data or not str(data).strip():
+        if not data or not data.strip():
             issues.append("Data field is empty")
             return issues
 

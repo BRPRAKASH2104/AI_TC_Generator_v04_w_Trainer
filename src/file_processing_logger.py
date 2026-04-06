@@ -4,15 +4,11 @@ File Processing Logger - Per-file processing log generation
 Automatically generates detailed logs for each REQIFZ file processed.
 """
 
-import json
 import sys
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
-
-import psutil
 
 
 @dataclass(slots=True)
@@ -121,28 +117,6 @@ class FileProcessingLogger:
         self.start_time = time.time()
         self.status = "IN_PROGRESS"
 
-    def end_processing(self, success: bool = True):
-        """Mark end of processing"""
-        self.end_time = time.time()
-        self.status = "SUCCESS" if success else "FAILED"
-
-    def start_phase(self, phase_name: str):
-        """Start timing a processing phase"""
-        if phase_name not in self.phases:
-            self.phases[phase_name] = ProcessingPhase(phase_name)
-        self.phases[phase_name].start()
-
-    def end_phase(self, phase_name: str):
-        """End timing a processing phase"""
-        if phase_name in self.phases:
-            self.phases[phase_name].end()
-
-    def get_phase_duration(self, phase_name: str) -> float:
-        """Get duration of a specific phase in seconds"""
-        if phase_name in self.phases:
-            return self.phases[phase_name].duration
-        return 0.0
-
     def add_requirement_failure(self, requirement_id: str, error: str):
         """Record a requirement processing failure"""
         self.failure_details.append(RequirementFailure(requirement_id, error))
@@ -156,24 +130,6 @@ class FileProcessingLogger:
         """Add a warning message"""
         if warning not in self.warnings:
             self.warnings.append(warning)
-
-    def update_system_metrics(self):
-        """Update peak system usage metrics"""
-        try:
-            process = psutil.Process()
-            cpu_percent = process.cpu_percent()
-            memory_mb = process.memory_info().rss / 1024 / 1024
-
-            self.peak_cpu_usage = max(self.peak_cpu_usage, cpu_percent)
-            self.peak_memory_mb = max(self.peak_memory_mb, memory_mb)
-        except Exception:
-            pass
-
-    def increment_test_cases(self, positive: int = 0, negative: int = 0):
-        """Increment test case counters"""
-        self.positive_tests += positive
-        self.negative_tests += negative
-        self.total_test_cases_generated = self.positive_tests + self.negative_tests
 
     def to_dict(self) -> dict[str, Any]:
         """Convert logger to dictionary for JSON serialization"""
@@ -279,39 +235,3 @@ class FileProcessingLogger:
         """Print error message"""
         print(f"❌ {message}")
 
-    def save_log(self, output_dir: str | None = None):
-        """Save processing log to JSON file with same naming pattern as Excel output"""
-        try:
-            # Determine output directory (same as Excel output by default)
-            if output_dir is None:
-                if self.output_file:
-                    output_dir = str(Path(self.output_file).parent)
-                else:
-                    output_dir = str(Path(self.input_path).parent)
-
-            # Create log filename based on Excel output filename pattern
-            if self.output_file:
-                # Use the exact same name as Excel file but with .json extension
-                excel_path = Path(self.output_file)
-                log_filename = excel_path.stem + ".json"
-            else:
-                # Fallback to original pattern if no output file specified
-                reqifz_name = Path(self.reqifz_file).stem
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                log_filename = f"{reqifz_name}_processing_log_{timestamp}.json"
-
-            log_path = Path(output_dir) / log_filename
-
-            # Ensure directory exists
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Save log
-            with log_path.open("w", encoding="utf-8") as f:
-                json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
-
-            return str(log_path)
-
-        except Exception as e:
-            # If logging fails, don't break the main process
-            print(f"Warning: Could not save processing log: {e}")
-            return None

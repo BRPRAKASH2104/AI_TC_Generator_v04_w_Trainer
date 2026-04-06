@@ -10,7 +10,7 @@ import json
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -78,7 +78,6 @@ class TestEndToEndWorkflows:
         """Test complete standard mode workflow from REQIFZ to Excel"""
         if not sample_reqifz_path.exists():
             pytest.skip(f"Sample REQIFZ file not found: {sample_reqifz_path}")
-        pytest.skip("Known issue: raw XHTML heading from extractor reaches template renderer (see Review_Comments_2026_04_06.md Audit Issue 2)")
 
         # Mock AI client to avoid external dependencies
         with patch('src.processors.standard_processor.OllamaClient') as mock_client_class:
@@ -113,19 +112,22 @@ class TestEndToEndWorkflows:
             assert excel_file.suffix == ".xlsx"
 
             # Verify AI client was called
-            assert mock_client.generate_response.called
+            assert mock_client.generate_completion.called
 
     @pytest.mark.asyncio
     async def test_hp_mode_complete_workflow(self, mock_config, temp_output_dir, sample_reqifz_path, mock_ai_response):
         """Test complete high-performance mode workflow"""
         if not sample_reqifz_path.exists():
             pytest.skip(f"Sample REQIFZ file not found: {sample_reqifz_path}")
-        pytest.skip("Known issue: raw XHTML heading from extractor reaches template renderer (see Review_Comments_2026_04_06.md Audit Issue 2)")
 
-        # Mock async AI client
+        # Mock async AI client (hp_processor uses: async with AsyncOllamaClient(...) as client)
         with patch('src.processors.hp_processor.AsyncOllamaClient') as mock_client_class:
-            mock_client = mock_client_class.return_value
-            mock_client.generate_completion.return_value = {"response": json.dumps(mock_ai_response), "done": True}
+            mock_inner = MagicMock()
+            mock_inner.generate_completion = AsyncMock(
+                return_value={"response": json.dumps(mock_ai_response), "done": True}
+            )
+            mock_client_class.return_value.__aenter__ = AsyncMock(return_value=mock_inner)
+            mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
 
             # Initialize HP processor
             processor = HighPerformanceREQIFZFileProcessor(mock_config, max_concurrent_requirements=2)
@@ -147,9 +149,9 @@ class TestEndToEndWorkflows:
 
             # Verify performance metrics
             metrics = result["performance_metrics"]
-            assert "test_cases_per_second" in metrics
-            assert "parallel_efficiency" in metrics
-            assert "ai_calls_made" in metrics
+            assert "total_ai_calls" in metrics
+            assert "successful_requirements" in metrics
+            assert "max_concurrent" in metrics
 
             # Verify output files were created
             output_files = list(temp_output_dir.glob("*.xlsx"))
@@ -183,7 +185,7 @@ class TestEndToEndWorkflows:
 
                 # Mock AI client
                 mock_client = mock_client_class.return_value
-                mock_client.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
+                mock_client.generate_completion.return_value = {"response": json.dumps(mock_ai_response), "done": True}
 
                 # Initialize processor
                 processor = REQIFZFileProcessor(mock_config)
@@ -270,7 +272,6 @@ class TestEndToEndWorkflows:
         """Test performance comparison between standard and HP modes"""
         if not sample_reqifz_path.exists():
             pytest.skip(f"Sample REQIFZ file not found: {sample_reqifz_path}")
-        pytest.skip("Known issue: raw XHTML heading from extractor reaches template renderer (see Review_Comments_2026_04_06.md Audit Issue 2)")
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_output_dir = Path(temp_dir)
@@ -280,8 +281,13 @@ class TestEndToEndWorkflows:
                  patch('src.processors.hp_processor.AsyncOllamaClient') as mock_async_client:
 
                 # Configure mock responses
-                mock_sync_client.return_value.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
-                mock_async_client.return_value.generate_completion.return_value = (json.dumps(mock_ai_response), 0.99)
+                mock_sync_client.return_value.generate_completion.return_value = {"response": json.dumps(mock_ai_response), "done": True}
+                mock_async_inner = MagicMock()
+                mock_async_inner.generate_completion = AsyncMock(
+                    return_value={"response": json.dumps(mock_ai_response), "done": True}
+                )
+                mock_async_client.return_value.__aenter__ = AsyncMock(return_value=mock_async_inner)
+                mock_async_client.return_value.__aexit__ = AsyncMock(return_value=False)
 
                 # Test standard mode
                 standard_processor = REQIFZFileProcessor(mock_config)
@@ -311,7 +317,7 @@ class TestEndToEndWorkflows:
 
                 # Verify HP mode has performance metrics
                 assert "performance_metrics" in hp_result
-                assert "test_cases_per_second" in hp_result["performance_metrics"]
+                assert "total_ai_calls" in hp_result["performance_metrics"]
 
                 # Log performance comparison (for debugging)
                 print(f"Standard mode time: {standard_time:.2f}s")

@@ -150,7 +150,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                     ollama_client,
                     self.yaml_manager,
                     self.logger,
-                    max_concurrent=self.max_concurrent_requirements,
+                    _max_concurrent=self.max_concurrent_requirements,
                 )
 
                 # Start performance monitoring
