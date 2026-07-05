@@ -34,6 +34,75 @@ _logger = logging.getLogger(__name__)
 type JSONResponse = dict[str, Any]
 
 
+def _build_generate_payload(
+    config: OllamaConfig,
+    model_name: str,
+    prompt: str,
+    is_json: bool,
+    images_base64: list[str] | None,
+    context_window: int,
+) -> dict[str, Any]:
+    """Build the /api/generate request payload (shared by sync and async clients)."""
+    payload: dict[str, Any] = {
+        "model": model_name,
+        "prompt": prompt,
+        "stream": False,
+        "keep_alive": config.keep_alive,
+        "options": {
+            "temperature": config.temperature,
+            "num_ctx": context_window,
+            "num_predict": config.num_predict,
+            "top_k": 40,
+            "top_p": 0.9,
+            "repeat_penalty": 1.1,
+            "tfs_z": config.tfs_z,
+            "typical_p": config.typical_p,
+            "repeat_last_n": config.repeat_last_n,
+        },
+    }
+
+    if images_base64:
+        payload["images"] = images_base64
+
+    if is_json:
+        payload["format"] = "json"
+
+    # Logprobs for confidence scoring (Ollama 0.13.3+)
+    if getattr(config, "enable_logprobs", False):
+        payload["logprobs"] = True
+        payload["top_logprobs"] = getattr(config, "top_logprobs", 1)
+
+    return payload
+
+
+def _load_images_base64(image_paths: list[Path] | None) -> list[str]:
+    """Read and base64-encode image files, skipping unreadable ones with a warning."""
+    images_base64: list[str] = []
+    failed_count = 0
+    for img_path in image_paths or []:
+        try:
+            with open(img_path, "rb") as img_file:
+                img_data = img_file.read()
+                images_base64.append(base64.b64encode(img_data).decode("utf-8"))
+        except FileNotFoundError:
+            failed_count += 1
+            _logger.warning(f"Image file not found: {img_path}")
+        except PermissionError:
+            failed_count += 1
+            _logger.warning(f"Permission denied reading image: {img_path}")
+        except Exception as e:
+            failed_count += 1
+            _logger.warning(f"Failed to load image {img_path}: {e}")
+
+    if failed_count > 0:
+        _logger.warning(
+            f"Failed to load {failed_count}/{len(image_paths)} image(s). "
+            "Vision model will proceed with available images."
+        )
+
+    return images_base64
+
+
 class OllamaClient:
     """Handles all interactions with Ollama API with enhanced logging"""
 
@@ -71,89 +140,15 @@ class OllamaClient:
         Returns:
             Full response dictionary (if return_full_response=True) or response text string.
         """
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": self.config.num_ctx,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add logprobs if enabled (new in Ollama 0.13.3)
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
-
-        if is_json:
-            payload["format"] = "json"
-
-        try:
-            response = self._session.post(
-                self.config.api_url,
-                json=payload,
-                timeout=self.config.timeout,
-            )
-            response.raise_for_status()
-
-            try:
-                data: JSONResponse = response.json()
-            except ValueError as e:
-                raise OllamaResponseError(
-                    f"Invalid JSON response from Ollama: {e}", status_code=response.status_code
-                ) from e
-
-            if return_full_response:
-                return data
-            return str(data.get("response", ""))
-
-        except requests.ConnectionError as e:
-            raise OllamaConnectionError(
-                f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
-                f"Ensure Ollama is running with 'ollama serve'",
-                host=self.config.host,
-                port=self.config.port,
-            ) from e
-
-        except requests.Timeout as e:
-            raise OllamaTimeoutError(
-                f"Ollama request timed out after {self.config.timeout}s for model '{model_name}'. "
-                f"Try increasing timeout or using a faster model.",
-                timeout=self.config.timeout,
-            ) from e
-
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                raise OllamaModelNotFoundError(
-                    f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
-                    model=model_name,
-                ) from e
-            else:
-                try:
-                    error_details = e.response.json()
-                    error_msg = error_details.get("error", e.response.text)
-                except Exception:
-                    error_msg = e.response.text
-
-                raise OllamaResponseError(
-                    f"Ollama HTTP error {e.response.status_code}: {error_msg}",
-                    status_code=e.response.status_code,
-                    response_body=error_msg,
-                ) from e
-
-        except requests.RequestException as e:
-            raise OllamaConnectionError(
-                f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
-            ) from e
+        # Text-only generation is the vision path without images; a single
+        # request/error-handling implementation lives there
+        return self.generate_response_with_vision(
+            model_name,
+            prompt,
+            image_paths=None,
+            is_json=is_json,
+            return_full_response=return_full_response,
+        )
 
     def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
         """
@@ -204,61 +199,10 @@ class OllamaClient:
         """
         # Use vision_context_window for vision models (larger context for image patches)
         context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
-
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": context_window,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add images if provided (for vision models)
-        if image_paths:
-            images_base64 = []
-            failed_count = 0
-            for img_path in image_paths:
-                try:
-                    with open(img_path, "rb") as img_file:
-                        img_data = img_file.read()
-                        img_b64 = base64.b64encode(img_data).decode("utf-8")
-                        images_base64.append(img_b64)
-                except FileNotFoundError:
-                    failed_count += 1
-                    _logger.warning(f"Image file not found: {img_path}")
-                except PermissionError:
-                    failed_count += 1
-                    _logger.warning(f"Permission denied reading image: {img_path}")
-                except Exception as e:
-                    failed_count += 1
-                    _logger.warning(f"Failed to load image {img_path}: {e}")
-
-            if failed_count > 0:
-                _logger.warning(
-                    f"Failed to load {failed_count}/{len(image_paths)} image(s). "
-                    "Vision model will proceed with available images."
-                )
-
-            if images_base64:
-                payload["images"] = images_base64
-
-        if is_json:
-            payload["format"] = "json"
-
-        # Add logprobs if enabled
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
+        images_base64 = _load_images_base64(image_paths) if image_paths else None
+        payload = _build_generate_payload(
+            self.config, model_name, prompt, is_json, images_base64, context_window
+        )
 
         try:
             response = self._session.post(
@@ -557,82 +501,15 @@ class AsyncOllamaClient:
         Returns:
             Full response dictionary (if return_full_response=True) or response text string.
         """
-        if not self.session:
-            raise RuntimeError("AsyncOllamaClient must be used as async context manager")
-
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": self.config.num_ctx,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add logprobs if enabled
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
-
-        if is_json:
-            payload["format"] = "json"
-
-        async with self.semaphore:  # Limit concurrent requests
-            try:
-                async with self.session.post(self.config.api_url, json=payload) as response:
-                    response.raise_for_status()
-                    try:
-                        data = await response.json()
-                    except aiohttp.ContentTypeError as e:
-                        raise OllamaResponseError(
-                            f"Invalid JSON response from Ollama: {e}", status_code=response.status
-                        ) from e
-
-                    if return_full_response:
-                        return data
-                    return str(data.get("response", ""))
-
-            except TimeoutError as e:
-                raise OllamaTimeoutError(
-                    f"Ollama async request timed out after {self.config.timeout}s for model '{model_name}'",
-                    timeout=self.config.timeout,
-                ) from e
-
-            except aiohttp.ClientConnectorError as e:
-                raise OllamaConnectionError(
-                    f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
-                    f"Ensure Ollama is running with 'ollama serve'",
-                    host=self.config.host,
-                    port=self.config.port,
-                ) from e
-
-            except aiohttp.ClientResponseError as e:
-                if e.status == 404:
-                    raise OllamaModelNotFoundError(
-                        f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
-                        model=model_name,
-                    ) from e
-                else:
-                    # Ollama 0.12.5 enhanced error details
-                    raise OllamaResponseError(
-                        f"Ollama HTTP error {e.status}: {e.message}",
-                        status_code=e.status,
-                        response_body=str(e.message),
-                    ) from e
-
-            except aiohttp.ClientError as e:
-                raise OllamaConnectionError(
-                    f"Ollama async client error: {e}", host=self.config.host, port=self.config.port
-                ) from e
+        # Text-only generation is the vision path without images; a single
+        # request/error-handling implementation lives there
+        return await self.generate_response_with_vision(
+            model_name,
+            prompt,
+            image_paths=None,
+            is_json=is_json,
+            return_full_response=return_full_response,
+        )
 
     async def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
         """
@@ -686,61 +563,10 @@ class AsyncOllamaClient:
 
         # Use vision_context_window for vision models (larger context for image patches)
         context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
-
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": context_window,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add images if provided (for vision models)
-        if image_paths:
-            images_base64 = []
-            failed_count = 0
-            for img_path in image_paths:
-                try:
-                    with open(img_path, "rb") as img_file:
-                        img_data = img_file.read()
-                        img_b64 = base64.b64encode(img_data).decode("utf-8")
-                        images_base64.append(img_b64)
-                except FileNotFoundError:
-                    failed_count += 1
-                    _logger.warning(f"Image file not found: {img_path}")
-                except PermissionError:
-                    failed_count += 1
-                    _logger.warning(f"Permission denied reading image: {img_path}")
-                except Exception as e:
-                    failed_count += 1
-                    _logger.warning(f"Failed to load image {img_path}: {e}")
-
-            if failed_count > 0:
-                _logger.warning(
-                    f"Failed to load {failed_count}/{len(image_paths)} image(s). "
-                    "Vision model will proceed with available images."
-                )
-
-            if images_base64:
-                payload["images"] = images_base64
-
-        if is_json:
-            payload["format"] = "json"
-
-        # Add logprobs if enabled
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
+        images_base64 = _load_images_base64(image_paths) if image_paths else None
+        payload = _build_generate_payload(
+            self.config, model_name, prompt, is_json, images_base64, context_window
+        )
 
         async with self.semaphore:  # Limit concurrent requests
             try:
