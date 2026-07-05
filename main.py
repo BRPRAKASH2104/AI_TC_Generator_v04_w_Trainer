@@ -68,7 +68,11 @@ def show_banner(mode: str = "standard") -> None:
     help="Enable high-performance mode with async processing",
 )
 @click.option("--training", is_flag=True, help="Enable training mode (requires ML dependencies)")
-@click.option("--model", default="llama3.1:8b", help="AI model to use for generation")
+@click.option(
+    "--model",
+    default=None,
+    help="AI model to use for generation (default: config synthesizer_model, llama3.1:8b)",
+)
 @click.option("--template", type=str, default=None, help="Specific prompt template to use")
 @click.option(
     "--preset", type=str, default=None, help="Use a named configuration preset (e.g., qwen_vision)"
@@ -210,13 +214,9 @@ def main(
     # So since we updated base_config above, apply_cli_overrides will start with those preset values!
 
     effective_config = base_config.apply_cli_overrides(
-        model=model if model != "llama3.1:8b" else None, # Only override if user changed default?
-        # CAUTION: Click default is "llama3.1:8b". If user doesn't specify --model,
-        # we get that default string. If we pass it to apply_cli_overrides, it might
-        # override the preset's model!
-        # We need to detect if --model was explicitly passed or just default.
-        # Allow preset to win if model is default.
-
+        # None when --model was not passed, so presets/config keep their model;
+        # an explicit --model (even the default name) always wins
+        model=model,
         template=template,
         max_concurrent=max_concurrent,
         num_ctx=num_ctx,
@@ -324,6 +324,11 @@ def _run_standard_mode(
         app_logger.error(f"Error in standard mode: {e}", mode="standard", exception=str(e))
         console.print(f"[red]💥 Error in standard mode: {e}[/red]")
         sys.exit(1)
+
+    finally:
+        # Release the HTTP connection pool held by the sync Ollama client
+        if "processor" in locals():
+            processor.ollama_client.close()
 
 
 def _run_hp_mode(

@@ -258,3 +258,34 @@ class TestHTMLTableParser:
         # Second row should inherit "6000" from rowspan
         assert result[1]["RPM"] == "6000"
         assert result[1]["Result"] == "Red display"
+
+    def test_parse_row_with_mixed_th_and_td_cells(self):
+        """Regression: a data row containing both th (row label) and td cells lost the td cells.
+
+        The cell lookup was `row.findall('th') or row.findall('td')`, so any
+        row with a th header cell dropped every td in the same row.
+        """
+        html = """
+        <table>
+            <tr>
+                <th>Parameter</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <th>Speed</th>
+                <td>30</td>
+            </tr>
+            <tr>
+                <th>Voltage</th>
+                <td>12</td>
+            </tr>
+        </table>
+        """
+
+        result = HTMLTableParser.extract_tables_from_html(html)
+
+        assert len(result) == 2
+        assert result[0]["Parameter"] == "Speed"
+        assert result[0]["Value"] == "30"
+        assert result[1]["Parameter"] == "Voltage"
+        assert result[1]["Value"] == "12"

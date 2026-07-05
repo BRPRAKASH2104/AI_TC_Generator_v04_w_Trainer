@@ -149,7 +149,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             augmented_requirements, interface_count = self._build_augmented_requirements(artifacts)
 
             if not augmented_requirements:
-                return self._create_error_result_hp("No System Requirements with tables found")
+                return self._create_error_result_hp("No System Requirements found")
 
             self.metrics["total_requirements"] = len(augmented_requirements)
 

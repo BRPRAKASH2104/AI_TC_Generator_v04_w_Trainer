@@ -175,6 +175,17 @@ class HTMLTableParser:
         return cleaned
 
     @staticmethod
+    def _row_cells(row: ET.Element) -> list[ET.Element]:
+        """Collect th/td cells of a row in document order.
+
+        A row may mix th (row-label) and td cells; taking th-cells OR
+        td-cells would silently drop the other kind.
+        """
+        return [
+            cell for cell in row.iter() if cell.tag.rsplit("}", 1)[-1] in ("th", "td")
+        ]
+
+    @staticmethod
     def _parse_single_table(table_element: ET.Element) -> HTMLTableData:
         """Parse a single table element into structured data, flattening rowspan/colspan."""
         rows = table_element.findall(".//tr")
@@ -185,8 +196,7 @@ class HTMLTableParser:
         max_cols = 0
         for row in rows:
             col_count = 0
-            cells = row.findall(".//th") or row.findall(".//td")
-            for cell in cells:
+            for cell in HTMLTableParser._row_cells(row):
                 colspan = int(cell.get("colspan", 1))
                 col_count += colspan
             max_cols = max(max_cols, col_count)
@@ -197,23 +207,23 @@ class HTMLTableParser:
         # Initialize a matrix to keep track of the cell contents
         # matrix[row_idx][col_idx] = text
         matrix: list[list[str]] = [["" for _ in range(max_cols)] for _ in range(len(rows))]
-        
+
         # Keep track of which cells are occupied by rowspans
         # occupied[row_idx][col_idx] = True/False
         occupied: list[list[bool]] = [[False for _ in range(max_cols)] for _ in range(len(rows))]
 
         for row_idx, row in enumerate(rows):
-            cells = row.findall(".//th") or row.findall(".//td")
+            cells = HTMLTableParser._row_cells(row)
             col_idx = 0
-            
+
             for cell in cells:
                 # Find the next available column
                 while col_idx < max_cols and occupied[row_idx][col_idx]:
                     col_idx += 1
-                    
+
                 if col_idx >= max_cols:
                     break # Should not happen based on max_cols calculation, but safeguard
-                    
+
                 colspan = int(cell.get("colspan", 1))
                 rowspan = int(cell.get("rowspan", 1))
                 text = "".join(cell.itertext()).strip()
@@ -226,9 +236,9 @@ class HTMLTableParser:
                         if target_row < len(rows) and target_col < max_cols:
                             matrix[target_row][target_col] = text
                             occupied[target_row][target_col] = True
-                            
+
                 col_idx += colspan
-                
+
         # Extract headers from the first row of the matrix
         # If a header spans multiple columns, it will be duplicated in the matrix,
         # which would cause dictionary key overwrites. We need to make them unique.

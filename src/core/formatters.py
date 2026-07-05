@@ -5,7 +5,6 @@ This module provides classes for formatting and outputting test cases to various
 with primary support for Excel/XLSX output with automotive-specific formatting.
 """
 
-import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +12,8 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils.dataframe import dataframe_to_rows
+
+from src.config import StaticTestConfig
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -111,7 +112,7 @@ class TestCaseFormatter:
             data_raw = test_case.get("data")
             if not data_raw or not str(data_raw).strip():
                 data_raw = test_case.get("test_steps")
-            
+
             data_field = data_raw or "N/A"
 
             # v03 data formatting logic
@@ -152,48 +153,30 @@ class TestCaseFormatter:
 
     def _get_default_test_values(self, metadata: dict[str, Any] = None) -> dict[str, Any]:
         """
-        Get default values from config or use v03-compatible automotive defaults.
+        Get static test-case field values.
 
-        FIX: Updated to match v03 static configuration exactly.
+        StaticTestConfig is the single source of truth for these values;
+        the formatter no longer carries its own copy of the defaults.
         """
+        config_test = getattr(self.config, "static_test", None) or StaticTestConfig()
+
         defaults = {
-            "test_type": "RoboFit",  # v03: STATIC_TEST_TYPE
-            "issue_type": "Test",  # v03: STATIC_ISSUE_TYPE
-            "project_key": "TCTOIC",  # v03: STATIC_PROJECT_KEY
-            "assignee": "ENGG",  # v03: STATIC_ASSIGNEE
-            "planned_execution": "Manual",  # v03: STATIC_PLANNED_EXECUTION
-            "test_case_type": "Feature Functional",  # v03: STATIC_TEST_CASE_TYPE
-            "components": "Infotainment",  # v03: STATIC_COMPONENTS
-            "labels": "SYS_DI_VALIDATION_TEST",  # v03: STATIC_LABELS
-            "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",
+            "test_type": config_test.test_type,
+            "issue_type": config_test.issue_type,
+            "project_key": config_test.project_key,
+            "assignee": config_test.assignee,
+            "planned_execution": config_test.planned_execution,
+            "test_case_type": config_test.test_case_type,
+            "components": config_test.components,
+            "labels": config_test.labels,
+            "voltage_precondition": config_test.voltage_precondition,
         }
 
-        # Override with config values if available
-        if self.config and hasattr(self.config, "static_test"):
-            config_test = self.config.static_test
-            defaults.update(
-                {
-                    "issue_type": getattr(config_test, "issue_type", defaults["issue_type"]),
-                    "project_key": getattr(config_test, "project_key", defaults["project_key"]),
-                    "assignee": getattr(config_test, "assignee", defaults["assignee"]),
-                    "test_case_type": getattr(
-                        config_test, "test_case_type", defaults["test_case_type"]
-                    ),
-                    "planned_execution": getattr(
-                        config_test, "planned_execution", defaults["planned_execution"]
-                    ),
-                    "components": getattr(config_test, "components", defaults["components"]),
-                    "labels": getattr(config_test, "labels", defaults["labels"]),
-                    "voltage_precondition": getattr(
-                        config_test, "voltage_precondition", defaults["voltage_precondition"]
-                    ),
-                    "test_type": getattr(config_test, "test_type", defaults["test_type"]),
-                }
-            )
-
-        # Override with metadata values if provided
+        # Metadata may override known fields only — it also carries unrelated
+        # bookkeeping keys (model, template, source_file, ...) that must not
+        # leak into the static defaults
         if metadata:
-            defaults.update(metadata)
+            defaults.update({k: v for k, v in metadata.items() if k in defaults})
 
         return defaults
 
@@ -207,32 +190,6 @@ class TestCaseFormatter:
             return test_id
         else:
             return f"{requirement_id}_{test_id}"
-
-    def _build_description(self, test_case: dict[str, Any]) -> str:
-        """Build comprehensive test description"""
-        parts = []
-
-        # Add summary if available
-        if test_case.get("summary"):
-            parts.append(f"Summary: {self._stringify_list(test_case['summary'])}")
-
-        # Add detailed action steps
-        if test_case.get("action"):
-            parts.append(f"Test Steps: {self._stringify_list(test_case['action'])}")
-
-        # Add data requirements
-        if test_case.get("data"):
-            parts.append(f"Test Data: {self._stringify_list(test_case['data'])}")
-
-        # Add expected results
-        if test_case.get("expected_result"):
-            parts.append(f"Expected Result: {self._stringify_list(test_case['expected_result'])}")
-
-        # Add generation metadata
-        if test_case.get("generation_time"):
-            parts.append(f"Generated in {test_case['generation_time']:.2f}s")
-
-        return "\n\n".join(parts) if parts else "AI-generated test case"
 
     def _create_formatted_excel(
         self, df: pd.DataFrame, output_path: Path, metadata: dict[str, Any] | None = None
