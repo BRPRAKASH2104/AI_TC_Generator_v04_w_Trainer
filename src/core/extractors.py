@@ -5,10 +5,8 @@ This module provides classes for extracting and processing artifacts from REQIFZ
 with support for different artifact types commonly found in automotive requirements.
 """
 
-import io
 import xml.etree.ElementTree as ET
 import zipfile
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -42,9 +40,12 @@ class REQIFArtifactExtractor:
 
     __slots__ = ("logger", "html_parser", "use_streaming", "config")
 
-    def __init__(self, logger=None, use_streaming: bool = False, config: 'ConfigManager' = None):
+    def __init__(self, logger=None, use_streaming: bool = False, config: ConfigManager = None):
         self.logger = logger
         self.html_parser = HTMLTableParser()
+        # use_streaming is retained for interface compatibility only; the
+        # streaming parser was removed (it was never enabled and re-read the
+        # already-in-memory XML twice)
         self.use_streaming = use_streaming
         self.config = config
 
@@ -71,12 +72,41 @@ class REQIFArtifactExtractor:
                 reqif_content = zip_file.read(reqif_files[0])
                 artifacts = self._parse_reqif_xml(reqif_content)
 
-            return self._extract_and_augment_images(reqifz_file_path, artifacts)
+            artifacts = self._extract_and_augment_images(reqifz_file_path, artifacts)
+            return self._augment_relationships_if_enabled(reqifz_file_path, artifacts)
 
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Error extracting REQIFZ file {reqifz_file_path}: {e}")
             return []
+
+    def _augment_relationships_if_enabled(
+        self, reqifz_file_path: Path, artifacts: list
+    ) -> list:
+        """Parse SPEC-RELATION elements and augment artifacts when enabled in config."""
+        if not (
+            self.config
+            and self.config.relationships.enable_relationship_parsing
+            and artifacts
+        ):
+            return artifacts
+
+        if self.logger:
+            self.logger.info("🔗 Parsing requirement relationships (SPEC-RELATION)...")
+
+        artifacts, relationship_info = self.parse_and_augment_relationships(
+            reqifz_file_path,
+            artifacts,
+            augment_requirements=self.config.relationships.augment_requirements,
+            build_dependency_graph=self.config.relationships.build_dependency_graph,
+        )
+
+        if self.logger:
+            self.logger.info(
+                f"🔗 Found {len(relationship_info.get('relationships', []))} relationship(s)"
+            )
+
+        return artifacts
 
     def _extract_and_augment_images(self, reqifz_file_path: Path, artifacts: list) -> list:
         """Extract images and augment artifacts using the shared configuration."""
@@ -113,11 +143,7 @@ class REQIFArtifactExtractor:
     def _parse_reqif_xml(self, xml_content: bytes) -> ArtifactList:
         """Parse REQIF XML content and extract artifacts"""
         try:
-            # Use streaming if enabled
-            if self.use_streaming:
-                return self._parse_reqif_xml_streaming(xml_content)
-
-            # Traditional DOM-based parsing
+            # DOM-based parsing
             root = ET.fromstring(xml_content)
 
             # REQIF namespaces
@@ -434,117 +460,6 @@ class REQIFArtifactExtractor:
                     return ArtifactType.SYSTEM_REQUIREMENT
                 return ArtifactType.UNKNOWN
 
-    def _parse_reqif_xml_streaming(self, xml_content: bytes) -> ArtifactList:
-        """
-        Parse REQIF XML content using streaming parsing to reduce memory usage.
-
-        This method uses iterparse() to process XML elements as they are encountered,
-        rather than loading the entire DOM into memory. This provides significant
-        memory savings for large REQIF files.
-
-        Strategy:
-        1. First pass: Build type mappings using streaming
-        2. Second pass: Process spec objects using streaming
-        """
-        try:
-            # REQIF namespaces
-            namespaces = {
-                "reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd",
-                "html": "http://www.w3.org/1999/xhtml",
-            }
-
-            # Pass 1: Build mappings using streaming
-            spec_type_map, foreign_id_map = self._build_mappings_streaming(xml_content, namespaces)
-
-            # Pass 2: Extract spec objects using streaming
-            artifacts = self._extract_spec_objects_streaming(
-                xml_content, namespaces, spec_type_map, foreign_id_map
-            )
-
-            if self.logger:
-                self.logger.info(
-                    f"Extracted {len(artifacts)} artifacts from REQIF using streaming parsing"
-                )
-
-            return artifacts
-
-        except ET.ParseError as e:
-            if self.logger:
-                self.logger.error(f"Streaming XML parsing error: {e}")
-            return []
-
-    def _build_mappings_streaming(
-        self, xml_content: bytes, namespaces: dict[str, str]
-    ) -> tuple[dict[str, str], dict[str, str]]:
-        """Build type mappings using streaming XML parsing."""
-        spec_type_map = {}
-        foreign_id_map = {}
-
-        try:
-            # Build SPEC-OBJECT-TYPE mapping
-            for _, elem in ET.iterparse(io.BytesIO(xml_content), events=("end",)):
-                if elem.tag.endswith("}SPEC-OBJECT-TYPE"):
-                    type_id = elem.get("IDENTIFIER")
-                    long_name = elem.get("LONG-NAME")
-
-                    if type_id and long_name:
-                        spec_type_map[type_id] = long_name
-
-                    # Check for ReqIF.ForeignID attribute definition
-                    for attr_def in elem.findall(
-                        ".//reqif:ATTRIBUTE-DEFINITION-STRING[@LONG-NAME='ReqIF.ForeignID']",
-                        namespaces,
-                    ):
-                        foreign_id = attr_def.get("IDENTIFIER")
-                        if foreign_id:
-                            foreign_id_map[type_id] = foreign_id
-
-                # Clear large elements to save memory, but ONLY when fully parsed
-                if elem.tag.endswith("}SPEC-OBJECT-TYPE") or elem.tag.endswith("}SPEC-OBJECT") or elem.tag.endswith("}SPEC-RELATION"):
-                    elem.clear()
-
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"Error in streaming mapping build: {e}")
-            # Fall back to empty mappings
-
-        if self.logger:
-            self.logger.debug(
-                f"Built mappings via streaming: {len(spec_type_map)} types, {len(foreign_id_map)} foreign IDs"
-            )
-
-        return spec_type_map, foreign_id_map
-
-    def _extract_spec_objects_streaming(
-        self,
-        xml_content: bytes,
-        namespaces: dict[str, str],
-        spec_type_map: dict[str, str],
-        foreign_id_map: dict[str, str],
-    ) -> ArtifactList:
-        """Extract spec objects using streaming XML parsing."""
-        artifacts = []
-
-        try:
-            for _, elem in ET.iterparse(io.BytesIO(xml_content), events=("end",)):
-                if elem.tag.endswith("}SPEC-OBJECT"):
-                    # Extract this spec object
-                    artifact = self._extract_spec_object(
-                        elem, namespaces, spec_type_map, foreign_id_map
-                    )
-                    if artifact:
-                        artifacts.append(artifact)
-
-                # Clear large elements to save memory (important for streaming)
-                if elem.tag.endswith("}SPEC-OBJECT") or elem.tag.endswith("}SPEC-OBJECT-TYPE") or elem.tag.endswith("}SPEC-RELATION"):
-                    elem.clear()
-
-        except Exception as e:
-            if self.logger:
-                self.logger.warning(f"Error in streaming spec object extraction: {e}")
-
-        return artifacts
-
     def classify_artifacts(self, artifacts: ArtifactList) -> dict[ArtifactType, ArtifactList]:
         """Classify artifacts by type"""
         classified = {}
@@ -661,220 +576,16 @@ class REQIFArtifactExtractor:
 
 
 class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
-    """
-    High-performance version with concurrent XML processing using ThreadPoolExecutor.
+    """Extractor used by the HP pipeline.
 
-    This class provides significant performance improvements for large REQIF files by:
-    - Processing spec objects concurrently in batches
-    - Parallelizing attribute extraction and processing
-    - Using thread-safe XML parsing operations
-    - Implementing intelligent fallback to sequential processing when needed
+    Historically this class parallelized XML parsing with a ThreadPoolExecutor,
+    but ElementTree traversal is pure-Python and GIL-bound, so the threads
+    serialized anyway and only added overhead. Extraction is now identical to
+    the base class; the HP pipeline's real parallelism is the async Ollama
+    calls across requirements.
     """
 
-    def __init__(self, logger=None, max_workers: int = 4, config: 'ConfigManager' = None):
+    def __init__(self, logger=None, max_workers: int = 4, config: ConfigManager = None):
         super().__init__(logger, use_streaming=False, config=config)
+        # Retained for interface compatibility; no longer used for threading
         self.max_workers = max_workers
-
-    def extract_reqifz_content(self, reqifz_file_path: Path) -> ArtifactList:
-        """
-        Enhanced extraction with parallel XML processing for large REQIF files.
-
-        Uses ThreadPoolExecutor to process multiple spec objects concurrently,
-        providing significant performance improvement for large files.
-        """
-        try:
-            with zipfile.ZipFile(reqifz_file_path, "r") as zip_file:
-                reqif_files = [f for f in zip_file.namelist() if f.endswith(".reqif")]
-
-                if not reqif_files:
-                    if self.logger:
-                        self.logger.warning(f"No .reqif files found in {reqifz_file_path}")
-                    return []
-
-                # Process the first REQIF file found with enhanced parallel processing
-                reqif_content = zip_file.read(reqif_files[0])
-                artifacts = self._parse_reqif_xml_parallel(reqif_content)
-
-            return self._extract_and_augment_images(reqifz_file_path, artifacts)
-
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error extracting REQIFZ file {reqifz_file_path}: {e}")
-            return []
-
-    def _parse_reqif_xml_parallel(self, xml_content: bytes) -> ArtifactList:
-        """
-        Parse REQIF XML content using parallel processing for spec objects.
-
-        This method splits the XML parsing into concurrent tasks:
-        1. Parse the XML structure (single-threaded)
-        2. Extract spec objects concurrently (multi-threaded)
-        3. Process artifact attributes in parallel (multi-threaded)
-        """
-        try:
-            # Step 1: Parse XML structure (must be single-threaded)
-            root = ET.fromstring(xml_content)
-
-            # REQIF namespaces
-            namespaces = {
-                "reqif": "http://www.omg.org/spec/ReqIF/20110401/reqif.xsd",
-                "html": "http://www.w3.org/1999/xhtml",
-            }
-
-            # Build SPEC-OBJECT-TYPE mapping and foreign ID mapping
-            spec_type_map = self._build_spec_type_mapping(root, namespaces)
-            foreign_id_map = self._build_foreign_id_mapping(root, namespaces)
-
-            # Step 2: Find all spec objects
-            spec_objects = root.findall(".//reqif:SPEC-OBJECT", namespaces)
-
-            if not spec_objects:
-                if self.logger:
-                    self.logger.warning("No SPEC-OBJECT elements found in REQIF")
-                return []
-
-            if self.logger:
-                self.logger.debug(
-                    f"Found {len(spec_objects)} spec objects, processing with {self.max_workers} workers"
-                )
-
-            # Step 3: Process spec objects concurrently
-            artifacts = []
-
-            # For small numbers of spec objects, use sequential processing to avoid overhead
-            if len(spec_objects) < 10:
-                for spec_obj in spec_objects:
-                    artifact = self._extract_spec_object(
-                        spec_obj, namespaces, spec_type_map, foreign_id_map
-                    )
-                    if artifact:
-                        artifacts.append(artifact)
-            else:
-                # Use ThreadPoolExecutor for concurrent processing of spec objects
-                artifacts = self._process_spec_objects_concurrent(
-                    spec_objects, namespaces, spec_type_map, foreign_id_map
-                )
-
-            if self.logger:
-                self.logger.info(
-                    f"Extracted {len(artifacts)} artifacts from REQIF using parallel processing"
-                )
-
-            return artifacts
-
-        except ET.ParseError as e:
-            if self.logger:
-                self.logger.error(f"XML parsing error: {e}")
-            return []
-        except Exception as e:
-            if self.logger:
-                self.logger.error(f"Error in parallel XML parsing: {e}")
-            # Fallback to sequential processing if parallel processing fails
-            return super()._parse_reqif_xml(xml_content)
-
-    def _process_spec_objects_concurrent(
-        self,
-        spec_objects,
-        namespaces,
-        spec_type_map: dict[str, str] = None,
-        foreign_id_map: dict[str, str] = None,
-    ) -> ArtifactList:
-        """
-        Process spec objects concurrently using ThreadPoolExecutor.
-
-        Args:
-            spec_objects: List of spec object XML elements
-            namespaces: XML namespaces for parsing
-            spec_type_map: Mapping of SPEC-OBJECT-TYPE IDs to names
-
-        Returns:
-            List of extracted artifacts
-        """
-        artifacts = []
-
-        # Create batches of spec objects for more efficient processing
-        batch_size = max(1, len(spec_objects) // self.max_workers)
-        batches = [
-            spec_objects[i : i + batch_size] for i in range(0, len(spec_objects), batch_size)
-        ]
-
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit batch processing tasks
-            future_to_batch = {
-                executor.submit(
-                    self._process_spec_object_batch,
-                    batch,
-                    namespaces,
-                    spec_type_map,
-                    foreign_id_map,
-                ): batch_idx
-                for batch_idx, batch in enumerate(batches)
-            }
-
-            # Collect results as they complete
-            for future in as_completed(future_to_batch):
-                batch_idx = future_to_batch[future]
-                try:
-                    batch_artifacts = future.result()
-                    artifacts.extend(batch_artifacts)
-
-                    if self.logger:
-                        self.logger.debug(
-                            f"Completed batch {batch_idx + 1}/{len(batches)}, "
-                            f"extracted {len(batch_artifacts)} artifacts"
-                        )
-
-                except Exception as e:
-                    if self.logger:
-                        self.logger.warning(f"Error processing batch {batch_idx}: {e}")
-
-                    # Fallback: process this batch sequentially
-                    try:
-                        batch = batches[batch_idx]
-                        for spec_obj in batch:
-                            artifact = self._extract_spec_object(
-                                spec_obj, namespaces, spec_type_map, foreign_id_map
-                            )
-                            if artifact:
-                                artifacts.append(artifact)
-                    except Exception as fallback_e:
-                        if self.logger:
-                            self.logger.error(
-                                f"Fallback processing also failed for batch {batch_idx}: {fallback_e}"
-                            )
-
-        return artifacts
-
-    def _process_spec_object_batch(
-        self,
-        spec_objects_batch,
-        namespaces,
-        spec_type_map: dict[str, str] = None,
-        foreign_id_map: dict[str, str] = None,
-    ) -> ArtifactList:
-        """
-        Process a batch of spec objects sequentially within a single thread.
-
-        Args:
-            spec_objects_batch: Batch of spec object XML elements
-            namespaces: XML namespaces for parsing
-            spec_type_map: Mapping of SPEC-OBJECT-TYPE IDs to names
-
-        Returns:
-            List of extracted artifacts from this batch
-        """
-        batch_artifacts = []
-
-        for spec_obj in spec_objects_batch:
-            try:
-                artifact = self._extract_spec_object(
-                    spec_obj, namespaces, spec_type_map, foreign_id_map
-                )
-                if artifact:
-                    batch_artifacts.append(artifact)
-            except Exception as e:
-                if self.logger:
-                    self.logger.warning(f"Error processing individual spec object: {e}")
-                continue
-
-        return batch_artifacts

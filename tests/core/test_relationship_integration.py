@@ -204,6 +204,46 @@ def test_extractor_without_relationships(sample_reqifz_without_relationships):
     assert artifact["hierarchy_level"] == 0
 
 
+def test_extract_reqifz_content_wires_relationship_parsing(sample_reqifz_with_relationships):
+    """extract_reqifz_content must parse relationships itself when enabled in config.
+
+    Regression: parse_and_augment_relationships existed but no processor ever
+    called it, so RelationshipConfig.enable_relationship_parsing had no effect.
+    """
+    from config import ConfigManager
+
+    config = ConfigManager()
+    config.image_extraction.enable_image_extraction = False
+    config.relationships.enable_relationship_parsing = True
+
+    extractor = REQIFArtifactExtractor(config=config)
+    artifacts = extractor.extract_reqifz_content(sample_reqifz_with_relationships)
+
+    parent = next(a for a in artifacts if a["id"] == "REQ_PARENT_001")
+    child = next(a for a in artifacts if a["id"] == "REQ_CHILD_001")
+
+    assert "REQ_CHILD_001" in parent["child_ids"]
+    assert child["parent_id"] == "REQ_PARENT_001"
+    assert child["hierarchy_level"] == 1
+
+
+def test_extract_reqifz_content_skips_relationships_when_disabled(
+    sample_reqifz_with_relationships,
+):
+    """With relationship parsing disabled, artifacts must not carry relationship keys."""
+    from config import ConfigManager
+
+    config = ConfigManager()
+    config.image_extraction.enable_image_extraction = False
+    config.relationships.enable_relationship_parsing = False
+
+    extractor = REQIFArtifactExtractor(config=config)
+    artifacts = extractor.extract_reqifz_content(sample_reqifz_with_relationships)
+
+    assert len(artifacts) == 2
+    assert all("parent_id" not in a for a in artifacts)
+
+
 def test_extractor_with_dependency_graph(sample_reqifz_with_relationships):
     """Test extractor builds dependency graph when requested"""
     extractor = REQIFArtifactExtractor()
