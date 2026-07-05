@@ -222,12 +222,3 @@ test_generation_prompts:
 prompt_selection:
   # Default fallback - use adaptive template
   default_template: "adaptive_default"
-
-  # Model-specific preferences
-  model_preferences:
-    "llama3.1:8b":
-      preferred: ["adaptive_default"]
-      avoid: []
-    "deepseek-coder-v2:16b":
-      preferred: ["adaptive_default"]
-      avoid: []

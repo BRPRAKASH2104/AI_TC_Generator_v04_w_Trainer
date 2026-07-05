@@ -266,6 +266,28 @@ def test_generic_words_in_test_steps_not_flagged():
     assert is_valid, f"Unexpected issues: {issues}"
 
 
+def test_signal_names_extracted_once_per_batch():
+    """Efficiency regression: the interface signal set must be built once per
+    batch, not rebuilt for every test case."""
+    from unittest.mock import patch
+
+    validator = SemanticValidator()
+
+    test_cases = [
+        {"test_steps": f"1) Set ACCSP = {i}", "expected_result": "ok"} for i in range(5)
+    ]
+    requirement = {
+        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
+    }
+
+    with patch.object(
+        SemanticValidator, "_extract_signal_names", wraps=validator._extract_signal_names
+    ) as spy:
+        validator.validate_batch(test_cases, requirement)
+
+    assert spy.call_count == 1, f"expected 1 extraction, got {spy.call_count}"
+
+
 def test_signal_extraction_patterns():
     """Test various signal name extraction patterns"""
     validator = SemanticValidator()

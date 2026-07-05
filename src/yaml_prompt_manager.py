@@ -8,6 +8,7 @@ It supports automatic template selection, variable substitution, and template va
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -271,15 +272,19 @@ class YAMLPromptManager:
         return final_variables
 
     def _substitute_variables(self, template_str: str, variables: dict[str, Any]) -> str:
-        """Substitute variables in template string using {variable_name} format"""
-        rendered = template_str
+        """Substitute {variable_name} placeholders in a single pass.
 
-        # Simple variable substitution using {variable_name} format
-        for var_name, var_value in variables.items():
-            placeholder = f"{{{var_name}}}"
-            rendered = rendered.replace(placeholder, str(var_value))
-
-        return rendered
+        Substituted values are never rescanned, so a value containing
+        literal {placeholder} text stays intact. Unknown placeholders are
+        left as-is.
+        """
+        return re.sub(
+            r"\{(\w+)\}",
+            lambda match: str(variables[match.group(1)])
+            if match.group(1) in variables
+            else match.group(0),
+            template_str,
+        )
 
     def list_templates(self) -> dict[str, list[str]]:
         """List available templates"""

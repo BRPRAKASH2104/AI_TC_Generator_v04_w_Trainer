@@ -39,8 +39,6 @@ class SemanticValidator:
         Returns:
             Tuple of (is_valid, list_of_issues)
         """
-        issues = []
-
         # Extract interface dictionary from requirement
         interface_list = requirement.get("interface_list", [])
         if not interface_list:
@@ -49,6 +47,18 @@ class SemanticValidator:
 
         # Build valid signal names from interface dictionary
         valid_signal_names = self._extract_signal_names(interface_list)
+
+        return self._validate_with_signals(test_case, valid_signal_names)
+
+    def _validate_with_signals(
+        self, test_case: dict[str, Any], valid_signal_names: set[str]
+    ) -> tuple[bool, list[str]]:
+        """Validate a test case against a pre-built signal-name set.
+
+        validate_batch builds the signal set once and reuses it for every
+        test case in the batch.
+        """
+        issues = []
 
         # Validate signal names in test case
         signal_issues = self._validate_signals(test_case, valid_signal_names)
@@ -202,8 +212,17 @@ class SemanticValidator:
         valid_count = 0
         all_issues = []
 
+        # Build the signal-name set once for the whole batch
+        interface_list = requirement.get("interface_list", [])
+        valid_signal_names = (
+            self._extract_signal_names(interface_list) if interface_list else set()
+        )
+
         for idx, test_case in enumerate(test_cases, 1):
-            is_valid, issues = self.validate_test_case(test_case, requirement)
+            if valid_signal_names:
+                is_valid, issues = self._validate_with_signals(test_case, valid_signal_names)
+            else:
+                is_valid, issues = True, []
 
             if is_valid:
                 valid_count += 1

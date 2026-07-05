@@ -378,8 +378,10 @@ class TestHighPerformanceREQIFZFileProcessor:
         # Start monitoring
         monitor_task = asyncio.create_task(processor._monitor_performance())
 
-        # Let it run briefly
-        await asyncio.sleep(0.1)
+        # The monitor samples non-blockingly every 0.5s (a blocking
+        # cpu_percent(interval=0.1) call previously stalled the event loop),
+        # so wait for at least one sampling cycle
+        await asyncio.sleep(0.6)
 
         # Stop monitoring
         monitor_task.cancel()
