@@ -426,7 +426,14 @@ def _validate_templates() -> None:
 
         for template_name in manager.test_prompts:
             try:
-                template = manager.get_test_prompt(template_name)
+                # Render with placeholder values for required variables —
+                # validation checks the template itself, not caller input
+                template_info = manager.get_template_info(template_name)
+                vars_spec = template_info.get("variables", {})
+                required = vars_spec if isinstance(vars_spec, list) else vars_spec.get("required", [])
+                placeholder_vars = {var: f"<{var}>" for var in required}
+
+                template = manager.get_test_prompt(template_name, **placeholder_vars)
                 if template and isinstance(template, str) and len(template.strip()) > 0:
                     console.print(f"✅ {template_name}")
                 else:

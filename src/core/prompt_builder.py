@@ -10,6 +10,12 @@ from typing import Any
 # Type aliases
 type RequirementData = dict[str, Any]
 
+# Tables up to this many rows are rendered in full so the template's
+# row-by-row coverage instructions are satisfiable; larger tables are
+# truncated with an explicit note scoping coverage to the displayed rows.
+# Mirrors FileProcessingConfig.max_table_rows default.
+MAX_PROMPT_TABLE_ROWS = 100
+
 
 class PromptBuilder:
     """Stateless prompt builder for test case generation"""
@@ -62,7 +68,10 @@ class PromptBuilder:
                 "row_count": requirement.get("table", {}).get("rows", 0)
                 if requirement.get("table")
                 else 0,
-                "voltage_precondition": "1. Voltage= 12V\n2. Bat-ON",  # Default automotive precondition
+                # Escaped \n (not a raw newline): the value is substituted
+                # inside a JSON string literal in the template's example, and
+                # raw control characters would make that example invalid JSON
+                "voltage_precondition": "1. Voltage= 12V\\n2. Bat-ON",
                 # Context-aware fields (v03 restoration)
                 "info_str": self.format_info_list(requirement.get("info_list", [])),
                 "interface_str": self.format_interfaces(requirement.get("interface_list", [])),
@@ -157,16 +166,18 @@ Return ONLY valid JSON with the exact field names shown above."""
         """
         Format table data for inclusion in prompts.
 
-        Enhanced version that shows ALL rows with intelligent formatting:
-        - For 20 rows or fewer: Show all rows
-        - For 21-50 rows: Show all rows with compact formatting
-        - For 51+ rows: Show first 10 and last 10 rows with center truncation
+        Row display rules (kept consistent with the template's row-by-row
+        coverage instructions):
+        - Up to 20 rows: verbose format, all rows
+        - 21 to MAX_PROMPT_TABLE_ROWS rows: compact format, all rows
+        - Beyond MAX_PROMPT_TABLE_ROWS: first 10 and last 10 rows with an
+          explicit TRUNCATED note scoping coverage to the displayed rows
 
         Args:
             table_data: Table data dictionary with "data" key
 
         Returns:
-            Formatted table string showing all rows
+            Formatted table string
         """
         if not table_data or "data" not in table_data:
             return "No table data available"
@@ -185,28 +196,32 @@ Return ONLY valid JSON with the exact field names shown above."""
             formatted += " | ".join(headers) + "\n"
             formatted += "-" * (len(" | ".join(headers))) + "\n"
 
-            # Intelligent row display based on table size
+            # Row display based on table size
             if total_rows <= 20:
                 # Show all rows
                 for i, row in enumerate(rows):
                     values = [str(row.get(header, "")) for header in headers]
                     formatted += " | ".join(values) + " | Row " + str(i + 1) + "\n"
-            elif total_rows <= 50:
-                # Show all rows but with compact numbering
+            elif total_rows <= MAX_PROMPT_TABLE_ROWS:
+                # Show all rows but with compact numbering — the template
+                # requires one positive test per row, so every row must be
+                # visible to the model
                 for i, row in enumerate(rows):
                     values = [str(row.get(header, "")) for header in headers]
                     formatted += f"R{i + 1:02d}: " + " | ".join(values) + "\n"
             else:
-                # Large table: Show first 10, truncation indicator, last 10
-                # First 10 rows
+                # Oversized table: show first 10 and last 10 rows, and scope
+                # the coverage instruction to what is actually displayed
                 for i, row in enumerate(rows[:10]):
                     values = [str(row.get(header, "")) for header in headers]
                     formatted += f"R{i + 1:02d}: " + " | ".join(values) + "\n"
 
-                # Truncation indicator
-                formatted += f"... (showing first 10 and last 10 of {total_rows} total rows) ...\n"
+                formatted += (
+                    f"... (TABLE TRUNCATED: showing only the first 10 and last 10 "
+                    f"of {total_rows} rows. Generate positive test cases for the "
+                    f"DISPLAYED rows only.) ...\n"
+                )
 
-                # Last 10 rows
                 start_last = max(10, total_rows - 10)
                 for i, row in enumerate(rows[start_last:], start=start_last):
                     values = [str(row.get(header, "")) for header in headers]

@@ -137,15 +137,27 @@ class SemanticValidator:
         data = "\n".join(raw_data) if isinstance(raw_data, list) else str(raw_data)
         data_signals = re.findall(r"([A-Za-z_][A-Za-z0-9_]+)\s*=", data)
 
+        # Only signal-shaped identifiers (ALL_CAPS or multi-part CamelCase)
+        # are reported as unknown; generic words like 'Voltage' assigned in
+        # preconditions/steps would otherwise flood validation with false
+        # positives
+        signal_like = re.compile(r"[A-Z]{3,}[A-Z0-9_]*|[A-Z][a-z]+(?:[A-Z][a-z]+)+")
+
         for signal in data_signals:
-            if signal not in valid_signals:
-                close_matches = get_close_matches(
-                    signal, valid_signals, n=1, cutoff=self.similarity_threshold
+            if signal in valid_signals:
+                continue
+            close_matches = get_close_matches(
+                signal, valid_signals, n=1, cutoff=self.similarity_threshold
+            )
+            if close_matches:
+                issues.append(
+                    f"Signal '{signal}' in data/test_steps not found. Did you mean '{close_matches[0]}'?"
                 )
-                if close_matches:
-                    issues.append(
-                        f"Signal '{signal}' in data/test_steps not found. Did you mean '{close_matches[0]}'?"
-                    )
+            elif signal_like.fullmatch(signal):
+                issues.append(
+                    f"Signal '{signal}' in data/test_steps not in interface dictionary. "
+                    f"Valid signals: {', '.join(sorted(valid_signals))}"
+                )
 
         return issues
 

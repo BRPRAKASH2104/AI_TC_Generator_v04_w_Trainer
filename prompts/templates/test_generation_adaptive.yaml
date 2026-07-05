@@ -38,12 +38,16 @@ test_generation_prompts:
         - info_str
         - interface_str
         - voltage_precondition
+        - image_context
       defaults:
         info_str: "None"
         interface_str: "None"
         table_str: ""
         row_count: 0
-        voltage_precondition: "1. Voltage= 12V\n2. Bat-ON"
+        # Single-quoted so \n stays a literal JSON escape sequence — the value
+        # is substituted inside a JSON string in the template example
+        voltage_precondition: '1. Voltage= 12V\n2. Bat-ON'
+        image_context: "No diagrams or images provided."
 
     template: |
       You are an expert automotive test engineer. Your task is to generate comprehensive test cases for the following requirement using all provided context.
@@ -57,6 +61,9 @@ test_generation_prompts:
 
       ## SYSTEM INTERFACE DICTIONARY (Inputs/Outputs/Variables):
       {interface_str}
+
+      ## VISUAL DIAGRAMS:
+      {image_context}
 
       ## AVAILABLE TEST DESIGN TECHNIQUES:
       - **Decision Table Testing:** Test combinations of inputs and their corresponding system outputs as defined in a logic table
@@ -107,9 +114,9 @@ test_generation_prompts:
       ## FOR TABLE-BASED REQUIREMENTS:
 
       **ROW-BY-ROW COVERAGE VALIDATION:**
-      - TABLE MUST HAVE: {row_count} rows displayed above
+      - TABLE SIZE: {row_count} rows total (all displayed above unless marked TRUNCATED)
       - REQUIREMENT: Generate EXACTLY one positive test case for EACH displayed table row
-      - VALIDATION: Final test case count must equal {row_count} for complete coverage
+      - VALIDATION: one positive test case per displayed row ({row_count} when the full table is shown; if the table is marked TRUNCATED, cover the displayed rows only)
 
       **POSITIVE TEST CASES (Mandatory - One Per Table Row):**
       - Row 1: Create test case using input/output values from Row 1 of table
@@ -129,9 +136,9 @@ test_generation_prompts:
       - Mark each with `"test_type": "negative"`
 
       **COMPLETE COVERAGE CHECK:**
-      - Total positive test cases: MUST equal {row_count} (one per table row)
+      - Total positive test cases: one per displayed table row ({row_count} when the full table is shown)
       - Additional negative test cases: 3-5 minimum for boundary/error scenarios
-      - All table rows must have corresponding positive test coverage
+      - All displayed table rows must have corresponding positive test coverage
 
       ## FOR TEXT-ONLY REQUIREMENTS:
 
@@ -189,7 +196,7 @@ test_generation_prompts:
 
       3. **COVERAGE REQUIREMENTS**:
          - Generate BOTH positive AND negative test cases
-         - For table-based: Test ALL {row_count} table rows + negative scenarios
+         - For table-based: Test ALL displayed table rows ({row_count} total when the full table is shown) + negative scenarios
          - For text-only: Generate 5-13 total test cases (mix of positive/negative)
 
       4. **QUALITY REQUIREMENTS**:
