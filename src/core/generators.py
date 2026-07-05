@@ -53,6 +53,32 @@ def extract_image_paths(requirement: RequirementData) -> list[Path]:
     return paths
 
 
+def stamp_validation_results(
+    test_cases: TestCaseList, validation_report: dict[str, Any]
+) -> None:
+    """
+    Mark each test case with its semantic-validation outcome.
+
+    Must run BEFORE deduplication: the report's test_case_index values refer
+    to the pre-dedup order, and the deduplicator's "best" strategy prefers
+    test cases with validation_passed=True.
+
+    Global issues (test_case_index <= 0, e.g. table-coverage deficiencies)
+    apply to the batch, not an individual test case, and are ignored here.
+
+    Args:
+        test_cases: Test cases in the exact order they were validated
+        validation_report: Report from SemanticValidator.validate_batch()
+    """
+    invalid_indices = {
+        entry.get("test_case_index")
+        for entry in validation_report.get("issues", [])
+        if isinstance(entry.get("test_case_index"), int) and entry.get("test_case_index") > 0
+    }
+    for index, test_case in enumerate(test_cases, 1):
+        test_case["validation_passed"] = index not in invalid_indices
+
+
 def calculate_confidence(response_data: dict[str, Any], logger=None) -> float | None:
     """
     Calculate confidence score from logprobs if available.
@@ -114,7 +140,7 @@ class TestCaseGenerator:
 
     def __init__(
         self,
-        client: 'OllamaClient',
+        client: OllamaClient,
         yaml_manager=None,
         logger=None,
         validator=None,
@@ -217,6 +243,11 @@ class TestCaseGenerator:
                             f"Expected 3+ negative tests, got {neg_tests}."
                         )
 
+                # Stamp validation outcome before dedup (indices match the
+                # validator report only in pre-dedup order, and the "best"
+                # keep-strategy reads validation_passed)
+                stamp_validation_results(test_cases, validation_report)
+
                 # Deduplication
                 test_cases, dedup_report = self.deduplicator.deduplicate(
                     test_cases, keep_strategy="best"
@@ -233,11 +264,6 @@ class TestCaseGenerator:
                     test_case["requirement_id"] = requirement.get("id", "UNKNOWN")
                     test_case["generation_time"] = generation_time
                     test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i + 1:03d}"
-                    # Add validation status
-                    is_valid = i >= len(validation_report["issues"]) or all(
-                        entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
-                    )
-                    test_case["validation_passed"] = is_valid
                     # Add confidence score
                     if confidence_score is not None:
                         test_case["confidence_score"] = confidence_score
@@ -271,7 +297,7 @@ class AsyncTestCaseGenerator:
 
     def __init__(
         self,
-        client: 'AsyncOllamaClient',
+        client: AsyncOllamaClient,
         yaml_manager=None,
         logger=None,
         validator=None,
@@ -506,6 +532,11 @@ class AsyncTestCaseGenerator:
                         for issue in issue_entry["issues"]:
                             self.logger.warning(f"    - {issue}")
 
+                # Stamp validation outcome before dedup (indices match the
+                # validator report only in pre-dedup order, and the "best"
+                # keep-strategy reads validation_passed)
+                stamp_validation_results(test_cases, validation_report)
+
                 # Phase 6: Deduplication
                 # Remove duplicate or highly similar test cases
                 test_cases, dedup_report = self.deduplicator.deduplicate(
@@ -524,11 +555,6 @@ class AsyncTestCaseGenerator:
                     test_case["requirement_id"] = req_id
                     test_case["generation_time"] = generation_time
                     test_case["test_id"] = f"{req_id}_TC_{i + 1:03d}"
-                    # Add validation status
-                    is_valid = i >= len(validation_report["issues"]) or all(
-                        entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
-                    )
-                    test_case["validation_passed"] = is_valid
                     # Add confidence score
                     if confidence_score is not None:
                         test_case["confidence_score"] = confidence_score

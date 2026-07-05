@@ -46,7 +46,16 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             max_concurrent_requirements or self.config.ollama.gpu_concurrency_limit
         )
 
-        # Performance tracking
+        # Performance tracking (reset per file in process_file)
+        self.metrics: dict[str, Any] = {}
+        self._reset_metrics()
+
+    def _reset_metrics(self) -> None:
+        """Reset per-file performance metrics.
+
+        process_file reuses the processor instance, so counters and samples
+        from a previous file must not leak into the next one.
+        """
         self.metrics = {
             "start_time": None,
             "end_time": None,
@@ -80,12 +89,15 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             f"Found {len(reqifz_files)} REQIFZ files for async processing in {directory_path.name}"
         )
 
-        tasks = []
+        # Files are processed sequentially: process_file reassigns per-file
+        # state on this instance (logger, extractor, formatter, metrics), so
+        # concurrent files would race on it. Parallelism happens across
+        # requirements *within* each file via the async client's semaphore.
+        results = []
         for reqifz_path in reqifz_files:
-            task = self.process_file(reqifz_path, model, template, output_dir)
-            tasks.append(task)
+            result = await self.process_file(reqifz_path, model, template, output_dir)
+            results.append(result)
 
-        results = await asyncio.gather(*tasks)
         return results
 
     async def process_file(
@@ -109,6 +121,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         Returns:
             Processing result with performance metrics
         """
+        self._reset_metrics()
         self.metrics["start_time"] = time.time()
 
         # Initialize file-specific logger and components
@@ -145,7 +158,12 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             )
 
             # Step 3: High-performance async test case generation
-            async with AsyncOllamaClient(self.config.ollama) as ollama_client:
+            # concurrency_limit wires the effective --max-concurrent value
+            # into the client's request semaphore (previously it was silently
+            # capped by gpu_concurrency_limit)
+            async with AsyncOllamaClient(
+                self.config.ollama, concurrency_limit=self.max_concurrent_requirements
+            ) as ollama_client:
                 generator = AsyncTestCaseGenerator(
                     ollama_client,
                     self.yaml_manager,

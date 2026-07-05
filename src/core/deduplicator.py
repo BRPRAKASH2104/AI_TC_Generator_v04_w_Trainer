@@ -14,6 +14,18 @@ type TestCaseList = list[TestCase]
 type SimilarityScore = float
 type DuplicateGroup = list[int]  # Indices of duplicate test cases
 
+# The active prompt schema emits preconditions/test_steps while the legacy v03
+# schema used action/data; test cases from either schema must deduplicate
+# against each other, so each field resolves through its alias chain.
+_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
+    "test_steps": ("test_steps", "data"),
+    "data": ("data", "test_steps"),
+    "preconditions": ("preconditions", "action"),
+    "action": ("action", "preconditions"),
+}
+
+DEFAULT_FIELDS_TO_COMPARE = ["test_steps", "expected_result", "preconditions"]
+
 
 class TestCaseDeduplicator:
     """Detects and removes duplicate or highly similar test cases"""
@@ -32,11 +44,13 @@ class TestCaseDeduplicator:
         Args:
             similarity_threshold: Similarity threshold (0.0-1.0) for considering test cases as duplicates
             logger: Optional logger instance
-            fields_to_compare: Fields to compare for similarity (default: action, data, expected_result)
+            fields_to_compare: Fields to compare for similarity
+                (default: test_steps, expected_result, preconditions; legacy
+                action/data names are resolved via aliases)
         """
         self.similarity_threshold = similarity_threshold
         self.logger = logger
-        self.fields_to_compare = fields_to_compare or ["action", "data", "expected_result"]
+        self.fields_to_compare = fields_to_compare or list(DEFAULT_FIELDS_TO_COMPARE)
 
     def deduplicate(
         self, test_cases: TestCaseList, keep_strategy: str = "first"
@@ -128,12 +142,15 @@ class TestCaseDeduplicator:
         similarities = []
 
         for field in self.fields_to_compare:
-            val1 = str(tc1.get(field, "")).lower().strip()
-            val2 = str(tc2.get(field, "")).lower().strip()
+            val1 = self._field_value(tc1, field).lower().strip()
+            val2 = self._field_value(tc2, field).lower().strip()
 
             if not val1 and not val2:
-                # Both empty - consider as similar
-                similarities.append(1.0)
+                # Field absent from both test cases carries no signal either
+                # way — skip it. (Counting it as 1.0 previously caused test
+                # cases from the preconditions/test_steps schema to be merged
+                # on expected_result alone.)
+                continue
             elif not val1 or not val2:
                 # One empty, one not - not similar
                 similarities.append(0.0)
@@ -142,8 +159,26 @@ class TestCaseDeduplicator:
                 similarity = SequenceMatcher(None, val1, val2).ratio()
                 similarities.append(similarity)
 
-        # Return average similarity across all fields
+        # Return average similarity across the fields that carried content
         return sum(similarities) / len(similarities) if similarities else 0.0
+
+    @staticmethod
+    def _field_value(test_case: TestCase, field: str) -> str:
+        """
+        Resolve a comparison field through its schema aliases.
+
+        Returns the first non-empty value among the field's alias chain.
+        List values (e.g. test_steps returned as a list of steps) are joined
+        with newlines, matching the normalisation in validators.py.
+        """
+        for name in _FIELD_ALIASES.get(field, (field,)):
+            raw = test_case.get(name)
+            if raw is None or raw == "" or raw == []:
+                continue
+            if isinstance(raw, list):
+                return "\n".join(str(item) for item in raw)
+            return str(raw)
+        return ""
 
     def _select_duplicates_to_remove(
         self, group: DuplicateGroup, test_cases: TestCaseList, keep_strategy: str
@@ -209,8 +244,10 @@ class TestCaseDeduplicator:
         """
         validation_passed = test_case.get("validation_passed", False)
 
-        # Calculate total length of compared fields
-        total_length = sum(len(str(test_case.get(field, ""))) for field in self.fields_to_compare)
+        # Calculate total length of compared fields (alias-aware)
+        total_length = sum(
+            len(self._field_value(test_case, field)) for field in self.fields_to_compare
+        )
 
         return (validation_passed, total_length)
 

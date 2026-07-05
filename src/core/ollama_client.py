@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 import requests
 
-from src.config import ConfigManager, OllamaConfig
-from src.core.parsers import JSONResponseParser
+from src.config import OllamaConfig
+
 from .exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,
@@ -495,13 +495,16 @@ class AsyncOllamaClient:
 
     __slots__ = ("config", "session", "semaphore", "_version_validated", "_available_features")
 
-    def __init__(self, config: OllamaConfig = None):
+    def __init__(self, config: OllamaConfig = None, concurrency_limit: int | None = None):
         from src.config import OllamaConfig
 
         self.config = config or OllamaConfig()
         self.session: aiohttp.ClientSession | None = None
-        # Configurable GPU/CPU-aware concurrency limit
-        concurrency_limit = self.config.gpu_concurrency_limit  # Use GPU setting by default
+        # Effective request concurrency: an explicit limit (wired from the
+        # CLI --max-concurrent via the HP processor) overrides the GPU-aware
+        # default; the semaphore is the single throttle for all requests.
+        if concurrency_limit is None or concurrency_limit < 1:
+            concurrency_limit = self.config.gpu_concurrency_limit
         self.semaphore = asyncio.Semaphore(concurrency_limit)
 
         # Version and feature validation for async client
