@@ -90,7 +90,9 @@ class REQIFZFileProcessor(BaseProcessor):
         self.extractor = REQIFArtifactExtractor(
             self.logger, use_streaming=False, config=self.config
         )
-        self.generator = TestCaseGenerator(self.ollama_client, self.yaml_manager, self.logger)
+        self.generator = TestCaseGenerator(
+            self.ollama_client, self.yaml_manager, self.logger, config=self.config
+        )
         self.formatter = TestCaseFormatter(self.config, self.logger)
 
         self.logger.info(f"🔍 Processing: {reqifz_path.name}")

@@ -217,6 +217,120 @@ class TestAsyncTestCaseGenerator:
         assert results == []
 
 
+class TestConfigWiring:
+    """ValidationConfig/DeduplicationConfig must actually reach the components.
+
+    Regression: the config sections existed but generators always built
+    SemanticValidator/TestCaseDeduplicator with hardcoded defaults, so
+    thresholds, enable flags, keep_strategy and fields_to_compare were ignored.
+    """
+
+    ONE_CASE_JSON = (
+        '{"test_cases": [{"summary_suffix": "A", "test_steps": "1) a", '
+        '"expected_result": "ra"}]}'
+    )
+
+    @staticmethod
+    def _make_config(validation=None, deduplication=None):
+        from types import SimpleNamespace
+
+        from config import DeduplicationConfig, ValidationConfig
+
+        return SimpleNamespace(
+            validation=ValidationConfig(**(validation or {})),
+            deduplication=DeduplicationConfig(**(deduplication or {})),
+        )
+
+    def _client(self):
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = {"response": self.ONE_CASE_JSON}
+        return mock_client
+
+    def test_thresholds_and_fields_wired_from_config(self, mock_logger):
+        config = self._make_config(
+            validation={"similarity_threshold": 0.55},
+            deduplication={"similarity_threshold": 0.66, "fields_to_compare": ["expected_result"]},
+        )
+
+        generator = TestCaseGenerator(self._client(), logger=mock_logger, config=config)
+
+        assert generator.validator.similarity_threshold == 0.55
+        assert generator.deduplicator.similarity_threshold == 0.66
+        assert generator.deduplicator.fields_to_compare == ["expected_result"]
+
+    def test_deduplication_disabled_via_config(self, sample_requirement, mock_logger):
+        config = self._make_config(deduplication={"enable_deduplication": False})
+        mock_dedup = Mock()
+
+        generator = TestCaseGenerator(
+            self._client(), logger=mock_logger, deduplicator=mock_dedup, config=config
+        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert len(result) == 1
+        mock_dedup.deduplicate.assert_not_called()
+
+    def test_validation_disabled_via_config(self, sample_requirement, mock_logger):
+        config = self._make_config(validation={"enable_semantic_validation": False})
+        mock_validator = Mock()
+
+        generator = TestCaseGenerator(
+            self._client(), logger=mock_logger, validator=mock_validator, config=config
+        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert len(result) == 1
+        mock_validator.validate_batch.assert_not_called()
+        assert result[0]["validation_passed"] is True
+
+    def test_keep_strategy_wired_from_config(self, sample_requirement, mock_logger):
+        config = self._make_config(deduplication={"keep_strategy": "first"})
+        mock_dedup = Mock()
+        mock_dedup.deduplicate.side_effect = lambda tcs, keep_strategy: (
+            tcs,
+            {"original_count": len(tcs), "deduplicated_count": len(tcs), "duplicates_removed": 0},
+        )
+
+        generator = TestCaseGenerator(
+            self._client(), logger=mock_logger, deduplicator=mock_dedup, config=config
+        )
+        generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert mock_dedup.deduplicate.call_args.kwargs["keep_strategy"] == "first"
+
+    def test_dedup_config_default_fields_match_canonical_schema(self):
+        """DeduplicationConfig defaults must not reintroduce the legacy action/data fields."""
+        from config import DeduplicationConfig
+        from core.deduplicator import DEFAULT_FIELDS_TO_COMPARE
+
+        assert DeduplicationConfig().fields_to_compare == DEFAULT_FIELDS_TO_COMPARE
+
+    @pytest.mark.asyncio
+    async def test_async_generator_honors_config_flags(self, sample_requirement, mock_logger):
+        config = self._make_config(
+            validation={"enable_semantic_validation": False},
+            deduplication={"enable_deduplication": False},
+        )
+        mock_client = AsyncMock()
+        mock_client.generate_completion = AsyncMock(return_value={"response": self.ONE_CASE_JSON})
+        mock_validator = Mock()
+        mock_dedup = Mock()
+
+        generator = AsyncTestCaseGenerator(
+            mock_client,
+            logger=mock_logger,
+            validator=mock_validator,
+            deduplicator=mock_dedup,
+            config=config,
+        )
+        result = await generator.generate_test_cases(sample_requirement, "llama3.1:8b")
+
+        assert isinstance(result, list) and len(result) == 1
+        mock_validator.validate_batch.assert_not_called()
+        mock_dedup.deduplicate.assert_not_called()
+        assert result[0]["validation_passed"] is True
+
+
 class TestValidationStamping:
     """Regression tests for validation_passed correctness.
 

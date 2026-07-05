@@ -182,7 +182,9 @@ class DeduplicationConfig(BaseModel):
         "best", description="Strategy for keeping duplicates: 'first', 'last', or 'best'"
     )
     fields_to_compare: list[str] = Field(
-        default_factory=lambda: ["action", "data", "expected_result"],
+        # Must match the active prompt schema (see deduplicator.DEFAULT_FIELDS_TO_COMPARE);
+        # legacy action/data names are resolved via aliases in the deduplicator
+        default_factory=lambda: ["test_steps", "expected_result", "preconditions"],
         description="Fields to compare for similarity detection",
     )
 

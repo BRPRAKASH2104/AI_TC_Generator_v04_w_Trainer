@@ -168,6 +168,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                     ollama_client,
                     self.yaml_manager,
                     self.logger,
+                    config=self.config,
                     _max_concurrent=self.max_concurrent_requirements,
                 )
 
