@@ -260,7 +260,7 @@ class RequirementImageExtractor:
                         image_data = base64.b64decode(base64_data)
 
                         # Create image info
-                        image_info = {
+                        image_info: ImageData = {
                             "source": ImageSource.BASE64_EMBEDDED,
                             "format": ImageFormat(image_format.lower())
                             if image_format.lower() in ImageFormat
@@ -525,7 +525,7 @@ class RequirementImageExtractor:
             return image_data
 
         try:
-            img = Image.open(io.BytesIO(image_data))
+            img: Image.Image = Image.open(io.BytesIO(image_data))
 
             # Check if resize is needed
             needs_resize = max(img.width, img.height) > MAX_DIMENSION

@@ -155,7 +155,7 @@ class ProgressiveRAFTTrainer:
         if self.logger:
             self.logger.info(f"🚀 Starting progressive RAFT training: {model_name}")
 
-        training_results = {
+        training_results: dict[str, Any] = {
             "model_name": model_name,
             "phases_completed": [],
             "total_examples_trained": 0,

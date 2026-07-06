@@ -171,7 +171,9 @@ class OllamaClient:
             Generated response text
         """
         # Call the new method but request only text (implicit backward compatibility)
-        return self.generate_completion(model_name, prompt, is_json, return_full_response=False)
+        result = self.generate_completion(model_name, prompt, is_json, return_full_response=False)
+        assert isinstance(result, str), "return_full_response=False must yield a str"
+        return result
 
     def generate_response_with_vision(
         self,
@@ -355,9 +357,11 @@ class AsyncOllamaClient:
             Generated response text
         """
         # Call the new method but request only text
-        return await self.generate_completion(
+        result = await self.generate_completion(
             model_name, prompt, is_json, return_full_response=False
         )
+        assert isinstance(result, str), "return_full_response=False must yield a str"
+        return result
 
     async def generate_response_with_vision(
         self,

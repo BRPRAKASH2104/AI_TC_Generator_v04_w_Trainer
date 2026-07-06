@@ -117,7 +117,7 @@ class AppLogger:
         # Application state tracking
         self.app_start_time = time.time()
         self.session_id = self._generate_session_id()
-        self.metrics = {
+        self.metrics: dict[str, Any] = {
             "files_processed": 0,
             "total_test_cases_generated": 0,
             "total_errors": 0,

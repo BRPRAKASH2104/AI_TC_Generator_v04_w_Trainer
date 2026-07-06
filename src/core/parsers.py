@@ -7,13 +7,16 @@ for REQIF files, with performance optimizations for Python 3.14+.
 
 import json
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from xml.etree import ElementTree as ET
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 try:
     import ujson  # Faster JSON parsing if available
 
-    JSON_PARSER = ujson
+    JSON_PARSER: ModuleType = ujson
 except ImportError:
     JSON_PARSER = json
 
@@ -78,7 +81,7 @@ class JSONResponseParser:
         return None
 
     @staticmethod
-    def validate_test_cases_structure(data: JSONObject) -> bool:
+    def validate_test_cases_structure(data: Any) -> bool:
         """Validate that JSON contains properly structured test cases"""
         if not isinstance(data, dict):
             return False

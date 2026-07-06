@@ -315,7 +315,7 @@ class RAFTAnnotator:
             try:
                 rating = IntPrompt.ask(
                     "[bold magenta]Quality rating (1-5, where 5 is excellent)[/bold magenta]",
-                    choices=[1, 2, 3, 4, 5],
+                    choices=["1", "2", "3", "4", "5"],
                 )
                 break
             except ValueError:
