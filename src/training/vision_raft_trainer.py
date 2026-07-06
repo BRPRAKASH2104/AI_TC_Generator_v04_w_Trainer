@@ -192,7 +192,7 @@ class VisionRAFTTrainer:
 
     def _analyze_dataset(self) -> dict[str, Any]:
         """Analyze training dataset for statistics"""
-        stats = {
+        stats: dict[str, Any] = {
             "total_examples": 0,
             "vision_examples": 0,
             "text_only_examples": 0,

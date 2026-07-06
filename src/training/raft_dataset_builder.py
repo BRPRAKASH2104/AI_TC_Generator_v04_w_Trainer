@@ -224,7 +224,10 @@ class RAFTDatasetBuilder:
                 context_str += f"\n\nAdditional Diagrams (may not be relevant): {len(distractor_images)} diagram(s)."
 
             # Build user message
-            user_message = {"role": "user", "content": f"{context_str}\n\n{example['question']}"}
+            user_message: dict[str, Any] = {
+                "role": "user",
+                "content": f"{context_str}\n\n{example['question']}",
+            }
 
             # Add images to user message (Ollama vision format)
             if has_images and oracle_images:
@@ -278,7 +281,7 @@ class RAFTDatasetBuilder:
         jsonl_files = list(self.output_dir.glob("*.jsonl"))
         json_files = list(self.output_dir.glob("*.json"))
 
-        stats = {
+        stats: dict[str, Any] = {
             "jsonl_files": len(jsonl_files),
             "json_files": len(json_files),
             "latest_dataset": None,
@@ -306,7 +309,7 @@ class RAFTDatasetBuilder:
             Validation report with issues and statistics
         """
         issues = []
-        stats = {
+        stats: dict[str, Any] = {
             "total_examples": 0,
             "with_oracle_context": 0,
             "with_distractor_context": 0,

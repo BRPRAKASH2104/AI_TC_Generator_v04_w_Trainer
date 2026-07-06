@@ -644,7 +644,7 @@ class QualityScorer:
         Returns:
             Suggested improvements
         """
-        improvements = {
+        improvements: dict[str, Any] = {
             "required_actions": [],
             "optional_actions": [],
             "regeneration_recommended": False,

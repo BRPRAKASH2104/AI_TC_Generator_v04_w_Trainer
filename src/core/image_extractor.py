@@ -383,7 +383,7 @@ class RequirementImageExtractor:
         Returns:
             Dictionary with validation results and warnings
         """
-        validation = {"valid": False, "warnings": [], "size_bytes": len(image_data)}
+        validation: dict[str, Any] = {"valid": False, "warnings": [], "size_bytes": len(image_data)}
 
         if not PILLOW_AVAILABLE:
             validation["error"] = "Pillow not available"
