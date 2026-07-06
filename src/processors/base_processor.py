@@ -218,7 +218,7 @@ class BaseProcessor:
     def _create_metadata(
         self,
         model: str,
-        template: str,
+        template: str | None,
         reqifz_path: Path,
         total_cases: int,
         requirements_processed: int,

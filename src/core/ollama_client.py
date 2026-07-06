@@ -96,7 +96,7 @@ def _load_images_base64(image_paths: list[Path] | None) -> list[str]:
 
     if failed_count > 0:
         _logger.warning(
-            f"Failed to load {failed_count}/{len(image_paths)} image(s). "
+            f"Failed to load {failed_count}/{len(image_paths or [])} image(s). "
             "Vision model will proceed with available images."
         )
 
@@ -112,10 +112,12 @@ class OllamaClient:
         from src.config import OllamaConfig
 
         self.config = config or OllamaConfig()
-        self.proxies = {"http": None, "https": None}
+        # None values are requests' documented way to disable proxying for a
+        # scheme; typeshed's Session.proxies stub only declares dict[str, str].
+        self.proxies: dict[str, str | None] = {"http": None, "https": None}
         # Reuse session for better performance (Python 3.14+ optimization)
         self._session = requests.Session()
-        self._session.proxies.update(self.proxies)
+        self._session.proxies.update(self.proxies)  # type: ignore[arg-type]
 
     def close(self) -> None:
         """Close the underlying HTTP session and its connection pool."""

@@ -315,7 +315,7 @@ def _run_standard_mode(
         # Clean up temporary extracted images if requested
         if clean_temp:
             extractor = RequirementImageExtractor(
-                output_dir=config.image_extraction.output_dir,
+                output_dir=Path(config.image_extraction.output_dir),
                 save_images=False,
                 validate_images=False,
             )
@@ -409,7 +409,7 @@ def _run_hp_mode(
         # Clean up temporary extracted images if requested
         if clean_temp:
             extractor = RequirementImageExtractor(
-                output_dir=config.image_extraction.output_dir,
+                output_dir=Path(config.image_extraction.output_dir),
                 save_images=False,
                 validate_images=False,
             )

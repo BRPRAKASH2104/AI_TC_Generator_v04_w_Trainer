@@ -357,7 +357,7 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
             return False
 
     def _write_chunk_to_excel(
-        self, worksheet, chunk: TestCaseList, metadata: dict[str, Any], _start_index: int
+        self, worksheet, chunk: TestCaseList, metadata: dict[str, Any] | None, _start_index: int
     ) -> None:
         """Write a chunk of test cases to Excel worksheet (v03 style)"""
         formatted_chunk = self._prepare_test_cases_for_excel(chunk, metadata)

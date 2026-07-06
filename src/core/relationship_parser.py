@@ -393,7 +393,7 @@ class RequirementRelationshipParser:
             return tree_node
 
         # Build tree from all roots
-        tree = {"roots": [], "total_requirements": len(requirements)}
+        tree: dict[str, Any] = {"roots": [], "total_requirements": len(requirements)}
 
         for root_req in root_requirements:
             root_id = root_req["id"]

@@ -202,7 +202,7 @@ class REQIFArtifactExtractor:
         self, root: ET.Element, namespaces: dict[str, str]
     ) -> dict[str, str]:
         """Build mapping from SPEC-OBJECT-TYPE IDs to their ReqIF.ForeignID attribute identifiers"""
-        foreign_id_map = {}
+        foreign_id_map: dict[str, str] = {}
 
         for spec_type in root.findall(".//reqif:SPEC-OBJECT-TYPE", namespaces):
             type_id = spec_type.get("IDENTIFIER")
@@ -210,8 +210,10 @@ class REQIFArtifactExtractor:
                 ".//reqif:ATTRIBUTE-DEFINITION-STRING[@LONG-NAME='ReqIF.ForeignID']",
                 namespaces,
             )
-            if foreign_id_def is not None:
-                foreign_id_map[type_id] = foreign_id_def.get("IDENTIFIER")
+            if type_id is not None and foreign_id_def is not None:
+                attr_identifier = foreign_id_def.get("IDENTIFIER")
+                if attr_identifier is not None:
+                    foreign_id_map[type_id] = attr_identifier
 
         if self.logger:
             self.logger.debug(f"Found {len(foreign_id_map)} ReqIF.ForeignID attribute definitions")
@@ -276,7 +278,7 @@ class REQIFArtifactExtractor:
     ) -> RequirementData | None:
         """Extract a single spec object as an artifact"""
         try:
-            artifact = {
+            artifact: RequirementData = {
                 "id": spec_obj.get("IDENTIFIER", "UNKNOWN"),
                 "text": "",
                 "type": ArtifactType.UNKNOWN,
@@ -285,12 +287,12 @@ class REQIFArtifactExtractor:
             }
 
             # Determine object type and get type reference for foreign ID extraction
-            spec_object_type_ref = None
+            spec_object_type_ref = ""
             type_element = spec_obj.find(".//reqif:TYPE", namespaces)
             if type_element is not None:
                 type_ref_element = type_element.find(".//reqif:SPEC-OBJECT-TYPE-REF", namespaces)
                 if type_ref_element is not None and spec_type_map:
-                    spec_object_type_ref = type_ref_element.text
+                    spec_object_type_ref = type_ref_element.text or ""
                     type_name = spec_type_map.get(spec_object_type_ref, "")
 
                     # Map REQIF type names to our ArtifactType enum
@@ -317,7 +319,7 @@ class REQIFArtifactExtractor:
                     attr_ref = definition.find(
                         ".//reqif:ATTRIBUTE-DEFINITION-XHTML-REF", namespaces
                     )
-                    attr_identifier = attr_ref.text if attr_ref is not None else ""
+                    attr_identifier = (attr_ref.text or "") if attr_ref is not None else ""
 
                     # Resolve attribute name using the mapping
                     attr_name = (
@@ -515,10 +517,12 @@ class REQIFArtifactExtractor:
                 }
 
                 # Build mapping from internal SPEC-OBJECT identifiers to foreign IDs
-                spec_obj_to_foreign_id = {}
+                spec_obj_to_foreign_id: dict[str, str] = {}
                 spec_objects = root.findall(".//reqif:SPEC-OBJECT", namespaces)
                 for spec_obj in spec_objects:
                     internal_id = spec_obj.get("IDENTIFIER")
+                    if internal_id is None:
+                        continue
                     # Look for foreign ID in VALUES
                     values_container = spec_obj.find("reqif:VALUES", namespaces)
                     if values_container is not None:

@@ -439,11 +439,11 @@ class AsyncTestCaseGenerator(_GeneratorCore):
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        processed_results = []
+        processed_results: list[ProcessingResult] = []
         for i, result in enumerate(results):
             req_id = requirements[i].get("id", "UNKNOWN")
 
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 # Exceptions that bubbled up from asyncio.gather() — typically
                 # network errors, timeouts, or unexpected failures
                 error_info = self._error_result(req_id, type(result).__name__, str(result))
