@@ -22,8 +22,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI-powered test case generator for automotive REQIFZ requirements. Uses Ollama LLMs locally — no cloud API calls.
 
-- **Python**: 3.14+ (no backward compatibility)
-- **Ollama**: v0.17.4+
+- **Python**: 3.14.6+ (no backward compatibility)
+- **Ollama**: v0.31.1+
 - **Models**: `llama3.1:8b` (text), `llama3.2-vision:11b` (vision)
 
 ---
@@ -47,10 +47,17 @@ python3 -m pytest tests/core/ -v                                    # fast unit 
 python3 -m pytest tests/ -v -m "not integration"
 python3 -m pytest tests/core/test_generators.py::TestClass::test_method -v
 
-# Quality (must pass before commit)
+# Quality — ruff check is the enforced gate and must pass before commit
 ruff check src/ main.py utilities/ --fix
+# CAUTION: ~11 files carry pre-existing `ruff format` drift and mypy reports ~310
+# pre-existing errors. Do NOT mass-reformat or mass-fix these in an unrelated
+# change — only format/type-clean the files you actually touched.
 ruff format src/ main.py utilities/
 mypy src/ main.py --python-version 3.14
+
+# Packaging
+python -m build
+twine check dist/*
 
 # Validation
 ai-tc-generator --validate-prompts    # after editing YAML templates
@@ -78,9 +85,10 @@ main.py (CLI)
           -> RequirementRelationshipParser (relationship_parser.py)  # SPEC-RELATION parsing
           -> RequirementImageExtractor (image_extractor.py)
       -> Generator (generators.py)
+          -> _GeneratorCore                    # SHARED sync/async pipeline base
           -> PromptBuilder (prompt_builder.py)
           -> OllamaClient / AsyncOllamaClient (ollama_client.py)
-          -> FastJSONResponseParser -> SemanticValidator -> TestCaseDeduplicator
+          -> _postprocess_test_cases(): parse -> validate -> dedup -> enrich
       -> Formatter (formatters.py)
   -> Excel output + JSON logs
 
@@ -93,11 +101,13 @@ src/training/                          # RAFT fine-tuning pipeline
   -> QualityScorer (quality_scorer.py)
 ```
 
+**`__slots__`**: Core classes (generators, deduplicator, clients) declare `__slots__` — adding an instance attribute requires adding it to the slots tuple first, or you get `AttributeError` at runtime.
+
 **Config**: `src/config.py` — Pydantic-based, reads env vars automatically. Env var prefix: `AI_TG_` for app flags, `OLLAMA__` for Ollama settings (e.g. `OLLAMA__ENABLE_VISION=false`). Runtime overrides also accepted via `config/cli_config.yaml` (training/vision settings).
 
 **Logging**: Structured JSON via `src/app_logger.py`. Logs in `output/logs/`.
 
-**Prompt templates**: YAML in `prompts/templates/`. Validate after editing.
+**Prompt templates**: YAML in `prompts/templates/`. Validate after editing. Only `test_generation_adaptive.yaml` (template `adaptive_default`) is active; the old v3 template is archived in `prompts/backups/` — do not load it, it uses the retired `action`/`data` schema.
 
 **Output naming**: `{filename}_TCD_{mode}_{model}_{timestamp}.xlsx`, saved alongside input file.
 
@@ -150,17 +160,27 @@ Rules:
 
 ## Critical Architecture: Hybrid Vision Strategy
 
-Per-requirement model selection via `ConfigManager.get_model_for_requirement()`:
+Per-requirement model selection via `ConfigManager.get_model_for_requirement()` (`src/config.py:487`):
 - Requirement **has images** → `llama3.2-vision:11b` (`generate_response_with_vision()`)
-- Requirement **no images** → `llama3.1:8b` (`generate_response()`)
+- Requirement **no images** → `llama3.1:8b` (`generate_completion()`)
 
 Never hardcode model selection in processors. Change only in `ConfigManager`.
 
 ---
 
+## Critical Architecture: Canonical Test-Case Schema
+
+The one true schema emitted by the active template and expected everywhere downstream: `summary_suffix`, `preconditions`, `test_steps`, `expected_result`, `test_type`.
+
+- `TestCaseDeduplicator` compares `DEFAULT_FIELDS_TO_COMPARE = ["test_steps", "expected_result", "preconditions"]` (`src/core/deduplicator.py:27`). **Never reintroduce `action`/`data` here** — comparing fields the template doesn't produce made every pair look ~identical and silently deleted legitimate test cases (2026-07-05 review §1.1).
+- `stamp_validation_results` (`src/core/generators.py:60`) stamps `validation_passed` on each test case **before** dedup runs. Keep this ordering — dedup's "best" keep-strategy reads the flag, and validating after dedup misaligns indices.
+- `ValidationConfig` / `DeduplicationConfig` (`src/config.py:159,176`) are wired into their components; change thresholds there, not with hardcoded values.
+
+---
+
 ## Critical Architecture: Excel Formatter
 
-**Exactly 16 columns**, specific names required (`src/core/formatters.py:363-447`):
+**Exactly 16 columns**, specific names required (header list at `src/core/formatters.py:300-330`):
 - Column 13: `"Feature Group"`
 - Column 16: `"LinkTest"` (not `"Tests"`)
 
@@ -170,7 +190,7 @@ If you change columns, update **both** `TestCaseFormatter` and `StreamingTestCas
 
 ## Critical Architecture: REQIF Attribute Mapping
 
-`REQIFArtifactExtractor` (`src/core/extractors.py:151-172,191,235`) maps internal identifiers like `_json2reqif_XXX` to human-readable names like `"ReqIF.Text"` via `_build_attribute_definition_mapping()`. Do not remove or bypass this.
+`REQIFArtifactExtractor` maps internal identifiers like `_json2reqif_XXX` to human-readable names like `"ReqIF.Text"` via `_build_attribute_definition_mapping()` (`src/core/extractors.py:223`, called at `:158`). Do not remove or bypass this.
 
 ---
 
@@ -200,16 +220,19 @@ See `tests/helpers/USAGE_EXAMPLES.md` for full examples.
 
 ## Files Not to Modify Without Full Understanding
 
-| File | Lines | Why Critical |
-|------|-------|--------------|
-| `src/processors/base_processor.py` | 103-188 | Context-aware processing core |
-| `src/core/extractors.py` | 151-172, 191, 235 | Attribute definition mapping |
-| `src/core/formatters.py` | 363-447 | 16-column Excel structure |
-| `src/core/ollama_client.py` | 146-266, 578-689 | Vision model support |
-| `src/core/image_extractor.py` | 203-244, 354-395, 415-454 | Image preprocessing & cleanup |
-| `src/core/generators.py` | 41-62, 85-98, 200-221, 351-367 | Vision path extraction |
-| `src/config.py` | 79-92, 211, 378, 475-498 | Vision config & hybrid selection |
+| File | Critical symbols | Why Critical |
+|------|------------------|--------------|
+| `src/processors/base_processor.py` | `_build_augmented_requirements` (line 103) | Context-aware processing core |
+| `src/core/extractors.py` | `_build_attribute_definition_mapping` (223), `_extract_spec_object` (271) | Attribute definition mapping |
+| `src/core/formatters.py` | header list (~300-330), `StreamingTestCaseFormatter` (282) | 16-column Excel structure |
+| `src/core/ollama_client.py` | `generate_response_with_vision` — sync (176), async (360); `AsyncOllamaClient.__init__` semaphore (275-285) | Vision support; `--max-concurrent` wiring |
+| `src/core/generators.py` | `extract_image_paths` (33), `stamp_validation_results` (60), `_GeneratorCore._postprocess_test_cases` (211) | Shared sync/async pipeline; vision path extraction; validate-before-dedup ordering |
+| `src/core/deduplicator.py` | `DEFAULT_FIELDS_TO_COMPARE` (27) | Canonical-schema dedup fields (see section above) |
+| `src/core/image_extractor.py` | `_validate_image` (366), `_preprocess_image` (508), `cleanup_extracted_images` (567) | Image preprocessing (applied on save) & cleanup |
+| `src/config.py` | `enable_vision` (95), `get_model_for_requirement` (487) | Vision config & hybrid selection |
 | `src/yaml_prompt_manager.py` | `load_all_prompts`, `_selection_rules` | Selection rules are cached at load time into `_selection_rules`; bypassing or resetting this cache causes repeated disk reads on every template selection call |
+
+Line numbers drift — treat the symbol name as authoritative and the number as a hint.
 
 **Safe to modify**: `src/core/prompt_builder.py`, `prompts/templates/*.yaml`, `tests/`, `src/config.py` (follow Pydantic patterns).
 
@@ -229,67 +252,37 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| "no text content" for requirements | Attribute mapping bypassed | Check extractor lines 151-172 |
+| "no text content" for requirements | Attribute mapping bypassed | Check `_build_attribute_definition_mapping` in `extractors.py` |
 | Excel export crash in HP mode | Column count/name wrong | Verify 16 cols, "LinkTest" not "Tests" |
 | Vision model OOM | Too much concurrency | Lower `--max-concurrent` or `OLLAMA__ENABLE_VISION=false` |
 | Tests fail with XHTML mismatches | Not using test helpers | Use `tests/helpers/` functions |
 | `generate_test_cases` AttributeError | Wrong generator class | `AsyncTestCaseGenerator` has this method |
 | `TypeError: expected str` in validators on `test_steps` | AI returns `test_steps` as a list, not a string | `validators.py` normalises with `"\n".join(raw_data) if isinstance(raw_data, list)` — do not change this pattern |
 | Unexpected `training_data/` files written during normal runs | RAFT collection was previously opt-out | Both `enable_raft` and `collect_training_data` default to `false` in `config/cli_config.yaml`; set both to `true` to opt in |
+| 2 ERRORs in `tests/performance/test_regression_benchmarks.py` ("fixture 'benchmark' not found") | `pytest-benchmark` plugin not installed / not in project deps | Pre-existing environment gap, not a regression — ignore or `pip install pytest-benchmark` |
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (3273 symbols, 6435 relationships, 184 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (40142 symbols, 56669 relationships, 133 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+> Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
 ## Always Do
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "main"})`.
 - **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
-
-## When Debugging
-
-1. `gitnexus_query({query: "<error or symptom>"})` — find execution flows related to the issue
-2. `gitnexus_context({name: "<suspect function>"})` — see all callers, callees, and process participation
-3. `READ gitnexus://repo/AI_TC_Generator_v04_w_Trainer/process/{processName}` — trace the full execution flow step by step
-4. For regressions: `gitnexus_detect_changes({scope: "compare", base_ref: "main"})` — see what your branch changed
-
-## When Refactoring
-
-- **Renaming**: MUST use `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` first. Review the preview — graph edits are safe, text_search edits need manual review. Then run with `dry_run: false`.
-- **Extracting/Splitting**: MUST run `gitnexus_context({name: "target"})` to see all incoming/outgoing refs, then `gitnexus_impact({target: "target", direction: "upstream"})` to find all external callers before moving code.
-- After any refactor: run `gitnexus_detect_changes({scope: "all"})` to verify only expected files changed.
+- When exploring unfamiliar code, use `query({search_query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
+- For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
 
 ## Never Do
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER edit a function, class, or method without first running `impact` on it.
 - NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
-
-## Tools Quick Reference
-
-| Tool | When to use | Command |
-|------|-------------|---------|
-| `query` | Find code by concept | `gitnexus_query({query: "auth validation"})` |
-| `context` | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})` |
-| `impact` | Blast radius before editing | `gitnexus_impact({target: "X", direction: "upstream"})` |
-| `detect_changes` | Pre-commit scope check | `gitnexus_detect_changes({scope: "staged"})` |
-| `rename` | Safe multi-file rename | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
-| `cypher` | Custom graph queries | `gitnexus_cypher({query: "MATCH ..."})` |
-
-## Impact Risk Levels
-
-| Depth | Meaning | Action |
-|-------|---------|--------|
-| d=1 | WILL BREAK — direct callers/importers | MUST update these |
-| d=2 | LIKELY AFFECTED — indirect deps | Should test |
-| d=3 | MAY NEED TESTING — transitive | Test if critical path |
+- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
+- NEVER commit changes without running `detect_changes()` to check affected scope.
 
 ## Resources
 
@@ -299,32 +292,6 @@ This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (3273 s
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/clusters` | All functional areas |
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/processes` | All execution flows |
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/process/{name}` | Step-by-step execution trace |
-
-## Self-Check Before Finishing
-
-Before completing any code modification task, verify:
-1. `gitnexus_impact` was run for all modified symbols
-2. No HIGH/CRITICAL risk warnings were ignored
-3. `gitnexus_detect_changes()` confirms changes match expected scope
-4. All d=1 (WILL BREAK) dependents were updated
-
-## Keeping the Index Fresh
-
-After committing code changes, the GitNexus index becomes stale. Re-run analyze to update it:
-
-```bash
-npx gitnexus analyze
-```
-
-If the index previously included embeddings, preserve them by adding `--embeddings`:
-
-```bash
-npx gitnexus analyze --embeddings
-```
-
-To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.embeddings` field shows the count (0 means no embeddings). **Running analyze without `--embeddings` will delete any previously generated embeddings.**
-
-> Claude Code users: A PostToolUse hook handles this automatically after `git commit` and `git merge`.
 
 ## CLI
 
