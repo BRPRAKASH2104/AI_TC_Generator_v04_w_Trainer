@@ -1,0 +1,76 @@
+---
+name: cluster-8
+description: "Skill for the Cluster_8 area of AI_TC_Generator_v04_w_Trainer. 21 symbols across 2 files."
+---
+
+# Cluster_8
+
+21 symbols | 2 files | Cohesion: 95%
+
+## When to Use
+
+- Working with code in `tests/`
+- Understanding how test_no_duplicates, test_exact_duplicates, test_similar_duplicates work
+- Modifying cluster_8-related functionality
+
+## Key Files
+
+| File | Symbols |
+|------|---------|
+| `tests/core/test_deduplicator.py` | test_no_duplicates, test_exact_duplicates, test_similar_duplicates, test_multiple_duplicate_groups, test_keep_strategy_first (+14) |
+| `src/core/deduplicator.py` | deduplicate, _create_report |
+
+## Entry Points
+
+Start here when exploring this area:
+
+- **`test_no_duplicates`** (Function) — `tests/core/test_deduplicator.py:5`
+- **`test_exact_duplicates`** (Function) — `tests/core/test_deduplicator.py:24`
+- **`test_similar_duplicates`** (Function) — `tests/core/test_deduplicator.py:43`
+- **`test_multiple_duplicate_groups`** (Function) — `tests/core/test_deduplicator.py:59`
+- **`test_keep_strategy_first`** (Function) — `tests/core/test_deduplicator.py:78`
+
+## Key Symbols
+
+| Symbol | Type | File | Line |
+|--------|------|------|------|
+| `test_no_duplicates` | Function | `tests/core/test_deduplicator.py` | 5 |
+| `test_exact_duplicates` | Function | `tests/core/test_deduplicator.py` | 24 |
+| `test_similar_duplicates` | Function | `tests/core/test_deduplicator.py` | 43 |
+| `test_multiple_duplicate_groups` | Function | `tests/core/test_deduplicator.py` | 59 |
+| `test_keep_strategy_first` | Function | `tests/core/test_deduplicator.py` | 78 |
+| `test_keep_strategy_last` | Function | `tests/core/test_deduplicator.py` | 94 |
+| `test_keep_strategy_best` | Function | `tests/core/test_deduplicator.py` | 110 |
+| `test_keep_strategy_best_by_length` | Function | `tests/core/test_deduplicator.py` | 126 |
+| `test_similarity_threshold` | Function | `tests/core/test_deduplicator.py` | 142 |
+| `test_custom_fields_to_compare` | Function | `tests/core/test_deduplicator.py` | 160 |
+| `test_empty_test_cases_list` | Function | `tests/core/test_deduplicator.py` | 179 |
+| `test_deduplication_report_structure` | Function | `tests/core/test_deduplicator.py` | 209 |
+| `test_case_insensitive_comparison` | Function | `tests/core/test_deduplicator.py` | 229 |
+| `test_whitespace_handling` | Function | `tests/core/test_deduplicator.py` | 244 |
+| `test_deduplication_rate_calculation` | Function | `tests/core/test_deduplicator.py` | 259 |
+| `test_adaptive_schema_distinct_cases_are_kept` | Function | `tests/core/test_deduplicator.py` | 289 |
+| `test_adaptive_schema_exact_duplicates_removed` | Function | `tests/core/test_deduplicator.py` | 321 |
+| `test_cross_schema_aliases_detected_as_duplicates` | Function | `tests/core/test_deduplicator.py` | 339 |
+| `test_list_valued_test_steps_supported` | Function | `tests/core/test_deduplicator.py` | 362 |
+| `deduplicate` | Method | `src/core/deduplicator.py` | 57 |
+
+## Execution Flows
+
+| Flow | Type | Steps |
+|------|------|-------|
+| `Deduplicate → _field_value` | cross_community | 5 |
+
+## Connected Areas
+
+| Area | Connections |
+|------|-------------|
+| Cluster_9 | 1 calls |
+| Cluster_10 | 1 calls |
+
+## How to Explore
+
+1. `context({name: "test_no_duplicates"})` — see callers and callees
+2. `query({search_query: "cluster_8"})` — find related execution flows
+3. Read key files listed above for implementation details
+4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`

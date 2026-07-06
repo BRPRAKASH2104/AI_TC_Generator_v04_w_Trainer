@@ -1,60 +1,66 @@
 ---
 name: utilities
-description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 19 symbols across 4 files."
+description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 40 symbols across 9 files."
 ---
 
 # Utilities
 
-19 symbols | 4 files | Cohesion: 72%
+40 symbols | 9 files | Cohesion: 85%
 
 ## When to Use
 
 - Working with code in `utilities/`
-- Understanding how main, annotate_example, batch_annotate work
+- Understanding how create_vision_training_pipeline, parse_args, validate_dataset work
 - Modifying utilities-related functionality
 
 ## Key Files
 
 | File | Symbols |
 |------|---------|
-| `utilities/verify_v03_compatibility.py` | verify_field_mapping, verify_all, verify_extraction, verify_classification, verify_prompt_generation (+1) |
-| `utilities/version_check.py` | check_python_version, run_comprehensive_check, main, check_dependencies, _validate_parsed_requirements (+1) |
-| `src/core/formatters.py` | format_to_excel, _stringify_list, _prepare_test_cases_for_excel, _write_chunk_to_excel |
-| `utilities/annotate_raft.py` | annotate_example, batch_annotate, main |
+| `utilities/version_check.py` | check_python_version, _print_upgrade_instructions, check_required_features, run_comprehensive_check, main (+4) |
+| `utilities/train_vision_model.py` | parse_args, validate_dataset, check_ollama_connection, check_base_model_exists, check_output_model_exists (+2) |
+| `utilities/verify_v03_compatibility.py` | verify_field_mapping, verify_all, verify_extraction, verify_classification, verify_prompt_generation (+2) |
+| `src/core/formatters.py` | _stringify_list, _prepare_test_cases_for_excel, _get_default_test_values, _generate_issue_id |
+| `utilities/annotate_raft.py` | annotate_example, batch_annotate, show_stats, main |
+| `utilities/build_vision_dataset.py` | parse_args, validate_paths, print_dataset_stats, main |
+| `tests/core/test_formatters_custom.py` | test_excel_description_includes_confidence, test_excel_description_handles_missing_confidence |
+| `utilities/compare_v03_v04_output.py` | compare_outputs, main |
+| `src/training/vision_raft_trainer.py` | create_vision_training_pipeline |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`main`** (Function) — `utilities/verify_v03_compatibility.py:352`
-- **`annotate_example`** (Function) — `utilities/annotate_raft.py:15`
-- **`batch_annotate`** (Function) — `utilities/annotate_raft.py:179`
-- **`main`** (Function) — `utilities/annotate_raft.py:257`
-- **`main`** (Function) — `utilities/version_check.py:400`
+- **`create_vision_training_pipeline`** (Function) — `src/training/vision_raft_trainer.py:443`
+- **`parse_args`** (Function) — `utilities/train_vision_model.py:64`
+- **`validate_dataset`** (Function) — `utilities/train_vision_model.py:117`
+- **`check_ollama_connection`** (Function) — `utilities/train_vision_model.py:143`
+- **`check_base_model_exists`** (Function) — `utilities/train_vision_model.py:158`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
+| `create_vision_training_pipeline` | Function | `src/training/vision_raft_trainer.py` | 443 |
+| `parse_args` | Function | `utilities/train_vision_model.py` | 64 |
+| `validate_dataset` | Function | `utilities/train_vision_model.py` | 117 |
+| `check_ollama_connection` | Function | `utilities/train_vision_model.py` | 143 |
+| `check_base_model_exists` | Function | `utilities/train_vision_model.py` | 158 |
+| `check_output_model_exists` | Function | `utilities/train_vision_model.py` | 179 |
+| `print_training_result` | Function | `utilities/train_vision_model.py` | 200 |
+| `main` | Function | `utilities/train_vision_model.py` | 249 |
+| `test_excel_description_includes_confidence` | Function | `tests/core/test_formatters_custom.py` | 4 |
+| `test_excel_description_handles_missing_confidence` | Function | `tests/core/test_formatters_custom.py` | 22 |
 | `main` | Function | `utilities/verify_v03_compatibility.py` | 352 |
+| `main` | Function | `utilities/version_check.py` | 400 |
 | `annotate_example` | Function | `utilities/annotate_raft.py` | 15 |
 | `batch_annotate` | Function | `utilities/annotate_raft.py` | 179 |
+| `show_stats` | Function | `utilities/annotate_raft.py` | 224 |
 | `main` | Function | `utilities/annotate_raft.py` | 257 |
-| `main` | Function | `utilities/version_check.py` | 400 |
-| `format_to_excel` | Method | `src/core/formatters.py` | 34 |
-| `verify_field_mapping` | Method | `utilities/verify_v03_compatibility.py` | 257 |
-| `verify_all` | Method | `utilities/verify_v03_compatibility.py` | 39 |
-| `verify_extraction` | Method | `utilities/verify_v03_compatibility.py` | 55 |
-| `verify_classification` | Method | `utilities/verify_v03_compatibility.py` | 93 |
-| `verify_prompt_generation` | Method | `utilities/verify_v03_compatibility.py` | 203 |
-| `check_python_version` | Method | `utilities/version_check.py` | 25 |
-| `run_comprehensive_check` | Method | `utilities/version_check.py` | 335 |
-| `check_dependencies` | Method | `utilities/version_check.py` | 200 |
-| `_stringify_list` | Method | `src/core/formatters.py` | 73 |
-| `_prepare_test_cases_for_excel` | Method | `src/core/formatters.py` | 79 |
-| `_write_chunk_to_excel` | Method | `src/core/formatters.py` | 357 |
-| `_validate_parsed_requirements` | Method | `utilities/version_check.py` | 245 |
-| `_check_core_dependencies` | Method | `utilities/version_check.py` | 309 |
+| `parse_args` | Function | `utilities/build_vision_dataset.py` | 62 |
+| `validate_paths` | Function | `utilities/build_vision_dataset.py` | 113 |
+| `print_dataset_stats` | Function | `utilities/build_vision_dataset.py` | 143 |
+| `main` | Function | `utilities/build_vision_dataset.py` | 176 |
 
 ## Execution Flows
 
@@ -75,15 +81,14 @@ Start here when exploring this area:
 
 | Area | Connections |
 |------|-------------|
-| Cluster_453 | 2 calls |
-| Training | 2 calls |
+| Training | 3 calls |
+| Integration | 2 calls |
 | Processors | 1 calls |
-| Cluster_466 | 1 calls |
-| Cluster_456 | 1 calls |
+| Tests | 1 calls |
 
 ## How to Explore
 
-1. `context({name: "main"})` — see callers and callees
+1. `context({name: "create_vision_training_pipeline"})` — see callers and callees
 2. `query({search_query: "utilities"})` — find related execution flows
 3. Read key files listed above for implementation details
 4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`
