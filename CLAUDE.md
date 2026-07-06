@@ -259,7 +259,6 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 | `generate_test_cases` AttributeError | Wrong generator class | `AsyncTestCaseGenerator` has this method |
 | `TypeError: expected str` in validators on `test_steps` | AI returns `test_steps` as a list, not a string | `validators.py` normalises with `"\n".join(raw_data) if isinstance(raw_data, list)` — do not change this pattern |
 | Unexpected `training_data/` files written during normal runs | RAFT collection was previously opt-out | Both `enable_raft` and `collect_training_data` default to `false` in `config/cli_config.yaml`; set both to `true` to opt in |
-| 2 ERRORs in `tests/performance/test_regression_benchmarks.py` ("fixture 'benchmark' not found") | `pytest-benchmark` plugin not installed / not in project deps | Pre-existing environment gap, not a regression — ignore or `pip install pytest-benchmark` |
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
