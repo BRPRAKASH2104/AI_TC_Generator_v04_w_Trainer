@@ -20,6 +20,12 @@
     "command": "node .claude/helpers/statusline.cjs"
   },
   "enabledPlugins": {
-    "token-optimizer@alexgreensh-token-optimizer": true
+    "token-optimizer@alexgreensh-token-optimizer": true,
+    "data-quality-auditor@claude-code-skills": true,
+    "agenthub@claude-code-skills": true,
+    "engineering-advanced-skills@claude-code-skills": true,
+    "claude-session-driver@superpowers-marketplace": true,
+    "episodic-memory@superpowers-marketplace": true,
+    "self-improving-agent@claude-code-skills": true
   }
 }
