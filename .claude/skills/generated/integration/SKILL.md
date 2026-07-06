@@ -1,98 +1,95 @@
 ---
 name: integration
-description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 111 symbols across 22 files."
+description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 40 symbols across 12 files."
 ---
 
 # Integration
 
-111 symbols | 22 files | Cohesion: 59%
+40 symbols | 12 files | Cohesion: 77%
 
 ## When to Use
 
 - Working with code in `tests/`
-- Understanding how test_standard_processor_complete_flow, test_standard_processor_no_artifacts, test_standard_processor_no_test_cases_generated work
+- Understanding how run_command, check_ollama_service, check_models_available work
 - Modifying integration-related functionality
 
 ## Key Files
 
 | File | Symbols |
 |------|---------|
-| `tests/integration/e2e_runner_script.py` | TestResult, summary, get_reqifz_files, test_negative_invalid_file, main (+13) |
-| `src/app_logger.py` | AppLogger, debug, warning, log_ai_api_call, log_environment_info (+7) |
-| `tests/integration/test_end_to_end.py` | test_standard_mode_complete_workflow, test_directory_processing_workflow, test_error_handling_workflow, test_malformed_reqifz_handling, test_ai_service_timeout_handling (+5) |
-| `tests/core/test_parsers.py` | test_extract_direct_json, test_extract_json_from_markdown_block, test_extract_json_from_code_block_without_language, test_extract_json_with_curly_braces_fallback, test_invalid_json_returns_none (+5) |
-| `tests/integration/test_edge_cases.py` | mock_config, test_connection_refused_error, test_timeout_error, test_http_error_responses, test_memory_pressure_simulation (+5) |
-| `src/config.py` | ConfigManager, get_masked_summary, validate_required_secrets, print_summary, validate_secrets_for_mode (+1) |
-| `tests/test_integration_refactored.py` | test_standard_processor_complete_flow, test_standard_processor_no_artifacts, test_standard_processor_no_test_cases_generated, test_standard_processor_excel_save_failure, test_context_reset_between_requirements |
-| `tests/performance/test_regression_benchmarks.py` | run_processing, test_processor_consistency, test_memory_efficiency_regression, test_standard_processor_performance_regression, test_context_aware_processing_performance |
-| `src/core/parsers.py` | extract_json_from_response, validate_test_cases_structure, extract_json_batch, JSONResponseParser, FastJSONResponseParser |
-| `tests/integration/test_processors.py` | test_process_file_success, test_process_file_no_system_requirements, test_process_directory, test_calculate_performance_metrics |
+| `tests/integration/e2e_runner_script.py` | add_pass, add_fail, run_command, check_ollama_service, check_models_available (+9) |
+| `src/app_logger.py` | __init__, _start_performance_monitoring, info, warning, log_application_metrics (+3) |
+| `tests/integration/test_edge_cases.py` | test_memory_pressure_simulation, test_json_missing_test_cases_key, test_malformed_test_case_structure, test_extremely_large_response, test_json_with_escaped_characters |
+| `src/config.py` | get_masked_summary, print_summary, validate_secrets_for_mode |
+| `tests/integration/test_end_to_end.py` | test_logging_integration_workflow, test_secrets_management_workflow |
+| `src/core/parsers.py` | extract_json_from_response, extract_json_from_response |
+| `evaluate/test_repos/fastapi/scripts/translate.py` | commands_json |
+| `evaluate/test_repos/fastapi/tests/test_dependency_yield_scope.py` | iter_data |
+| `evaluate/test_repos/flask/src/flask/json/__init__.py` | dumps |
+| `src/core/generators.py` | generate_test_cases_for_requirement |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`test_standard_processor_complete_flow`** (Function) — `tests/test_integration_refactored.py:30`
-- **`test_standard_processor_no_artifacts`** (Function) — `tests/test_integration_refactored.py:69`
-- **`test_standard_processor_no_test_cases_generated`** (Function) — `tests/test_integration_refactored.py:82`
-- **`test_standard_processor_excel_save_failure`** (Function) — `tests/test_integration_refactored.py:102`
-- **`test_context_reset_between_requirements`** (Function) — `tests/test_integration_refactored.py:231`
+- **`run_command`** (Function) — `tests/integration/e2e_runner_script.py:69`
+- **`check_ollama_service`** (Function) — `tests/integration/e2e_runner_script.py:82`
+- **`check_models_available`** (Function) — `tests/integration/e2e_runner_script.py:88`
+- **`test_positive_standard_mode`** (Function) — `tests/integration/e2e_runner_script.py:104`
+- **`test_positive_hp_mode`** (Function) — `tests/integration/e2e_runner_script.py:125`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `REQIFZFileProcessor` | Class | `src/processors/standard_processor.py` | 32 |
-| `ConfigManager` | Class | `src/config.py` | 429 |
-| `AppLogger` | Class | `src/app_logger.py` | 28 |
-| `OllamaClient` | Class | `src/core/ollama_client.py` | 36 |
-| `JSONResponseParser` | Class | `src/core/parsers.py` | 24 |
-| `FastJSONResponseParser` | Class | `src/core/parsers.py` | 99 |
-| `TestResult` | Class | `tests/integration/e2e_runner_script.py` | 33 |
-| `test_standard_processor_complete_flow` | Function | `tests/test_integration_refactored.py` | 30 |
-| `test_standard_processor_no_artifacts` | Function | `tests/test_integration_refactored.py` | 69 |
-| `test_standard_processor_no_test_cases_generated` | Function | `tests/test_integration_refactored.py` | 82 |
-| `test_standard_processor_excel_save_failure` | Function | `tests/test_integration_refactored.py` | 102 |
-| `test_context_reset_between_requirements` | Function | `tests/test_integration_refactored.py` | 231 |
-| `test_standard_processor_handles_connection_error` | Function | `tests/test_critical_improvements.py` | 440 |
-| `test_standard_processor_handles_model_not_found` | Function | `tests/test_critical_improvements.py` | 463 |
-| `test_process_file_success` | Function | `tests/integration/test_processors.py` | 22 |
-| `test_process_file_no_system_requirements` | Function | `tests/integration/test_processors.py` | 73 |
-| `test_process_directory` | Function | `tests/integration/test_processors.py` | 120 |
-| `test_standard_mode_complete_workflow` | Function | `tests/integration/test_end_to_end.py` | 76 |
-| `test_directory_processing_workflow` | Function | `tests/integration/test_end_to_end.py` | 155 |
-| `test_error_handling_workflow` | Function | `tests/integration/test_end_to_end.py` | 204 |
+| `run_command` | Function | `tests/integration/e2e_runner_script.py` | 69 |
+| `check_ollama_service` | Function | `tests/integration/e2e_runner_script.py` | 82 |
+| `check_models_available` | Function | `tests/integration/e2e_runner_script.py` | 88 |
+| `test_positive_standard_mode` | Function | `tests/integration/e2e_runner_script.py` | 104 |
+| `test_positive_hp_mode` | Function | `tests/integration/e2e_runner_script.py` | 125 |
+| `test_negative_missing_file` | Function | `tests/integration/e2e_runner_script.py` | 146 |
+| `test_negative_invalid_file` | Function | `tests/integration/e2e_runner_script.py` | 160 |
+| `test_negative_missing_model` | Function | `tests/integration/e2e_runner_script.py` | 181 |
+| `test_output_validation` | Function | `tests/integration/e2e_runner_script.py` | 195 |
+| `test_template_validation` | Function | `tests/integration/e2e_runner_script.py` | 219 |
+| `test_batch_processing` | Function | `tests/integration/e2e_runner_script.py` | 232 |
+| `main` | Function | `tests/integration/e2e_runner_script.py` | 259 |
+| `shutdown_app_logger` | Function | `src/app_logger.py` | 360 |
+| `commands_json` | Function | `evaluate/test_repos/fastapi/scripts/translate.py` | 244 |
+| `iter_data` | Function | `evaluate/test_repos/fastapi/tests/test_dependency_yield_scope.py` | 80 |
+| `dumps` | Function | `evaluate/test_repos/flask/src/flask/json/__init__.py` | 12 |
+| `add_pass` | Method | `tests/integration/e2e_runner_script.py` | 43 |
+| `add_fail` | Method | `tests/integration/e2e_runner_script.py` | 47 |
+| `info` | Method | `src/app_logger.py` | 197 |
+| `warning` | Method | `src/app_logger.py` | 201 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
-| `Log_info → _log_with_extras` | cross_community | 5 |
-| `Log_error → _log_with_extras` | cross_community | 5 |
-| `Log_warning → _log_with_extras` | cross_community | 5 |
-| `Log_debug → _log_with_extras` | cross_community | 5 |
+| `_run_hp_mode → _log_with_extras` | cross_community | 6 |
 | `Process_directory → _log_with_extras` | cross_community | 5 |
-| `_run_standard_mode → _log_with_extras` | cross_community | 5 |
-| `_run_hp_mode → _log_with_extras` | cross_community | 5 |
-| `Process_directory → _log_with_extras` | cross_community | 5 |
-| `Main → ConfigManager` | cross_community | 4 |
-| `_run_standard_mode → FileProcessingLogger` | cross_community | 4 |
+| `_run_standard_mode → _log_with_extras` | cross_community | 4 |
+| `Shutdown_app_logger → _log_with_extras` | cross_community | 4 |
+| `Main → _log_with_extras` | cross_community | 3 |
+| `Main → Run_command` | intra_community | 3 |
+| `Main → Dumps` | cross_community | 3 |
+| `__init__ → _log_with_extras` | cross_community | 3 |
+| `Log_application_metrics → _log_with_extras` | cross_community | 3 |
+| `Generate_test_cases_for_requirement → Calculate_confidence` | cross_community | 3 |
 
 ## Connected Areas
 
 | Area | Connections |
 |------|-------------|
-| Tests | 37 calls |
-| Processors | 12 calls |
-| Utilities | 2 calls |
-| Training | 2 calls |
-| Cluster_89 | 2 calls |
-| Cluster_44 | 2 calls |
-| Cluster_61 | 1 calls |
-| Cluster_102 | 1 calls |
+| Cluster_447 | 3 calls |
+| Cluster_457 | 3 calls |
+| Training | 1 calls |
+| Processors | 1 calls |
 
 ## How to Explore
 
-1. `gitnexus_context({name: "test_standard_processor_complete_flow"})` — see callers and callees
-2. `gitnexus_query({query: "integration"})` — find related execution flows
+1. `context({name: "run_command"})` — see callers and callees
+2. `query({search_query: "integration"})` — find related execution flows
 3. Read key files listed above for implementation details
+4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`

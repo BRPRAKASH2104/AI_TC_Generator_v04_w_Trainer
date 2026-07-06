@@ -1,96 +1,96 @@
 ---
 name: processors
-description: "Skill for the Processors area of AI_TC_Generator_v04_w_Trainer. 24 symbols across 8 files."
+description: "Skill for the Processors area of AI_TC_Generator_v04_w_Trainer. 37 symbols across 12 files."
 ---
 
 # Processors
 
-24 symbols | 8 files | Cohesion: 57%
+37 symbols | 12 files | Cohesion: 57%
 
 ## When to Use
 
 - Working with code in `src/`
-- Understanding how test_hp_processor_complete_flow, test_hp_processor_no_artifacts, test_hp_processor_with_errors work
+- Understanding how main, get_app_logger, process_file work
 - Modifying processors-related functionality
 
 ## Key Files
 
 | File | Symbols |
 |------|---------|
-| `src/processors/hp_processor.py` | HighPerformanceREQIFZFileProcessor, process_file, _generate_output_path_hp, _create_error_result_hp, _monitor_performance (+2) |
-| `src/app_logger.py` | info, error, critical, _log_with_extras, log_file_processing_start (+1) |
-| `tests/test_integration_refactored.py` | test_hp_processor_complete_flow, test_hp_processor_no_artifacts, test_hp_processor_with_errors |
-| `tests/integration/test_processors.py` | test_process_file_with_failures, test_performance_monitoring |
-| `tests/integration/test_end_to_end.py` | test_hp_mode_complete_workflow, test_performance_comparison_workflow |
-| `main.py` | _run_standard_mode, _run_hp_mode |
-| `tests/test_critical_improvements.py` | test_hp_processor_processes_all_requirements_concurrently |
-| `src/config.py` | get_model_for_requirement |
+| `src/processors/base_processor.py` | _extract_artifacts, _create_metadata, _create_success_result, _create_error_result, _save_raft_example (+5) |
+| `src/processors/hp_processor.py` | process_file, _create_error_result_hp, _monitor_performance, _get_performance_summary, process_directory (+2) |
+| `tests/integration/test_end_to_end.py` | test_standard_mode_complete_workflow, test_hp_mode_complete_workflow, test_performance_comparison_workflow, test_directory_processing_workflow |
+| `main.py` | _run_standard_mode, main, _run_hp_mode |
+| `src/app_logger.py` | log_file_processing_start, log_file_processing_complete, get_app_logger |
+| `src/processors/standard_processor.py` | process_file, process_directory |
+| `src/core/image_extractor.py` | cleanup_extracted_images, auto_cleanup |
+| `src/config.py` | apply_cli_overrides, _deep_merge_dict |
+| `tests/performance/test_regression_benchmarks.py` | test_processor_consistency |
+| `tests/training/test_raft_integration.py` | test_raft_collection_minimal_overhead |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`test_hp_processor_complete_flow`** (Function) — `tests/test_integration_refactored.py:133`
-- **`test_hp_processor_no_artifacts`** (Function) — `tests/test_integration_refactored.py:175`
-- **`test_hp_processor_with_errors`** (Function) — `tests/test_integration_refactored.py:190`
-- **`test_hp_processor_processes_all_requirements_concurrently`** (Function) — `tests/test_critical_improvements.py:265`
-- **`get_model_for_requirement`** (Function) — `src/config.py:484`
+- **`main`** (Function) — `main.py:107`
+- **`get_app_logger`** (Function) — `src/app_logger.py:329`
+- **`process_file`** (Method) — `src/processors/standard_processor.py:65`
+- **`test_standard_mode_complete_workflow`** (Method) — `tests/integration/test_end_to_end.py:76`
+- **`test_processor_consistency`** (Method) — `tests/performance/test_regression_benchmarks.py:172`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `HighPerformanceREQIFZFileProcessor` | Class | `src/processors/hp_processor.py` | 35 |
-| `test_hp_processor_complete_flow` | Function | `tests/test_integration_refactored.py` | 133 |
-| `test_hp_processor_no_artifacts` | Function | `tests/test_integration_refactored.py` | 175 |
-| `test_hp_processor_with_errors` | Function | `tests/test_integration_refactored.py` | 190 |
-| `test_hp_processor_processes_all_requirements_concurrently` | Function | `tests/test_critical_improvements.py` | 265 |
-| `get_model_for_requirement` | Function | `src/config.py` | 484 |
-| `test_process_file_with_failures` | Function | `tests/integration/test_processors.py` | 192 |
-| `test_performance_monitoring` | Function | `tests/integration/test_processors.py` | 223 |
-| `test_hp_mode_complete_workflow` | Function | `tests/integration/test_end_to_end.py` | 117 |
-| `test_performance_comparison_workflow` | Function | `tests/integration/test_end_to_end.py` | 266 |
-| `process_file` | Function | `src/processors/hp_processor.py` | 90 |
-| `info` | Function | `src/app_logger.py` | 197 |
-| `error` | Function | `src/app_logger.py` | 206 |
-| `critical` | Function | `src/app_logger.py` | 211 |
-| `log_file_processing_start` | Function | `src/app_logger.py` | 235 |
-| `log_file_processing_complete` | Function | `src/app_logger.py` | 245 |
-| `process_directory` | Function | `src/processors/hp_processor.py` | 63 |
-| `_generate_output_path_hp` | Function | `src/processors/hp_processor.py` | 372 |
-| `_create_error_result_hp` | Function | `src/processors/hp_processor.py` | 385 |
-| `_monitor_performance` | Function | `src/processors/hp_processor.py` | 399 |
+| `main` | Function | `main.py` | 107 |
+| `get_app_logger` | Function | `src/app_logger.py` | 329 |
+| `process_file` | Method | `src/processors/standard_processor.py` | 65 |
+| `test_standard_mode_complete_workflow` | Method | `tests/integration/test_end_to_end.py` | 76 |
+| `test_processor_consistency` | Method | `tests/performance/test_regression_benchmarks.py` | 172 |
+| `test_raft_collection_minimal_overhead` | Method | `tests/training/test_raft_integration.py` | 208 |
+| `process_file` | Method | `src/processors/hp_processor.py` | 102 |
+| `test_generate_output_path_includes_timestamp` | Method | `tests/core/test_base_processor.py` | 362 |
+| `test_hp_mode_complete_workflow` | Method | `tests/integration/test_end_to_end.py` | 117 |
+| `test_performance_comparison_workflow` | Method | `tests/integration/test_end_to_end.py` | 270 |
+| `log_file_processing_start` | Method | `src/app_logger.py` | 235 |
+| `log_file_processing_complete` | Method | `src/app_logger.py` | 245 |
+| `cleanup_extracted_images` | Method | `src/core/image_extractor.py` | 566 |
+| `auto_cleanup` | Method | `src/core/image_extractor.py` | 604 |
+| `process_directory` | Method | `src/processors/standard_processor.py` | 41 |
+| `test_directory_processing_workflow` | Method | `tests/integration/test_end_to_end.py` | 159 |
+| `apply_cli_overrides` | Method | `src/config.py` | 611 |
+| `process_directory` | Method | `src/processors/hp_processor.py` | 72 |
+| `verify_augmentation` | Method | `utilities/verify_v03_compatibility.py` | 142 |
+| `_run_standard_mode` | Function | `main.py` | 259 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
-| `Log_info → _log_with_extras` | cross_community | 5 |
-| `Log_error → _log_with_extras` | cross_community | 5 |
-| `Log_warning → _log_with_extras` | cross_community | 5 |
-| `Log_debug → _log_with_extras` | cross_community | 5 |
+| `_run_hp_mode → _log_with_extras` | cross_community | 6 |
+| `Verify_augmentation → _map_reqif_type_to_artifact_type` | cross_community | 5 |
+| `Verify_augmentation → _extract_foreign_id` | cross_community | 5 |
+| `Verify_augmentation → _extract_xhtml_content` | cross_community | 5 |
+| `Verify_augmentation → _determine_artifact_type` | cross_community | 5 |
+| `Verify_augmentation → _compute_hash` | cross_community | 5 |
 | `Process_directory → _log_with_extras` | cross_community | 5 |
-| `_run_standard_mode → _log_with_extras` | cross_community | 5 |
-| `_run_hp_mode → _log_with_extras` | cross_community | 5 |
-| `Process_directory → _log_with_extras` | cross_community | 5 |
-| `Process_directory → FileProcessingLogger` | cross_community | 4 |
-| `_run_standard_mode → FileProcessingLogger` | cross_community | 4 |
+| `Main → _clean_text_for_logging` | cross_community | 5 |
+| `_run_hp_mode → _get_performance_summary` | cross_community | 5 |
+| `Verify_augmentation → _build_foreign_id_mapping` | cross_community | 4 |
 
 ## Connected Areas
 
 | Area | Connections |
 |------|-------------|
-| Integration | 12 calls |
-| Tests | 7 calls |
-| Cluster_74 | 2 calls |
-| Cluster_76 | 2 calls |
-| Utilities | 2 calls |
-| Cluster_44 | 2 calls |
-| Training | 1 calls |
-| Cluster_102 | 1 calls |
+| Integration | 16 calls |
+| Cluster_447 | 4 calls |
+| Cluster_453 | 1 calls |
+| Cluster_460 | 1 calls |
+| Tools | 1 calls |
 
 ## How to Explore
 
-1. `gitnexus_context({name: "test_hp_processor_complete_flow"})` — see callers and callees
-2. `gitnexus_query({query: "processors"})` — find related execution flows
+1. `context({name: "main"})` — see callers and callees
+2. `query({search_query: "processors"})` — find related execution flows
 3. Read key files listed above for implementation details
+4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`
