@@ -201,7 +201,7 @@ class YAMLPromptManager:
         """Automatically select appropriate template based on context"""
         if not self.config.get("auto_selection", {}).get("enabled", True):
             defaults = self.config.get("defaults", {})
-            return defaults.get("template_selection", "default")
+            return str(defaults.get("template_selection", "default"))
 
         heading = variables.get("heading", "").lower()
         req_id = variables.get("requirement_id", "").upper()
@@ -209,7 +209,7 @@ class YAMLPromptManager:
         # Use cached selection rules loaded during load_all_prompts
         if self._selection_rules is None:
             defaults = self.config.get("defaults", {})
-            return defaults.get("template_selection", "default")
+            return str(defaults.get("template_selection", "default"))
         selection_rules = self._selection_rules
 
         # Check heading keywords
@@ -219,7 +219,7 @@ class YAMLPromptManager:
             if any(keyword.lower() in heading for keyword in keywords):
                 template = rule_data.get("template")
                 if template in self.test_prompts:
-                    return template
+                    return str(template)
 
         # Check requirement ID patterns
         id_rules = selection_rules.get("requirement_id_patterns", {})
@@ -228,11 +228,11 @@ class YAMLPromptManager:
             if any(pattern in req_id for pattern in patterns):
                 template = rule_data.get("template")
                 if template in self.test_prompts:
-                    return template
+                    return str(template)
 
         # Return default
-        return selection_rules.get(
-            "default_template", self.config["defaults"]["template_selection"]
+        return str(
+            selection_rules.get("default_template", self.config["defaults"]["template_selection"])
         )
 
     def _validate_variables(self, template_data: dict[str, Any], variables: dict[str, Any]) -> None:

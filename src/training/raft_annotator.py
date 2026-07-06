@@ -416,7 +416,7 @@ class RAFTAnnotator:
             return False
 
         # Must have a quality rating
-        return annotation.get("quality_rating")
+        return bool(annotation.get("quality_rating"))
 
     def get_annotation_stats(self) -> dict[str, int]:
         """Get annotation statistics"""

@@ -193,7 +193,7 @@ class TestCaseFormatter:
     def _generate_issue_id(self, test_case: dict[str, Any], index: int) -> str:
         """Generate unique issue ID for test case"""
         requirement_id = test_case.get("requirement_id", "UNKNOWN")
-        test_id = test_case.get("test_id", f"TC_{index:03d}")
+        test_id = str(test_case.get("test_id", f"TC_{index:03d}"))
 
         # Return test_id if it already includes requirement_id, otherwise combine
         if requirement_id in test_id:

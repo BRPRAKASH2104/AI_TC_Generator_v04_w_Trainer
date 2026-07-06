@@ -8,7 +8,7 @@ and high-performance processors, eliminating code duplication.
 import re
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from src.config import ConfigManager
 from src.file_processing_logger import FileProcessingLogger
@@ -99,7 +99,10 @@ class BaseProcessor:
             self.logger.error("No artifacts found in REQIFZ file")
             return None
 
-        return artifacts
+        # self.extractor is Any (DI target set by subclasses to one of the
+        # concrete extractor classes); extract_reqifz_content is declared to
+        # return ArtifactList on both.
+        return cast("list[dict[str, Any]]", artifacts)
 
     def _build_augmented_requirements(
         self, artifacts: list[dict[str, Any]]

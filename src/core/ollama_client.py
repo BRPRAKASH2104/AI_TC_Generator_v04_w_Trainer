@@ -420,7 +420,7 @@ class AsyncOllamaClient:
                 async with self.session.post(self.config.api_url, json=payload) as response:
                     response.raise_for_status()
                     try:
-                        data = await response.json()
+                        data: JSONResponse = await response.json()
                     except aiohttp.ContentTypeError as e:
                         raise OllamaResponseError(
                             f"Invalid JSON response from Ollama: {e}", status_code=response.status

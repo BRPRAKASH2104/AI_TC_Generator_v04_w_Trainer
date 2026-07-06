@@ -43,7 +43,9 @@ class JSONResponseParser:
 
         # Strategy 1: Direct JSON parsing
         try:
-            return JSON_PARSER.loads(response_text.strip())
+            parsed = JSON_PARSER.loads(response_text.strip())
+            if isinstance(parsed, dict):
+                return parsed
         except (json.JSONDecodeError, ValueError):
             pass
 
@@ -53,7 +55,9 @@ class JSONResponseParser:
 
         for match in matches:
             try:
-                return JSON_PARSER.loads(match.strip())
+                parsed = JSON_PARSER.loads(match.strip())
+                if isinstance(parsed, dict):
+                    return parsed
             except (json.JSONDecodeError, ValueError):
                 continue
 
@@ -63,7 +67,9 @@ class JSONResponseParser:
 
         for match in matches:
             try:
-                return JSON_PARSER.loads(match.strip())
+                parsed = JSON_PARSER.loads(match.strip())
+                if isinstance(parsed, dict):
+                    return parsed
             except (json.JSONDecodeError, ValueError):
                 continue
 
@@ -74,7 +80,9 @@ class JSONResponseParser:
         if match:
             try:
                 test_cases_json = f'{{"test_cases": [{match.group(1)}]}}'
-                return JSON_PARSER.loads(test_cases_json)
+                parsed = JSON_PARSER.loads(test_cases_json)
+                if isinstance(parsed, dict):
+                    return parsed
             except (json.JSONDecodeError, ValueError):
                 pass
 
@@ -115,7 +123,9 @@ class FastJSONResponseParser(JSONResponseParser):
         stripped_text = response_text.strip()
         if stripped_text.startswith("{") and stripped_text.endswith("}"):
             try:
-                return JSON_PARSER.loads(stripped_text)
+                parsed = JSON_PARSER.loads(stripped_text)
+                if isinstance(parsed, dict):
+                    return parsed
             except (json.JSONDecodeError, ValueError):
                 pass
 
