@@ -16,7 +16,13 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from src.config import StaticTestConfig
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
+
+    from openpyxl.worksheet.worksheet import Worksheet
+
+    from src.config import ConfigManager
+    from src.file_processing_logger import FileProcessingLogger
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseList = list[dict[str, Any]]
@@ -28,7 +34,9 @@ class TestCaseFormatter:
 
     __slots__ = ("config", "logger")
 
-    def __init__(self, config=None, logger=None):
+    def __init__(
+        self, config: ConfigManager | None = None, logger: FileProcessingLogger | None = None
+    ):
         self.config = config
         self.logger = logger
 
@@ -219,7 +227,7 @@ class TestCaseFormatter:
         # Save workbook
         wb.save(output_path)
 
-    def _apply_excel_formatting(self, worksheet) -> None:
+    def _apply_excel_formatting(self, worksheet: Worksheet) -> None:
         """Apply professional formatting to Excel worksheet (v03 style)"""
         # Header formatting
         header_font = Font(bold=True, color="FFFFFF")
@@ -285,7 +293,7 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
 
     def format_to_excel_streaming(
         self,
-        test_cases_iterator,
+        test_cases_iterator: Iterator[dict[str, Any]],
         output_path: Path,
         metadata: dict[str, Any] | None = None,
         chunk_size: int = 100,
@@ -357,7 +365,11 @@ class StreamingTestCaseFormatter(TestCaseFormatter):
             return False
 
     def _write_chunk_to_excel(
-        self, worksheet, chunk: TestCaseList, metadata: dict[str, Any] | None, _start_index: int
+        self,
+        worksheet: Worksheet,
+        chunk: TestCaseList,
+        metadata: dict[str, Any] | None,
+        _start_index: int,
     ) -> None:
         """Write a chunk of test cases to Excel worksheet (v03 style)"""
         formatted_chunk = self._prepare_test_cases_for_excel(chunk, metadata)

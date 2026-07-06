@@ -5,7 +5,10 @@ This module provides a stateless, reusable prompt builder that handles all
 prompt construction logic, decoupled from test case generators.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.yaml_prompt_manager import YAMLPromptManager
 
 # Type aliases
 type RequirementData = dict[str, Any]
@@ -22,7 +25,7 @@ class PromptBuilder:
 
     __slots__ = ("yaml_manager",)
 
-    def __init__(self, yaml_manager=None):
+    def __init__(self, yaml_manager: YAMLPromptManager | None = None):
         """
         Initialize prompt builder.
 
@@ -60,6 +63,7 @@ class PromptBuilder:
         Returns:
             Formatted prompt string
         """
+        assert self.yaml_manager is not None, "caller (build_prompt) must guard on yaml_manager"
         try:
             # Prepare template variables with context information
             variables = {

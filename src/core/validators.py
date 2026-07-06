@@ -7,7 +7,10 @@ parameters, and values based on the requirement context.
 
 import re
 from difflib import get_close_matches
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.file_processing_logger import FileProcessingLogger
 
 
 class SemanticValidator:
@@ -15,7 +18,9 @@ class SemanticValidator:
 
     __slots__ = ("logger", "similarity_threshold")
 
-    def __init__(self, logger=None, similarity_threshold: float = 0.8):
+    def __init__(
+        self, logger: FileProcessingLogger | None = None, similarity_threshold: float = 0.8
+    ):
         """
         Initialize semantic validator.
 

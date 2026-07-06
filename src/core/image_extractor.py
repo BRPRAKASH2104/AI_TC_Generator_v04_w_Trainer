@@ -21,6 +21,8 @@ from typing import TYPE_CHECKING, Any, Self
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    from src.file_processing_logger import FileProcessingLogger
+
 try:
     from PIL import Image
 
@@ -76,7 +78,7 @@ class RequirementImageExtractor:
 
     def __init__(
         self,
-        logger=None,
+        logger: FileProcessingLogger | None = None,
         output_dir: Path | None = None,
         save_images: bool = True,
         validate_images: bool = True,

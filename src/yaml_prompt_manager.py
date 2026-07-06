@@ -152,7 +152,7 @@ class YAMLPromptManager:
                 _logger.warning(f"Could not load error prompts: {e}")
                 self.error_prompts = {}
 
-    def get_test_prompt(self, template_name: str | None = None, **variables) -> str:
+    def get_test_prompt(self, template_name: str | None = None, **variables: Any) -> str:
         """
         Get a test generation prompt with variable substitution
 

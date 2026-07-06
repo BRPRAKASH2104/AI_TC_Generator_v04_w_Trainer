@@ -174,7 +174,7 @@ def main(
             nested_update: dict[str, Any] = {}
 
             # Helper to set nested dict values
-            def set_nested(d, path, value):
+            def set_nested(d: dict[str, Any], path: list[str], value: Any) -> None:
                 for key in path[:-1]:
                     d = d.setdefault(key, {})
                 d[path[-1]] = value

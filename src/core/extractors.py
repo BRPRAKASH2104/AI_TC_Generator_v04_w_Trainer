@@ -17,6 +17,7 @@ from .relationship_parser import RequirementRelationshipParser
 
 if TYPE_CHECKING:
     from src.config import ConfigManager
+    from src.file_processing_logger import FileProcessingLogger
 
 # Type aliases for better readability (PEP 695 style)
 type RequirementData = dict[str, Any]
@@ -41,7 +42,10 @@ class REQIFArtifactExtractor:
     __slots__ = ("logger", "html_parser", "use_streaming", "config")
 
     def __init__(
-        self, logger=None, use_streaming: bool = False, config: ConfigManager | None = None
+        self,
+        logger: FileProcessingLogger | None = None,
+        use_streaming: bool = False,
+        config: ConfigManager | None = None,
     ):
         self.logger = logger
         self.html_parser = HTMLTableParser()
@@ -246,7 +250,7 @@ class REQIFArtifactExtractor:
         return attr_def_map
 
     def _extract_foreign_id(
-        self, values_container, target_foreign_id_ref: str, default_id: str
+        self, values_container: ET.Element, target_foreign_id_ref: str, default_id: str
     ) -> str:
         """Extract foreign ID from VALUES container"""
         if not target_foreign_id_ref:
@@ -590,7 +594,12 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
     calls across requirements.
     """
 
-    def __init__(self, logger=None, max_workers: int = 4, config: ConfigManager | None = None):
+    def __init__(
+        self,
+        logger: FileProcessingLogger | None = None,
+        max_workers: int = 4,
+        config: ConfigManager | None = None,
+    ):
         super().__init__(logger, use_streaming=False, config=config)
         # Retained for interface compatibility; no longer used for threading
         self.max_workers = max_workers

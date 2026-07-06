@@ -36,9 +36,9 @@ class BaseProcessor:
     def __init__(
         self,
         config: ConfigManager | None = None,
-        extractor=None,  # Dependency injection
-        generator=None,  # Dependency injection
-        formatter=None,  # Dependency injection
+        extractor: Any = None,  # Dependency injection: concrete type set by subclass
+        generator: Any = None,  # Dependency injection: concrete type set by subclass
+        formatter: Any = None,  # Dependency injection: concrete type set by subclass
     ):
         self.config = config or ConfigManager()
         self.logger: FileProcessingLogger | None = None  # Will be initialized per file
@@ -59,7 +59,7 @@ class BaseProcessor:
             )
 
     @staticmethod
-    def _clean_text_for_logging(text) -> str:
+    def _clean_text_for_logging(text: str | list | None) -> str:
         """Clean XML/HTML text for readable output. Handles str, list, or None."""
         if not text:
             return ""

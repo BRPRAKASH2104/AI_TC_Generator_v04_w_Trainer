@@ -6,7 +6,10 @@ test cases using various similarity metrics and clustering algorithms.
 """
 
 from difflib import SequenceMatcher
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.file_processing_logger import FileProcessingLogger
 
 # Type aliases for better readability
 type TestCase = dict[str, Any]
@@ -35,7 +38,7 @@ class TestCaseDeduplicator:
     def __init__(
         self,
         similarity_threshold: float = 0.85,
-        logger=None,
+        logger: FileProcessingLogger | None = None,
         fields_to_compare: list[str] | None = None,
     ):
         """

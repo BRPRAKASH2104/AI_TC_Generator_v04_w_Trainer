@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import xml.etree.ElementTree as ET
 
+    from src.file_processing_logger import FileProcessingLogger
+
 # Type aliases for better readability (PEP 695 style)
 type RelationshipData = dict[str, Any]
 type RelationshipList = list[RelationshipData]
@@ -34,7 +36,7 @@ class RequirementRelationshipParser:
 
     __slots__ = ("logger", "relation_type_map", "foreign_id_map")
 
-    def __init__(self, logger=None):
+    def __init__(self, logger: FileProcessingLogger | None = None):
         self.logger = logger
         self.relation_type_map: dict[str, str] = {}
         self.foreign_id_map: dict[str, str] = {}

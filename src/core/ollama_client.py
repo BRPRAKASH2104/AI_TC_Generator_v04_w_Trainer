@@ -25,6 +25,8 @@ from .exceptions import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from src.config import OllamaConfig
 
 # Module logger for Ollama client
@@ -126,7 +128,12 @@ class OllamaClient:
     def __enter__(self) -> OllamaClient:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     def generate_completion(
@@ -310,7 +317,12 @@ class AsyncOllamaClient:
         )
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Async context manager exit"""
         if self.session:
             await self.session.close()
