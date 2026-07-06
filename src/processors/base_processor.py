@@ -41,7 +41,7 @@ class BaseProcessor:
         formatter=None,  # Dependency injection
     ):
         self.config = config or ConfigManager()
-        self.logger = None  # Will be initialized per file
+        self.logger: FileProcessingLogger | None = None  # Will be initialized per file
         self.yaml_manager = YAMLPromptManager()
 
         # Dependencies - either injected or initialized by subclasses
@@ -91,6 +91,7 @@ class BaseProcessor:
         Returns:
             List of artifacts or None if extraction fails
         """
+        assert self.logger is not None, "_initialize_logger() must run before _extract_artifacts()"
         self.logger.info("📂 Extracting artifacts from REQIFZ file...")
         artifacts = self.extractor.extract_reqifz_content(reqifz_path)
 
@@ -117,6 +118,9 @@ class BaseProcessor:
         Returns:
             Tuple of (augmented_requirements, system_interfaces_count)
         """
+        assert self.logger is not None, (
+            "_initialize_logger() must run before _build_augmented_requirements()"
+        )
         # Classify artifacts and separate system interfaces (global context)
         classified_artifacts = self.extractor.classify_artifacts(artifacts)
         raw_interfaces = classified_artifacts.get("System Interface", [])

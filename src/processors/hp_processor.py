@@ -128,6 +128,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
         # Initialize file-specific logger and components
         self._initialize_logger(reqifz_path)
+        assert self.logger is not None, "_initialize_logger() must set self.logger"
 
         self.extractor = HighPerformanceREQIFArtifactExtractor(
             self.logger, max_workers=4, config=self.config

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from logging import Logger
+    from src.file_processing_logger import FileProcessingLogger
 
 type AugmentedRequirement = dict[str, Any]
 type RAFTExample = dict[str, Any]
@@ -28,7 +28,7 @@ class RAFTDataCollector:
     def __init__(
         self,
         output_dir: str | Path = "training_data/collected",
-        logger: Logger | None = None,
+        logger: FileProcessingLogger | None = None,
         enabled: bool = True,
     ):
         """

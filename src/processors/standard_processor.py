@@ -86,6 +86,7 @@ class REQIFZFileProcessor(BaseProcessor):
 
         # Initialize file-specific logger and components
         self._initialize_logger(reqifz_path)
+        assert self.logger is not None, "_initialize_logger() must set self.logger"
 
         self.extractor = REQIFArtifactExtractor(
             self.logger, use_streaming=False, config=self.config
