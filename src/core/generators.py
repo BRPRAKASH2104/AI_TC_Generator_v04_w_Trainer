@@ -57,9 +57,7 @@ def extract_image_paths(requirement: RequirementData) -> list[Path]:
     return paths
 
 
-def stamp_validation_results(
-    test_cases: TestCaseList, validation_report: dict[str, Any]
-) -> None:
+def stamp_validation_results(test_cases: TestCaseList, validation_report: dict[str, Any]) -> None:
     """
     Mark each test case with its semantic-validation outcome.
 
@@ -133,7 +131,9 @@ def calculate_confidence(response_data: dict[str, Any], logger=None) -> float | 
 
     except Exception as e:
         if logger:
-            logger.debug(f"Could not parse logprobs: {e}. Keys found: {list(response_data.keys()) if response_data else 'None'}")
+            logger.debug(
+                f"Could not parse logprobs: {e}. Keys found: {list(response_data.keys()) if response_data else 'None'}"
+            )
         return None
 
 
@@ -181,16 +181,12 @@ class _GeneratorCore:
         self.enable_validation = (
             validation_cfg.enable_semantic_validation if validation_cfg else True
         )
-        self.enable_deduplication = (
-            dedup_cfg.enable_deduplication if dedup_cfg else True
-        )
+        self.enable_deduplication = dedup_cfg.enable_deduplication if dedup_cfg else True
         self.keep_strategy = dedup_cfg.keep_strategy if dedup_cfg else "best"
 
         self.validator = validator or SemanticValidator(
             logger=logger,
-            similarity_threshold=validation_cfg.similarity_threshold
-            if validation_cfg
-            else 0.8,
+            similarity_threshold=validation_cfg.similarity_threshold if validation_cfg else 0.8,
         )
         self.deduplicator = deduplicator or TestCaseDeduplicator(
             similarity_threshold=dedup_cfg.similarity_threshold if dedup_cfg else 0.85,
@@ -450,9 +446,7 @@ class AsyncTestCaseGenerator(_GeneratorCore):
             if isinstance(result, Exception):
                 # Exceptions that bubbled up from asyncio.gather() — typically
                 # network errors, timeouts, or unexpected failures
-                error_info = self._error_result(
-                    req_id, type(result).__name__, str(result)
-                )
+                error_info = self._error_result(req_id, type(result).__name__, str(result))
 
                 if self.logger:
                     self.logger.error(f"Failed to generate test cases for {req_id}: {result}")
@@ -566,7 +560,10 @@ class AsyncTestCaseGenerator(_GeneratorCore):
                     self.logger.warning(f"Empty test cases list for {req_id}")
                     self.logger.add_requirement_failure(req_id, "Empty test cases list")
                 return self._error_result(
-                    req_id, "EmptyTestCasesList", "AI returned empty test cases list", generation_time
+                    req_id,
+                    "EmptyTestCasesList",
+                    "AI returned empty test cases list",
+                    generation_time,
                 )
 
             # Shared pipeline: validate -> stamp -> deduplicate -> enrich

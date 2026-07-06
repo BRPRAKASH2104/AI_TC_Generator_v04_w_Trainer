@@ -66,7 +66,7 @@ class BaseProcessor:
         if isinstance(text, list):
             text = " ".join(str(item) for item in text)
         # Remove XML tags
-        clean = re.sub(r'<[^>]+>', ' ', text)
+        clean = re.sub(r"<[^>]+>", " ", text)
         # Normalize whitespace
         clean = " ".join(clean.split())
         return clean
@@ -140,7 +140,9 @@ class BaseProcessor:
                 raw_heading = obj.get("text", "No Heading")
                 current_heading = self._clean_text_for_logging(raw_heading) or "No Heading"
                 info_since_heading = []
-                self.logger.debug(f"📌 Context heading: {self._clean_text_for_logging(current_heading)}")
+                self.logger.debug(
+                    f"📌 Context heading: {self._clean_text_for_logging(current_heading)}"
+                )
                 continue
 
             elif obj.get("type") == "Information":

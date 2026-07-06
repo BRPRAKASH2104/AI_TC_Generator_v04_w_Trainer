@@ -169,9 +169,7 @@ class OllamaClient:
             Generated response text
         """
         # Call the new method but request only text (implicit backward compatibility)
-        return self.generate_completion(
-            model_name, prompt, is_json, return_full_response=False
-        )
+        return self.generate_completion(model_name, prompt, is_json, return_full_response=False)
 
     def generate_response_with_vision(
         self,
@@ -267,6 +265,8 @@ class OllamaClient:
             raise OllamaConnectionError(
                 f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
             ) from e
+
+
 class AsyncOllamaClient:
     """Async client for high-performance Ollama API interactions"""
 

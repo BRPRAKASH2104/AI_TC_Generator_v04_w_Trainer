@@ -366,4 +366,3 @@ def shutdown_app_logger() -> None:
         if _app_logger_instance:
             _app_logger_instance.shutdown()
             _app_logger_instance = None
-

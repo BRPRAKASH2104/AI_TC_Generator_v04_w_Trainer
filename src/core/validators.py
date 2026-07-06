@@ -214,9 +214,7 @@ class SemanticValidator:
 
         # Build the signal-name set once for the whole batch
         interface_list = requirement.get("interface_list", [])
-        valid_signal_names = (
-            self._extract_signal_names(interface_list) if interface_list else set()
-        )
+        valid_signal_names = self._extract_signal_names(interface_list) if interface_list else set()
 
         for idx, test_case in enumerate(test_cases, 1):
             if valid_signal_names:

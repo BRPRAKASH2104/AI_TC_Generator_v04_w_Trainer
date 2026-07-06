@@ -181,9 +181,7 @@ class HTMLTableParser:
         A row may mix th (row-label) and td cells; taking th-cells OR
         td-cells would silently drop the other kind.
         """
-        return [
-            cell for cell in row.iter() if cell.tag.rsplit("}", 1)[-1] in ("th", "td")
-        ]
+        return [cell for cell in row.iter() if cell.tag.rsplit("}", 1)[-1] in ("th", "td")]
 
     @staticmethod
     def _parse_single_table(table_element: ET.Element) -> HTMLTableData:
@@ -222,7 +220,7 @@ class HTMLTableParser:
                     col_idx += 1
 
                 if col_idx >= max_cols:
-                    break # Should not happen based on max_cols calculation, but safeguard
+                    break  # Should not happen based on max_cols calculation, but safeguard
 
                 colspan = int(cell.get("colspan", 1))
                 rowspan = int(cell.get("rowspan", 1))
@@ -245,7 +243,7 @@ class HTMLTableParser:
         headers = []
         header_counts = {}
         for i, text in enumerate(matrix[0]):
-            base_name = text or f"Column_{i+1}"
+            base_name = text or f"Column_{i + 1}"
             if base_name in header_counts:
                 header_counts[base_name] += 1
                 headers.append(f"{base_name}_{header_counts[base_name]}")

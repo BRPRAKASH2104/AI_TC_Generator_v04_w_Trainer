@@ -135,7 +135,9 @@ class TestCaseFormatter:
                 "Issue Type": default_values["issue_type"],
                 "Project Key": default_values["project_key"],
                 "Assignee": default_values["assignee"],
-                "Description": f"Confidence Score: {test_case.get('confidence_score', 'N/A'):.2f}" if test_case.get("confidence_score") is not None else "",
+                "Description": f"Confidence Score: {test_case.get('confidence_score', 'N/A'):.2f}"
+                if test_case.get("confidence_score") is not None
+                else "",
                 "Action": self._stringify_list(action),
                 "Data": data_field,
                 "Expected Result": self._stringify_list(test_case.get("expected_result", "N/A")),
@@ -276,7 +278,6 @@ class TestCaseFormatter:
         for key, value in metadata.items():
             if key not in ["model", "template", "total_cases"]:
                 ws.append([key, str(value)])
-
 
 
 class StreamingTestCaseFormatter(TestCaseFormatter):

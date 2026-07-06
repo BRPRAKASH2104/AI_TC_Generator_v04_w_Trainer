@@ -606,7 +606,9 @@ class ConfigManager(BaseSettings):
             return self.cli.environments[env_name].copy()
         else:
             available = list(self.cli.environments.keys())
-            _logger.warning(f"Environment '{env_name}' not found. Available environments: {available}")
+            _logger.warning(
+                f"Environment '{env_name}' not found. Available environments: {available}"
+            )
             return {}
 
     def apply_cli_overrides(self, **kwargs) -> ConfigManager:
@@ -727,16 +729,32 @@ class ConfigManager(BaseSettings):
                     config_dict[section][key] = value
 
             if "timeout" in m_config:
-                update_if_not_overridden("ollama", "timeout", m_config["timeout"], ollama_overrides, env_overrides)
+                update_if_not_overridden(
+                    "ollama", "timeout", m_config["timeout"], ollama_overrides, env_overrides
+                )
 
             if "temperature" in m_config:
-                update_if_not_overridden("ollama", "temperature", m_config["temperature"], ollama_overrides, env_overrides)
+                update_if_not_overridden(
+                    "ollama",
+                    "temperature",
+                    m_config["temperature"],
+                    ollama_overrides,
+                    env_overrides,
+                )
 
             if "recommended_concurrent" in m_config:
-                update_if_not_overridden("ollama", "concurrent_requests", m_config["recommended_concurrent"], ollama_overrides, env_overrides)
+                update_if_not_overridden(
+                    "ollama",
+                    "concurrent_requests",
+                    m_config["recommended_concurrent"],
+                    ollama_overrides,
+                    env_overrides,
+                )
 
             if "num_ctx" in m_config:
-                update_if_not_overridden("ollama", "num_ctx", m_config["num_ctx"], ollama_overrides, env_overrides)
+                update_if_not_overridden(
+                    "ollama", "num_ctx", m_config["num_ctx"], ollama_overrides, env_overrides
+                )
 
             # Log this internal application if debugging
             # print(f"ℹ️  Applied specific settings for model: {effective_model}")

@@ -234,4 +234,3 @@ class FileProcessingLogger:
     def error(self, message: str):
         """Print error message"""
         print(f"❌ {message}")
-

@@ -185,7 +185,10 @@ def main(
                 "verbose": ["cli", "verbose"],
                 "debug": ["cli", "debug"],
                 "performance": ["cli", "performance"],
-                "max_concurrent": ["ollama", "concurrent_requests"] # or cli.max_concurrent? config.py env_mapping says ollama.concurrent_requests
+                "max_concurrent": [
+                    "ollama",
+                    "concurrent_requests",
+                ],  # or cli.max_concurrent? config.py env_mapping says ollama.concurrent_requests
             }
 
             for key, value in preset_config.items():
@@ -435,7 +438,9 @@ def _validate_templates() -> None:
                 # validation checks the template itself, not caller input
                 template_info = manager.get_template_info(template_name)
                 vars_spec = template_info.get("variables", {})
-                required = vars_spec if isinstance(vars_spec, list) else vars_spec.get("required", [])
+                required = (
+                    vars_spec if isinstance(vars_spec, list) else vars_spec.get("required", [])
+                )
                 placeholder_vars = {var: f"<{var}>" for var in required}
 
                 template = manager.get_test_prompt(template_name, **placeholder_vars)

@@ -80,14 +80,10 @@ class REQIFArtifactExtractor:
                 self.logger.error(f"Error extracting REQIFZ file {reqifz_file_path}: {e}")
             return []
 
-    def _augment_relationships_if_enabled(
-        self, reqifz_file_path: Path, artifacts: list
-    ) -> list:
+    def _augment_relationships_if_enabled(self, reqifz_file_path: Path, artifacts: list) -> list:
         """Parse SPEC-RELATION elements and augment artifacts when enabled in config."""
         if not (
-            self.config
-            and self.config.relationships.enable_relationship_parsing
-            and artifacts
+            self.config and self.config.relationships.enable_relationship_parsing and artifacts
         ):
             return artifacts
 
@@ -338,7 +334,10 @@ class REQIFArtifactExtractor:
 
                             # Determine artifact content based on attribute reference
                             attr_name_lower = attr_name.lower()
-                            if any(keyword in attr_name_lower for keyword in ["text", "info", "desc", "req", "content", "detail"]):
+                            if any(
+                                keyword in attr_name_lower
+                                for keyword in ["text", "info", "desc", "req", "content", "detail"]
+                            ):
                                 artifact["text"] = content
                                 # If type is still unknown, try content-based classification as fallback
                                 if artifact["type"] == ArtifactType.UNKNOWN:
