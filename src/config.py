@@ -19,6 +19,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_settings import (
     BaseSettings,
+    PydanticBaseSettingsSource,
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
@@ -281,7 +282,7 @@ class SecretsConfig(BaseModel):
         24, ge=1, le=168, description="Hours after which secrets should be refreshed"
     )
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, __context: Any) -> None:
         """Load secrets from environment variables after initialization"""
         # Mapping of field names to environment variable names
         env_mapping = {
@@ -451,12 +452,12 @@ class ConfigManager(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        _settings_cls,
-        init_settings,
-        env_settings,
-        dotenv_settings,
-        file_secret_settings,
-    ):
+        _settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (
             init_settings,
             YamlConfigSettingsSource(cls, cls.model_config.get("yaml_file")),
@@ -611,7 +612,7 @@ class ConfigManager(BaseSettings):
             )
             return {}
 
-    def apply_cli_overrides(self, **kwargs) -> ConfigManager:
+    def apply_cli_overrides(self, **kwargs: Any) -> ConfigManager:
         """
         Apply CLI configuration with environment variables and overrides.
 
@@ -729,7 +730,13 @@ class ConfigManager(BaseSettings):
             # BUT CLI args should always win.
 
             # Helper to update if NOT in overrides AND not in env_overrides
-            def update_if_not_overridden(section, key, value, override_dict, env_tracker):
+            def update_if_not_overridden(
+                section: str,
+                key: str,
+                value: Any,
+                override_dict: dict[str, Any],
+                env_tracker: dict[str, set[str]],
+            ) -> None:
                 if key not in override_dict and key not in env_tracker.get(section, set()):
                     config_dict[section][key] = value
 
@@ -776,7 +783,7 @@ class ConfigManager(BaseSettings):
             else:
                 base_dict[key] = value
 
-    def show_effective_config(self, **overrides) -> None:
+    def show_effective_config(self, **overrides: Any) -> None:
         """Display the effective configuration with all overrides applied"""
         effective_config = self.apply_cli_overrides(**overrides)
 

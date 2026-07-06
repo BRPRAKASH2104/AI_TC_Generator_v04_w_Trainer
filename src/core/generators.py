@@ -16,11 +16,18 @@ import asyncio
 import math  # Added for confidence calculation
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .deduplicator import TestCaseDeduplicator
 from .parsers import FastJSONResponseParser, JSONResponseParser
 from .prompt_builder import PromptBuilder
+
+if TYPE_CHECKING:
+    from src.config import ConfigManager
+    from src.file_processing_logger import FileProcessingLogger
+    from src.yaml_prompt_manager import YAMLPromptManager
+
+    from .ollama_client import AsyncOllamaClient, OllamaClient
 from .validators import SemanticValidator
 
 # Type aliases for better readability (PEP 695 style)
@@ -81,7 +88,9 @@ def stamp_validation_results(test_cases: TestCaseList, validation_report: dict[s
         test_case["validation_passed"] = index not in invalid_indices
 
 
-def calculate_confidence(response_data: dict[str, Any], logger=None) -> float | None:
+def calculate_confidence(
+    response_data: dict[str, Any], logger: FileProcessingLogger | None = None
+) -> float | None:
     """
     Calculate confidence score from logprobs if available.
 
@@ -163,12 +172,12 @@ class _GeneratorCore:
 
     def __init__(
         self,
-        client,
-        yaml_manager=None,
-        logger=None,
-        validator=None,
-        deduplicator=None,
-        config=None,
+        client: OllamaClient | AsyncOllamaClient,
+        yaml_manager: YAMLPromptManager | None = None,
+        logger: FileProcessingLogger | None = None,
+        validator: SemanticValidator | None = None,
+        deduplicator: TestCaseDeduplicator | None = None,
+        config: ConfigManager | None = None,
     ):
         validation_cfg = getattr(config, "validation", None)
         dedup_cfg = getattr(config, "deduplication", None)
@@ -194,7 +203,9 @@ class _GeneratorCore:
             fields_to_compare=list(dedup_cfg.fields_to_compare) if dedup_cfg else None,
         )
 
-    def _extract_response_parts(self, full_response) -> tuple[str, float | None]:
+    def _extract_response_parts(
+        self, full_response: dict[str, Any] | str
+    ) -> tuple[str, float | None]:
         """Split a client response into (response_text, confidence_score)."""
         if isinstance(full_response, dict):
             response_text = str(full_response.get("response", ""))
@@ -303,6 +314,21 @@ class TestCaseGenerator(_GeneratorCore):
 
     _parser_class = JSONResponseParser
 
+    def __init__(
+        self,
+        client: OllamaClient,
+        yaml_manager: YAMLPromptManager | None = None,
+        logger: FileProcessingLogger | None = None,
+        validator: SemanticValidator | None = None,
+        deduplicator: TestCaseDeduplicator | None = None,
+        config: ConfigManager | None = None,
+    ):
+        super().__init__(client, yaml_manager, logger, validator, deduplicator, config)
+        # Narrow the inherited union type: this subclass always holds a sync
+        # OllamaClient, needed so its methods' plain (non-coroutine) return
+        # types type-check (the base type also admits AsyncOllamaClient).
+        self.client: OllamaClient = client
+
     def generate_test_cases_for_requirement(
         self, requirement: RequirementData, model: str, template_name: str | None = None
     ) -> TestCaseList:
@@ -376,15 +402,19 @@ class AsyncTestCaseGenerator(_GeneratorCore):
 
     def __init__(
         self,
-        client,
-        yaml_manager=None,
-        logger=None,
-        validator=None,
-        deduplicator=None,
-        config=None,
+        client: AsyncOllamaClient,
+        yaml_manager: YAMLPromptManager | None = None,
+        logger: FileProcessingLogger | None = None,
+        validator: SemanticValidator | None = None,
+        deduplicator: TestCaseDeduplicator | None = None,
+        config: ConfigManager | None = None,
         _max_concurrent: int = 4,
     ):
         super().__init__(client, yaml_manager, logger, validator, deduplicator, config)
+        # Narrow the inherited union type: this subclass always holds an
+        # AsyncOllamaClient, needed so awaiting self.client's async methods
+        # type-checks (the base type also admits the sync OllamaClient).
+        self.client: AsyncOllamaClient = client
         # _max_concurrent retained for interface compatibility only:
         # concurrency limiting is handled by AsyncOllamaClient's semaphore
         # (a second semaphore here would halve throughput)

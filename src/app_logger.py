@@ -15,7 +15,10 @@ import time
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.config import ConfigManager
 
 import psutil
 from rich.console import Console
@@ -191,25 +194,25 @@ class AppLogger:
 
             return json.dumps(log_entry, ensure_ascii=False)
 
-    def debug(self, message: str, **kwargs) -> None:
+    def debug(self, message: str, **kwargs: Any) -> None:
         """Log debug message with optional extra data"""
         self._log_with_extras(logging.DEBUG, message, kwargs)
 
-    def info(self, message: str, **kwargs) -> None:
+    def info(self, message: str, **kwargs: Any) -> None:
         """Log info message with optional extra data"""
         self._log_with_extras(logging.INFO, message, kwargs)
 
-    def warning(self, message: str, **kwargs) -> None:
+    def warning(self, message: str, **kwargs: Any) -> None:
         """Log warning message with optional extra data"""
         self.metrics["total_warnings"] += 1
         self._log_with_extras(logging.WARNING, message, kwargs)
 
-    def error(self, message: str, **kwargs) -> None:
+    def error(self, message: str, **kwargs: Any) -> None:
         """Log error message with optional extra data"""
         self.metrics["total_errors"] += 1
         self._log_with_extras(logging.ERROR, message, kwargs)
 
-    def critical(self, message: str, **kwargs) -> None:
+    def critical(self, message: str, **kwargs: Any) -> None:
         """Log critical message with optional extra data"""
         self.metrics["total_errors"] += 1
         self._log_with_extras(logging.CRITICAL, message, kwargs)
@@ -249,7 +252,7 @@ class AppLogger:
         success: bool,
         test_cases_generated: int,
         processing_time: float,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Log completion of file processing"""
         if success:
@@ -280,7 +283,7 @@ class AppLogger:
             **self.metrics,
         )
 
-    def log_environment_info(self, config_manager) -> None:
+    def log_environment_info(self, config_manager: ConfigManager) -> None:
         """Log environment and configuration information"""
         try:
             import subprocess
@@ -327,7 +330,7 @@ class AppLogger:
             self.logger.removeHandler(handler)
 
 
-def get_app_logger(config_manager=None) -> AppLogger:
+def get_app_logger(config_manager: ConfigManager | None = None) -> AppLogger:
     """
     Get the global application logger instance (singleton pattern).
 
