@@ -31,7 +31,7 @@ class PromptBuilder:
         """
         self.yaml_manager = yaml_manager
 
-    def build_prompt(self, requirement: RequirementData, template_name: str = None) -> str:
+    def build_prompt(self, requirement: RequirementData, template_name: str | None = None) -> str:
         """
         Build prompt from requirement data.
 
@@ -47,7 +47,9 @@ class PromptBuilder:
         else:
             return self._build_default(requirement)
 
-    def _build_from_template(self, requirement: RequirementData, template_name: str = None) -> str:
+    def _build_from_template(
+        self, requirement: RequirementData, template_name: str | None = None
+    ) -> str:
         """
         Build prompt using YAML template.
 

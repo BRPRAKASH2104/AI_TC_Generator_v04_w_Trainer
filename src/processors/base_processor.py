@@ -35,7 +35,7 @@ class BaseProcessor:
 
     def __init__(
         self,
-        config: ConfigManager = None,
+        config: ConfigManager | None = None,
         extractor=None,  # Dependency injection
         generator=None,  # Dependency injection
         formatter=None,  # Dependency injection
@@ -129,7 +129,7 @@ class BaseProcessor:
         # Context-aware artifact processing (v03 restoration)
         augmented_requirements = []
         current_heading = "No Heading"
-        info_since_heading = []
+        info_since_heading: list[dict] = []
 
         self.logger.info(f"🎯 Building context for {len(artifacts)} artifacts...")
         self.logger.info(f"🔌 Found {len(system_interfaces)} system interfaces (global context)")
@@ -190,7 +190,7 @@ class BaseProcessor:
         return augmented_requirements, len(system_interfaces)
 
     def _generate_output_path(
-        self, reqifz_path: Path, model: str, output_dir: Path = None, mode_tag: str = ""
+        self, reqifz_path: Path, model: str, output_dir: Path | None = None, mode_tag: str = ""
     ) -> Path:
         """
         Generate output file path for Excel file
@@ -243,7 +243,7 @@ class BaseProcessor:
         artifacts_count: int,
         processing_time: float,
         model: str,
-        template: str = None,
+        template: str | None = None,
     ) -> ProcessingResult:
         """Create success result dictionary"""
         return {

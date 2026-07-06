@@ -36,7 +36,7 @@ class TestCaseDeduplicator:
         self,
         similarity_threshold: float = 0.85,
         logger=None,
-        fields_to_compare: list[str] = None,
+        fields_to_compare: list[str] | None = None,
     ):
         """
         Initialize test case deduplicator.

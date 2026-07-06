@@ -628,7 +628,12 @@ class ConfigManager(BaseSettings):
         # We need to track which keys were explicitly populated via environment variables
         # so they aren't incorrectly overwritten by model-specific defaults later.
         config_dict = self.model_dump()
-        env_overrides = {"cli": set(), "ollama": set(), "logging": set(), "secrets": set()}
+        env_overrides: dict[str, set[str]] = {
+            "cli": set(),
+            "ollama": set(),
+            "logging": set(),
+            "secrets": set(),
+        }
 
         # Apply environment variables (AI_TG_* prefix)
         env_mapping = {

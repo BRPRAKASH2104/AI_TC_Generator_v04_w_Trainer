@@ -108,7 +108,7 @@ class OllamaClient:
 
     __slots__ = ("config", "proxies", "_session")
 
-    def __init__(self, config: OllamaConfig = None):
+    def __init__(self, config: OllamaConfig | None = None):
         from src.config import OllamaConfig
 
         self.config = config or OllamaConfig()
@@ -272,7 +272,7 @@ class AsyncOllamaClient:
 
     __slots__ = ("config", "session", "semaphore")
 
-    def __init__(self, config: OllamaConfig = None, concurrency_limit: int | None = None):
+    def __init__(self, config: OllamaConfig | None = None, concurrency_limit: int | None = None):
         from src.config import OllamaConfig
 
         self.config = config or OllamaConfig()

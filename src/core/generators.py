@@ -304,7 +304,7 @@ class TestCaseGenerator(_GeneratorCore):
     _parser_class = JSONResponseParser
 
     def generate_test_cases_for_requirement(
-        self, requirement: RequirementData, model: str, template_name: str = None
+        self, requirement: RequirementData, model: str, template_name: str | None = None
     ) -> TestCaseList:
         """
         Generate test cases for a single requirement.
@@ -390,7 +390,7 @@ class AsyncTestCaseGenerator(_GeneratorCore):
         # (a second semaphore here would halve throughput)
 
     async def generate_test_cases(
-        self, requirement: RequirementData, model: str, template_name: str = None
+        self, requirement: RequirementData, model: str, template_name: str | None = None
     ) -> ProcessingResult:
         """
         Generate test cases for a single requirement asynchronously.
@@ -411,7 +411,7 @@ class AsyncTestCaseGenerator(_GeneratorCore):
         )
 
     async def generate_test_cases_batch(
-        self, requirements: list[RequirementData], model: str, template_name: str = None
+        self, requirements: list[RequirementData], model: str, template_name: str | None = None
     ) -> list[ProcessingResult]:
         """
         Generate test cases for multiple requirements concurrently.
@@ -478,7 +478,7 @@ class AsyncTestCaseGenerator(_GeneratorCore):
         return error_info
 
     async def _generate_test_cases_for_requirement_async(
-        self, requirement: RequirementData, model: str, template_name: str = None
+        self, requirement: RequirementData, model: str, template_name: str | None = None
     ) -> ProcessingResult:
         """
         Generate test cases for a single requirement asynchronously.

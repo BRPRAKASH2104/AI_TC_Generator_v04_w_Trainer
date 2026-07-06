@@ -254,7 +254,9 @@ class ProgressiveRAFTTrainer:
         Returns:
             Dictionary mapping phases to their examples
         """
-        phase_examples = {phase: [] for phase in CurriculumPhase}
+        phase_examples: dict[CurriculumPhase, list[RAFTExample]] = {
+            phase: [] for phase in CurriculumPhase
+        }
 
         # Assess quality of each example
         assessments = []
@@ -303,7 +305,7 @@ class ProgressiveRAFTTrainer:
         if self.logger:
             self.logger.info(f"🎯 Training phase {phase.value} with {len(examples)} examples")
 
-        result = {
+        result: dict[str, Any] = {
             "phase": phase.value,
             "examples_available": len(examples),
             "success": False,

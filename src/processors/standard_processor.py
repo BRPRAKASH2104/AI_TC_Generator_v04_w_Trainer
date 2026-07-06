@@ -35,7 +35,7 @@ class REQIFZFileProcessor(BaseProcessor):
 
     __slots__ = ("ollama_client",)
 
-    def __init__(self, config: ConfigManager = None):
+    def __init__(self, config: ConfigManager | None = None):
         super().__init__(config)
         self.ollama_client = OllamaClient(self.config.ollama)
 
@@ -43,8 +43,8 @@ class REQIFZFileProcessor(BaseProcessor):
         self,
         directory_path: Path,
         model: str = "llama3.1:8b",
-        template: str = None,
-        output_dir: Path = None,
+        template: str | None = None,
+        output_dir: Path | None = None,
     ) -> list[ProcessingResult]:
         """
         Process all REQIFZ files in a directory.
@@ -67,8 +67,8 @@ class REQIFZFileProcessor(BaseProcessor):
         self,
         reqifz_path: Path,
         model: str = "llama3.1:8b",
-        template: str = None,
-        output_dir: Path = None,
+        template: str | None = None,
+        output_dir: Path | None = None,
     ) -> ProcessingResult:
         """
         Process a single REQIFZ file and generate test cases.

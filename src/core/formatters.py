@@ -153,7 +153,7 @@ class TestCaseFormatter:
 
         return formatted_cases
 
-    def _get_default_test_values(self, metadata: dict[str, Any] = None) -> dict[str, Any]:
+    def _get_default_test_values(self, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Get static test-case field values.
 

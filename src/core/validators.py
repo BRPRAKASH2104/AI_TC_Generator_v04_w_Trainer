@@ -266,7 +266,7 @@ class SemanticValidator:
         Returns:
             List of coverage validation issues
         """
-        issues = []
+        issues: list[dict] = []
 
         # Check if this is a table-based requirement
         table_data = requirement.get("table")

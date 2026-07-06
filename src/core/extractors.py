@@ -40,7 +40,9 @@ class REQIFArtifactExtractor:
 
     __slots__ = ("logger", "html_parser", "use_streaming", "config")
 
-    def __init__(self, logger=None, use_streaming: bool = False, config: ConfigManager = None):
+    def __init__(
+        self, logger=None, use_streaming: bool = False, config: ConfigManager | None = None
+    ):
         self.logger = logger
         self.html_parser = HTMLTableParser()
         # use_streaming is retained for interface compatibility only; the
@@ -268,9 +270,9 @@ class REQIFArtifactExtractor:
         self,
         spec_obj: ET.Element,
         namespaces: dict[str, str],
-        spec_type_map: dict[str, str] = None,
-        foreign_id_map: dict[str, str] = None,
-        attr_def_map: dict[str, str] = None,
+        spec_type_map: dict[str, str] | None = None,
+        foreign_id_map: dict[str, str] | None = None,
+        attr_def_map: dict[str, str] | None = None,
     ) -> RequirementData | None:
         """Extract a single spec object as an artifact"""
         try:
@@ -461,7 +463,7 @@ class REQIFArtifactExtractor:
 
     def classify_artifacts(self, artifacts: ArtifactList) -> dict[ArtifactType, ArtifactList]:
         """Classify artifacts by type"""
-        classified = {}
+        classified: dict[ArtifactType, ArtifactList] = {}
 
         for artifact_type in ArtifactType:
             classified[artifact_type] = []
@@ -584,7 +586,7 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
     calls across requirements.
     """
 
-    def __init__(self, logger=None, max_workers: int = 4, config: ConfigManager = None):
+    def __init__(self, logger=None, max_workers: int = 4, config: ConfigManager | None = None):
         super().__init__(logger, use_streaming=False, config=config)
         # Retained for interface compatibility; no longer used for threading
         self.max_workers = max_workers

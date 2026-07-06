@@ -141,7 +141,7 @@ class RAFTDataCollector:
         Returns:
             List of image metadata with base64 encoded data
         """
-        images_metadata = []
+        images_metadata: list[dict] = []
 
         # Check if requirement has images
         if not requirement.get("has_images", False):

@@ -13,6 +13,7 @@ Modern Python 3.14+ (no backward compatibility).
 import asyncio
 import sys
 from pathlib import Path
+from typing import Any
 
 # Add project root to path so src package can be imported
 sys.path.insert(0, str(Path(__file__).parent))
@@ -170,7 +171,7 @@ def main(
         if preset_config:
             # Map simple preset keys to nested config structure
             # This fixes "Extra inputs not permitted" Pydantic errors
-            nested_update = {}
+            nested_update: dict[str, Any] = {}
 
             # Helper to set nested dict values
             def set_nested(d, path, value):
@@ -195,7 +196,7 @@ def main(
                 if key in key_mapping:
                     # Create a separate dict for this mapped key to avoid structure conflicts
                     # Then merge it into the main nested_update
-                    temp_dict = {}
+                    temp_dict: dict[str, Any] = {}
                     set_nested(temp_dict, key_mapping[key], value)
                     ConfigManager._deep_merge_dict(nested_update, temp_dict)
                 else:

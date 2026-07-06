@@ -582,7 +582,7 @@ class QualityScorer:
         json_files = list(examples_path.glob("raft_*.json"))[:max_examples]
 
         assessments = []
-        priority_counts = defaultdict(int)
+        priority_counts: defaultdict[str, int] = defaultdict(int)
         score_distribution = {"high": 0, "medium": 0, "low": 0}
 
         for file_path in json_files:
@@ -615,7 +615,7 @@ class QualityScorer:
                 recommendations.extend(assessment.recommendations)
 
             # Most common recommendations
-            rec_counts = defaultdict(int)
+            rec_counts: defaultdict[str, int] = defaultdict(int)
             for rec in recommendations:
                 rec_counts[rec] += 1
 

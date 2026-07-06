@@ -241,7 +241,7 @@ class HTMLTableParser:
         # If a header spans multiple columns, it will be duplicated in the matrix,
         # which would cause dictionary key overwrites. We need to make them unique.
         headers = []
-        header_counts = {}
+        header_counts: dict[str, int] = {}
         for i, text in enumerate(matrix[0]):
             base_name = text or f"Column_{i + 1}"
             if base_name in header_counts:
