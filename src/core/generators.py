@@ -3,21 +3,25 @@ Test case generators for the AI Test Case Generator.
 
 This module provides classes for generating test cases from requirement artifacts
 using AI models, with support for both synchronous and asynchronous processing.
+
+Both generators share construction and response post-processing through
+_GeneratorCore; only the transport (sync vs async client calls) and the
+failure contract differ:
+- TestCaseGenerator returns [] on failure (consumed by the standard processor)
+- AsyncTestCaseGenerator returns structured error dicts (consumed by the HP
+  processor, which distinguishes error types)
 """
 
 import asyncio
 import math  # Added for confidence calculation
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from .deduplicator import TestCaseDeduplicator
 from .parsers import FastJSONResponseParser, JSONResponseParser
 from .prompt_builder import PromptBuilder
 from .validators import SemanticValidator
-
-if TYPE_CHECKING:
-    from .ollama_client import AsyncOllamaClient, OllamaClient
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseData = dict[str, Any]
@@ -53,6 +57,32 @@ def extract_image_paths(requirement: RequirementData) -> list[Path]:
     return paths
 
 
+def stamp_validation_results(
+    test_cases: TestCaseList, validation_report: dict[str, Any]
+) -> None:
+    """
+    Mark each test case with its semantic-validation outcome.
+
+    Must run BEFORE deduplication: the report's test_case_index values refer
+    to the pre-dedup order, and the deduplicator's "best" strategy prefers
+    test cases with validation_passed=True.
+
+    Global issues (test_case_index <= 0, e.g. table-coverage deficiencies)
+    apply to the batch, not an individual test case, and are ignored here.
+
+    Args:
+        test_cases: Test cases in the exact order they were validated
+        validation_report: Report from SemanticValidator.validate_batch()
+    """
+    invalid_indices = {
+        entry.get("test_case_index")
+        for entry in validation_report.get("issues", [])
+        if isinstance(entry.get("test_case_index"), int) and entry.get("test_case_index") > 0
+    }
+    for index, test_case in enumerate(test_cases, 1):
+        test_case["validation_passed"] = index not in invalid_indices
+
+
 def calculate_confidence(response_data: dict[str, Any], logger=None) -> float | None:
     """
     Calculate confidence score from logprobs if available.
@@ -83,13 +113,13 @@ def calculate_confidence(response_data: dict[str, Any], logger=None) -> float | 
         token_logprobs = []
 
         if isinstance(logprobs_data, list):
-             # List of objects?
-             for item in logprobs_data:
-                 if isinstance(item, dict) and "logprob" in item:
-                     token_logprobs.append(item["logprob"])
-                 elif isinstance(item, (int, float)):
-                     # Maybe direct list of floats? Unlikely but possible
-                     token_logprobs.append(item)
+            # List of objects?
+            for item in logprobs_data:
+                if isinstance(item, dict) and "logprob" in item:
+                    token_logprobs.append(item["logprob"])
+                elif isinstance(item, (int, float)):
+                    # Maybe direct list of floats? Unlikely but possible
+                    token_logprobs.append(item)
         elif isinstance(logprobs_data, dict) and "token_logprobs" in logprobs_data:
             # Maybe {"tokens": [...], "token_logprobs": [...]}
             token_logprobs = logprobs_data["token_logprobs"]
@@ -107,25 +137,175 @@ def calculate_confidence(response_data: dict[str, Any], logger=None) -> float | 
         return None
 
 
-class TestCaseGenerator:
-    """Generates test cases from requirements using AI models"""
+class _GeneratorCore:
+    """Shared construction and post-processing for the sync/async generators.
 
-    __slots__ = ("client", "json_parser", "prompt_builder", "validator", "deduplicator", "logger")
+    Wires ValidationConfig/DeduplicationConfig (thresholds, enable flags,
+    keep_strategy, fields_to_compare) into the validator and deduplicator,
+    and provides the validate -> stamp -> deduplicate -> enrich pipeline
+    that both generators run on parsed AI responses.
+    """
+
+    __slots__ = (
+        "client",
+        "json_parser",
+        "prompt_builder",
+        "validator",
+        "deduplicator",
+        "logger",
+        "enable_validation",
+        "enable_deduplication",
+        "keep_strategy",
+    )
+
+    # Subclasses select their JSON parser implementation
+    _parser_class = JSONResponseParser
 
     def __init__(
         self,
-        client: 'OllamaClient',
+        client,
         yaml_manager=None,
         logger=None,
         validator=None,
         deduplicator=None,
+        config=None,
     ):
+        validation_cfg = getattr(config, "validation", None)
+        dedup_cfg = getattr(config, "deduplication", None)
+
         self.client = client
-        self.json_parser = JSONResponseParser()
+        self.json_parser = self._parser_class()
         self.prompt_builder = PromptBuilder(yaml_manager)
-        self.validator = validator or SemanticValidator(logger=logger)
-        self.deduplicator = deduplicator or TestCaseDeduplicator(logger=logger)
         self.logger = logger
+
+        self.enable_validation = (
+            validation_cfg.enable_semantic_validation if validation_cfg else True
+        )
+        self.enable_deduplication = (
+            dedup_cfg.enable_deduplication if dedup_cfg else True
+        )
+        self.keep_strategy = dedup_cfg.keep_strategy if dedup_cfg else "best"
+
+        self.validator = validator or SemanticValidator(
+            logger=logger,
+            similarity_threshold=validation_cfg.similarity_threshold
+            if validation_cfg
+            else 0.8,
+        )
+        self.deduplicator = deduplicator or TestCaseDeduplicator(
+            similarity_threshold=dedup_cfg.similarity_threshold if dedup_cfg else 0.85,
+            logger=logger,
+            fields_to_compare=list(dedup_cfg.fields_to_compare) if dedup_cfg else None,
+        )
+
+    def _extract_response_parts(self, full_response) -> tuple[str, float | None]:
+        """Split a client response into (response_text, confidence_score)."""
+        if isinstance(full_response, dict):
+            response_text = str(full_response.get("response", ""))
+            confidence_score = calculate_confidence(full_response, self.logger)
+        else:
+            response_text = str(full_response)
+            confidence_score = None
+        return response_text, confidence_score
+
+    def _postprocess_test_cases(
+        self,
+        test_cases: TestCaseList,
+        requirement: RequirementData,
+        generation_time: float,
+        confidence_score: float | None,
+    ) -> TestCaseList:
+        """Validate, stamp, deduplicate and enrich parsed test cases.
+
+        This is the single post-processing pipeline shared by the sync and
+        async generators; test cases are mutated in place and the (possibly
+        deduplicated) list is returned.
+        """
+        req_id = requirement.get("id", "UNKNOWN")
+
+        # Semantic validation (skippable via ValidationConfig)
+        if self.enable_validation:
+            validation_report = self.validator.validate_batch(test_cases, requirement)
+        else:
+            validation_report = {
+                "total_test_cases": len(test_cases),
+                "valid_count": len(test_cases),
+                "invalid_count": 0,
+                "issues": [],
+                "table_coverage": {"is_table_based": False},
+            }
+
+        if validation_report["invalid_count"] > 0 and self.logger:
+            self.logger.warning(
+                f"Semantic validation: {validation_report['valid_count']}/{validation_report['total_test_cases']} passed for {req_id}"
+            )
+            for issue_entry in validation_report["issues"]:
+                self.logger.warning(
+                    f"  Test case {issue_entry['test_case_index']}: {issue_entry['summary']}"
+                )
+                for issue in issue_entry["issues"]:
+                    self.logger.warning(f"    - {issue}")
+
+        # Log table coverage information
+        table_coverage = validation_report.get("table_coverage", {})
+        if table_coverage.get("is_table_based", False) and self.logger:
+            req_rows = table_coverage.get("required_table_rows", 0)
+            pos_tests = table_coverage.get("positive_test_cases", 0)
+            neg_tests = table_coverage.get("negative_test_cases", 0)
+            coverage_pct = table_coverage.get("coverage_percentage", 0)
+
+            self.logger.info(
+                f"Table coverage: {pos_tests}/{req_rows} rows covered ({coverage_pct:.1f}%) - "
+                f"{neg_tests} negative tests"
+            )
+
+            if not table_coverage.get("adequate_coverage", True):
+                self.logger.warning(
+                    f"Inadequate table coverage for {req_id}: "
+                    f"Expected {req_rows}+ positive tests, got {pos_tests}. "
+                    f"Expected 3+ negative tests, got {neg_tests}."
+                )
+
+        # Stamp validation outcome before dedup (indices match the validator
+        # report only in pre-dedup order, and the "best" keep-strategy reads
+        # validation_passed)
+        stamp_validation_results(test_cases, validation_report)
+
+        # Deduplication (skippable via DeduplicationConfig)
+        if self.enable_deduplication:
+            test_cases, dedup_report = self.deduplicator.deduplicate(
+                test_cases, keep_strategy=self.keep_strategy
+            )
+
+            if dedup_report["duplicates_removed"] > 0 and self.logger:
+                self.logger.info(
+                    f"Deduplication: {dedup_report['original_count']} → {dedup_report['deduplicated_count']} test cases for {req_id} "
+                    f"({dedup_report['duplicates_removed']} duplicates removed)"
+                )
+
+        # Metadata enrichment
+        for i, test_case in enumerate(test_cases):
+            test_case["requirement_id"] = req_id
+            test_case["generation_time"] = generation_time
+            test_case["test_id"] = f"{req_id}_TC_{i + 1:03d}"
+            if confidence_score is not None:
+                test_case["confidence_score"] = confidence_score
+
+        if self.logger:
+            self.logger.info(
+                f"Generated {len(test_cases)} test cases for {req_id} "
+                f"({validation_report['valid_count']} passed validation)"
+            )
+
+        return test_cases
+
+
+class TestCaseGenerator(_GeneratorCore):
+    """Generates test cases from requirements using AI models (synchronous)."""
+
+    __slots__ = ()
+
+    _parser_class = JSONResponseParser
 
     def generate_test_cases_for_requirement(
         self, requirement: RequirementData, model: str, template_name: str = None
@@ -139,7 +319,7 @@ class TestCaseGenerator:
             template_name: Optional specific template to use
 
         Returns:
-            List of generated test cases
+            List of generated test cases (empty list on failure)
         """
         try:
             # Build prompt using PromptBuilder
@@ -154,11 +334,9 @@ class TestCaseGenerator:
             # Generate AI response (use vision-capable method if images present)
             start_time = time.time()
 
-            # Use generate_completion (or vision equiv) to get full response including logprobs
             if image_paths:
                 if self.logger:
                     self.logger.debug(f"Using vision model with {len(image_paths)} image(s)")
-                # Updated generic Vision method supports return_full_response
                 full_response = self.client.generate_response_with_vision(
                     model, prompt, image_paths, is_json=True, return_full_response=True
                 )
@@ -169,92 +347,21 @@ class TestCaseGenerator:
 
             generation_time = time.time() - start_time
 
-            # Extract text and confidence
-            if isinstance(full_response, dict):
-                response_text = str(full_response.get("response", ""))
-                confidence_score = calculate_confidence(full_response, self.logger)
-            else:
-                response_text = str(full_response)
-                confidence_score = None
+            response_text, confidence_score = self._extract_response_parts(full_response)
 
             # Parse JSON response
             test_cases_data = self.json_parser.extract_json_from_response(response_text)
 
             if test_cases_data and "test_cases" in test_cases_data:
-                test_cases = test_cases_data["test_cases"]
-
-                # Semantic validation
-                validation_report = self.validator.validate_batch(test_cases, requirement)
-
-                if validation_report["invalid_count"] > 0 and self.logger:
-                    self.logger.warning(
-                        f"Semantic validation: {validation_report['valid_count']}/{validation_report['total_test_cases']} passed"
-                    )
-                    for issue_entry in validation_report["issues"]:
-                        self.logger.warning(
-                            f"  Test case {issue_entry['test_case_index']}: {issue_entry['summary']}"
-                        )
-                        for issue in issue_entry["issues"]:
-                            self.logger.warning(f"    - {issue}")
-
-                # Log table coverage information
-                table_coverage = validation_report.get("table_coverage", {})
-                if table_coverage.get("is_table_based", False) and self.logger:
-                    req_rows = table_coverage.get("required_table_rows", 0)
-                    pos_tests = table_coverage.get("positive_test_cases", 0)
-                    neg_tests = table_coverage.get("negative_test_cases", 0)
-                    coverage_pct = table_coverage.get("coverage_percentage", 0)
-
-                    self.logger.info(
-                        f"Table coverage: {pos_tests}/{req_rows} rows covered ({coverage_pct:.1f}%) - "
-                        f"{neg_tests} negative tests"
-                    )
-
-                    if not table_coverage.get("adequate_coverage", True):
-                        self.logger.warning(
-                            f"Inadequate table coverage for {requirement.get('id', 'UNKNOWN')}: "
-                            f"Expected {req_rows}+ positive tests, got {pos_tests}. "
-                            f"Expected 3+ negative tests, got {neg_tests}."
-                        )
-
-                # Deduplication
-                test_cases, dedup_report = self.deduplicator.deduplicate(
-                    test_cases, keep_strategy="best"
+                return self._postprocess_test_cases(
+                    test_cases_data["test_cases"], requirement, generation_time, confidence_score
                 )
 
-                if dedup_report["duplicates_removed"] > 0 and self.logger:
-                    self.logger.info(
-                        f"Deduplication: {dedup_report['original_count']} → {dedup_report['deduplicated_count']} test cases "
-                        f"({dedup_report['duplicates_removed']} duplicates removed)"
-                    )
-
-                # Add metadata to each test case
-                for i, test_case in enumerate(test_cases):
-                    test_case["requirement_id"] = requirement.get("id", "UNKNOWN")
-                    test_case["generation_time"] = generation_time
-                    test_case["test_id"] = f"{requirement.get('id', 'UNKNOWN')}_TC_{i + 1:03d}"
-                    # Add validation status
-                    is_valid = i >= len(validation_report["issues"]) or all(
-                        entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
-                    )
-                    test_case["validation_passed"] = is_valid
-                    # Add confidence score
-                    if confidence_score is not None:
-                        test_case["confidence_score"] = confidence_score
-
-                if self.logger:
-                    self.logger.info(
-                        f"Generated {len(test_cases)} test cases for {requirement.get('id', 'UNKNOWN')} "
-                        f"({validation_report['valid_count']} passed validation)"
-                    )
-
-                return test_cases
-            else:
-                if self.logger:
-                    self.logger.warning(
-                        f"No test cases generated for {requirement.get('id', 'UNKNOWN')}"
-                    )
-                return []
+            if self.logger:
+                self.logger.warning(
+                    f"No test cases generated for {requirement.get('id', 'UNKNOWN')}"
+                )
+            return []
 
         except Exception as e:
             if self.logger:
@@ -264,28 +371,27 @@ class TestCaseGenerator:
             return []
 
 
-class AsyncTestCaseGenerator:
-    """Asynchronous test case generator for high-performance processing"""
+class AsyncTestCaseGenerator(_GeneratorCore):
+    """Asynchronous test case generator for high-performance processing."""
 
-    __slots__ = ("client", "json_parser", "prompt_builder", "validator", "deduplicator", "logger")
+    __slots__ = ()
+
+    _parser_class = FastJSONResponseParser
 
     def __init__(
         self,
-        client: 'AsyncOllamaClient',
+        client,
         yaml_manager=None,
         logger=None,
         validator=None,
         deduplicator=None,
+        config=None,
         _max_concurrent: int = 4,
     ):
-        self.client = client
-        self.json_parser = FastJSONResponseParser()
-        self.prompt_builder = PromptBuilder(yaml_manager)
-        self.validator = validator or SemanticValidator(logger=logger)
-        self.deduplicator = deduplicator or TestCaseDeduplicator(logger=logger)
-        self.logger = logger
-        # Note: Concurrency limiting is handled by AsyncOllamaClient's semaphore
-        # No need for double semaphore here - improves throughput by ~50%
+        super().__init__(client, yaml_manager, logger, validator, deduplicator, config)
+        # _max_concurrent retained for interface compatibility only:
+        # concurrency limiting is handled by AsyncOllamaClient's semaphore
+        # (a second semaphore here would halve throughput)
 
     async def generate_test_cases(
         self, requirement: RequirementData, model: str, template_name: str = None
@@ -312,13 +418,12 @@ class AsyncTestCaseGenerator:
         self, requirements: list[RequirementData], model: str, template_name: str = None
     ) -> list[ProcessingResult]:
         """
-        Generate test cases for multiple requirements concurrently with intelligent batching.
+        Generate test cases for multiple requirements concurrently.
 
-        This method implements several performance optimizations:
-        1. Creates async tasks for each requirement to enable true concurrent processing
-        2. Uses asyncio.gather() with return_exceptions=True to handle failures gracefully
-        3. Processes results in a structured way to maintain consistency
-        4. Implements proper error categorization and structured error objects
+        Tasks are created upfront and executed with asyncio.gather()
+        (return_exceptions=True so one failure doesn't cancel the batch);
+        exceptions are normalized into structured error objects so all
+        results share the same interface.
 
         Args:
             requirements: List of requirements to process
@@ -327,12 +432,8 @@ class AsyncTestCaseGenerator:
 
         Returns:
             List of processing results (successful test cases or structured error objects)
-            Each result maintains the same interface regardless of success/failure
         """
-        # Phase 1: Create async tasks for concurrent execution
-        # We create all tasks upfront to maximize parallelism potential
         tasks = []
-
         for requirement in requirements:
             # Each task will be executed concurrently, subject to semaphore limiting
             task = self._generate_test_cases_for_requirement_async(
@@ -340,59 +441,57 @@ class AsyncTestCaseGenerator:
             )
             tasks.append(task)
 
-        # Phase 2: Execute all tasks concurrently with exception handling
-        # asyncio.gather() allows us to wait for all tasks while catching exceptions
-        # return_exceptions=True ensures that exceptions don't cancel other tasks
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Phase 3: Process and normalize results for consistent output structure
-        # This ensures all downstream code gets a predictable format regardless of success/failure
         processed_results = []
         for i, result in enumerate(results):
             req_id = requirements[i].get("id", "UNKNOWN")
 
             if isinstance(result, Exception):
-                # Handle exceptions that bubbled up from asyncio.gather()
-                # These are typically network errors, timeouts, or unexpected failures
-                error_info = {
-                    "error": True,
-                    "requirement_id": req_id,
-                    "error_type": type(result).__name__,
-                    "error_message": str(result),
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "test_cases": [],  # Consistent interface: always provide test_cases list
-                }
+                # Exceptions that bubbled up from asyncio.gather() — typically
+                # network errors, timeouts, or unexpected failures
+                error_info = self._error_result(
+                    req_id, type(result).__name__, str(result)
+                )
 
-                # Log the failure for debugging and metrics
                 if self.logger:
                     self.logger.error(f"Failed to generate test cases for {req_id}: {result}")
                     self.logger.add_requirement_failure(req_id, str(result))
 
                 processed_results.append(error_info)
             else:
-                # Handle successful results or controlled error responses
-                if isinstance(result, dict) and result.get("error"):
-                    # This is a structured error object returned by the async method
-                    # (e.g., empty response, JSON parsing failure, etc.)
-                    processed_results.append(result)
-                else:
-                    # This is a successful result containing test cases
-                    # The result should already be in the correct format from the async method
-                    processed_results.append(result)
+                # Successful result or structured error object from the async
+                # method — both already carry the consistent interface
+                processed_results.append(result)
 
         return processed_results
+
+    @staticmethod
+    def _error_result(
+        req_id: str, error_type: str, error_message: str, generation_time: float | None = None
+    ) -> dict[str, Any]:
+        """Build a structured error object with the consistent result interface."""
+        error_info = {
+            "error": True,
+            "requirement_id": req_id,
+            "error_type": error_type,
+            "error_message": error_message,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "test_cases": [],  # Consistent interface: always provide test_cases list
+        }
+        if generation_time is not None:
+            error_info["generation_time"] = generation_time
+        return error_info
 
     async def _generate_test_cases_for_requirement_async(
         self, requirement: RequirementData, model: str, template_name: str = None
     ) -> ProcessingResult:
         """
-        Generate test cases for a single requirement asynchronously with comprehensive error handling.
+        Generate test cases for a single requirement asynchronously.
 
-        This method implements a sophisticated async processing pipeline:
-        1. Prompt generation with template system integration
-        2. Async AI API communication with timing metrics (rate-limited by AsyncOllamaClient)
-        3. Multi-layered response validation and error categorization
-        4. Structured error objects that maintain consistent interfaces
+        Unlike the sync generator, failures return structured error objects
+        (EmptyResponse, EmptyTestCasesList, InvalidJSONStructure, or the
+        exception type) so the HP processor can categorize them.
 
         Args:
             requirement: Requirement data containing id, type, heading, text, etc.
@@ -401,15 +500,11 @@ class AsyncTestCaseGenerator:
 
         Returns:
             Either a list of test cases (success) or structured error object (failure)
-            Both maintain the same interface with test_cases field for consistency
         """
         req_id = requirement.get("id", "UNKNOWN")
 
         # Note: Concurrency control is handled by AsyncOllamaClient's semaphore
-        # No need for additional semaphore here - allows better throughput
         try:
-            # Phase 1: Prompt Construction
-            # Use PromptBuilder for clean, reusable prompt generation
             prompt = self.prompt_builder.build_prompt(requirement, template_name)
 
             if self.logger:
@@ -418,8 +513,7 @@ class AsyncTestCaseGenerator:
             # Extract image paths for vision model support
             image_paths = extract_image_paths(requirement)
 
-            # Phase 2: AI Response Generation (use vision-capable method if images present)
-            # Time the AI call for performance metrics and SLA monitoring
+            # AI response generation (use vision-capable method if images present)
             start_time = time.time()
             if image_paths:
                 if self.logger:
@@ -435,144 +529,53 @@ class AsyncTestCaseGenerator:
                 )
             generation_time = time.time() - start_time
 
-            # Extract text and confidence
-            if isinstance(full_response, dict):
-                response_text = str(full_response.get("response", ""))
-                confidence_score = calculate_confidence(full_response, self.logger)
-            else:
-                response_text = str(full_response)
-                confidence_score = None
+            response_text, confidence_score = self._extract_response_parts(full_response)
 
             # Record timing metrics for performance analysis and optimization
             if self.logger:
                 self.logger.add_ai_response_time(generation_time)
 
-            # Phase 3: Response Validation - Empty Response Check
-            # Handle cases where AI returns empty or whitespace-only responses
+            # Empty-response check
             if not response_text or not response_text.strip():
-                error_info = {
-                    "error": True,
-                    "requirement_id": req_id,
-                    "error_type": "EmptyResponse",
-                    "error_message": "AI model returned empty response",
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "generation_time": generation_time,
-                    "test_cases": [],  # Maintain consistent interface
-                }
-
                 if self.logger:
                     self.logger.warning(f"Empty response for {req_id}")
                     self.logger.add_requirement_failure(req_id, "Empty AI response")
-
-                return error_info
-
-            # Phase 4: JSON Parsing and Structure Validation
-            # Use fast JSON parser optimized for AI responses
-            test_cases_data = self.json_parser.extract_json_from_response(response_text)
-
-            if test_cases_data and "test_cases" in test_cases_data:
-                test_cases = test_cases_data["test_cases"]
-
-                # Validate that we actually got test cases, not just an empty array
-                if not test_cases:
-                    error_info = {
-                        "error": True,
-                        "requirement_id": req_id,
-                        "error_type": "EmptyTestCasesList",
-                        "error_message": "AI returned empty test cases list",
-                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "generation_time": generation_time,
-                        "test_cases": [],
-                    }
-
-                    if self.logger:
-                        self.logger.warning(f"Empty test cases list for {req_id}")
-                        self.logger.add_requirement_failure(req_id, "Empty test cases list")
-
-                    return error_info
-
-                # Phase 5: Semantic Validation
-                # Validate test cases against requirement context
-                validation_report = self.validator.validate_batch(test_cases, requirement)
-
-                if validation_report["invalid_count"] > 0 and self.logger:
-                    self.logger.warning(
-                        f"Semantic validation: {validation_report['valid_count']}/{validation_report['total_test_cases']} passed for {req_id}"
-                    )
-                    for issue_entry in validation_report["issues"]:
-                        self.logger.warning(
-                            f"  Test case {issue_entry['test_case_index']}: {issue_entry['summary']}"
-                        )
-                        for issue in issue_entry["issues"]:
-                            self.logger.warning(f"    - {issue}")
-
-                # Phase 6: Deduplication
-                # Remove duplicate or highly similar test cases
-                test_cases, dedup_report = self.deduplicator.deduplicate(
-                    test_cases, keep_strategy="best"
+                return self._error_result(
+                    req_id, "EmptyResponse", "AI model returned empty response", generation_time
                 )
 
-                if dedup_report["duplicates_removed"] > 0 and self.logger:
-                    self.logger.info(
-                        f"Deduplication: {dedup_report['original_count']} → {dedup_report['deduplicated_count']} test cases for {req_id} "
-                        f"({dedup_report['duplicates_removed']} duplicates removed)"
-                    )
+            # JSON parsing and structure validation
+            test_cases_data = self.json_parser.extract_json_from_response(response_text)
 
-                # Phase 7: Metadata Enrichment
-                # Add tracking and correlation metadata to each test case
-                for i, test_case in enumerate(test_cases):
-                    test_case["requirement_id"] = req_id
-                    test_case["generation_time"] = generation_time
-                    test_case["test_id"] = f"{req_id}_TC_{i + 1:03d}"
-                    # Add validation status
-                    is_valid = i >= len(validation_report["issues"]) or all(
-                        entry["test_case_index"] != i + 1 for entry in validation_report["issues"]
-                    )
-                    test_case["validation_passed"] = is_valid
-                    # Add confidence score
-                    if confidence_score is not None:
-                        test_case["confidence_score"] = confidence_score
-
-                if self.logger:
-                    self.logger.info(
-                        f"Generated {len(test_cases)} test cases for {req_id} "
-                        f"({validation_report['valid_count']} passed validation)"
-                    )
-
-                return test_cases
-            else:
-                # Phase 8: Handle JSON Parsing Failures
-                # The response was valid but didn't contain expected structure
-                error_info = {
-                    "error": True,
-                    "requirement_id": req_id,
-                    "error_type": "InvalidJSONStructure",
-                    "error_message": "Response does not contain 'test_cases' field",
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "generation_time": generation_time,
-                    "test_cases": [],
-                }
-
+            if not test_cases_data or "test_cases" not in test_cases_data:
                 if self.logger:
                     self.logger.warning(f"Invalid JSON structure for {req_id}")
                     self.logger.add_requirement_failure(req_id, "Invalid JSON structure")
+                return self._error_result(
+                    req_id,
+                    "InvalidJSONStructure",
+                    "Response does not contain 'test_cases' field",
+                    generation_time,
+                )
 
-                return error_info
+            test_cases = test_cases_data["test_cases"]
+
+            # Validate that we actually got test cases, not just an empty array
+            if not test_cases:
+                if self.logger:
+                    self.logger.warning(f"Empty test cases list for {req_id}")
+                    self.logger.add_requirement_failure(req_id, "Empty test cases list")
+                return self._error_result(
+                    req_id, "EmptyTestCasesList", "AI returned empty test cases list", generation_time
+                )
+
+            # Shared pipeline: validate -> stamp -> deduplicate -> enrich
+            return self._postprocess_test_cases(
+                test_cases, requirement, generation_time, confidence_score
+            )
 
         except Exception as e:
-            # Phase 9: Catastrophic Error Handling
-            # Catch any unexpected errors and wrap them in structured format
-            error_info = {
-                "error": True,
-                "requirement_id": req_id,
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "test_cases": [],
-            }
-
             if self.logger:
                 self.logger.error(f"Exception generating test cases for {req_id}: {e}")
                 self.logger.add_requirement_failure(req_id, str(e))
-
-            return error_info
+            return self._error_result(req_id, type(e).__name__, str(e))

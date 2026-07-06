@@ -183,16 +183,22 @@ class TestYAMLPromptManagerFixed:
                 # Should use default configuration
                 assert manager.config != {}
 
-    @patch('builtins.print')
     @patch('yaml.safe_load')
     @patch('builtins.open')
-    def test_load_configuration_yaml_error(self, mock_open_file, mock_yaml_load, mock_print):
-        """Test handling of YAML parsing errors."""
+    def test_load_configuration_yaml_error(self, mock_open_file, mock_yaml_load, caplog):
+        """Test handling of YAML parsing errors (reported via logging, not stdout)."""
+        import logging
+
         with patch.object(Path, 'exists', return_value=True):
             mock_yaml_load.side_effect = Exception("YAML parsing error")
 
-            with patch.object(YAMLPromptManager, 'load_all_prompts'):
-                YAMLPromptManager()
+            with patch.object(YAMLPromptManager, 'load_all_prompts'), caplog.at_level(
+                logging.ERROR, logger="yaml_prompt_manager"
+            ):
+                manager = YAMLPromptManager()
 
-                # Should handle gracefully and use defaults
-                mock_print.assert_called()
+                # Should handle gracefully: log the error and fall back to defaults
+                assert any(
+                    "Error loading prompt config" in record.message for record in caplog.records
+                )
+                assert manager.config != {}

@@ -9,6 +9,7 @@ Updated to use Pydantic for robust validation and settings management.
 """
 
 import contextlib
+import logging
 import os
 import sys
 from pathlib import Path
@@ -21,6 +22,10 @@ from pydantic_settings import (
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
+
+# Operational messages go through structured logging; deliberate CLI display
+# (print_summary, show_effective_config, __main__ demo) still prints
+_logger = logging.getLogger(__name__)
 
 # Redundant function removed - using class method in ConfigManager instead
 
@@ -182,7 +187,9 @@ class DeduplicationConfig(BaseModel):
         "best", description="Strategy for keeping duplicates: 'first', 'last', or 'best'"
     )
     fields_to_compare: list[str] = Field(
-        default_factory=lambda: ["action", "data", "expected_result"],
+        # Must match the active prompt schema (see deduplicator.DEFAULT_FIELDS_TO_COMPARE);
+        # legacy action/data names are resolved via aliases in the deduplicator
+        default_factory=lambda: ["test_steps", "expected_result", "preconditions"],
         description="Fields to compare for similarity detection",
     )
 
@@ -472,10 +479,10 @@ class ConfigManager(BaseSettings):
             with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(self.model_dump(), f, default_flow_style=False, indent=2)
 
-            print(f"✅ Configuration saved to: {config_file}")
+            _logger.info(f"Configuration saved to: {config_file}")
 
         except Exception as e:
-            print(f"Error saving configuration: {e}")
+            _logger.error(f"Error saving configuration: {e}")
 
     def get_model_for_requirement(self, requirement: dict) -> str:
         """
@@ -575,14 +582,14 @@ class ConfigManager(BaseSettings):
                     if "model_configs" in config_data:
                         self.cli.model_configs.update(config_data["model_configs"])
 
-                    print(f"✅ Loaded CLI config from: {config_path}")
+                    _logger.info(f"Loaded CLI config from: {config_path}")
                     return
 
                 except Exception as e:
-                    print(f"⚠️  Warning: Could not load CLI config from {config_path}: {e}")
+                    _logger.warning(f"Could not load CLI config from {config_path}: {e}")
                     continue
 
-        print("ℹ️  Using default CLI configuration (no config file found)")
+        _logger.info("Using default CLI configuration (no config file found)")
 
     def get_preset_config(self, preset_name: str) -> dict[str, Any]:
         """Get named preset configuration"""
@@ -590,7 +597,7 @@ class ConfigManager(BaseSettings):
             return self.cli.presets[preset_name].copy()
         else:
             available = list(self.cli.presets.keys())
-            print(f"❌ Preset '{preset_name}' not found. Available presets: {available}")
+            _logger.warning(f"Preset '{preset_name}' not found. Available presets: {available}")
             return {}
 
     def get_environment_config(self, env_name: str) -> dict[str, Any]:
@@ -599,7 +606,7 @@ class ConfigManager(BaseSettings):
             return self.cli.environments[env_name].copy()
         else:
             available = list(self.cli.environments.keys())
-            print(f"❌ Environment '{env_name}' not found. Available environments: {available}")
+            _logger.warning(f"Environment '{env_name}' not found. Available environments: {available}")
             return {}
 
     def apply_cli_overrides(self, **kwargs) -> ConfigManager:
@@ -648,13 +655,13 @@ class ConfigManager(BaseSettings):
                         config_dict[section][key] = int(env_value)
                         env_overrides[section].add(key)
                     except ValueError:
-                        print(f"⚠️  Invalid {env_var} value: {env_value}")
+                        _logger.warning(f"Invalid {env_var} value: {env_value}")
                 elif key == "temperature":
                     try:
                         config_dict[section][key] = float(env_value)
                         env_overrides[section].add(key)
                     except ValueError:
-                        print(f"⚠️  Invalid {env_var} value: {env_value}")
+                        _logger.warning(f"Invalid {env_var} value: {env_value}")
                 else:
                     config_dict[section][key] = env_value
                     env_overrides[section].add(key)
@@ -685,7 +692,7 @@ class ConfigManager(BaseSettings):
                 # Deep merge additional config
                 self._deep_merge_dict(config_dict, additional_config)
             except Exception as e:
-                print(f"⚠️  Warning: Could not load config file {kwargs['config']}: {e}")
+                _logger.warning(f"Could not load config file {kwargs['config']}: {e}")
 
         if cli_overrides:
             self._deep_merge_dict(config_dict["cli"], cli_overrides)

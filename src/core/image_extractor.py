@@ -368,7 +368,7 @@ class RequirementImageExtractor:
         Validate image data using PIL/Pillow with comprehensive checks.
 
         Returns validation info including warnings for:
-        - Very large dimensions (>4096px)
+        - Large dimensions (>MAX_DIMENSION px — the image will be resized on save)
         - Very small dimensions (<32px)
         - Extreme aspect ratios (>10:1)
         - Large file sizes (>10MB)
@@ -398,11 +398,12 @@ class RequirementImageExtractor:
                 }
             )
 
-            # Check for large dimensions
-            if max(img.width, img.height) > 4096:
+            # Check for large dimensions — threshold matches the preprocessing
+            # resize limit so the warning and the actual resize behavior agree
+            if max(img.width, img.height) > MAX_DIMENSION:
                 validation["warnings"].append(
                     f"Image is very large ({img.width}x{img.height}). "
-                    f"Consider resizing to max {MAX_DIMENSION}px for efficiency."
+                    f"Will be resized to max {MAX_DIMENSION}px for efficiency."
                 )
 
             # Check for tiny dimensions
@@ -447,14 +448,30 @@ class RequirementImageExtractor:
         return validation
 
     def _save_image(self, image_data: bytes, filename: str, reqifz_path: Path) -> Path | None:
-        """Save image to output directory"""
+        """Save image to output directory, preprocessed for vision models.
+
+        Images larger than MAX_DIMENSION are resized (and may be transcoded
+        to JPEG) via _preprocess_image before writing; on any preprocessing
+        failure the original bytes are saved unchanged.
+        """
         try:
+            # Preprocess for vision model efficiency (resize, RGB conversion)
+            image_data = self._preprocess_image(image_data)
+
             # Create subdirectory for this REQIFZ file
             reqifz_dir = self.output_dir / reqifz_path.stem
             reqifz_dir.mkdir(parents=True, exist_ok=True)
 
             # Sanitize filename
             safe_filename = self._sanitize_filename(filename)
+
+            # Preprocessing may transcode (e.g. PNG -> JPEG); keep the suffix
+            # consistent with the actual bytes written
+            suffix = Path(safe_filename).suffix.lower()
+            if image_data.startswith(b"\xff\xd8\xff") and suffix not in (".jpg", ".jpeg"):
+                safe_filename = Path(safe_filename).stem + ".jpg"
+            elif image_data.startswith(b"\x89PNG") and suffix != ".png":
+                safe_filename = Path(safe_filename).stem + ".png"
 
             # Full output path
             output_path = reqifz_dir / safe_filename

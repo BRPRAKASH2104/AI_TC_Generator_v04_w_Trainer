@@ -45,7 +45,7 @@ class TestREQIFZFileProcessor:
                 out_dir = args[1]
             if not out_dir:
                 out_dir = tmp_path
-            
+
             # Ensure the directory exists before touching a file in it
             out_dir.mkdir(parents=True, exist_ok=True)
             (out_dir / "test_output.xlsx").touch()
@@ -178,6 +178,59 @@ class TestREQIFZFileProcessor:
             assert result["success"]
 
 
+
+
+class TestHPProcessorIsolation:
+    """Regression tests for per-file state isolation in the HP processor.
+
+    process_file reassigns self.logger/self.extractor/self.formatter and
+    mutates self.metrics, so files must not be processed concurrently on one
+    instance, and metrics must be reset between files.
+    """
+
+    @pytest.mark.asyncio
+    async def test_process_directory_runs_files_sequentially(self, tmp_path):
+        """Two files in a directory must never be in flight at the same time."""
+        config = ConfigManager()
+        processor = HighPerformanceREQIFZFileProcessor(config)
+
+        for i in range(2):
+            (tmp_path / f"file_{i}.reqifz").write_bytes(b"")
+
+        active = 0
+        max_active = 0
+
+        async def fake_process_file(*args, **kwargs):
+            nonlocal active, max_active
+            active += 1
+            max_active = max(max_active, active)
+            await asyncio.sleep(0.02)
+            active -= 1
+            return {"success": True}
+
+        with patch.object(
+            HighPerformanceREQIFZFileProcessor, "process_file", side_effect=fake_process_file
+        ):
+            results = await processor.process_directory(tmp_path)
+
+        assert len(results) == 2
+        assert all(r["success"] for r in results)
+        assert max_active == 1  # shared per-file state forbids overlap
+
+    def test_metrics_reset_between_files(self):
+        """Counters from a previous file must not leak into the next one."""
+        config = ConfigManager()
+        processor = HighPerformanceREQIFZFileProcessor(config)
+
+        processor.metrics["successful_requirements"] = 7
+        processor.metrics["ai_calls_made"] = 12
+        processor.metrics["cpu_usage_samples"].append(55.0)
+
+        processor._reset_metrics()
+
+        assert processor.metrics["successful_requirements"] == 0
+        assert processor.metrics["ai_calls_made"] == 0
+        assert processor.metrics["cpu_usage_samples"] == []
 
 
 class TestHighPerformanceREQIFZFileProcessor:
@@ -325,8 +378,10 @@ class TestHighPerformanceREQIFZFileProcessor:
         # Start monitoring
         monitor_task = asyncio.create_task(processor._monitor_performance())
 
-        # Let it run briefly
-        await asyncio.sleep(0.1)
+        # The monitor samples non-blockingly every 0.5s (a blocking
+        # cpu_percent(interval=0.1) call previously stalled the event loop),
+        # so wait for at least one sampling cycle
+        await asyncio.sleep(0.6)
 
         # Stop monitoring
         monitor_task.cancel()

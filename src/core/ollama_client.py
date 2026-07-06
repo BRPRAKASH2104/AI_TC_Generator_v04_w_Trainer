@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 import requests
 
-from src.config import ConfigManager, OllamaConfig
-from src.core.parsers import JSONResponseParser
+from src.config import OllamaConfig
+
 from .exceptions import (
     OllamaConnectionError,
     OllamaModelNotFoundError,
@@ -34,10 +34,79 @@ _logger = logging.getLogger(__name__)
 type JSONResponse = dict[str, Any]
 
 
+def _build_generate_payload(
+    config: OllamaConfig,
+    model_name: str,
+    prompt: str,
+    is_json: bool,
+    images_base64: list[str] | None,
+    context_window: int,
+) -> dict[str, Any]:
+    """Build the /api/generate request payload (shared by sync and async clients)."""
+    payload: dict[str, Any] = {
+        "model": model_name,
+        "prompt": prompt,
+        "stream": False,
+        "keep_alive": config.keep_alive,
+        "options": {
+            "temperature": config.temperature,
+            "num_ctx": context_window,
+            "num_predict": config.num_predict,
+            "top_k": 40,
+            "top_p": 0.9,
+            "repeat_penalty": 1.1,
+            "tfs_z": config.tfs_z,
+            "typical_p": config.typical_p,
+            "repeat_last_n": config.repeat_last_n,
+        },
+    }
+
+    if images_base64:
+        payload["images"] = images_base64
+
+    if is_json:
+        payload["format"] = "json"
+
+    # Logprobs for confidence scoring (Ollama 0.13.3+)
+    if getattr(config, "enable_logprobs", False):
+        payload["logprobs"] = True
+        payload["top_logprobs"] = getattr(config, "top_logprobs", 1)
+
+    return payload
+
+
+def _load_images_base64(image_paths: list[Path] | None) -> list[str]:
+    """Read and base64-encode image files, skipping unreadable ones with a warning."""
+    images_base64: list[str] = []
+    failed_count = 0
+    for img_path in image_paths or []:
+        try:
+            with open(img_path, "rb") as img_file:
+                img_data = img_file.read()
+                images_base64.append(base64.b64encode(img_data).decode("utf-8"))
+        except FileNotFoundError:
+            failed_count += 1
+            _logger.warning(f"Image file not found: {img_path}")
+        except PermissionError:
+            failed_count += 1
+            _logger.warning(f"Permission denied reading image: {img_path}")
+        except Exception as e:
+            failed_count += 1
+            _logger.warning(f"Failed to load image {img_path}: {e}")
+
+    if failed_count > 0:
+        _logger.warning(
+            f"Failed to load {failed_count}/{len(image_paths)} image(s). "
+            "Vision model will proceed with available images."
+        )
+
+    return images_base64
+
+
 class OllamaClient:
     """Handles all interactions with Ollama API with enhanced logging"""
 
-    __slots__ = ("config", "proxies", "_session", "_version_validated", "_available_features")
+    __slots__ = ("config", "proxies", "_session")
 
     def __init__(self, config: OllamaConfig = None):
         from src.config import OllamaConfig
@@ -48,9 +117,15 @@ class OllamaClient:
         self._session = requests.Session()
         self._session.proxies.update(self.proxies)
 
-        # Version and feature validation
-        self._version_validated = False
-        self._available_features: dict[str, bool] = {}
+    def close(self) -> None:
+        """Close the underlying HTTP session and its connection pool."""
+        self._session.close()
+
+    def __enter__(self) -> OllamaClient:
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
 
     def generate_completion(
         self,
@@ -71,89 +146,15 @@ class OllamaClient:
         Returns:
             Full response dictionary (if return_full_response=True) or response text string.
         """
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": self.config.num_ctx,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add logprobs if enabled (new in Ollama 0.13.3)
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
-
-        if is_json:
-            payload["format"] = "json"
-
-        try:
-            response = self._session.post(
-                self.config.api_url,
-                json=payload,
-                timeout=self.config.timeout,
-            )
-            response.raise_for_status()
-
-            try:
-                data: JSONResponse = response.json()
-            except ValueError as e:
-                raise OllamaResponseError(
-                    f"Invalid JSON response from Ollama: {e}", status_code=response.status_code
-                ) from e
-
-            if return_full_response:
-                return data
-            return str(data.get("response", ""))
-
-        except requests.ConnectionError as e:
-            raise OllamaConnectionError(
-                f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
-                f"Ensure Ollama is running with 'ollama serve'",
-                host=self.config.host,
-                port=self.config.port,
-            ) from e
-
-        except requests.Timeout as e:
-            raise OllamaTimeoutError(
-                f"Ollama request timed out after {self.config.timeout}s for model '{model_name}'. "
-                f"Try increasing timeout or using a faster model.",
-                timeout=self.config.timeout,
-            ) from e
-
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                raise OllamaModelNotFoundError(
-                    f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
-                    model=model_name,
-                ) from e
-            else:
-                try:
-                    error_details = e.response.json()
-                    error_msg = error_details.get("error", e.response.text)
-                except Exception:
-                    error_msg = e.response.text
-
-                raise OllamaResponseError(
-                    f"Ollama HTTP error {e.response.status_code}: {error_msg}",
-                    status_code=e.response.status_code,
-                    response_body=error_msg,
-                ) from e
-
-        except requests.RequestException as e:
-            raise OllamaConnectionError(
-                f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
-            ) from e
+        # Text-only generation is the vision path without images; a single
+        # request/error-handling implementation lives there
+        return self.generate_response_with_vision(
+            model_name,
+            prompt,
+            image_paths=None,
+            is_json=is_json,
+            return_full_response=return_full_response,
+        )
 
     def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
         """
@@ -204,61 +205,10 @@ class OllamaClient:
         """
         # Use vision_context_window for vision models (larger context for image patches)
         context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
-
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": context_window,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add images if provided (for vision models)
-        if image_paths:
-            images_base64 = []
-            failed_count = 0
-            for img_path in image_paths:
-                try:
-                    with open(img_path, "rb") as img_file:
-                        img_data = img_file.read()
-                        img_b64 = base64.b64encode(img_data).decode("utf-8")
-                        images_base64.append(img_b64)
-                except FileNotFoundError:
-                    failed_count += 1
-                    _logger.warning(f"Image file not found: {img_path}")
-                except PermissionError:
-                    failed_count += 1
-                    _logger.warning(f"Permission denied reading image: {img_path}")
-                except Exception as e:
-                    failed_count += 1
-                    _logger.warning(f"Failed to load image {img_path}: {e}")
-
-            if failed_count > 0:
-                _logger.warning(
-                    f"Failed to load {failed_count}/{len(image_paths)} image(s). "
-                    "Vision model will proceed with available images."
-                )
-
-            if images_base64:
-                payload["images"] = images_base64
-
-        if is_json:
-            payload["format"] = "json"
-
-        # Add logprobs if enabled
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
+        images_base64 = _load_images_base64(image_paths) if image_paths else None
+        payload = _build_generate_payload(
+            self.config, model_name, prompt, is_json, images_base64, context_window
+        )
 
         try:
             response = self._session.post(
@@ -317,196 +267,22 @@ class OllamaClient:
             raise OllamaConnectionError(
                 f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
             ) from e
-
-    def _check_version_compatibility(self) -> None:
-        """
-        Check Ollama version compatibility and available features (sync version).
-
-        This method validates that the connected Ollama instance meets
-        minimum version requirements and detects available API features.
-        """
-        if self._version_validated:
-            return  # Already validated
-
-        try:
-            response = self._session.get(
-                self.config.version_url,
-                timeout=10,  # Shorter timeout for version check
-            )
-            response.raise_for_status()
-
-            try:
-                data = response.json()
-                version_str = data.get("version", "")
-                if not version_str:
-                    raise OllamaResponseError("No version information received from Ollama")
-
-                # Parse version (e.g., "0.12.5")
-                version_parts = version_str.split(".")
-                if len(version_parts) < 3:
-                    raise OllamaResponseError(f"Invalid version format: {version_str}")
-
-                major, minor, patch = map(int, version_parts[:3])
-
-                # Check minimum version (0.12.5)
-                min_major, min_minor, min_patch = 0, 12, 5
-                if (major, minor, patch) < (min_major, min_minor, min_patch):
-                    raise OllamaResponseError(
-                        f"Ollama version {version_str} is incompatible. "
-                        f"Minimum required: {min_major}.{min_minor}.{min_patch}",
-                        status_code=200,
-                        response_body=f"Current: {version_str}, Required: >=0.12.5",
-                    )
-
-                # Detect available features based on version
-                self._available_features = {
-                    "version_endpoint": True,
-                    "gpu_offload": (major, minor, patch) >= (0, 12, 5),
-                    "enhanced_context": (major, minor, patch) >= (0, 12, 5),
-                    "detailed_errors": (major, minor, patch) >= (0, 12, 5),
-                }
-
-                self._version_validated = True
-
-            except ValueError as e:
-                raise OllamaResponseError(
-                    f"Invalid version response format from Ollama: {e}",
-                    status_code=response.status_code,
-                ) from e
-
-        except requests.ConnectionError as e:
-            raise OllamaConnectionError(
-                f"Cannot connect to Ollama at {self.config.version_url}. "
-                f"Ensure Ollama is running with 'ollama serve'",
-                host=self.config.host,
-                port=self.config.port,
-            ) from e
-        except requests.Timeout as e:
-            raise OllamaConnectionError(
-                "Timeout connecting to Ollama for version check. "
-                "Check if Ollama is running and accessible",
-                host=self.config.host,
-                port=self.config.port,
-            ) from e
-        except requests.HTTPError as e:
-            raise OllamaResponseError(
-                f"Ollama version check failed: HTTP {e.response.status_code}",
-                status_code=e.response.status_code,
-                response_body=e.response.text,
-            ) from e
-
-    def is_feature_available(self, feature: str) -> bool:
-        """
-        Check if a specific Ollama feature is available.
-
-        Args:
-            feature: Feature name to check (e.g., 'gpu_offload', 'enhanced_context')
-
-        Returns:
-            True if feature is available, False otherwise
-        """
-        if not self._version_validated:
-            try:
-                self._check_version_compatibility()
-            except Exception:
-                return False  # Conservative fallback
-
-        return self._available_features.get(feature, False)
-
-    def get_model_info(self, model_name: str) -> dict[str, Any] | None:
-        """
-        Get detailed information about a model using /api/show endpoint (async client).
-
-        Args:
-            model_name: Name of the model to get information about
-
-        Returns:
-            Dictionary containing model information, or None if not available
-        """
-        # Use the existing session for model info retrieval
-        try:
-            response = self._session.post(
-                self.config.show_url,
-                json={"name": model_name},
-                timeout=self.config.timeout,
-            )
-            response.raise_for_status()
-
-            try:
-                data = response.json()
-                return data
-            except ValueError as e:
-                raise OllamaResponseError(
-                    f"Invalid JSON response from Ollama /api/show: {e}",
-                    status_code=response.status_code,
-                ) from e
-
-        except requests.ConnectionError as e:
-            raise OllamaConnectionError(
-                f"Cannot connect to Ollama at {self.config.host}:{self.config.port}. "
-                f"Ensure Ollama is running with 'ollama serve'",
-                host=self.config.host,
-                port=self.config.port,
-            ) from e
-
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                raise OllamaModelNotFoundError(
-                    f"Model '{model_name}' not found. Use 'ollama pull {model_name}' to download it.",
-                    model=model_name,
-                ) from e
-            else:
-                try:
-                    error_details = e.response.json()
-                    error_msg = error_details.get("error", e.response.text)
-                except Exception:
-                    error_msg = e.response.text
-
-                raise OllamaResponseError(
-                    f"Ollama HTTP error {e.response.status_code} getting model info: {error_msg}",
-                    status_code=e.response.status_code,
-                    response_body=error_msg,
-                ) from e
-
-        except requests.RequestException as e:
-            raise OllamaConnectionError(
-                f"Ollama request failed: {e}", host=self.config.host, port=self.config.port
-            ) from e
-
-    def validate_model_compatibility(self, model_name: str) -> bool:
-        """
-        Validate if a model is compatible with current requirements (async client).
-
-        Args:
-            model_name: Name of the model to validate
-
-        Returns:
-            True if model is compatible, False otherwise
-        """
-        try:
-            model_info = self.get_model_info(model_name)
-            return model_info is not None
-        except Exception:
-            return False
-
-
 class AsyncOllamaClient:
     """Async client for high-performance Ollama API interactions"""
 
-    __slots__ = ("config", "session", "semaphore", "_version_validated", "_available_features")
+    __slots__ = ("config", "session", "semaphore")
 
-    def __init__(self, config: OllamaConfig = None):
+    def __init__(self, config: OllamaConfig = None, concurrency_limit: int | None = None):
         from src.config import OllamaConfig
 
         self.config = config or OllamaConfig()
         self.session: aiohttp.ClientSession | None = None
-        # Configurable GPU/CPU-aware concurrency limit
-        concurrency_limit = self.config.gpu_concurrency_limit  # Use GPU setting by default
+        # Effective request concurrency: an explicit limit (wired from the
+        # CLI --max-concurrent via the HP processor) overrides the GPU-aware
+        # default; the semaphore is the single throttle for all requests.
+        if concurrency_limit is None or concurrency_limit < 1:
+            concurrency_limit = self.config.gpu_concurrency_limit
         self.semaphore = asyncio.Semaphore(concurrency_limit)
-
-        # Version and feature validation for async client
-        self._version_validated = False
-        self._available_features: dict[str, bool] = {}
 
     async def __aenter__(self):
         """Async context manager entry"""
@@ -554,82 +330,15 @@ class AsyncOllamaClient:
         Returns:
             Full response dictionary (if return_full_response=True) or response text string.
         """
-        if not self.session:
-            raise RuntimeError("AsyncOllamaClient must be used as async context manager")
-
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": self.config.num_ctx,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add logprobs if enabled
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
-
-        if is_json:
-            payload["format"] = "json"
-
-        async with self.semaphore:  # Limit concurrent requests
-            try:
-                async with self.session.post(self.config.api_url, json=payload) as response:
-                    response.raise_for_status()
-                    try:
-                        data = await response.json()
-                    except aiohttp.ContentTypeError as e:
-                        raise OllamaResponseError(
-                            f"Invalid JSON response from Ollama: {e}", status_code=response.status
-                        ) from e
-
-                    if return_full_response:
-                        return data
-                    return str(data.get("response", ""))
-
-            except TimeoutError as e:
-                raise OllamaTimeoutError(
-                    f"Ollama async request timed out after {self.config.timeout}s for model '{model_name}'",
-                    timeout=self.config.timeout,
-                ) from e
-
-            except aiohttp.ClientConnectorError as e:
-                raise OllamaConnectionError(
-                    f"Failed to connect to Ollama at {self.config.host}:{self.config.port}. "
-                    f"Ensure Ollama is running with 'ollama serve'",
-                    host=self.config.host,
-                    port=self.config.port,
-                ) from e
-
-            except aiohttp.ClientResponseError as e:
-                if e.status == 404:
-                    raise OllamaModelNotFoundError(
-                        f"Model '{model_name}' not found. Install it with: ollama pull {model_name}",
-                        model=model_name,
-                    ) from e
-                else:
-                    # Ollama 0.12.5 enhanced error details
-                    raise OllamaResponseError(
-                        f"Ollama HTTP error {e.status}: {e.message}",
-                        status_code=e.status,
-                        response_body=str(e.message),
-                    ) from e
-
-            except aiohttp.ClientError as e:
-                raise OllamaConnectionError(
-                    f"Ollama async client error: {e}", host=self.config.host, port=self.config.port
-                ) from e
+        # Text-only generation is the vision path without images; a single
+        # request/error-handling implementation lives there
+        return await self.generate_response_with_vision(
+            model_name,
+            prompt,
+            image_paths=None,
+            is_json=is_json,
+            return_full_response=return_full_response,
+        )
 
     async def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
         """
@@ -683,61 +392,10 @@ class AsyncOllamaClient:
 
         # Use vision_context_window for vision models (larger context for image patches)
         context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
-
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "keep_alive": self.config.keep_alive,
-            "options": {
-                "temperature": self.config.temperature,
-                "num_ctx": context_window,
-                "num_predict": self.config.num_predict,
-                "top_k": 40,
-                "top_p": 0.9,
-                "repeat_penalty": 1.1,
-                "tfs_z": self.config.tfs_z,
-                "typical_p": self.config.typical_p,
-                "repeat_last_n": self.config.repeat_last_n,
-            },
-        }
-
-        # Add images if provided (for vision models)
-        if image_paths:
-            images_base64 = []
-            failed_count = 0
-            for img_path in image_paths:
-                try:
-                    with open(img_path, "rb") as img_file:
-                        img_data = img_file.read()
-                        img_b64 = base64.b64encode(img_data).decode("utf-8")
-                        images_base64.append(img_b64)
-                except FileNotFoundError:
-                    failed_count += 1
-                    _logger.warning(f"Image file not found: {img_path}")
-                except PermissionError:
-                    failed_count += 1
-                    _logger.warning(f"Permission denied reading image: {img_path}")
-                except Exception as e:
-                    failed_count += 1
-                    _logger.warning(f"Failed to load image {img_path}: {e}")
-
-            if failed_count > 0:
-                _logger.warning(
-                    f"Failed to load {failed_count}/{len(image_paths)} image(s). "
-                    "Vision model will proceed with available images."
-                )
-
-            if images_base64:
-                payload["images"] = images_base64
-
-        if is_json:
-            payload["format"] = "json"
-
-        # Add logprobs if enabled
-        if getattr(self.config, "enable_logprobs", False):
-            payload["logprobs"] = True
-            payload["top_logprobs"] = getattr(self.config, "top_logprobs", 1)
+        images_base64 = _load_images_base64(image_paths) if image_paths else None
+        payload = _build_generate_payload(
+            self.config, model_name, prompt, is_json, images_base64, context_window
+        )
 
         async with self.semaphore:  # Limit concurrent requests
             try:
@@ -785,134 +443,3 @@ class AsyncOllamaClient:
                 raise OllamaConnectionError(
                     f"Ollama async client error: {e}", host=self.config.host, port=self.config.port
                 ) from e
-
-    async def generate_with_retry(
-        self, model_name: str, prompt: str, is_json: bool = False, max_retries: int = 3
-    ) -> str:
-        """Generate response with exponential backoff retry logic"""
-        # Exception types that should not be retried
-        non_retriable = (OllamaModelNotFoundError,)
-
-        last_exception: Exception | None = None
-        for attempt in range(max_retries + 1):
-            try:
-                result = await self.generate_response(model_name, prompt, is_json)
-                if result:  # Success
-                    return result
-            except non_retriable:
-                raise
-            except Exception as exc:
-                last_exception = exc
-                _logger.warning(
-                    "generate_with_retry: attempt %d/%d failed for model '%s': %s",
-                    attempt + 1,
-                    max_retries + 1,
-                    model_name,
-                    exc,
-                )
-
-            if attempt < max_retries:
-                # Exponential backoff: 1s, 2s, 4s
-                await asyncio.sleep(2**attempt)
-
-        if last_exception is not None:
-            raise last_exception
-        return ""  # All retries returned empty without raising
-
-    def _check_version_compatibility(self) -> None:
-        """
-        Check Ollama version compatibility and available features (shared implementation).
-
-        This method validates that the connected Ollama instance meets
-        minimum version requirements and detects available API features.
-        Used by both sync and async clients through temporary session.
-        """
-        if self._version_validated:
-            return  # Already validated
-
-        try:
-            # Use synchronous requests for version checking (works for both sync/async clients)
-            with requests.Session() as temp_session:
-                response = temp_session.get(
-                    self.config.version_url,
-                    timeout=10,  # Shorter timeout for version check
-                )
-            response.raise_for_status()
-
-            try:
-                data = response.json()
-                version_str = data.get("version", "")
-                if not version_str:
-                    raise OllamaResponseError("No version information received from Ollama")
-
-                # Parse version (e.g., "0.12.5")
-                version_parts = version_str.split(".")
-                if len(version_parts) < 3:
-                    raise OllamaResponseError(f"Invalid version format: {version_str}")
-
-                major, minor, patch = map(int, version_parts[:3])
-
-                # Check minimum version (0.12.5)
-                min_major, min_minor, min_patch = 0, 12, 5
-                if (major, minor, patch) < (min_major, min_minor, min_patch):
-                    raise OllamaResponseError(
-                        f"Ollama version {version_str} is incompatible. "
-                        f"Minimum required: {min_major}.{min_minor}.{min_patch}",
-                        status_code=response.status_code,
-                        response_body=f"Current: {version_str}, Required: >=0.12.5",
-                    )
-
-                # Detect available features based on version
-                self._available_features = {
-                    "version_endpoint": True,
-                    "gpu_offload": (major, minor, patch) >= (0, 12, 5),
-                    "enhanced_context": (major, minor, patch) >= (0, 12, 5),
-                    "detailed_errors": (major, minor, patch) >= (0, 12, 5),
-                }
-
-                self._version_validated = True
-
-            except ValueError as e:
-                raise OllamaResponseError(
-                    f"Invalid version response format from Ollama: {e}",
-                    status_code=response.status_code,
-                ) from e
-
-        except requests.ConnectionError as e:
-            raise OllamaConnectionError(
-                f"Cannot connect to Ollama at {self.config.version_url}. "
-                f"Ensure Ollama is running with 'ollama serve'",
-                host=self.config.host,
-                port=self.config.port,
-            ) from e
-        except requests.Timeout as e:
-            raise OllamaConnectionError(
-                "Timeout connecting to Ollama for version check. "
-                "Check if Ollama is running and accessible",
-                host=self.config.host,
-                port=self.config.port,
-            ) from e
-        except requests.HTTPError as e:
-            raise OllamaResponseError(
-                f"Ollama version check failed: HTTP {e.response.status_code}",
-                status_code=e.response.status_code,
-                response_body=e.response.text,
-            ) from e
-
-    def is_feature_available(self, feature: str) -> bool:
-        """
-        Check if a specific Ollama feature is available.
-
-        Args:
-            feature: Feature name to check (e.g., 'gpu_offload', 'enhanced_context')
-
-        Returns:
-            True if feature is available, False otherwise
-        """
-        if not self._version_validated:
-            try:
-                self._check_version_compatibility()
-            except Exception:
-                return False  # Conservative fallback
-
-        return self._available_features.get(feature, False)

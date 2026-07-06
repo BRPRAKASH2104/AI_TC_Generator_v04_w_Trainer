@@ -9,7 +9,6 @@ These tests ensure that optimizations don't break existing functionality.
 """
 
 import asyncio
-import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -276,7 +275,7 @@ class TestConcurrentBatchProcessing:
 
         with patch.object(HighPerformanceREQIFZFileProcessor, '_extract_artifacts') as mock_extract, \
              patch.object(HighPerformanceREQIFZFileProcessor, '_build_augmented_requirements') as mock_augment, \
-             patch.object(HighPerformanceREQIFZFileProcessor, '_generate_output_path_hp') as mock_output, \
+             patch.object(HighPerformanceREQIFZFileProcessor, '_generate_output_path') as mock_output, \
              patch('src.processors.hp_processor.AsyncOllamaClient') as mock_client_class:
 
                 # Setup mocks

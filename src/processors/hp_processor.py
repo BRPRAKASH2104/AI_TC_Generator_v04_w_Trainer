@@ -46,7 +46,16 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             max_concurrent_requirements or self.config.ollama.gpu_concurrency_limit
         )
 
-        # Performance tracking
+        # Performance tracking (reset per file in process_file)
+        self.metrics: dict[str, Any] = {}
+        self._reset_metrics()
+
+    def _reset_metrics(self) -> None:
+        """Reset per-file performance metrics.
+
+        process_file reuses the processor instance, so counters and samples
+        from a previous file must not leak into the next one.
+        """
         self.metrics = {
             "start_time": None,
             "end_time": None,
@@ -80,12 +89,15 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             f"Found {len(reqifz_files)} REQIFZ files for async processing in {directory_path.name}"
         )
 
-        tasks = []
+        # Files are processed sequentially: process_file reassigns per-file
+        # state on this instance (logger, extractor, formatter, metrics), so
+        # concurrent files would race on it. Parallelism happens across
+        # requirements *within* each file via the async client's semaphore.
+        results = []
         for reqifz_path in reqifz_files:
-            task = self.process_file(reqifz_path, model, template, output_dir)
-            tasks.append(task)
+            result = await self.process_file(reqifz_path, model, template, output_dir)
+            results.append(result)
 
-        results = await asyncio.gather(*tasks)
         return results
 
     async def process_file(
@@ -109,6 +121,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         Returns:
             Processing result with performance metrics
         """
+        self._reset_metrics()
         self.metrics["start_time"] = time.time()
 
         # Initialize file-specific logger and components
@@ -136,7 +149,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             augmented_requirements, interface_count = self._build_augmented_requirements(artifacts)
 
             if not augmented_requirements:
-                return self._create_error_result_hp("No System Requirements with tables found")
+                return self._create_error_result_hp("No System Requirements found")
 
             self.metrics["total_requirements"] = len(augmented_requirements)
 
@@ -145,11 +158,17 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             )
 
             # Step 3: High-performance async test case generation
-            async with AsyncOllamaClient(self.config.ollama) as ollama_client:
+            # concurrency_limit wires the effective --max-concurrent value
+            # into the client's request semaphore (previously it was silently
+            # capped by gpu_concurrency_limit)
+            async with AsyncOllamaClient(
+                self.config.ollama, concurrency_limit=self.max_concurrent_requirements
+            ) as ollama_client:
                 generator = AsyncTestCaseGenerator(
                     ollama_client,
                     self.yaml_manager,
                     self.logger,
+                    config=self.config,
                     _max_concurrent=self.max_concurrent_requirements,
                 )
 
@@ -253,7 +272,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 self.metrics["total_test_cases"] = len(all_test_cases)
 
             # Step 4: High-performance output formatting
-            output_path = self._generate_output_path_hp(reqifz_path, model, output_dir)
+            output_path = self._generate_output_path(reqifz_path, model, output_dir, mode_tag="HP")
 
             self.logger.info(f"📝 Streaming {len(all_test_cases)} test cases to Excel...")
 
@@ -370,19 +389,6 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             if self.logger and hasattr(self.logger, "close"):
                 self.logger.close()
 
-    def _generate_output_path_hp(
-        self, reqifz_path: Path, model: str, output_dir: Path = None
-    ) -> Path:
-        """Generate HP-specific output file path"""
-        output_directory = output_dir or reqifz_path.parent
-        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-        model_safe = model.replace(":", "_").replace("/", "_")
-
-        output_filename = f"{reqifz_path.stem}_TCD_HP_{model_safe}_{timestamp}.xlsx"
-        output_path = output_directory / output_filename
-
-        return output_path
-
     def _create_error_result_hp(
         self, error_message: str, processing_time: float = None
     ) -> ProcessingResult:
@@ -403,15 +409,18 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
             import psutil
 
             process = psutil.Process()
+            # Prime the CPU counter; interval=None afterwards is non-blocking
+            # (interval=0.1 previously blocked the event loop 100ms per sample)
+            process.cpu_percent(interval=None)
 
             while True:
-                cpu_percent = process.cpu_percent(interval=0.1)
+                await asyncio.sleep(0.5)
+
+                cpu_percent = process.cpu_percent(interval=None)
                 memory_mb = process.memory_info().rss / 1024 / 1024
 
                 self.metrics["cpu_usage_samples"].append(cpu_percent)
                 self.metrics["memory_usage_samples"].append(memory_mb)
-
-                await asyncio.sleep(0.5)
         except asyncio.CancelledError:
             pass
         except ImportError:

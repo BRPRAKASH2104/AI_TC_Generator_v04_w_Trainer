@@ -277,3 +277,107 @@ def test_deduplication_rate_calculation():
     assert report["deduplicated_count"] == 2
     assert report["duplicates_removed"] == 3
     assert abs(report["deduplication_rate"] - 0.6) < 0.01
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: adaptive schema (preconditions/test_steps) support
+# The active prompt template emits preconditions/test_steps, not action/data.
+# ---------------------------------------------------------------------------
+
+STATIC_PRECONDITION = "1. Voltage= 12V\n2. Bat-ON"
+
+
+def test_adaptive_schema_distinct_cases_are_kept():
+    """Distinct test cases in the active preconditions/test_steps schema must not be merged.
+
+    Regression: with the legacy default fields (action/data), both fields were
+    empty on both sides and scored 1.0 each, so any moderately similar
+    expected_result pushed the average over the duplicate threshold.
+    """
+    deduplicator = TestCaseDeduplicator(similarity_threshold=0.85)
+
+    test_cases = [
+        {
+            "summary_suffix": "Door open warning at speed",
+            "preconditions": STATIC_PRECONDITION,
+            "test_steps": "1) Set VehicleSpeed = 30 km/h\n2) Open driver door\n3) Wait 2 seconds",
+            "expected_result": "Verify DoorLock output = Locked state",
+            "test_type": "positive",
+        },
+        {
+            "summary_suffix": "Central lock from keyfob",
+            "preconditions": STATIC_PRECONDITION,
+            "test_steps": "1) Set IgnitionMode = ACC\n2) Press central lock button on keyfob",
+            "expected_result": "Verify DoorLock output = Unlocked state",
+            "test_type": "positive",
+        },
+    ]
+
+    deduplicated, report = deduplicator.deduplicate(test_cases)
+
+    assert len(deduplicated) == 2
+    assert report["duplicates_removed"] == 0
+
+
+def test_adaptive_schema_exact_duplicates_removed():
+    """Exact duplicates in the adaptive schema are still detected."""
+    deduplicator = TestCaseDeduplicator(similarity_threshold=0.85)
+
+    duplicate = {
+        "summary_suffix": "Lock at speed",
+        "preconditions": STATIC_PRECONDITION,
+        "test_steps": "1) Set VehicleSpeed = 30 km/h\n2) Verify auto-lock",
+        "expected_result": "Verify DoorLock output = Locked",
+        "test_type": "positive",
+    }
+
+    deduplicated, report = deduplicator.deduplicate([duplicate, dict(duplicate)])
+
+    assert len(deduplicated) == 1
+    assert report["duplicates_removed"] == 1
+
+
+def test_cross_schema_aliases_detected_as_duplicates():
+    """The same content under legacy (action/data) and adaptive (preconditions/test_steps) names is a duplicate."""
+    deduplicator = TestCaseDeduplicator(similarity_threshold=0.85)
+
+    test_cases = [
+        {
+            "action": STATIC_PRECONDITION,
+            "data": "1) Set VehicleSpeed = 30 km/h\n2) Verify auto-lock",
+            "expected_result": "Verify DoorLock output = Locked",
+        },
+        {
+            "preconditions": STATIC_PRECONDITION,
+            "test_steps": "1) Set VehicleSpeed = 30 km/h\n2) Verify auto-lock",
+            "expected_result": "Verify DoorLock output = Locked",
+        },
+    ]
+
+    deduplicated, report = deduplicator.deduplicate(test_cases)
+
+    assert len(deduplicated) == 1
+    assert report["duplicates_removed"] == 1
+
+
+def test_list_valued_test_steps_supported():
+    """test_steps may arrive as a list of steps (see validators.py normalisation)."""
+    deduplicator = TestCaseDeduplicator(similarity_threshold=0.85)
+
+    test_cases = [
+        {
+            "preconditions": STATIC_PRECONDITION,
+            "test_steps": ["1) Set VehicleSpeed = 30 km/h", "2) Verify auto-lock"],
+            "expected_result": "Verify DoorLock output = Locked",
+        },
+        {
+            "preconditions": STATIC_PRECONDITION,
+            "test_steps": "1) Set VehicleSpeed = 30 km/h\n2) Verify auto-lock",
+            "expected_result": "Verify DoorLock output = Locked",
+        },
+    ]
+
+    deduplicated, report = deduplicator.deduplicate(test_cases)
+
+    assert len(deduplicated) == 1
+    assert report["duplicates_removed"] == 1

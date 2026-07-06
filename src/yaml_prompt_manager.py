@@ -7,10 +7,15 @@ This module provides YAML-based prompt template management for the AI Test Case 
 It supports automatic template selection, variable substitution, and template validation.
 """
 
+import logging
+import re
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+# Operational messages go through structured logging, not stdout
+_logger = logging.getLogger(__name__)
 
 
 class YAMLPromptManager:
@@ -89,12 +94,12 @@ class YAMLPromptManager:
             if self.config_file.exists():
                 with self.config_file.open(encoding="utf-8") as f:
                     self.config = yaml.safe_load(f)
-                print(f"✅ Loaded prompt configuration from {self.config_file}")
+                _logger.info(f"Loaded prompt configuration from {self.config_file}")
             else:
-                print(f"⚠️  Config file not found: {self.config_file}, using defaults")
+                _logger.warning(f"Config file not found: {self.config_file}, using defaults")
                 self._set_default_config()
         except Exception as e:
-            print(f"❌ Error loading config: {e}")
+            _logger.error(f"Error loading prompt config: {e}")
             self._set_default_config()
 
     def _set_default_config(self) -> None:
@@ -123,12 +128,12 @@ class YAMLPromptManager:
                     self.test_prompts = data.get("test_generation_prompts", {})
                     # Cache selection rules at load time to avoid repeated disk reads
                     self._selection_rules = data.get("prompt_selection", {})
-                print(f"✅ Loaded {len(self.test_prompts)} test generation templates")
+                _logger.info(f"Loaded {len(self.test_prompts)} test generation templates")
             else:
-                print(f"⚠️  Test prompts file not found: {test_file}")
+                _logger.warning(f"Test prompts file not found: {test_file}")
                 self.test_prompts = {}
         except Exception as e:
-            print(f"❌ Error loading test prompts: {e}")
+            _logger.error(f"Error loading test prompts: {e}")
             self.test_prompts = {}
 
         # Load error handling prompts (optional)
@@ -140,11 +145,11 @@ class YAMLPromptManager:
                     with error_path.open(encoding="utf-8") as f:
                         data = yaml.safe_load(f)
                         self.error_prompts = data.get("error_prompts", {})
-                    print(f"✅ Loaded {len(self.error_prompts)} error handling templates")
+                    _logger.info(f"Loaded {len(self.error_prompts)} error handling templates")
                 else:
                     self.error_prompts = {}
             except Exception as e:
-                print(f"⚠️  Could not load error prompts: {e}")
+                _logger.warning(f"Could not load error prompts: {e}")
                 self.error_prompts = {}
 
     def get_test_prompt(self, template_name: str | None = None, **variables) -> str:
@@ -173,7 +178,7 @@ class YAMLPromptManager:
         # Get template data
         template_data = self.test_prompts.get(template_name)
         if not template_data:
-            print(f"❌ Template '{template_name}' not found, using default")
+            _logger.warning(f"Template '{template_name}' not found, using default")
             template_name = self.config["defaults"]["template_selection"]
             template_data = self.test_prompts.get(template_name)
 
@@ -191,19 +196,6 @@ class YAMLPromptManager:
         rendered_prompt = self._substitute_variables(template_str, final_variables)
 
         return rendered_prompt
-
-    def get_error_prompt(self, error_type: str, **variables) -> str:
-        """Get an error handling prompt"""
-        template_data = self.error_prompts.get(error_type)
-        if not template_data:
-            # Return simple error message if no template
-            return (
-                f"Error processing requirement: {variables.get('error_message', 'Unknown error')}"
-            )
-
-        # Apply defaults and substitute
-        final_variables = self._apply_defaults(template_data, variables)
-        return self._substitute_variables(template_data["template"], final_variables)
 
     def _auto_select_template(self, variables: dict[str, Any]) -> str:
         """Automatically select appropriate template based on context"""
@@ -280,15 +272,19 @@ class YAMLPromptManager:
         return final_variables
 
     def _substitute_variables(self, template_str: str, variables: dict[str, Any]) -> str:
-        """Substitute variables in template string using {variable_name} format"""
-        rendered = template_str
+        """Substitute {variable_name} placeholders in a single pass.
 
-        # Simple variable substitution using {variable_name} format
-        for var_name, var_value in variables.items():
-            placeholder = f"{{{var_name}}}"
-            rendered = rendered.replace(placeholder, str(var_value))
-
-        return rendered
+        Substituted values are never rescanned, so a value containing
+        literal {placeholder} text stays intact. Unknown placeholders are
+        left as-is.
+        """
+        return re.sub(
+            r"\{(\w+)\}",
+            lambda match: str(variables[match.group(1)])
+            if match.group(1) in variables
+            else match.group(0),
+            template_str,
+        )
 
     def list_templates(self) -> dict[str, list[str]]:
         """List available templates"""
@@ -325,7 +321,7 @@ class YAMLPromptManager:
         """Reload all prompt templates (useful for development)"""
         self._selection_rules = None  # Reset cache so a failed reload doesn't serve stale rules
         self.load_all_prompts()
-        print("🔄 All prompt templates reloaded")
+        _logger.info("All prompt templates reloaded")
 
     def validate_template_file(self, file_path: str) -> list[str]:
         """Validate a YAML template file and return any errors"""

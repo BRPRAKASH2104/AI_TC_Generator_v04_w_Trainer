@@ -187,7 +187,9 @@ class BaseProcessor:
 
         return augmented_requirements, len(system_interfaces)
 
-    def _generate_output_path(self, reqifz_path: Path, model: str, output_dir: Path = None) -> Path:
+    def _generate_output_path(
+        self, reqifz_path: Path, model: str, output_dir: Path = None, mode_tag: str = ""
+    ) -> Path:
         """
         Generate output file path for Excel file
 
@@ -195,6 +197,8 @@ class BaseProcessor:
             reqifz_path: Source REQIFZ file path
             model: AI model name
             output_dir: Optional output directory
+            mode_tag: Optional processing-mode marker (e.g. "HP") inserted
+                after the TCD token
 
         Returns:
             Path for output Excel file
@@ -202,8 +206,9 @@ class BaseProcessor:
         output_directory = output_dir or reqifz_path.parent
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
         model_safe = model.replace(":", "_").replace("/", "_")
+        mode_part = f"{mode_tag}_" if mode_tag else ""
 
-        output_filename = f"{reqifz_path.stem}_TCD_{model_safe}_{timestamp}.xlsx"
+        output_filename = f"{reqifz_path.stem}_TCD_{mode_part}{model_safe}_{timestamp}.xlsx"
         output_path = output_directory / output_filename
 
         return output_path

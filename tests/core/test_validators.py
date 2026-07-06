@@ -223,6 +223,71 @@ def test_similarity_threshold_configuration():
     assert not is_valid or not is_valid2
 
 
+def test_unknown_signal_in_test_steps_flagged_without_close_match():
+    """Regression: hallucinated signals in test_steps with NO fuzzy match passed silently.
+
+    The data/test_steps branch only reported issues when a close match
+    existed, unlike the action branch which flagged unknown signals either way.
+    """
+    validator = SemanticValidator()
+
+    test_case = {
+        "summary_suffix": "Lock check",
+        "preconditions": "1. Voltage= 12V\n2. Bat-ON",
+        "test_steps": "1) Set PHANTOMSIG = 1\n2) Observe output",
+        "expected_result": "Verify lock engages",
+    }
+
+    requirement = {
+        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
+    }
+
+    is_valid, issues = validator.validate_test_case(test_case, requirement)
+
+    assert not is_valid
+    assert any("PHANTOMSIG" in issue for issue in issues)
+
+
+def test_generic_words_in_test_steps_not_flagged():
+    """Generic identifiers like 'Voltage' must not trigger false positives."""
+    validator = SemanticValidator()
+
+    test_case = {
+        "test_steps": "1) Set Voltage = 9\n2) Set ACCSP = 100",
+        "expected_result": "Verify behaviour",
+    }
+
+    requirement = {
+        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
+    }
+
+    is_valid, issues = validator.validate_test_case(test_case, requirement)
+
+    assert is_valid, f"Unexpected issues: {issues}"
+
+
+def test_signal_names_extracted_once_per_batch():
+    """Efficiency regression: the interface signal set must be built once per
+    batch, not rebuilt for every test case."""
+    from unittest.mock import patch
+
+    validator = SemanticValidator()
+
+    test_cases = [
+        {"test_steps": f"1) Set ACCSP = {i}", "expected_result": "ok"} for i in range(5)
+    ]
+    requirement = {
+        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
+    }
+
+    with patch.object(
+        SemanticValidator, "_extract_signal_names", wraps=validator._extract_signal_names
+    ) as spy:
+        validator.validate_batch(test_cases, requirement)
+
+    assert spy.call_count == 1, f"expected 1 extraction, got {spy.call_count}"
+
+
 def test_signal_extraction_patterns():
     """Test various signal name extraction patterns"""
     validator = SemanticValidator()

@@ -58,10 +58,8 @@ ai-tc-generator --validate-prompts    # after editing YAML templates
 # Utilities
 python3 utilities/create_mock_reqifz.py    # generate mock REQIFZ for testing
 
-# Profiles — run with a named preset (model + mode + modifier)
-ai-tc-generator input/file.reqifz --profile Llama31.HP.Quality
-# Profile format: Model.Mode[.Modifier]  (defined in profiles/profiles.yaml)
-# Models: Llama31, Deepseek, Qwen  |  Modes: Standard, HP  |  Modifiers: Verbose, Debug, Fast, Quality
+# Presets — run with a named configuration (defined in config/cli_config.yaml under `presets`)
+ai-tc-generator input/file.reqifz --preset qwen_vision
 
 # Training (requires pip install -e .[training])
 ai-tc-generator input/ --hp              # normal run collects RAFT examples if enabled in config/cli_config.yaml

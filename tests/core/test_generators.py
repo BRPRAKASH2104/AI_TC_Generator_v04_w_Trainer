@@ -215,3 +215,248 @@ class TestAsyncTestCaseGenerator:
         results = await generator.generate_test_cases_batch([], "llama3.1:8b")
 
         assert results == []
+
+
+class TestConfigWiring:
+    """ValidationConfig/DeduplicationConfig must actually reach the components.
+
+    Regression: the config sections existed but generators always built
+    SemanticValidator/TestCaseDeduplicator with hardcoded defaults, so
+    thresholds, enable flags, keep_strategy and fields_to_compare were ignored.
+    """
+
+    ONE_CASE_JSON = (
+        '{"test_cases": [{"summary_suffix": "A", "test_steps": "1) a", '
+        '"expected_result": "ra"}]}'
+    )
+
+    @staticmethod
+    def _make_config(validation=None, deduplication=None):
+        from types import SimpleNamespace
+
+        from config import DeduplicationConfig, ValidationConfig
+
+        return SimpleNamespace(
+            validation=ValidationConfig(**(validation or {})),
+            deduplication=DeduplicationConfig(**(deduplication or {})),
+        )
+
+    def _client(self):
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = {"response": self.ONE_CASE_JSON}
+        return mock_client
+
+    def test_thresholds_and_fields_wired_from_config(self, mock_logger):
+        config = self._make_config(
+            validation={"similarity_threshold": 0.55},
+            deduplication={"similarity_threshold": 0.66, "fields_to_compare": ["expected_result"]},
+        )
+
+        generator = TestCaseGenerator(self._client(), logger=mock_logger, config=config)
+
+        assert generator.validator.similarity_threshold == 0.55
+        assert generator.deduplicator.similarity_threshold == 0.66
+        assert generator.deduplicator.fields_to_compare == ["expected_result"]
+
+    def test_deduplication_disabled_via_config(self, sample_requirement, mock_logger):
+        config = self._make_config(deduplication={"enable_deduplication": False})
+        mock_dedup = Mock()
+
+        generator = TestCaseGenerator(
+            self._client(), logger=mock_logger, deduplicator=mock_dedup, config=config
+        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert len(result) == 1
+        mock_dedup.deduplicate.assert_not_called()
+
+    def test_validation_disabled_via_config(self, sample_requirement, mock_logger):
+        config = self._make_config(validation={"enable_semantic_validation": False})
+        mock_validator = Mock()
+
+        generator = TestCaseGenerator(
+            self._client(), logger=mock_logger, validator=mock_validator, config=config
+        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert len(result) == 1
+        mock_validator.validate_batch.assert_not_called()
+        assert result[0]["validation_passed"] is True
+
+    def test_keep_strategy_wired_from_config(self, sample_requirement, mock_logger):
+        config = self._make_config(deduplication={"keep_strategy": "first"})
+        mock_dedup = Mock()
+        mock_dedup.deduplicate.side_effect = lambda tcs, keep_strategy: (
+            tcs,
+            {"original_count": len(tcs), "deduplicated_count": len(tcs), "duplicates_removed": 0},
+        )
+
+        generator = TestCaseGenerator(
+            self._client(), logger=mock_logger, deduplicator=mock_dedup, config=config
+        )
+        generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert mock_dedup.deduplicate.call_args.kwargs["keep_strategy"] == "first"
+
+    def test_dedup_config_default_fields_match_canonical_schema(self):
+        """DeduplicationConfig defaults must not reintroduce the legacy action/data fields."""
+        from config import DeduplicationConfig
+        from core.deduplicator import DEFAULT_FIELDS_TO_COMPARE
+
+        assert DeduplicationConfig().fields_to_compare == DEFAULT_FIELDS_TO_COMPARE
+
+    @pytest.mark.asyncio
+    async def test_async_generator_honors_config_flags(self, sample_requirement, mock_logger):
+        config = self._make_config(
+            validation={"enable_semantic_validation": False},
+            deduplication={"enable_deduplication": False},
+        )
+        mock_client = AsyncMock()
+        mock_client.generate_completion = AsyncMock(return_value={"response": self.ONE_CASE_JSON})
+        mock_validator = Mock()
+        mock_dedup = Mock()
+
+        generator = AsyncTestCaseGenerator(
+            mock_client,
+            logger=mock_logger,
+            validator=mock_validator,
+            deduplicator=mock_dedup,
+            config=config,
+        )
+        result = await generator.generate_test_cases(sample_requirement, "llama3.1:8b")
+
+        assert isinstance(result, list) and len(result) == 1
+        mock_validator.validate_batch.assert_not_called()
+        mock_dedup.deduplicate.assert_not_called()
+        assert result[0]["validation_passed"] is True
+
+
+class TestValidationStamping:
+    """Regression tests for validation_passed correctness.
+
+    The old inline computation (`i >= len(issues) or ...`) marked failing test
+    cases as valid whenever their index exceeded the number of issue entries,
+    and it ran after deduplication so indices no longer matched the validator
+    report. validation_passed must be stamped from the report indices, before
+    deduplication.
+    """
+
+    THREE_CASES_JSON = (
+        '{"test_cases": ['
+        '{"summary_suffix": "A", "test_steps": "1) a", "expected_result": "ra"},'
+        '{"summary_suffix": "B", "test_steps": "1) b", "expected_result": "rb"},'
+        '{"summary_suffix": "C", "test_steps": "1) c", "expected_result": "rc"}'
+        "]}"
+    )
+
+    @staticmethod
+    def _validation_report(issues):
+        invalid = len([e for e in issues if e.get("test_case_index", -1) > 0])
+        return {
+            "total_test_cases": 3,
+            "valid_count": 3 - invalid,
+            "invalid_count": invalid,
+            "validation_rate": (3 - invalid) / 3,
+            "issues": issues,
+            "table_coverage": {"is_table_based": False},
+        }
+
+    def _make_sync_generator(self, issues, mock_logger):
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = {"response": self.THREE_CASES_JSON}
+
+        mock_yaml_manager = Mock()
+        mock_yaml_manager.get_test_prompt.return_value = "Generate test cases"
+
+        mock_validator = Mock()
+        mock_validator.validate_batch.return_value = self._validation_report(issues)
+
+        mock_deduplicator = Mock()
+        mock_deduplicator.deduplicate.side_effect = lambda tcs, keep_strategy: (
+            tcs,
+            {
+                "original_count": len(tcs),
+                "deduplicated_count": len(tcs),
+                "duplicates_removed": 0,
+                "duplicate_groups_found": 0,
+                "duplicate_groups": [],
+                "deduplication_rate": 0.0,
+            },
+        )
+
+        generator = TestCaseGenerator(
+            mock_client,
+            mock_yaml_manager,
+            mock_logger,
+            validator=mock_validator,
+            deduplicator=mock_deduplicator,
+        )
+        return generator, mock_deduplicator
+
+    def test_failing_case_beyond_issue_count_is_marked_invalid(
+        self, sample_requirement, mock_logger
+    ):
+        """One issue at test_case_index=2: only the second case may be invalid."""
+        issues = [{"test_case_index": 2, "summary": "B", "issues": ["bad signal"]}]
+        generator, _ = self._make_sync_generator(issues, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert len(result) == 3
+        assert result[0]["validation_passed"] is True
+        assert result[1]["validation_passed"] is False  # old logic marked this True
+        assert result[2]["validation_passed"] is True
+
+    def test_table_coverage_issues_do_not_invalidate_cases(
+        self, sample_requirement, mock_logger
+    ):
+        """Global table-coverage issues (test_case_index=-1) must not mark any case invalid."""
+        issues = [{"test_case_index": -1, "summary": "Table Coverage Deficiency", "issues": ["x"]}]
+        generator, _ = self._make_sync_generator(issues, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        assert len(result) == 3
+        assert all(tc["validation_passed"] is True for tc in result)
+
+    def test_validation_stamped_before_deduplication(self, sample_requirement, mock_logger):
+        """The deduplicator must see validation_passed so its 'best' strategy can use it."""
+        issues = [{"test_case_index": 1, "summary": "A", "issues": ["bad signal"]}]
+        generator, mock_deduplicator = self._make_sync_generator(issues, mock_logger)
+
+        generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
+
+        dedup_input = mock_deduplicator.deduplicate.call_args[0][0]
+        assert all("validation_passed" in tc for tc in dedup_input)
+        assert dedup_input[0]["validation_passed"] is False
+        assert dedup_input[1]["validation_passed"] is True
+
+    @pytest.mark.asyncio
+    async def test_async_generator_stamps_validation_identically(
+        self, sample_requirement, mock_logger
+    ):
+        """Async pipeline must apply the same stamping rules as the sync one."""
+        mock_client = AsyncMock()
+        mock_client.generate_completion = AsyncMock(
+            return_value={"response": self.THREE_CASES_JSON}
+        )
+
+        mock_yaml_manager = Mock()
+        mock_yaml_manager.get_test_prompt.return_value = "Generate test cases"
+
+        mock_validator = Mock()
+        mock_validator.validate_batch.return_value = self._validation_report(
+            [{"test_case_index": 3, "summary": "C", "issues": ["bad signal"]}]
+        )
+
+        generator = AsyncTestCaseGenerator(
+            mock_client, mock_yaml_manager, mock_logger, validator=mock_validator
+        )
+
+        result = await generator.generate_test_cases(sample_requirement, "llama3.1:8b")
+
+        assert isinstance(result, list)
+        assert len(result) == 3
+        assert result[0]["validation_passed"] is True
+        assert result[1]["validation_passed"] is True
+        assert result[2]["validation_passed"] is False
