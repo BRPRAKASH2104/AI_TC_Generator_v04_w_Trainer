@@ -16,7 +16,10 @@ import zipfile
 from contextlib import contextmanager
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Self
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 try:
     from PIL import Image
@@ -602,7 +605,7 @@ class RequirementImageExtractor:
         return count
 
     @contextmanager
-    def auto_cleanup(self, reqifz_path: Path):
+    def auto_cleanup(self, reqifz_path: Path) -> Iterator[Self]:
         """
         Context manager for automatic cleanup after processing.
 

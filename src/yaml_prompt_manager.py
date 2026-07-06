@@ -235,7 +235,7 @@ class YAMLPromptManager:
             "default_template", self.config["defaults"]["template_selection"]
         )
 
-    def _validate_variables(self, template_data: dict[str, Any], variables: dict[str, Any]):
+    def _validate_variables(self, template_data: dict[str, Any], variables: dict[str, Any]) -> None:
         """Validate that required variables are provided"""
         template_vars = template_data.get("variables", [])
 
@@ -313,11 +313,11 @@ class YAMLPromptManager:
         """Get template usage summary for current processing"""
         return self.template_usage_count.copy()
 
-    def reset_template_usage(self):
+    def reset_template_usage(self) -> None:
         """Reset template usage counter (call at start of new file processing)"""
         self.template_usage_count.clear()
 
-    def reload_prompts(self):
+    def reload_prompts(self) -> None:
         """Reload all prompt templates (useful for development)"""
         self._selection_rules = None  # Reset cache so a failed reload doesn't serve stale rules
         self.load_all_prompts()

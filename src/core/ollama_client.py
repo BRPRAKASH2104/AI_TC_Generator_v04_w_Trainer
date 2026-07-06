@@ -10,7 +10,7 @@ import asyncio
 import base64
 import logging
 from pathlib import Path  # noqa: TC003 - Used at runtime for file operations
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 import aiohttp
 import requests
@@ -286,7 +286,7 @@ class AsyncOllamaClient:
             concurrency_limit = self.config.gpu_concurrency_limit
         self.semaphore = asyncio.Semaphore(concurrency_limit)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         """Async context manager entry"""
         connector = aiohttp.TCPConnector(
             limit=100,  # Connection pool limit

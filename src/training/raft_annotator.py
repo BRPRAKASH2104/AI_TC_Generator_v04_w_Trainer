@@ -51,7 +51,7 @@ class RAFTAnnotator:
         self.validated_dir.mkdir(parents=True, exist_ok=True)
         self.rejected_dir.mkdir(parents=True, exist_ok=True)
 
-    def annotate_examples(self, batch_size: int = 5, resume_annotation: bool = True):
+    def annotate_examples(self, batch_size: int = 5, resume_annotation: bool = True) -> None:
         """
         Start interactive annotation session.
 
@@ -226,7 +226,7 @@ class RAFTAnnotator:
 
         return items
 
-    def _display_context_table(self, context_items: list[dict[str, Any]]):
+    def _display_context_table(self, context_items: list[dict[str, Any]]) -> None:
         """Display context items in a table for user review"""
         table = Table(title="📚 Retrieved Context Items")
         table.add_column("#", style="dim", width=3)
@@ -329,7 +329,7 @@ class RAFTAnnotator:
 
         return rating, notes
 
-    def _show_annotation_help(self):
+    def _show_annotation_help(self) -> None:
         """Display detailed annotation help"""
         help_text = """
         [bold cyan]RAFT Annotation Help[/bold cyan]
@@ -354,7 +354,7 @@ class RAFTAnnotator:
         """
         self.console.print(Panel(help_text, border_style="blue"))
 
-    def _save_validated_example(self, example: RAFTExample, original_path: Path):
+    def _save_validated_example(self, example: RAFTExample, original_path: Path) -> None:
         """Save validated example to validated directory"""
         import datetime
 
@@ -374,7 +374,7 @@ class RAFTAnnotator:
 
         self.console.print(f"✅ Saved validated example: {validated_path.name}")
 
-    def _move_to_rejected(self, file_path: Path):
+    def _move_to_rejected(self, file_path: Path) -> None:
         """Move skipped example to rejected directory"""
         # Create rejected filename
         rejected_path = self.rejected_dir / file_path.name

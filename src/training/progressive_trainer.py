@@ -429,7 +429,7 @@ class ProgressiveRAFTTrainer:
 
         return recommendations
 
-    def _load_progress(self):
+    def _load_progress(self) -> None:
         """Load training progress from file"""
         progress_file = self.output_dir / "training_progress.json"
         if progress_file.exists():
@@ -441,7 +441,7 @@ class ProgressiveRAFTTrainer:
             except Exception:
                 pass  # Use defaults
 
-    def _save_progress(self):
+    def _save_progress(self) -> None:
         """Save training progress to file"""
         progress_file = self.output_dir / "training_progress.json"
 

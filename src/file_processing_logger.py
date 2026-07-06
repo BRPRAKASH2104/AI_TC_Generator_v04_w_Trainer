@@ -112,21 +112,21 @@ class FileProcessingLogger:
         except Exception:
             pass
 
-    def start_processing(self):
+    def start_processing(self) -> None:
         """Mark start of processing"""
         self.start_time = time.time()
         self.status = "IN_PROGRESS"
 
-    def add_requirement_failure(self, requirement_id: str, error: str):
+    def add_requirement_failure(self, requirement_id: str, error: str) -> None:
         """Record a requirement processing failure"""
         self.failure_details.append(RequirementFailure(requirement_id, error))
         self.requirements_failed += 1
 
-    def add_ai_response_time(self, response_time: float):
+    def add_ai_response_time(self, response_time: float) -> None:
         """Record AI response time"""
         self.ai_response_times.append(response_time)
 
-    def add_warning(self, warning: str):
+    def add_warning(self, warning: str) -> None:
         """Add a warning message"""
         if warning not in self.warnings:
             self.warnings.append(warning)
@@ -217,20 +217,20 @@ class FileProcessingLogger:
             "warnings": self.warnings,
         }
 
-    def debug(self, message: str):
+    def debug(self, message: str) -> None:
         """Print debug message (only in verbose mode)"""
         # For now, treat debug same as info
         print(f"🔍 {message}")
 
-    def info(self, message: str):
+    def info(self, message: str) -> None:
         """Print info message (simple console logging)"""
         print(f"ℹ️  {message}")
 
-    def warning(self, message: str):
+    def warning(self, message: str) -> None:
         """Print warning message and add to warnings list"""
         print(f"⚠️  {message}")
         self.add_warning(message)
 
-    def error(self, message: str):
+    def error(self, message: str) -> None:
         """Print error message"""
         print(f"❌ {message}")
