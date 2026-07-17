@@ -19,20 +19,51 @@ type RequirementData = dict[str, Any]
 # Mirrors FileProcessingConfig.max_table_rows default.
 MAX_PROMPT_TABLE_ROWS = 100
 
+# Rows shown for an oversized table: the first 10 and last 10
+TRUNCATED_DISPLAY_ROWS = 20
+
+
+def displayed_table_rows(total_rows: int, max_rows: int = MAX_PROMPT_TABLE_ROWS) -> int:
+    """Return the number of table rows format_table() actually shows the model.
+
+    Oversized tables are truncated to the first and last 10 rows with an
+    instruction to cover only the displayed rows; coverage validation must
+    use this count instead of the original row count
+    (review 2026-07-17 finding 7).
+
+    Args:
+        total_rows: Original number of table rows.
+        max_rows: Truncation threshold (FileProcessingConfig.max_table_rows).
+
+    Returns:
+        Row count visible in the prompt.
+    """
+    if total_rows <= max_rows:
+        return total_rows
+    return min(total_rows, TRUNCATED_DISPLAY_ROWS)
+
 
 class PromptBuilder:
     """Stateless prompt builder for test case generation"""
 
-    __slots__ = ("yaml_manager",)
+    __slots__ = ("yaml_manager", "max_table_rows")
 
-    def __init__(self, yaml_manager: YAMLPromptManager | None = None):
+    def __init__(
+        self,
+        yaml_manager: YAMLPromptManager | None = None,
+        max_table_rows: int | None = None,
+    ):
         """
         Initialize prompt builder.
 
         Args:
             yaml_manager: Optional YAML template manager for template-based prompts
+            max_table_rows: Table-truncation threshold; defaults to
+                MAX_PROMPT_TABLE_ROWS (wired from
+                FileProcessingConfig.max_table_rows by the generators)
         """
         self.yaml_manager = yaml_manager
+        self.max_table_rows = max_table_rows or MAX_PROMPT_TABLE_ROWS
 
     def build_prompt(self, requirement: RequirementData, template_name: str | None = None) -> str:
         """
@@ -70,7 +101,7 @@ class PromptBuilder:
                 "requirement_id": requirement.get("id", "UNKNOWN"),
                 "heading": requirement.get("heading", ""),
                 "requirement_text": requirement.get("text", ""),
-                "table_str": self.format_table(requirement.get("table")),
+                "table_str": self.format_table(requirement.get("table"), self.max_table_rows),
                 "row_count": requirement.get("table", {}).get("rows", 0)
                 if requirement.get("table")
                 else 0,
@@ -168,19 +199,22 @@ Return ONLY valid JSON with the exact field names shown above."""
         return prompt
 
     @staticmethod
-    def format_table(table_data: dict[str, Any] | None) -> str:
+    def format_table(
+        table_data: dict[str, Any] | None, max_rows: int = MAX_PROMPT_TABLE_ROWS
+    ) -> str:
         """
         Format table data for inclusion in prompts.
 
         Row display rules (kept consistent with the template's row-by-row
         coverage instructions):
         - Up to 20 rows: verbose format, all rows
-        - 21 to MAX_PROMPT_TABLE_ROWS rows: compact format, all rows
-        - Beyond MAX_PROMPT_TABLE_ROWS: first 10 and last 10 rows with an
-          explicit TRUNCATED note scoping coverage to the displayed rows
+        - 21 to max_rows rows: compact format, all rows
+        - Beyond max_rows: first 10 and last 10 rows with an explicit
+          TRUNCATED note scoping coverage to the displayed rows
 
         Args:
             table_data: Table data dictionary with "data" key
+            max_rows: Truncation threshold (FileProcessingConfig.max_table_rows)
 
         Returns:
             Formatted table string
@@ -208,7 +242,7 @@ Return ONLY valid JSON with the exact field names shown above."""
                 for i, row in enumerate(rows):
                     values = [str(row.get(header, "")) for header in headers]
                     formatted += " | ".join(values) + " | Row " + str(i + 1) + "\n"
-            elif total_rows <= MAX_PROMPT_TABLE_ROWS:
+            elif total_rows <= max_rows:
                 # Show all rows but with compact numbering — the template
                 # requires one positive test per row, so every row must be
                 # visible to the model

@@ -71,11 +71,11 @@ Start here when exploring this area:
 | `Main → _build_attribute_definition_mapping` | cross_community | 6 |
 | `Verify_extraction → _determine_image_format` | cross_community | 6 |
 | `Verify_extraction → _compute_hash` | cross_community | 6 |
-| `Verify_extraction → _validate_image` | cross_community | 6 |
 | `Verify_classification → _determine_image_format` | cross_community | 6 |
 | `Verify_classification → _compute_hash` | cross_community | 6 |
-| `Verify_classification → _validate_image` | cross_community | 6 |
 | `Main → Version_tuple` | cross_community | 5 |
+| `Main → _clean_text_for_logging` | cross_community | 5 |
+| `Verify_extraction → _map_reqif_type_to_artifact_type` | cross_community | 5 |
 
 ## Connected Areas
 

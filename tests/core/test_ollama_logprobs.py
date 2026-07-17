@@ -108,7 +108,8 @@ def test_generator_confidence_injection():
     # Mock Client
     mock_client = MagicMock()
     mock_client.generate_completion.return_value = {
-        "response": '{"test_cases": [{"id": 1}]}',
+        "response": '{"test_cases": [{"summary_suffix": "s", "preconditions": "p", '
+        '"test_steps": "1) t", "expected_result": "r", "test_type": "positive"}]}',
         "logprobs": [{"logprob": 0.0}] # Confidence 1.0
     }
 

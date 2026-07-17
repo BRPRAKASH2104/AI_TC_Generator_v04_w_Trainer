@@ -641,16 +641,37 @@ class RequirementImageExtractor:
         Returns:
             List of artifacts augmented with image references
         """
-        # Create image lookup by hash, filename, and object_data
-        image_lookup = {}
+        # Create image lookup by hash, filename, and object_data.
+        # A saved record (one with saved_path) must never be displaced by an
+        # unsaved placeholder for the same key: <object> placeholders are
+        # extracted after external files, so a last-write-wins dict would
+        # drop saved_path and silently disable vision processing
+        # (review 2026-07-17 finding 2). Reference metadata from the loser
+        # is merged into the surviving record instead.
+        image_lookup: dict[str, dict] = {}
+
+        def register(key: str, img: dict) -> None:
+            existing = image_lookup.get(key)
+            if existing is None:
+                image_lookup[key] = img
+                return
+            if existing.get("saved_path") and not img.get("saved_path"):
+                for meta_key, meta_value in img.items():
+                    existing.setdefault(meta_key, meta_value)
+                return
+            if img.get("saved_path") and not existing.get("saved_path"):
+                for meta_key, meta_value in existing.items():
+                    img.setdefault(meta_key, meta_value)
+            image_lookup[key] = img
+
         for img in images:
             if "hash" in img:
-                image_lookup[img["hash"]] = img
+                register(img["hash"], img)
             if "filename" in img:
-                image_lookup[img["filename"]] = img
+                register(img["filename"], img)
             if "object_data" in img:
-                # Add object_data path for REQIF <object> tag matching
-                image_lookup[img["object_data"]] = img
+                # object_data path enables REQIF <object> tag matching
+                register(img["object_data"], img)
 
         # Augment each artifact
         for artifact in artifacts:

@@ -4,12 +4,11 @@ Integration tests with real components (where practical).
 Tests for API compatibility and real component interaction.
 Focuses on non-mocked integration where feasible.
 """
-import tempfile
 import time
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+import requests
 
 from src.config import ConfigManager
 from src.core.ollama_client import OllamaClient
@@ -18,30 +17,40 @@ from src.core.ollama_client import OllamaClient
 class TestAPICompatibility:
     """Test real API compatibility where possible."""
 
-    def test_ollama_client_model_validation(self):
-        """Test that OllamaClient handles model validation gracefully."""
-        # This doesn't require a running Ollama instance - just tests client logic
-        ConfigManager()
+    def test_ollama_client_unknown_model_raises_typed_error(self):
+        """A 404 from Ollama must surface as OllamaModelNotFoundError.
+
+        The transport is mocked so no running Ollama instance is needed
+        (the old version made a real request with model/prompt reversed —
+        review 2026-07-17 Verification Results).
+        """
+        from src.core.exceptions import OllamaModelNotFoundError
+
         config = ConfigManager()
         client = OllamaClient(config.ollama)
 
-        # Test with invalid model (should handle graceful error handling or exceptions properly)
-        try:
-            result = client.generate_response("test prompt", "invalid_model_test_404")
-            # If we get here, Ollama is running - test basic functionality
-            assert isinstance(result, str)
-        except Exception as e:
-            # Expected when Ollama refuses or throws model error - verify error is handled
-            # Ollama may be: not running (Connection/refused), timed out, model not found (404),
-            # or reject the model name as invalid (400 → OllamaResponseError)
-            assert (
-                "Connection" in str(e)
-                or "timeout" in str(e)
-                or "refused" in str(e)
-                or "not found" in str(e).lower()
-                or "invalid" in str(e).lower()
-                or "400" in str(e)
-            )
+        response = Mock()
+        response.status_code = 404
+        response.raise_for_status.side_effect = requests.HTTPError(response=response)
+
+        with patch.object(client._session, "post", return_value=response):
+            with pytest.raises(OllamaModelNotFoundError) as exc_info:
+                client.generate_response("invalid_model_test_404", "test prompt")
+
+        assert exc_info.value.model == "invalid_model_test_404"
+
+    def test_ollama_client_connection_failure_raises_typed_error(self):
+        """A refused connection must surface as OllamaConnectionError."""
+        from src.core.exceptions import OllamaConnectionError
+
+        config = ConfigManager()
+        client = OllamaClient(config.ollama)
+
+        with patch.object(
+            client._session, "post", side_effect=requests.ConnectionError("refused")
+        ):
+            with pytest.raises(OllamaConnectionError):
+                client.generate_response("llama3.1:8b", "test prompt")
 
     def test_response_parser_real_json(self):
         """Test JSON response parsing with real JSON."""
@@ -52,16 +61,16 @@ class TestAPICompatibility:
         {
             "test_cases": [
                 {
-                    "summary": "Validate user authentication",
-                    "action": "Enter valid credentials",
-                    "data": "username: test@example.com, password: secure123",
+                    "summary_suffix": "Validate user authentication",
+                    "preconditions": "User account exists",
+                    "test_steps": "1) Enter valid credentials",
                     "expected_result": "User is logged in successfully",
                     "test_type": "positive"
                 },
                 {
-                    "summary": "Handle invalid login attempts",
-                    "action": "Enter invalid password",
-                    "data": "username: test@example.com, password: wrongpass",
+                    "summary_suffix": "Handle invalid login attempts",
+                    "preconditions": "User account exists",
+                    "test_steps": "1) Enter invalid password",
                     "expected_result": "Error message 'Invalid credentials' is displayed",
                     "test_type": "negative"
                 }
@@ -142,7 +151,7 @@ class TestConfigurationValidation:
             timeout=30.0,
             model="llama3.1:8b"
         )
-            
+
         assert ollama_config.host == "127.0.0.1"
         assert ollama_config.port == 11434
         assert ollama_config.timeout == 30.0
@@ -161,7 +170,6 @@ class TestPerformanceValidation:
     def test_json_parser_performance_comparison(self):
         """Test that ujson optimization is actually faster than standard json."""
         import json
-        import time
 
         from src.core.parsers import JSON_PARSER
 

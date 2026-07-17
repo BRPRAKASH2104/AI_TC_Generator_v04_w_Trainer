@@ -393,7 +393,10 @@ class TestErrorHandling:
         requirement = {"id": "REQ_001"}
         result = generator.generate_test_cases_for_requirement(requirement, "model")
 
-        assert result == []
+        # Failures return structured error objects (review 2026-07-17 finding 1)
+        assert result["error"] is True
+        assert result["requirement_id"] == "REQ_001"
+        assert result["test_cases"] == []
 
     def test_generator_exception_handling(self):
         """Test generator exception handling (NEGATIVE)"""
@@ -406,7 +409,9 @@ class TestErrorHandling:
         requirement = {"id": "REQ_001"}
         result = generator.generate_test_cases_for_requirement(requirement, "model")
 
-        assert result == []
+        # Failures return structured error objects (review 2026-07-17 finding 1)
+        assert result["error"] is True
+        assert result["test_cases"] == []
         assert generator.logger is not None
 
 

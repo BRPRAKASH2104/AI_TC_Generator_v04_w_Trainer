@@ -5,11 +5,11 @@ This module provides classes for generating test cases from requirement artifact
 using AI models, with support for both synchronous and asynchronous processing.
 
 Both generators share construction and response post-processing through
-_GeneratorCore; only the transport (sync vs async client calls) and the
-failure contract differ:
-- TestCaseGenerator returns [] on failure (consumed by the standard processor)
-- AsyncTestCaseGenerator returns structured error dicts (consumed by the HP
-  processor, which distinguishes error types)
+_GeneratorCore; only the transport (sync vs async client calls) differs.
+Both return structured error dicts on failure (EmptyResponse,
+InvalidJSONStructure, EmptyTestCasesList, or the exception type) so the
+processors can distinguish failure from success and report partial
+completion instead of silently dropping requirements.
 """
 
 import asyncio
@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .deduplicator import TestCaseDeduplicator
+from .exceptions import TestCaseValidationError
 from .parsers import FastJSONResponseParser, JSONResponseParser
 from .prompt_builder import PromptBuilder
 
@@ -28,7 +29,11 @@ if TYPE_CHECKING:
     from src.yaml_prompt_manager import YAMLPromptManager
 
     from .ollama_client import AsyncOllamaClient, OllamaClient
-from .validators import SemanticValidator
+from .validators import (
+    TEST_CASE_RESPONSE_JSON_SCHEMA,
+    SemanticValidator,
+    is_canonical_test_case,
+)
 
 # Type aliases for better readability (PEP 695 style)
 type TestCaseData = dict[str, Any]
@@ -165,6 +170,7 @@ class _GeneratorCore:
         "enable_validation",
         "enable_deduplication",
         "keep_strategy",
+        "fail_on_validation_error",
     )
 
     # Subclasses select their JSON parser implementation
@@ -181,14 +187,19 @@ class _GeneratorCore:
     ):
         validation_cfg = getattr(config, "validation", None)
         dedup_cfg = getattr(config, "deduplication", None)
+        file_cfg = getattr(config, "file_processing", None)
+        max_table_rows = file_cfg.max_table_rows if file_cfg else None
 
         self.client = client
         self.json_parser = self._parser_class()
-        self.prompt_builder = PromptBuilder(yaml_manager)
+        self.prompt_builder = PromptBuilder(yaml_manager, max_table_rows=max_table_rows)
         self.logger = logger
 
         self.enable_validation = (
             validation_cfg.enable_semantic_validation if validation_cfg else True
+        )
+        self.fail_on_validation_error = (
+            validation_cfg.fail_on_validation_error if validation_cfg else False
         )
         self.enable_deduplication = dedup_cfg.enable_deduplication if dedup_cfg else True
         self.keep_strategy = dedup_cfg.keep_strategy if dedup_cfg else "best"
@@ -196,12 +207,34 @@ class _GeneratorCore:
         self.validator = validator or SemanticValidator(
             logger=logger,
             similarity_threshold=validation_cfg.similarity_threshold if validation_cfg else 0.8,
+            max_prompt_table_rows=max_table_rows,
         )
         self.deduplicator = deduplicator or TestCaseDeduplicator(
             similarity_threshold=dedup_cfg.similarity_threshold if dedup_cfg else 0.85,
             logger=logger,
             fields_to_compare=list(dedup_cfg.fields_to_compare) if dedup_cfg else None,
         )
+
+    @staticmethod
+    def _error_result(
+        req_id: str, error_type: str, error_message: str, generation_time: float | None = None
+    ) -> dict[str, Any]:
+        """Build a structured error object with the consistent result interface.
+
+        Shared by the sync and async generators so both report failures the
+        same way (see module docstring).
+        """
+        error_info = {
+            "error": True,
+            "requirement_id": req_id,
+            "error_type": error_type,
+            "error_message": error_message,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "test_cases": [],  # Consistent interface: always provide test_cases list
+        }
+        if generation_time is not None:
+            error_info["generation_time"] = generation_time
+        return error_info
 
     def _extract_response_parts(
         self, full_response: dict[str, Any] | str
@@ -230,6 +263,23 @@ class _GeneratorCore:
         """
         req_id = requirement.get("id", "UNKNOWN")
 
+        # Canonical-schema gate (review 2026-07-17 finding 4): items missing
+        # the five canonical fields must not reach the formatter, which would
+        # otherwise render them as plausible default/N/A Excel rows.
+        canonical_cases = [tc for tc in test_cases if is_canonical_test_case(tc)]
+        dropped_count = len(test_cases) - len(canonical_cases)
+
+        if dropped_count:
+            message = (
+                f"{dropped_count} of {len(test_cases)} test cases for {req_id} "
+                f"failed canonical-schema validation"
+            )
+            if self.fail_on_validation_error:
+                raise TestCaseValidationError(message, requirement_id=req_id)
+            if self.logger:
+                self.logger.warning(f"Dropped invalid test cases: {message}")
+            test_cases = canonical_cases
+
         # Semantic validation (skippable via ValidationConfig)
         if self.enable_validation:
             validation_report = self.validator.validate_batch(test_cases, requirement)
@@ -252,6 +302,16 @@ class _GeneratorCore:
                 )
                 for issue in issue_entry["issues"]:
                     self.logger.warning(f"    - {issue}")
+
+        # Honor strict mode for semantic failures too (ValidationConfig.
+        # fail_on_validation_error was previously never consulted)
+        if self.fail_on_validation_error and validation_report["invalid_count"] > 0:
+            raise TestCaseValidationError(
+                f"{validation_report['invalid_count']} of "
+                f"{validation_report['total_test_cases']} test cases for {req_id} "
+                f"failed semantic validation",
+                requirement_id=req_id,
+            )
 
         # Log table coverage information
         table_coverage = validation_report.get("table_coverage", {})
@@ -331,9 +391,14 @@ class TestCaseGenerator(_GeneratorCore):
 
     def generate_test_cases_for_requirement(
         self, requirement: RequirementData, model: str, template_name: str | None = None
-    ) -> TestCaseList:
+    ) -> ProcessingResult:
         """
         Generate test cases for a single requirement.
+
+        Failures return structured error objects (EmptyResponse,
+        InvalidJSONStructure, EmptyTestCasesList, or the exception type)
+        instead of an empty list, so the standard processor can report
+        partial completion (mirrors the async generator's contract).
 
         Args:
             requirement: The requirement data to process
@@ -341,14 +406,17 @@ class TestCaseGenerator(_GeneratorCore):
             template_name: Optional specific template to use
 
         Returns:
-            List of generated test cases (empty list on failure)
+            Either a list of test cases (success) or a structured error
+            object (failure).
         """
+        req_id = requirement.get("id", "UNKNOWN")
+
         try:
             # Build prompt using PromptBuilder
             prompt = self.prompt_builder.build_prompt(requirement, template_name)
 
             if self.logger:
-                self.logger.debug(f"Generating test cases for {requirement.get('id', 'UNKNOWN')}")
+                self.logger.debug(f"Generating test cases for {req_id}")
 
             # Extract image paths for vision model support
             image_paths = extract_image_paths(requirement)
@@ -360,37 +428,67 @@ class TestCaseGenerator(_GeneratorCore):
                 if self.logger:
                     self.logger.debug(f"Using vision model with {len(image_paths)} image(s)")
                 full_response = self.client.generate_response_with_vision(
-                    model, prompt, image_paths, is_json=True, return_full_response=True
+                    model,
+                    prompt,
+                    image_paths,
+                    is_json=True,
+                    return_full_response=True,
+                    format_schema=TEST_CASE_RESPONSE_JSON_SCHEMA,
                 )
             else:
                 full_response = self.client.generate_completion(
-                    model, prompt, is_json=True, return_full_response=True
+                    model,
+                    prompt,
+                    is_json=True,
+                    return_full_response=True,
+                    format_schema=TEST_CASE_RESPONSE_JSON_SCHEMA,
                 )
 
             generation_time = time.time() - start_time
 
             response_text, confidence_score = self._extract_response_parts(full_response)
 
+            # Empty-response check
+            if not response_text or not response_text.strip():
+                if self.logger:
+                    self.logger.warning(f"Empty response for {req_id}")
+                return self._error_result(
+                    req_id, "EmptyResponse", "AI model returned empty response", generation_time
+                )
+
             # Parse JSON response
             test_cases_data = self.json_parser.extract_json_from_response(response_text)
 
-            if test_cases_data and "test_cases" in test_cases_data:
-                return self._postprocess_test_cases(
-                    test_cases_data["test_cases"], requirement, generation_time, confidence_score
+            if not test_cases_data or "test_cases" not in test_cases_data:
+                if self.logger:
+                    self.logger.warning(f"Invalid JSON structure for {req_id}")
+                return self._error_result(
+                    req_id,
+                    "InvalidJSONStructure",
+                    "Response does not contain 'test_cases' field",
+                    generation_time,
                 )
 
-            if self.logger:
-                self.logger.warning(
-                    f"No test cases generated for {requirement.get('id', 'UNKNOWN')}"
+            test_cases = test_cases_data["test_cases"]
+
+            if not test_cases:
+                if self.logger:
+                    self.logger.warning(f"Empty test cases list for {req_id}")
+                return self._error_result(
+                    req_id,
+                    "EmptyTestCasesList",
+                    "AI returned empty test cases list",
+                    generation_time,
                 )
-            return []
+
+            return self._postprocess_test_cases(
+                test_cases, requirement, generation_time, confidence_score
+            )
 
         except Exception as e:
             if self.logger:
-                self.logger.error(
-                    f"Error generating test cases for {requirement.get('id', 'UNKNOWN')}: {e}"
-                )
-            return []
+                self.logger.error(f"Error generating test cases for {req_id}: {e}")
+            return self._error_result(req_id, type(e).__name__, str(e))
 
 
 class AsyncTestCaseGenerator(_GeneratorCore):
@@ -490,23 +588,6 @@ class AsyncTestCaseGenerator(_GeneratorCore):
 
         return processed_results
 
-    @staticmethod
-    def _error_result(
-        req_id: str, error_type: str, error_message: str, generation_time: float | None = None
-    ) -> dict[str, Any]:
-        """Build a structured error object with the consistent result interface."""
-        error_info = {
-            "error": True,
-            "requirement_id": req_id,
-            "error_type": error_type,
-            "error_message": error_message,
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "test_cases": [],  # Consistent interface: always provide test_cases list
-        }
-        if generation_time is not None:
-            error_info["generation_time"] = generation_time
-        return error_info
-
     async def _generate_test_cases_for_requirement_async(
         self, requirement: RequirementData, model: str, template_name: str | None = None
     ) -> ProcessingResult:
@@ -545,11 +626,20 @@ class AsyncTestCaseGenerator(_GeneratorCore):
                         f"Using vision model with {len(image_paths)} image(s) for {req_id}"
                     )
                 full_response = await self.client.generate_response_with_vision(
-                    model, prompt, image_paths, is_json=True, return_full_response=True
+                    model,
+                    prompt,
+                    image_paths,
+                    is_json=True,
+                    return_full_response=True,
+                    format_schema=TEST_CASE_RESPONSE_JSON_SCHEMA,
                 )
             else:
                 full_response = await self.client.generate_completion(
-                    model, prompt, is_json=True, return_full_response=True
+                    model,
+                    prompt,
+                    is_json=True,
+                    return_full_response=True,
+                    format_schema=TEST_CASE_RESPONSE_JSON_SCHEMA,
                 )
             generation_time = time.time() - start_time
 

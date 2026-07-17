@@ -53,9 +53,10 @@ class TestBaseProcessorInitialization:
         assert processor.formatter is mock_formatter
 
     def test_raft_collector_initialized_when_enabled(self):
-        """RAFT collector is initialized when training.enable_raft is True"""
+        """RAFT collector requires BOTH consent flags (review 2026-07-17 §6)"""
         config = ConfigManager()
         config.training.enable_raft = True
+        config.training.collect_training_data = True
 
         with patch("src.processors.base_processor.RAFTDataCollector") as mock_raft:
             processor = BaseProcessor(config=config)

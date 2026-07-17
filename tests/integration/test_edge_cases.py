@@ -339,9 +339,11 @@ class TestMalformedResponses:
             "test-model"
         )
 
-        # Should handle gracefully and return empty list
-        assert isinstance(result, list)
-        assert len(result) == 0
+        # Failures return structured error objects (review 2026-07-17 finding 1)
+        assert isinstance(result, dict)
+        assert result["error"] is True
+        assert result["error_type"] == "InvalidJSONStructure"
+        assert result["test_cases"] == []
 
     def test_json_missing_test_cases_key(self, mock_config):
         """Test handling of JSON response missing expected keys"""
@@ -360,9 +362,11 @@ class TestMalformedResponses:
             "test-model"
         )
 
-        # Should handle missing key gracefully
-        assert isinstance(result, list)
-        assert len(result) == 0
+        # Failures return structured error objects (review 2026-07-17 finding 1)
+        assert isinstance(result, dict)
+        assert result["error"] is True
+        assert result["error_type"] == "InvalidJSONStructure"
+        assert result["test_cases"] == []
 
     def test_malformed_test_case_structure(self, mock_config):
         """Test handling of malformed test case structures in response"""
@@ -370,13 +374,13 @@ class TestMalformedResponses:
         mock_client.generate_completion.return_value = {
             "response": json.dumps({
                 "test_cases": [
-                    # Valid test case
+                    # Valid canonical test case
                     {
-                        "test_id": "TC_001",
-                        "summary": "Valid test case",
+                        "summary_suffix": "Valid test case",
                         "preconditions": "Valid preconditions",
                         "test_steps": ["Step 1", "Step 2"],
-                        "expected_result": "Valid result"
+                        "expected_result": "Valid result",
+                        "test_type": "positive"
                     },
                     # Malformed test case - missing required fields
                     {
@@ -414,11 +418,11 @@ class TestMalformedResponses:
         # Add many test cases with large content
         for i in range(1000):
             large_response["test_cases"].append({
-                "test_id": f"TC_{i:04d}",
-                "summary": f"Test case {i} " + "x" * 1000,  # Large summary
+                "summary_suffix": f"Test case {i} " + "x" * 1000,  # Large summary
                 "preconditions": "Large preconditions " + "y" * 500,
                 "test_steps": [f"Step {j} " + "z" * 200 for j in range(10)],  # Many large steps
-                "expected_result": "Large expected result " + "w" * 800
+                "expected_result": "Large expected result " + "w" * 800,
+                "test_type": "positive"
             })
 
         mock_client = Mock()

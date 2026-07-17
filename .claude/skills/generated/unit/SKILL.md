@@ -1,60 +1,64 @@
 ---
 name: unit
-description: "Skill for the Unit area of AI_TC_Generator_v04_w_Trainer. 20 symbols across 3 files."
+description: "Skill for the Unit area of AI_TC_Generator_v04_w_Trainer. 49 symbols across 7 files."
 ---
 
 # Unit
 
-20 symbols | 3 files | Cohesion: 79%
+49 symbols | 7 files | Cohesion: 89%
 
 ## When to Use
 
-- Working with code in `src/`
-- Understanding how show_banner, main, set_nested work
+- Working with code in `tests/`
+- Understanding how get_test_prompt, get_template_info, test_get_test_prompt_basic work
 - Modifying unit-related functionality
 
 ## Key Files
 
 | File | Symbols |
 |------|---------|
+| `tests/unit/test_main_helpers.py` | _effective_for_preset, test_production_preset_mode_and_flags_survive, test_production_preset_concurrency_not_clobbered_by_model_defaults, test_development_preset_verbose_survives_absent_cli_flag, test_all_files_succeeded (+13) |
 | `src/yaml_prompt_manager.py` | get_test_prompt, _auto_select_template, _validate_variables, _apply_defaults, _substitute_variables (+3) |
 | `tests/unit/test_yaml_prompt_manager_fixed.py` | test_get_test_prompt_basic, test_get_test_prompt_with_template_name, test_substitute_variables_basic, test_substitute_variables_missing_variable, test_get_template_info (+2) |
-| `main.py` | show_banner, main, set_nested, _validate_templates, _list_templates |
+| `tests/unit/test_training_consent.py` | test_training_section_is_loaded, test_unknown_training_keys_are_ignored, _processor_with, test_both_flags_enabled_creates_collector, test_enable_raft_alone_is_not_consent (+2) |
+| `main.py` | _validate_templates, _aggregate_directory_results, _resolve_exit_code, _resolve_processing_mode |
+| `tests/unit/test_config_export.py` | _config_with_secrets, test_secret_values_not_written, test_secrets_section_absent_and_config_still_valid, test_export_has_owner_only_permissions |
+| `src/config.py` | load_cli_config |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`show_banner`** (Function) — `main.py:41`
-- **`main`** (Function) — `main.py:108`
-- **`set_nested`** (Function) — `main.py:176`
 - **`get_test_prompt`** (Method) — `src/yaml_prompt_manager.py:154`
+- **`get_template_info`** (Method) — `src/yaml_prompt_manager.py:295`
 - **`test_get_test_prompt_basic`** (Method) — `tests/unit/test_yaml_prompt_manager_fixed.py:44`
+- **`test_get_test_prompt_with_template_name`** (Method) — `tests/unit/test_yaml_prompt_manager_fixed.py:61`
+- **`test_substitute_variables_basic`** (Method) — `tests/unit/test_yaml_prompt_manager_fixed.py:78`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `show_banner` | Function | `main.py` | 41 |
-| `main` | Function | `main.py` | 108 |
-| `set_nested` | Function | `main.py` | 176 |
 | `get_test_prompt` | Method | `src/yaml_prompt_manager.py` | 154 |
+| `get_template_info` | Method | `src/yaml_prompt_manager.py` | 295 |
 | `test_get_test_prompt_basic` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 44 |
 | `test_get_test_prompt_with_template_name` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 61 |
 | `test_substitute_variables_basic` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 78 |
 | `test_substitute_variables_missing_variable` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 95 |
-| `get_template_info` | Method | `src/yaml_prompt_manager.py` | 295 |
 | `test_get_template_info` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 130 |
-| `get_template_usage_summary` | Method | `src/yaml_prompt_manager.py` | 311 |
-| `test_get_template_usage_summary` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 149 |
-| `reset_template_usage` | Method | `src/yaml_prompt_manager.py` | 315 |
-| `test_reset_template_usage` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 164 |
-| `_validate_templates` | Function | `main.py` | 426 |
-| `_list_templates` | Function | `main.py` | 461 |
-| `_auto_select_template` | Method | `src/yaml_prompt_manager.py` | 199 |
-| `_validate_variables` | Method | `src/yaml_prompt_manager.py` | 237 |
-| `_apply_defaults` | Method | `src/yaml_prompt_manager.py` | 251 |
-| `_substitute_variables` | Method | `src/yaml_prompt_manager.py` | 273 |
+| `load_cli_config` | Method | `src/config.py` | 570 |
+| `test_production_preset_mode_and_flags_survive` | Method | `tests/unit/test_main_helpers.py` | 118 |
+| `test_production_preset_concurrency_not_clobbered_by_model_defaults` | Method | `tests/unit/test_main_helpers.py` | 125 |
+| `test_development_preset_verbose_survives_absent_cli_flag` | Method | `tests/unit/test_main_helpers.py` | 131 |
+| `test_training_section_is_loaded` | Method | `tests/unit/test_training_consent.py` | 43 |
+| `test_unknown_training_keys_are_ignored` | Method | `tests/unit/test_training_consent.py` | 60 |
+| `test_all_files_succeeded` | Method | `tests/unit/test_main_helpers.py` | 12 |
+| `test_one_file_failed_means_partial_not_success` | Method | `tests/unit/test_main_helpers.py` | 25 |
+| `test_partial_file_propagates_partial` | Method | `tests/unit/test_main_helpers.py` | 37 |
+| `test_all_files_failed` | Method | `tests/unit/test_main_helpers.py` | 48 |
+| `test_empty_results_is_failure` | Method | `tests/unit/test_main_helpers.py` | 60 |
+| `test_complete_success_is_zero` | Method | `tests/unit/test_main_helpers.py` | 70 |
+| `test_partial_success_is_two` | Method | `tests/unit/test_main_helpers.py` | 73 |
 
 ## Execution Flows
 
@@ -64,23 +68,22 @@ Start here when exploring this area:
 | `Main → _validate_variables` | cross_community | 4 |
 | `Main → _apply_defaults` | cross_community | 4 |
 | `Main → _substitute_variables` | cross_community | 4 |
-| `Main → _log_with_extras` | cross_community | 3 |
 | `Generate_sample_outputs → _validate_variables` | cross_community | 3 |
 | `Generate_sample_outputs → _apply_defaults` | cross_community | 3 |
 | `Generate_sample_outputs → _substitute_variables` | cross_community | 3 |
-| `_validate_templates → _auto_select_template` | cross_community | 3 |
-| `_validate_templates → _validate_variables` | cross_community | 3 |
+| `_validate_templates → _auto_select_template` | intra_community | 3 |
+| `_validate_templates → _validate_variables` | intra_community | 3 |
+| `_validate_templates → _apply_defaults` | intra_community | 3 |
 
 ## Connected Areas
 
 | Area | Connections |
 |------|-------------|
-| Integration | 8 calls |
-| Cluster_7 | 3 calls |
+| Cluster_1 | 1 calls |
 
 ## How to Explore
 
-1. `context({name: "show_banner"})` — see callers and callees
+1. `context({name: "get_test_prompt"})` — see callers and callees
 2. `query({search_query: "unit"})` — find related execution flows
 3. Read key files listed above for implementation details
 4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`

@@ -10,6 +10,8 @@ import re
 from typing import TYPE_CHECKING, Any
 from xml.etree import ElementTree as ET
 
+from .validators import is_canonical_test_case
+
 if TYPE_CHECKING:
     from types import ModuleType
 
@@ -90,7 +92,13 @@ class JSONResponseParser:
 
     @staticmethod
     def validate_test_cases_structure(data: Any) -> bool:
-        """Validate that JSON contains properly structured test cases"""
+        """Validate that JSON contains properly structured canonical test cases.
+
+        Every case must carry the active canonical schema
+        (summary_suffix, preconditions, test_steps, expected_result,
+        test_type) — the retired action/data schema is rejected
+        (review 2026-07-17 finding 4).
+        """
         if not isinstance(data, dict):
             return False
 
@@ -98,14 +106,7 @@ class JSONResponseParser:
         if not isinstance(test_cases, list) or not test_cases:
             return False
 
-        # Check first test case structure
-        required_fields = {"summary", "action", "data", "expected_result"}
-        first_case = test_cases[0]
-
-        if not isinstance(first_case, dict):
-            return False
-
-        return all(field in first_case for field in required_fields)
+        return all(is_canonical_test_case(test_case) for test_case in test_cases)
 
 
 class FastJSONResponseParser(JSONResponseParser):

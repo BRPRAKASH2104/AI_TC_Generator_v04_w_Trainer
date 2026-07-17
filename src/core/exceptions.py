@@ -85,3 +85,19 @@ class ConfigurationError(AITestCaseGeneratorError):
     """Raised when configuration is invalid"""
 
     pass
+
+
+class TestCaseValidationError(AITestCaseGeneratorError):
+    """Raised when generated test cases fail canonical-schema validation.
+
+    Only raised when ValidationConfig.fail_on_validation_error is enabled;
+    the generators convert it into a structured error result so processors
+    report the requirement as failed instead of exporting default-filled
+    Excel rows (review 2026-07-17 finding 4).
+    """
+
+    __slots__ = ("requirement_id",)
+
+    def __init__(self, message: str, requirement_id: str | None = None):
+        self.requirement_id = requirement_id
+        super().__init__(message)

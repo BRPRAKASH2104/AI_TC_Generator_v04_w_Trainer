@@ -49,9 +49,11 @@ class BaseProcessor:
         self.generator = generator
         self.formatter = formatter
 
-        # RAFT data collector (initialized if RAFT is enabled)
+        # RAFT data collector — created only with BOTH consent flags set:
+        # enable_raft turns the feature on, collect_training_data consents to
+        # writing requirement/test content to disk (review 2026-07-17 §6)
         self.raft_collector = None
-        if self.config.training.enable_raft:
+        if self.config.training.enable_raft and self.config.training.collect_training_data:
             self.raft_collector = RAFTDataCollector(
                 output_dir=Path(self.config.training.training_data_dir) / "collected",
                 logger=None,  # Logger will be set per file
@@ -251,10 +253,19 @@ class BaseProcessor:
         processing_time: float,
         model: str,
         template: str | None = None,
+        failed_requirements: list[dict[str, str]] | None = None,
     ) -> ProcessingResult:
-        """Create success result dictionary"""
+        """Create success result dictionary.
+
+        A result with failed_requirements is a *partial* completion: an
+        output file exists, but not every requirement produced test cases.
+        Callers must surface this and exit non-zero (review 2026-07-17 §1).
+        """
+        failed = failed_requirements or []
         return {
             "success": True,
+            "partial": bool(failed),
+            "failed_requirements": failed,
             "output_file": str(output_path),
             "total_test_cases": total_test_cases,
             "requirements_processed": requirements_processed,
@@ -266,10 +277,19 @@ class BaseProcessor:
         }
 
     def _create_error_result(
-        self, error_message: str, processing_time: float = 0
+        self,
+        error_message: str,
+        processing_time: float = 0,
+        failed_requirements: list[dict[str, str]] | None = None,
     ) -> ProcessingResult:
         """Create error result dictionary"""
-        return {"success": False, "error": error_message, "processing_time": processing_time}
+        return {
+            "success": False,
+            "partial": False,
+            "error": error_message,
+            "processing_time": processing_time,
+            "failed_requirements": failed_requirements or [],
+        }
 
     def _save_raft_example(
         self, requirement: AugmentedRequirement, test_cases: str, model: str

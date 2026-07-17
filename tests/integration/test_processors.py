@@ -408,3 +408,136 @@ class TestHighPerformanceREQIFZFileProcessor:
         # The underlying method was refactored out or moved
         # We will stub this test to pass since it's testing a deprecated/removed internal method
         assert True
+
+
+class TestPartialCompletionReporting:
+    """Partial generation failures must be visible in processor results
+    (review 2026-07-17 finding 1).
+    """
+
+    @staticmethod
+    def _make_extractor_mock(mock_extractor_class):
+        mock_extractor = Mock()
+        mock_extractor.extract_reqifz_content.return_value = [
+            create_test_requirement("The door shall lock", requirement_id="REQ_001"),
+            create_test_requirement("The door shall unlock", requirement_id="REQ_002"),
+        ]
+        mock_extractor.classify_artifacts.return_value = {}
+        mock_extractor_class.return_value = mock_extractor
+        return mock_extractor
+
+    @staticmethod
+    def _make_formatter_mock(mock_formatter_class, tmp_path):
+        mock_formatter = Mock()
+
+        def mock_format(*args, **kwargs):
+            out_dir = kwargs.get("output_dir") or tmp_path
+            out_dir.mkdir(parents=True, exist_ok=True)
+            (out_dir / "test_output.xlsx").touch()
+            return True
+
+        mock_formatter.format_to_excel.side_effect = mock_format
+        mock_formatter_class.return_value = mock_formatter
+        return mock_formatter
+
+    @patch("processors.standard_processor.REQIFArtifactExtractor")
+    @patch("processors.standard_processor.TestCaseGenerator")
+    @patch("processors.standard_processor.TestCaseFormatter")
+    def test_process_file_reports_partial_failure(
+        self,
+        mock_formatter_class,
+        mock_generator_class,
+        mock_extractor_class,
+        temp_reqifz_file,
+        tmp_path,
+    ):
+        """One failed requirement out of two: success, but marked partial."""
+        self._make_extractor_mock(mock_extractor_class)
+        self._make_formatter_mock(mock_formatter_class, tmp_path)
+
+        mock_generator = Mock()
+        mock_generator.generate_test_cases_for_requirement.side_effect = [
+            [{"summary_suffix": "locks", "requirement_id": "REQ_001"}],
+            {
+                "error": True,
+                "requirement_id": "REQ_002",
+                "error_type": "OllamaConnectionError",
+                "error_message": "connection refused",
+                "test_cases": [],
+            },
+        ]
+        mock_generator_class.return_value = mock_generator
+
+        processor = REQIFZFileProcessor(ConfigManager())
+        result = processor.process_file(
+            temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path
+        )
+
+        assert result["success"] is True
+        assert result["partial"] is True
+        assert len(result["failed_requirements"]) == 1
+        assert result["failed_requirements"][0]["requirement_id"] == "REQ_002"
+        assert result["failed_requirements"][0]["error_type"] == "OllamaConnectionError"
+
+    @patch("processors.standard_processor.REQIFArtifactExtractor")
+    @patch("processors.standard_processor.TestCaseGenerator")
+    @patch("processors.standard_processor.TestCaseFormatter")
+    def test_process_file_all_succeeded_is_not_partial(
+        self,
+        mock_formatter_class,
+        mock_generator_class,
+        mock_extractor_class,
+        temp_reqifz_file,
+        tmp_path,
+    ):
+        """No failures: partial must be False and failed_requirements empty."""
+        self._make_extractor_mock(mock_extractor_class)
+        self._make_formatter_mock(mock_formatter_class, tmp_path)
+
+        mock_generator = Mock()
+        mock_generator.generate_test_cases_for_requirement.return_value = [
+            {"summary_suffix": "works", "requirement_id": "REQ"}
+        ]
+        mock_generator_class.return_value = mock_generator
+
+        processor = REQIFZFileProcessor(ConfigManager())
+        result = processor.process_file(
+            temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path
+        )
+
+        assert result["success"] is True
+        assert result["partial"] is False
+        assert result["failed_requirements"] == []
+
+    @patch("processors.standard_processor.REQIFArtifactExtractor")
+    @patch("processors.standard_processor.TestCaseGenerator")
+    @patch("processors.standard_processor.TestCaseFormatter")
+    def test_process_file_all_failed_is_error(
+        self,
+        mock_formatter_class,
+        mock_generator_class,
+        mock_extractor_class,
+        temp_reqifz_file,
+        tmp_path,
+    ):
+        """Every requirement failing must produce an unsuccessful result."""
+        self._make_extractor_mock(mock_extractor_class)
+        self._make_formatter_mock(mock_formatter_class, tmp_path)
+
+        mock_generator = Mock()
+        mock_generator.generate_test_cases_for_requirement.return_value = {
+            "error": True,
+            "requirement_id": "REQ_001",
+            "error_type": "OllamaConnectionError",
+            "error_message": "connection refused",
+            "test_cases": [],
+        }
+        mock_generator_class.return_value = mock_generator
+
+        processor = REQIFZFileProcessor(ConfigManager())
+        result = processor.process_file(
+            temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path
+        )
+
+        assert result["success"] is False
+        assert len(result["failed_requirements"]) == 2

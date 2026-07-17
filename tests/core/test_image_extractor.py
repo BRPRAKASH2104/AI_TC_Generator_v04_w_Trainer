@@ -380,3 +380,77 @@ def test_augment_artifacts_without_images(extractor):
     for artifact in augmented:
         assert artifact["has_images"] is False
         assert "images" not in artifact or len(artifact.get("images", [])) == 0
+
+
+class TestObjectPlaceholderCollision:
+    """An unsaved <object> placeholder must never displace the saved external
+    record for the same path in the augmentation lookup
+    (review 2026-07-17 finding 2).
+    """
+
+    @staticmethod
+    def _saved_external_record(temp_output_dir):
+        return {
+            "source": ImageSource.EXTERNAL_FILE,
+            "format": ImageFormat.PNG,
+            "filename": "media/diagram.png",
+            "size_bytes": len(SAMPLE_PNG_BYTES),
+            "hash": "abc123",
+            "reqifz_source": "test.reqifz",
+            "saved": True,
+            "saved_path": str(temp_output_dir / "diagram.png"),
+        }
+
+    @staticmethod
+    def _object_placeholder():
+        return {
+            "source": ImageSource.OBJECT_ELEMENT,
+            "object_type": "image/png",
+            "object_data": "media/diagram.png",
+            "reqifz_source": "test.reqifz",
+            "saved": False,
+        }
+
+    def test_saved_record_survives_placeholder_registered_later(
+        self, extractor, temp_output_dir
+    ):
+        """Extraction order (external first, placeholder second) must not
+        lose saved_path — losing it silently disables vision processing."""
+        saved = self._saved_external_record(temp_output_dir)
+        placeholder = self._object_placeholder()
+        artifact = {
+            "type": "System Requirement",
+            "id": "REQ_IMG",
+            "text": '<object data="media/diagram.png" type="image/png"></object>',
+        }
+
+        augmented = extractor.augment_artifacts_with_images(
+            [artifact], [saved, placeholder]
+        )
+
+        assert augmented[0]["has_images"] is True
+        images = augmented[0]["images"]
+        assert len(images) == 1
+        assert images[0]["saved"] is True
+        assert images[0]["saved_path"] == str(temp_output_dir / "diagram.png")
+
+    def test_placeholder_metadata_merged_into_saved_record(
+        self, extractor, temp_output_dir
+    ):
+        """The object reference metadata should enrich the saved record."""
+        saved = self._saved_external_record(temp_output_dir)
+        placeholder = self._object_placeholder()
+        artifact = {
+            "type": "System Requirement",
+            "id": "REQ_IMG",
+            "text": '<object data="media/diagram.png" type="image/png"></object>',
+        }
+
+        augmented = extractor.augment_artifacts_with_images(
+            [artifact], [saved, placeholder]
+        )
+
+        linked = augmented[0]["images"][0]
+        assert linked["object_data"] == "media/diagram.png"
+        assert linked["object_type"] == "image/png"
+        assert linked["filename"] == "media/diagram.png"

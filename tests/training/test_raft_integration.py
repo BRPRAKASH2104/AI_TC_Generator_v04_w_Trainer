@@ -25,9 +25,11 @@ class TestRAFTIntegration:
 
     @pytest.fixture
     def config_raft_enabled(self, tmp_path):
-        """Config with RAFT enabled"""
+        """Config with RAFT fully enabled — collection requires BOTH consent
+        flags (review 2026-07-17 finding 6)"""
         config = ConfigManager()
         config.training.enable_raft = True
+        config.training.collect_training_data = True
         config.training.training_data_dir = str(tmp_path / "training_data")
         return config
 

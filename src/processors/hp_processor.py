@@ -98,6 +98,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         results = []
         for reqifz_path in reqifz_files:
             result = await self.process_file(reqifz_path, model, template, output_dir)
+            result.setdefault("input_file", str(reqifz_path))
             results.append(result)
 
         return results
@@ -204,6 +205,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
                 # Process all results
                 all_test_cases = []
+                failed_requirements: list[dict[str, str]] = []
                 for j, result in enumerate(batch_results):
                     self.metrics["ai_calls_made"] += 1
 
@@ -220,6 +222,14 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                             self.logger.add_requirement_failure(
                                 req_id, f"{error_type}: {error_msg}"
                             )
+
+                        failed_requirements.append(
+                            {
+                                "requirement_id": req_id,
+                                "error_type": error_type,
+                                "error_message": error_msg,
+                            }
+                        )
 
                     elif isinstance(result, list) and result:
                         # Successful test cases
@@ -256,6 +266,13 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                         self.logger.warning(f"⚠️  {req_id}: No test cases generated")
                         if hasattr(self.logger, "add_requirement_failure"):
                             self.logger.add_requirement_failure(req_id, "Empty result returned")
+                        failed_requirements.append(
+                            {
+                                "requirement_id": req_id,
+                                "error_type": "EmptyResult",
+                                "error_message": "No test cases generated",
+                            }
+                        )
 
                 processing_time = time.time() - processing_start
                 rate = len(augmented_requirements) / processing_time if processing_time > 0 else 0
@@ -270,7 +287,10 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                     await monitor_task  # Expected when cancelling
 
                 if not all_test_cases:
-                    return self._create_error_result_hp("No test cases were generated")
+                    return self._create_error_result_hp(
+                        "No test cases were generated",
+                        failed_requirements=failed_requirements,
+                    )
 
                 self.metrics["total_test_cases"] = len(all_test_cases)
 
@@ -302,6 +322,8 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
             result = {
                 "success": True,
+                "partial": bool(failed_requirements),
+                "failed_requirements": failed_requirements,
                 "output_file": str(output_path),
                 "total_test_cases": len(all_test_cases),
                 "requirements_processed": len(augmented_requirements),
@@ -312,6 +334,12 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 "template_used": template or "auto-selected",
                 "performance_metrics": self._get_performance_summary(),
             }
+
+            if failed_requirements:
+                self.logger.warning(
+                    f"⚠️  Partial completion: {len(failed_requirements)} of "
+                    f"{len(augmented_requirements)} requirements failed"
+                )
 
             self.logger.info("🎉 High-performance processing complete!")
             self.logger.info(
@@ -393,7 +421,10 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 self.logger.close()
 
     def _create_error_result_hp(
-        self, error_message: str, processing_time: float | None = None
+        self,
+        error_message: str,
+        processing_time: float | None = None,
+        failed_requirements: list[dict[str, str]] | None = None,
     ) -> ProcessingResult:
         """Create HP-specific error result with metrics"""
         if processing_time is None:
@@ -401,8 +432,10 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
         return {
             "success": False,
+            "partial": False,
             "error": error_message,
             "processing_time": processing_time,
+            "failed_requirements": failed_requirements or [],
             "performance_metrics": self._get_performance_summary(),
         }
 

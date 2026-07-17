@@ -34,8 +34,8 @@ Start here when exploring this area:
 - **`run_context_augmentation`** (Function) — `tests/performance/test_regression_benchmarks.py:155`
 - **`test_taskgroup_available`** (Function) — `tests/test_python314_ollama0125.py:91`
 - **`dummy_task`** (Function) — `tests/test_python314_ollama0125.py:95`
-- **`test_build_augmented_requirements_basic_flow`** (Method) — `tests/core/test_base_processor.py:165`
-- **`test_build_augmented_requirements_resets_info_after_requirement`** (Method) — `tests/core/test_base_processor.py:200`
+- **`test_build_augmented_requirements_basic_flow`** (Method) — `tests/core/test_base_processor.py:166`
+- **`test_build_augmented_requirements_resets_info_after_requirement`** (Method) — `tests/core/test_base_processor.py:201`
 
 ## Key Symbols
 
@@ -44,13 +44,13 @@ Start here when exploring this area:
 | `run_context_augmentation` | Function | `tests/performance/test_regression_benchmarks.py` | 155 |
 | `test_taskgroup_available` | Function | `tests/test_python314_ollama0125.py` | 91 |
 | `dummy_task` | Function | `tests/test_python314_ollama0125.py` | 95 |
-| `test_build_augmented_requirements_basic_flow` | Method | `tests/core/test_base_processor.py` | 165 |
-| `test_build_augmented_requirements_resets_info_after_requirement` | Method | `tests/core/test_base_processor.py` | 200 |
-| `test_build_augmented_requirements_new_heading_resets_info` | Method | `tests/core/test_base_processor.py` | 227 |
-| `test_build_augmented_requirements_skips_empty_requirements` | Method | `tests/core/test_base_processor.py` | 248 |
-| `test_build_augmented_requirements_no_heading_uses_default` | Method | `tests/core/test_base_processor.py` | 269 |
-| `test_build_augmented_requirements_multiple_requirements_same_heading` | Method | `tests/core/test_base_processor.py` | 286 |
-| `test_build_augmented_requirements_no_system_requirements` | Method | `tests/core/test_base_processor.py` | 305 |
+| `test_build_augmented_requirements_basic_flow` | Method | `tests/core/test_base_processor.py` | 166 |
+| `test_build_augmented_requirements_resets_info_after_requirement` | Method | `tests/core/test_base_processor.py` | 201 |
+| `test_build_augmented_requirements_new_heading_resets_info` | Method | `tests/core/test_base_processor.py` | 228 |
+| `test_build_augmented_requirements_skips_empty_requirements` | Method | `tests/core/test_base_processor.py` | 249 |
+| `test_build_augmented_requirements_no_heading_uses_default` | Method | `tests/core/test_base_processor.py` | 270 |
+| `test_build_augmented_requirements_multiple_requirements_same_heading` | Method | `tests/core/test_base_processor.py` | 287 |
+| `test_build_augmented_requirements_no_system_requirements` | Method | `tests/core/test_base_processor.py` | 306 |
 | `test_base_processor_context_aware_logic_preserved` | Method | `tests/test_critical_improvements.py` | 331 |
 | `test_context_reset_after_each_requirement` | Method | `tests/test_critical_improvements.py` | 393 |
 | `test_build_augmented_requirements_with_context` | Method | `tests/test_refactoring.py` | 41 |
@@ -58,7 +58,7 @@ Start here when exploring this area:
 | `test_build_augmented_requirements_no_heading` | Method | `tests/test_refactoring.py` | 98 |
 | `test_build_augmented_requirements_unchanged_with_raft` | Method | `tests/training/test_raft_integration.py` | 92 |
 | `test_context_reset_behavior_intact` | Method | `tests/training/test_raft_integration.py` | 126 |
-| `build_prompt` | Method | `src/core/prompt_builder.py` | 36 |
+| `build_prompt` | Method | `src/core/prompt_builder.py` | 67 |
 | `test_image_context_rendered_for_requirement_with_images` | Method | `tests/core/test_prompt_builder.py` | 33 |
 | `test_image_context_default_for_requirement_without_images` | Method | `tests/core/test_prompt_builder.py` | 50 |
 
@@ -67,8 +67,8 @@ Start here when exploring this area:
 | Flow | Type | Steps |
 |------|------|-------|
 | `Main → _clean_text_for_logging` | cross_community | 5 |
-| `Process_directory → _clean_text_for_logging` | cross_community | 4 |
 | `_run_standard_mode → _clean_text_for_logging` | cross_community | 4 |
+| `Process_directory → _clean_text_for_logging` | cross_community | 4 |
 | `Verify_prompt_generation → Format_table` | cross_community | 4 |
 | `Verify_prompt_generation → Format_info_list` | cross_community | 4 |
 | `Verify_prompt_generation → Format_interfaces` | cross_community | 4 |

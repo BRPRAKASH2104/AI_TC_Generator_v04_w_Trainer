@@ -468,7 +468,12 @@ class ConfigManager(BaseSettings):
 
     def save_to_file(self, config_file: str) -> None:
         """
-        Save current configuration to YAML file
+        Save current configuration to a YAML file.
+
+        Credential-bearing fields (the entire secrets section plus
+        ollama.api_key/auth_token) are excluded from the export, and the
+        file is written with owner-only permissions so credentials are
+        never persisted in plaintext (review 2026-07-17 finding 9).
 
         Args:
             config_file: Path where to save configuration
@@ -477,8 +482,21 @@ class ConfigManager(BaseSettings):
             config_path = Path(config_file)
             config_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(config_path, "w", encoding="utf-8") as f:
-                yaml.dump(self.model_dump(), f, default_flow_style=False, indent=2)
+            # mode="json" converts Path and other Python objects to plain
+            # strings so the export is loadable with yaml.safe_load
+            exportable = self.model_dump(
+                mode="json",
+                exclude={
+                    "secrets": True,
+                    "ollama": {"api_key", "auth_token"},
+                },
+            )
+
+            fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                yaml.dump(exportable, f, default_flow_style=False, indent=2)
+            # An existing file keeps its old mode bits; enforce owner-only
+            os.chmod(config_path, 0o600)
 
             _logger.info(f"Configuration saved to: {config_file}")
 
@@ -583,6 +601,16 @@ class ConfigManager(BaseSettings):
                     if "model_configs" in config_data:
                         self.cli.model_configs.update(config_data["model_configs"])
 
+                    # Load the documented training section (RAFT collection
+                    # consent lives here — review 2026-07-17 finding 6)
+                    if "training" in config_data:
+                        training_data = config_data["training"]
+                        current_training = self.training.model_dump()
+                        for key, value in training_data.items():
+                            if key in current_training:
+                                current_training[key] = value
+                        self.training = self.training.__class__.model_validate(current_training)
+
                     _logger.info(f"Loaded CLI config from: {config_path}")
                     return
 
@@ -634,7 +662,15 @@ class ConfigManager(BaseSettings):
             "ollama": set(),
             "logging": set(),
             "secrets": set(),
+            "training": set(),
         }
+
+        # Keys set by a named preset are explicit user intent: protect them
+        # from model-specific defaults exactly like env-var overrides
+        # (review 2026-07-17 finding 5)
+        preset_overrides: dict[str, set[str]] = kwargs.get("preset_overrides") or {}
+        for section, keys in preset_overrides.items():
+            env_overrides.setdefault(section, set()).update(keys)
 
         # Apply environment variables (AI_TG_* prefix)
         env_mapping = {
@@ -651,11 +687,20 @@ class ConfigManager(BaseSettings):
             "AI_TG_OLLAMA_HOST": ("ollama", "host"),
             "AI_TG_OLLAMA_PORT": ("ollama", "port"),
             "AI_TG_ENCRYPTION": ("secrets", "enable_encryption"),
+            # Documented RAFT collection consent controls (README/finding 6)
+            "AI_TG_ENABLE_RAFT": ("training", "enable_raft"),
+            "AI_TG_COLLECT_TRAINING_DATA": ("training", "collect_training_data"),
         }
 
         for env_var, (section, key) in env_mapping.items():
             if env_value := os.getenv(env_var):
-                if key in ["verbose", "debug", "performance"]:
+                if key in [
+                    "verbose",
+                    "debug",
+                    "performance",
+                    "enable_raft",
+                    "collect_training_data",
+                ]:
                     config_dict[section][key] = env_value.lower() in ("true", "1", "yes", "on")
                     env_overrides[section].add(key)
                 elif key in ["max_concurrent", "concurrent_requests", "timeout", "num_ctx"]:

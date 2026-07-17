@@ -60,6 +60,142 @@ def show_banner(mode: str = "standard") -> None:
     console.print(panel)
 
 
+def _apply_preset(
+    base_config: ConfigManager, preset_name: str
+) -> tuple[ConfigManager, dict[str, set[str]]]:
+    """Merge a named preset into the base configuration.
+
+    Args:
+        base_config: Configuration loaded from defaults and cli_config.yaml.
+        preset_name: Name of the preset under `presets:` in cli_config.yaml.
+
+    Returns:
+        Tuple of (merged config, preset-applied keys per section). The keys
+        are handed to apply_cli_overrides() so preset values are protected
+        from model-specific defaults exactly like explicit overrides
+        (review 2026-07-17 finding 5).
+    """
+    preset_config = base_config.get_preset_config(preset_name)
+    if not preset_config:
+        return base_config, {}
+
+    # Mapping definitions (flat preset key -> nested config path)
+    key_mapping = {
+        "model": ["ollama", "synthesizer_model"],
+        "mode": ["cli", "mode"],
+        "verbose": ["cli", "verbose"],
+        "debug": ["cli", "debug"],
+        "performance": ["cli", "performance"],
+        "max_concurrent": ["ollama", "concurrent_requests"],
+    }
+
+    def set_nested(d: dict[str, Any], path: list[str], value: Any) -> None:
+        for key in path[:-1]:
+            d = d.setdefault(key, {})
+        d[path[-1]] = value
+
+    nested_update: dict[str, Any] = {}
+    preset_keys: dict[str, set[str]] = {}
+
+    for key, value in preset_config.items():
+        if key in key_mapping:
+            section, field = key_mapping[key]
+            temp_dict: dict[str, Any] = {}
+            set_nested(temp_dict, key_mapping[key], value)
+            ConfigManager._deep_merge_dict(nested_update, temp_dict)
+            preset_keys.setdefault(section, set()).add(field)
+        else:
+            # Already-nested keys like 'ollama' are merged as-is
+            temp_dict = {key: value}
+            ConfigManager._deep_merge_dict(nested_update, temp_dict)
+            if isinstance(value, dict):
+                preset_keys.setdefault(key, set()).update(value.keys())
+
+    current_data = base_config.model_dump()
+    ConfigManager._deep_merge_dict(current_data, nested_update)
+    # Re-validate to ensure type safety and apply changes
+    return ConfigManager.model_validate(current_data), preset_keys
+
+
+def _resolve_processing_mode(hp: bool, config: ConfigManager) -> str:
+    """Resolve the processing mode: --hp forces HP, else the effective
+    config (which includes preset `mode`) decides (review 2026-07-17 §5)."""
+    return "hp" if hp or config.cli.mode == "hp" else "standard"
+
+
+def _aggregate_directory_results(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate per-file processing results for directory runs.
+
+    The run is successful only when every file succeeded; any mix of
+    successes and failures is a partial completion (review 2026-07-17 §1).
+
+    Args:
+        results: Per-file result dictionaries from process_directory().
+
+    Returns:
+        Aggregated result with success/partial flags, failed file names,
+        collected failed requirements, and summed statistics.
+    """
+    if not results:
+        return {
+            "success": False,
+            "partial": False,
+            "failed_files": [],
+            "failed_requirements": [],
+            "error": "No REQIFZ files found to process",
+            "total_test_cases": 0,
+            "processing_time": 0.0,
+        }
+
+    failed = [r for r in results if not r.get("success")]
+    succeeded = [r for r in results if r.get("success")]
+
+    aggregated: dict[str, Any] = {
+        "success": not failed,
+        "partial": bool(succeeded) and (bool(failed) or any(r.get("partial") for r in succeeded)),
+        "failed_files": [r.get("input_file", "unknown") for r in failed],
+        "failed_requirements": [
+            entry for r in results for entry in r.get("failed_requirements", [])
+        ],
+        "total_test_cases": sum(r.get("total_test_cases", 0) for r in results),
+        "processing_time": sum(r.get("processing_time", 0.0) for r in results),
+    }
+
+    if failed:
+        aggregated["error"] = f"{len(failed)} of {len(results)} files failed"
+
+    return aggregated
+
+
+def _resolve_exit_code(result: dict[str, Any]) -> int:
+    """Map a processing result to the process exit code.
+
+    Contract: 0 = everything completed, 2 = partial completion (some output
+    was produced but not all requested inputs completed), 1 = total failure.
+    """
+    if result.get("partial"):
+        return 2
+    return 0 if result.get("success") else 1
+
+
+def _print_partial_details(result: dict[str, Any]) -> None:
+    """Print the failed files/requirements behind a partial completion."""
+    failed_files = result.get("failed_files") or []
+    if failed_files:
+        console.print(f"❗ {len(failed_files)} file(s) failed:")
+        for file_name in failed_files:
+            console.print(f"   • {file_name}")
+
+    failed_requirements = result.get("failed_requirements") or []
+    if failed_requirements:
+        console.print(f"❗ {len(failed_requirements)} requirement(s) produced no test cases:")
+        for entry in failed_requirements:
+            console.print(
+                f"   • {entry.get('requirement_id', 'UNKNOWN')}: "
+                f"{entry.get('error_type', 'Unknown')} - {entry.get('error_message', '')}"
+            )
+
+
 @click.command()
 @click.argument("input_path", required=False, type=click.Path(exists=True))
 @click.option(
@@ -86,10 +222,13 @@ def show_banner(mode: str = "standard") -> None:
 )
 @click.option("--validate-prompts", is_flag=True, help="Validate all prompt templates and exit")
 @click.option("--list-templates", is_flag=True, help="List available prompt templates and exit")
-@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
-@click.option("--debug", is_flag=True, help="Enable debug mode with detailed logging")
+@click.option("--verbose", "-v", is_flag=True, default=None, help="Enable verbose output")
+@click.option("--debug", is_flag=True, default=None, help="Enable debug mode with detailed logging")
 @click.option(
-    "--performance", is_flag=True, help="Show detailed performance metrics (HP mode only)"
+    "--performance",
+    is_flag=True,
+    default=None,
+    help="Show detailed performance metrics (HP mode only)",
 )
 @click.option(
     "--max-concurrent", type=int, default=None, help="Maximum concurrent requirements (HP mode)"
@@ -117,9 +256,9 @@ def main(
     config: str | None,
     validate_prompts: bool,
     list_templates: bool,
-    verbose: bool,
-    debug: bool,
-    performance: bool,
+    verbose: bool | None,
+    debug: bool | None,
+    performance: bool | None,
     max_concurrent: int | None,
     num_ctx: int | None,
     clean_temp: bool,
@@ -166,60 +305,17 @@ def main(
     base_config.load_cli_config()
 
     # 1. Load Preset if specified (This merges preset values into base config)
+    preset_keys: dict[str, set[str]] = {}
     if preset:
-        preset_config = base_config.get_preset_config(preset)
-        if preset_config:
-            # Map simple preset keys to nested config structure
-            # This fixes "Extra inputs not permitted" Pydantic errors
-            nested_update: dict[str, Any] = {}
-
-            # Helper to set nested dict values
-            def set_nested(d: dict[str, Any], path: list[str], value: Any) -> None:
-                for key in path[:-1]:
-                    d = d.setdefault(key, {})
-                d[path[-1]] = value
-
-            # Mapping definitions (flat key -> nested path list)
-            key_mapping = {
-                "model": ["ollama", "synthesizer_model"],
-                "mode": ["cli", "mode"],
-                "verbose": ["cli", "verbose"],
-                "debug": ["cli", "debug"],
-                "performance": ["cli", "performance"],
-                "max_concurrent": [
-                    "ollama",
-                    "concurrent_requests",
-                ],  # or cli.max_concurrent? config.py env_mapping says ollama.concurrent_requests
-            }
-
-            for key, value in preset_config.items():
-                if key in key_mapping:
-                    # Create a separate dict for this mapped key to avoid structure conflicts
-                    # Then merge it into the main nested_update
-                    temp_dict: dict[str, Any] = {}
-                    set_nested(temp_dict, key_mapping[key], value)
-                    ConfigManager._deep_merge_dict(nested_update, temp_dict)
-                else:
-                    # For already nested keys like 'ollama', copy them as is
-                    # But we must deep merge them too, in case 'ollama' was already created by a mapped key
-                    temp_dict = {key: value}
-                    ConfigManager._deep_merge_dict(nested_update, temp_dict)
-
-            # We use the internal deep merge helper to apply the preset
-            current_data = base_config.model_dump()
-            ConfigManager._deep_merge_dict(current_data, nested_update)
-            # Re-validate to ensure type safety and apply changes
-            base_config = ConfigManager.model_validate(current_data)
+        base_config, preset_keys = _apply_preset(base_config, preset)
+        if preset_keys:
             console.print(f"🔧 Applied preset: [cyan]{preset}[/cyan]")
 
     # 2. Apply CLI overrides (These invoke logic to create *effective* config)
-    # Note: We pass the *potentially modified* base_config's values as defaults if not overridden?
-    # Actually, apply_cli_overrides creates a NEW instance from self.
-    # So since we updated base_config above, apply_cli_overrides will start with those preset values!
-
     effective_config = base_config.apply_cli_overrides(
         # None when --model was not passed, so presets/config keep their model;
-        # an explicit --model (even the default name) always wins
+        # an explicit --model (even the default name) always wins. The boolean
+        # flags are tri-state (None when omitted) for the same reason.
         model=model,
         template=template,
         max_concurrent=max_concurrent,
@@ -228,6 +324,7 @@ def main(
         debug=debug,
         performance=performance,
         config=config,
+        preset_overrides=preset_keys,
     )
 
     # Initialize centralized application logger with effective config
@@ -242,21 +339,19 @@ def main(
         console.print(f"📝 Loading config from: {config}")
         app_logger.info("Loading custom configuration", config_file=config)
 
-    if verbose:
+    if effective_config.cli.verbose:
         effective_config.show_effective_config()
         app_logger.info("Verbose mode enabled")
 
-    # Determine processing mode and show banner
-    if hp:
-        mode = "hp"
-        show_banner(mode)
+    # Determine processing mode from the effective config (--hp overrides)
+    mode = _resolve_processing_mode(hp, effective_config)
+    show_banner(mode)
+    if mode == "hp":
         app_logger.info(
             "Starting high-performance processing mode", mode=mode, input_path=input_path
         )
         _run_hp_mode(input_path, output_dir, effective_config, clean_temp)
     else:
-        mode = "standard"
-        show_banner(mode)
         app_logger.info("Starting standard processing mode", mode=mode, input_path=input_path)
         _run_standard_mode(input_path, output_dir, effective_config, clean_temp)
 
@@ -289,7 +384,7 @@ def _run_standard_mode(
             result = processor.process_file(input_file, model, template, output_directory)
         else:
             results = processor.process_directory(input_file, model, template, output_directory)
-            result = {"success": any(r["success"] for r in results)}
+            result = _aggregate_directory_results(results)
 
         # Log processing completion
         app_logger.log_file_processing_complete(
@@ -300,9 +395,15 @@ def _run_standard_mode(
             mode="standard",
         )
 
+        exit_code = _resolve_exit_code(result)
+
         # Display results
         if result["success"]:
-            console.print("\n🎉 [green]Processing completed successfully![/green]")
+            if exit_code == 0:
+                console.print("\n🎉 [green]Processing completed successfully![/green]")
+            else:
+                console.print("\n⚠️  [yellow]Processing completed partially[/yellow]")
+                _print_partial_details(result)
             if "total_test_cases" in result:
                 console.print(f"📊 Generated: {result['total_test_cases']} test cases")
                 console.print(f"⏱️  Time: {result['processing_time']:.2f}s")
@@ -310,7 +411,8 @@ def _run_standard_mode(
             error_msg = result.get("error", "Unknown error")
             app_logger.error(f"Processing failed: {error_msg}", mode="standard")
             console.print(f"\n❌ [red]Processing failed: {error_msg}[/red]")
-            sys.exit(1)
+            _print_partial_details(result)
+            sys.exit(exit_code)
 
         # Clean up temporary extracted images if requested
         if clean_temp:
@@ -323,6 +425,9 @@ def _run_standard_mode(
             if count > 0:
                 console.print(f"🧹 Cleaned up {count} temporary image(s)")
                 app_logger.info(f"Cleaned up {count} temporary images", mode="standard")
+
+        if exit_code != 0:
+            sys.exit(exit_code)
 
     except Exception as e:
         app_logger.error(f"Error in standard mode: {e}", mode="standard", exception=str(e))
@@ -370,7 +475,7 @@ def _run_hp_mode(
             results = asyncio.run(
                 processor.process_directory(input_file, model, template, output_directory)
             )
-            result = {"success": any(r["success"] for r in results)}
+            result = _aggregate_directory_results(results)
 
         # Log processing completion with performance metrics
         performance_data = {}
@@ -386,9 +491,17 @@ def _run_hp_mode(
             **performance_data,
         )
 
+        exit_code = _resolve_exit_code(result)
+
         # Display results with performance metrics
         if result["success"]:
-            console.print("\n🏆 [green]High-Performance Processing Complete![/green]")
+            if exit_code == 0:
+                console.print("\n🏆 [green]High-Performance Processing Complete![/green]")
+            else:
+                console.print(
+                    "\n⚠️  [yellow]High-Performance Processing completed partially[/yellow]"
+                )
+                _print_partial_details(result)
             if "total_test_cases" in result:
                 console.print(f"📊 Generated: {result['total_test_cases']} test cases")
                 console.print(f"⏱️  Time: {result['processing_time']:.2f}s")
@@ -404,7 +517,8 @@ def _run_hp_mode(
             error_msg = result.get("error", "Unknown error")
             app_logger.error(f"HP Processing failed: {error_msg}", mode="high-performance")
             console.print(f"\n❌ [red]HP Processing failed: {error_msg}[/red]")
-            sys.exit(1)
+            _print_partial_details(result)
+            sys.exit(exit_code)
 
         # Clean up temporary extracted images if requested
         if clean_temp:
@@ -417,6 +531,9 @@ def _run_hp_mode(
             if count > 0:
                 console.print(f"🧹 Cleaned up {count} temporary image(s)")
                 app_logger.info(f"Cleaned up {count} temporary images", mode="high-performance")
+
+        if exit_code != 0:
+            sys.exit(exit_code)
 
     except Exception as e:
         app_logger.error(f"Error in HP mode: {e}", mode="high-performance", exception=str(e))

@@ -307,3 +307,75 @@ def test_signal_extraction_patterns():
     assert "SIGNAL_NAME_3" in signal_names
     assert "SIGNAL_NAME_4" in signal_names
     assert len(signal_names) >= 4
+
+
+class TestTruncatedTableCoverage:
+    """Coverage validation must be scoped to the rows actually displayed to
+    the model — format_table truncates >MAX_PROMPT_TABLE_ROWS tables to the
+    first and last 10 rows and instructs displayed-rows-only coverage, so
+    requiring one positive case per ORIGINAL row guarantees false failures
+    (review 2026-07-17 finding 7).
+    """
+
+    @staticmethod
+    def _cases(positives, negatives):
+        cases = [
+            {"summary_suffix": f"p{i}", "test_type": "positive"} for i in range(positives)
+        ]
+        cases += [
+            {"summary_suffix": f"n{i}", "test_type": "negative"} for i in range(negatives)
+        ]
+        return cases
+
+    def test_displayed_rows_helper(self):
+        from core.prompt_builder import displayed_table_rows
+
+        assert displayed_table_rows(5) == 5
+        assert displayed_table_rows(100) == 100
+        assert displayed_table_rows(150) == 20
+        assert displayed_table_rows(101) == 20
+
+    def test_large_table_coverage_scoped_to_displayed_rows(self):
+        from core.validators import SemanticValidator
+
+        validator = SemanticValidator()
+        requirement = {"table": {"rows": 150}}
+
+        issues = validator._validate_table_coverage(self._cases(20, 3), requirement)
+
+        assert issues == []
+
+    def test_large_table_analysis_reports_truncation(self):
+        from core.validators import SemanticValidator
+
+        validator = SemanticValidator()
+        requirement = {"table": {"rows": 150}}
+
+        analysis = validator._analyze_table_coverage(self._cases(20, 3), requirement)
+
+        assert analysis["required_table_rows"] == 20
+        assert analysis["total_table_rows"] == 150
+        assert analysis["truncated"] is True
+        assert analysis["adequate_coverage"] is True
+
+    def test_small_table_still_requires_full_coverage(self):
+        from core.validators import SemanticValidator
+
+        validator = SemanticValidator()
+        requirement = {"table": {"rows": 5}}
+
+        issues = validator._validate_table_coverage(self._cases(3, 3), requirement)
+
+        assert len(issues) >= 1  # 3 positives for 5 displayed rows is a real gap
+
+    def test_small_table_analysis_not_truncated(self):
+        from core.validators import SemanticValidator
+
+        validator = SemanticValidator()
+        requirement = {"table": {"rows": 5}}
+
+        analysis = validator._analyze_table_coverage(self._cases(5, 3), requirement)
+
+        assert analysis["required_table_rows"] == 5
+        assert analysis["truncated"] is False
+        assert analysis["adequate_coverage"] is True

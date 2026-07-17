@@ -43,8 +43,14 @@ def _build_generate_payload(
     is_json: bool,
     images_base64: list[str] | None,
     context_window: int,
+    format_schema: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build the /api/generate request payload (shared by sync and async clients)."""
+    """Build the /api/generate request payload (shared by sync and async clients).
+
+    When format_schema is given it is forwarded as Ollama's structured-output
+    `format` object, constraining generation to that JSON Schema; otherwise
+    is_json falls back to the plain "json" format string.
+    """
     payload: dict[str, Any] = {
         "model": model_name,
         "prompt": prompt,
@@ -66,7 +72,9 @@ def _build_generate_payload(
     if images_base64:
         payload["images"] = images_base64
 
-    if is_json:
+    if format_schema is not None:
+        payload["format"] = format_schema
+    elif is_json:
         payload["format"] = "json"
 
     # Logprobs for confidence scoring (Ollama 0.13.3+)
@@ -142,6 +150,7 @@ class OllamaClient:
         prompt: str,
         is_json: bool = False,
         return_full_response: bool = True,
+        format_schema: dict[str, Any] | None = None,
     ) -> dict | str:
         """
         Generate completion from Ollama model with full response control.
@@ -151,6 +160,8 @@ class OllamaClient:
             prompt: Input prompt for generation
             is_json: Whether to request JSON-formatted output
             return_full_response: If True, returns full JSON dict. If False, returns just text.
+            format_schema: Optional JSON Schema forwarded as Ollama's
+                structured-output `format` object (overrides is_json).
 
         Returns:
             Full response dictionary (if return_full_response=True) or response text string.
@@ -163,6 +174,7 @@ class OllamaClient:
             image_paths=None,
             is_json=is_json,
             return_full_response=return_full_response,
+            format_schema=format_schema,
         )
 
     def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
@@ -189,6 +201,7 @@ class OllamaClient:
         image_paths: list[Path] | None = None,
         is_json: bool = False,
         return_full_response: bool = False,
+        format_schema: dict[str, Any] | None = None,
     ) -> dict | str:
         """
         Generate response from Ollama vision model with optional image inputs.
@@ -216,7 +229,13 @@ class OllamaClient:
         context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
         images_base64 = _load_images_base64(image_paths) if image_paths else None
         payload = _build_generate_payload(
-            self.config, model_name, prompt, is_json, images_base64, context_window
+            self.config,
+            model_name,
+            prompt,
+            is_json,
+            images_base64,
+            context_window,
+            format_schema=format_schema,
         )
 
         try:
@@ -333,6 +352,7 @@ class AsyncOllamaClient:
         prompt: str,
         is_json: bool = False,
         return_full_response: bool = True,
+        format_schema: dict[str, Any] | None = None,
     ) -> dict | str:
         """
         Generate completion from Ollama model asynchronously with full response control.
@@ -342,6 +362,8 @@ class AsyncOllamaClient:
             prompt: Input prompt for generation
             is_json: Whether to request JSON-formatted output
             return_full_response: If True, returns full JSON dict. If False, returns just text.
+            format_schema: Optional JSON Schema forwarded as Ollama's
+                structured-output `format` object (overrides is_json).
 
         Returns:
             Full response dictionary (if return_full_response=True) or response text string.
@@ -354,6 +376,7 @@ class AsyncOllamaClient:
             image_paths=None,
             is_json=is_json,
             return_full_response=return_full_response,
+            format_schema=format_schema,
         )
 
     async def generate_response(self, model_name: str, prompt: str, is_json: bool = False) -> str:
@@ -382,6 +405,7 @@ class AsyncOllamaClient:
         image_paths: list[Path] | None = None,
         is_json: bool = False,
         return_full_response: bool = False,
+        format_schema: dict[str, Any] | None = None,
     ) -> dict | str:
         """
         Generate response from Ollama vision model with optional image inputs (async version).
@@ -412,7 +436,13 @@ class AsyncOllamaClient:
         context_window = self.config.vision_context_window if image_paths else self.config.num_ctx
         images_base64 = _load_images_base64(image_paths) if image_paths else None
         payload = _build_generate_payload(
-            self.config, model_name, prompt, is_json, images_base64, context_window
+            self.config,
+            model_name,
+            prompt,
+            is_json,
+            images_base64,
+            context_window,
+            format_schema=format_schema,
         )
 
         async with self.semaphore:  # Limit concurrent requests

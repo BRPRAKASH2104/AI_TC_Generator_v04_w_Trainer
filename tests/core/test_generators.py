@@ -4,10 +4,12 @@ Unit tests for the generators module.
 Tests test case generation with mock AI clients.
 """
 
+import json
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from core.exceptions import OllamaConnectionError
 from core.generators import AsyncTestCaseGenerator, TestCaseGenerator
 
 
@@ -23,9 +25,11 @@ class TestTestCaseGenerator:
             "variables": ["requirement_text"]
         }
 
-        # Setup mock client to return full response structure
+        # Setup mock client to return full response structure (canonical schema)
         mock_ollama_client.generate_completion.return_value = {
-            "response": '{"test_cases": [{"summary": "Test basic functionality"}]}',
+            "response": '{"test_cases": [{"summary_suffix": "Test basic functionality", '
+            '"preconditions": "System ready", "test_steps": "1) Run", '
+            '"expected_result": "OK", "test_type": "positive"}]}',
             "logprobs": None
         }
 
@@ -35,7 +39,7 @@ class TestTestCaseGenerator:
 
         assert result is not None
         assert len(result) == 1
-        assert result[0]["summary"] == "Test basic functionality"
+        assert result[0]["summary_suffix"] == "Test basic functionality"
         mock_ollama_client.generate_completion.assert_called_once()
 
     def test_generate_test_cases_with_template(self, mock_ollama_client, sample_requirement, mock_logger):
@@ -75,7 +79,9 @@ class TestTestCaseGenerator:
 
         result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
-        assert result == []
+        # Failures return structured error objects (review 2026-07-17 finding 1)
+        assert result["error"] is True
+        assert result["error_type"] == "EmptyResponse"
         mock_logger.warning.assert_called()  # Empty response triggers warning, not error
 
     def test_generate_test_cases_invalid_json_response(self, sample_requirement, mock_logger):
@@ -93,7 +99,9 @@ class TestTestCaseGenerator:
 
         result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
-        assert result == []
+        # Failures return structured error objects (review 2026-07-17 finding 1)
+        assert result["error"] is True
+        assert result["error_type"] == "InvalidJSONStructure"
 
     def test_prompt_variable_substitution(self, mock_ollama_client, sample_requirement, mock_logger):
         """Test that prompt variables are correctly substituted."""
@@ -125,7 +133,11 @@ class TestAsyncTestCaseGenerator:
         """Test successful batch test case generation."""
         # Setup async mock
         mock_async_ollama_client.generate_completion = AsyncMock(
-            return_value={"response": '{"test_cases": [{"summary": "Async test case"}]}'}
+            return_value={
+                "response": '{"test_cases": [{"summary_suffix": "Async test case", '
+                '"preconditions": "Ready", "test_steps": "1) Run", '
+                '"expected_result": "OK", "test_type": "positive"}]}'
+            }
         )
 
         mock_yaml_manager = Mock()
@@ -141,17 +153,21 @@ class TestAsyncTestCaseGenerator:
         assert len(results) == 3
         for result in results:
             assert len(result) == 1
-            assert result[0]["summary"] == "Async test case"
+            assert result[0]["summary_suffix"] == "Async test case"
 
     @pytest.mark.asyncio
     async def test_generate_test_cases_batch_with_failures(self, sample_requirements_list, mock_logger):
         """Test batch generation with some failures."""
         # Mock client that fails for second requirement
         mock_client = Mock()
-        async def mock_response(model, prompt, is_json=False, return_full_response=True):
+        async def mock_response(model, prompt, is_json=False, return_full_response=True, **kwargs):
             if "REQ_002" in prompt:
                 raise Exception("AI API timeout")
-            return {"response": '{"test_cases": [{"summary": "Success"}]}'}
+            return {
+                "response": '{"test_cases": [{"summary_suffix": "Success", '
+                '"preconditions": "Ready", "test_steps": "1) Run", '
+                '"expected_result": "OK", "test_type": "positive"}]}'
+            }
 
         mock_client.generate_completion = AsyncMock(side_effect=mock_response)
 
@@ -178,7 +194,7 @@ class TestAsyncTestCaseGenerator:
         """Test that concurrency limits are respected."""
         call_times = []
 
-        async def mock_response(model, prompt, is_json=False, return_full_response=True):
+        async def mock_response(model, prompt, is_json=False, return_full_response=True, **kwargs):
             import asyncio
             call_times.append(asyncio.get_event_loop().time())
             await asyncio.sleep(0.1)  # Simulate API delay
@@ -226,8 +242,8 @@ class TestConfigWiring:
     """
 
     ONE_CASE_JSON = (
-        '{"test_cases": [{"summary_suffix": "A", "test_steps": "1) a", '
-        '"expected_result": "ra"}]}'
+        '{"test_cases": [{"summary_suffix": "A", "preconditions": "pa", '
+        '"test_steps": "1) a", "expected_result": "ra", "test_type": "positive"}]}'
     )
 
     @staticmethod
@@ -343,9 +359,12 @@ class TestValidationStamping:
 
     THREE_CASES_JSON = (
         '{"test_cases": ['
-        '{"summary_suffix": "A", "test_steps": "1) a", "expected_result": "ra"},'
-        '{"summary_suffix": "B", "test_steps": "1) b", "expected_result": "rb"},'
-        '{"summary_suffix": "C", "test_steps": "1) c", "expected_result": "rc"}'
+        '{"summary_suffix": "A", "preconditions": "pa", "test_steps": "1) a", '
+        '"expected_result": "ra", "test_type": "positive"},'
+        '{"summary_suffix": "B", "preconditions": "pb", "test_steps": "1) b", '
+        '"expected_result": "rb", "test_type": "negative"},'
+        '{"summary_suffix": "C", "preconditions": "pc", "test_steps": "1) c", '
+        '"expected_result": "rc", "test_type": "positive"}'
         "]}"
     )
 
@@ -460,3 +479,173 @@ class TestValidationStamping:
         assert result[0]["validation_passed"] is True
         assert result[1]["validation_passed"] is True
         assert result[2]["validation_passed"] is False
+
+
+class TestSyncGeneratorErrorContract:
+    """Sync generator must return structured error dicts, mirroring the async
+    generator, so processors can distinguish failure from success
+    (review 2026-07-17 finding 1).
+    """
+
+    @staticmethod
+    def _make_generator(mock_client, mock_logger):
+        mock_yaml_manager = Mock()
+        mock_yaml_manager.get_test_prompt.return_value = (
+            "Generate test cases for: {requirement_text}"
+        )
+        return TestCaseGenerator(mock_client, mock_yaml_manager, mock_logger)
+
+    def test_exception_returns_structured_error(self, sample_requirement, mock_logger):
+        """A transport exception must surface as a structured error, not []."""
+        mock_client = Mock()
+        mock_client.generate_completion.side_effect = OllamaConnectionError(
+            "connection refused", host="localhost", port=11434
+        )
+        generator = self._make_generator(mock_client, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, dict)
+        assert result["error"] is True
+        assert result["error_type"] == "OllamaConnectionError"
+        assert result["requirement_id"] == "REQ_001"
+        assert result["test_cases"] == []
+
+    def test_empty_response_returns_structured_error(self, sample_requirement, mock_logger):
+        """An empty AI response must be reported as EmptyResponse."""
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = {"response": ""}
+        generator = self._make_generator(mock_client, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, dict)
+        assert result["error"] is True
+        assert result["error_type"] == "EmptyResponse"
+
+    def test_invalid_json_returns_structured_error(self, sample_requirement, mock_logger):
+        """A non-JSON response must be reported as InvalidJSONStructure."""
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = {"response": "This is not JSON"}
+        generator = self._make_generator(mock_client, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, dict)
+        assert result["error"] is True
+        assert result["error_type"] == "InvalidJSONStructure"
+
+    def test_empty_test_cases_list_returns_structured_error(
+        self, sample_requirement, mock_logger
+    ):
+        """A response with an empty test_cases array must be reported as a failure."""
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = {"response": '{"test_cases": []}'}
+        generator = self._make_generator(mock_client, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, dict)
+        assert result["error"] is True
+        assert result["error_type"] == "EmptyTestCasesList"
+
+
+class TestCanonicalSchemaEnforcement:
+    """Test cases missing the canonical five fields must not reach the
+    formatter as plausible N/A rows (review 2026-07-17 finding 4).
+    """
+
+    CANONICAL_CASE = {
+        "summary_suffix": "door locks on command",
+        "preconditions": "Ignition ON, vehicle stationary",
+        "test_steps": "1) Send lock command",
+        "expected_result": "Door locked within 500 ms",
+        "test_type": "positive",
+    }
+
+    @staticmethod
+    def _make_generator(response_json, mock_logger):
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = {"response": response_json}
+        mock_yaml_manager = Mock()
+        mock_yaml_manager.get_test_prompt.return_value = (
+            "Generate test cases for: {requirement_text}"
+        )
+        return TestCaseGenerator(mock_client, mock_yaml_manager, mock_logger)
+
+    def test_empty_object_is_dropped_in_warn_mode(self, sample_requirement, mock_logger):
+        """{} must be dropped; the canonical case survives."""
+        response = json.dumps({"test_cases": [{}, self.CANONICAL_CASE]})
+        generator = self._make_generator(response, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["summary_suffix"] == "door locks on command"
+
+    def test_blank_fields_are_dropped_in_warn_mode(self, sample_requirement, mock_logger):
+        """Whitespace-only canonical fields count as missing."""
+        blank_case = {**self.CANONICAL_CASE, "expected_result": "   "}
+        response = json.dumps({"test_cases": [blank_case, self.CANONICAL_CASE]})
+        generator = self._make_generator(response, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+    def test_strict_mode_fails_generation_on_invalid_case(
+        self, sample_requirement, mock_logger
+    ):
+        """fail_on_validation_error=True must fail the requirement instead of
+        exporting defaults."""
+        response = json.dumps({"test_cases": [{}]})
+        generator = self._make_generator(response, mock_logger)
+        generator.fail_on_validation_error = True
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, dict)
+        assert result["error"] is True
+        assert result["error_type"] == "TestCaseValidationError"
+
+    def test_canonical_case_passes_untouched(self, sample_requirement, mock_logger):
+        """A fully canonical case must flow through the pipeline."""
+        response = json.dumps({"test_cases": [self.CANONICAL_CASE]})
+        generator = self._make_generator(response, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["test_type"] == "positive"
+
+    def test_list_valued_fields_are_accepted(self, sample_requirement, mock_logger):
+        """The model may return test_steps as a list; validators normalise it."""
+        list_case = {**self.CANONICAL_CASE, "test_steps": ["1) Send lock", "2) Wait"]}
+        response = json.dumps({"test_cases": [list_case]})
+        generator = self._make_generator(response, mock_logger)
+
+        result = generator.generate_test_cases_for_requirement(
+            sample_requirement, "llama3.1:8b"
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 1

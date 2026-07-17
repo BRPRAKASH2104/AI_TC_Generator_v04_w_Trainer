@@ -98,9 +98,10 @@ class TestCaseFormatter:
             requirement_id = test_case.get("requirement_id", "UNKNOWN")
             issue_id = self._generate_issue_id(test_case, i)
 
-            # FIX: Support both v03 and v04 field names for backward compatibility
-            # v04: summary, action, data, expected_result, summary_suffix
-            # v03: feature_name, preconditions, test_steps, expected_result
+            # Support both canonical and legacy field names.
+            # Canonical (active template): summary_suffix, preconditions,
+            #   test_steps, expected_result, test_type
+            # Legacy (retired templates): summary/feature_name, action, data
 
             # Map v03 field names to v04 if present
             summary = (

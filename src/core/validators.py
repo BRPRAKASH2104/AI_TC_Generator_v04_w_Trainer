@@ -9,17 +9,77 @@ import re
 from difflib import get_close_matches
 from typing import TYPE_CHECKING, Any
 
+from .prompt_builder import MAX_PROMPT_TABLE_ROWS, displayed_table_rows
+
 if TYPE_CHECKING:
     from src.file_processing_logger import FileProcessingLogger
+
+# The one true schema emitted by the active prompt template and expected by
+# every downstream component (deduplicator, formatter, validators).
+CANONICAL_TEST_CASE_FIELDS: tuple[str, ...] = (
+    "summary_suffix",
+    "preconditions",
+    "test_steps",
+    "expected_result",
+    "test_type",
+)
+
+# JSON Schema forwarded to Ollama's `format` parameter so the model is
+# constrained to the canonical schema at generation time
+# (review 2026-07-17 finding 4). Field types stay permissive: validators
+# normalise list-valued fields to strings.
+TEST_CASE_RESPONSE_JSON_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "test_cases": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {field: {} for field in CANONICAL_TEST_CASE_FIELDS},
+                "required": list(CANONICAL_TEST_CASE_FIELDS),
+            },
+        }
+    },
+    "required": ["test_cases"],
+}
+
+
+def is_canonical_test_case(test_case: Any) -> bool:
+    """Check that a test case carries every canonical field with content.
+
+    A field counts as present when it is a non-blank string or a list that
+    joins to a non-blank string (the model sometimes returns test_steps as
+    a list; validators normalise that downstream).
+
+    Args:
+        test_case: Parsed test-case candidate from the AI response.
+
+    Returns:
+        True when the candidate is a dict with all canonical fields filled.
+    """
+    if not isinstance(test_case, dict):
+        return False
+
+    for field in CANONICAL_TEST_CASE_FIELDS:
+        value = test_case.get(field)
+        if isinstance(value, list):
+            value = "\n".join(str(item) for item in value)
+        if not isinstance(value, str) or not value.strip():
+            return False
+
+    return True
 
 
 class SemanticValidator:
     """Validates semantic correctness of test cases"""
 
-    __slots__ = ("logger", "similarity_threshold")
+    __slots__ = ("logger", "similarity_threshold", "max_prompt_table_rows")
 
     def __init__(
-        self, logger: FileProcessingLogger | None = None, similarity_threshold: float = 0.8
+        self,
+        logger: FileProcessingLogger | None = None,
+        similarity_threshold: float = 0.8,
+        max_prompt_table_rows: int | None = None,
     ):
         """
         Initialize semantic validator.
@@ -27,9 +87,13 @@ class SemanticValidator:
         Args:
             logger: Optional logger instance
             similarity_threshold: Fuzzy match threshold (0.0-1.0)
+            max_prompt_table_rows: Table-truncation threshold used by the
+                prompt builder; coverage checks are scoped to the rows the
+                model actually saw (review 2026-07-17 finding 7)
         """
         self.logger = logger
         self.similarity_threshold = similarity_threshold
+        self.max_prompt_table_rows = max_prompt_table_rows or MAX_PROMPT_TABLE_ROWS
 
     def validate_test_case(
         self, test_case: dict[str, Any], requirement: dict[str, Any]
@@ -278,9 +342,19 @@ class SemanticValidator:
         if not table_data:
             return issues  # Not table-based, skip
 
-        required_rows = table_data.get("rows", 0)
-        if required_rows == 0:
+        total_rows = table_data.get("rows", 0)
+        if total_rows == 0:
             return issues  # No table rows to cover
+
+        # Coverage is owed only for the rows the prompt actually displayed:
+        # oversized tables are truncated and the model is told to cover the
+        # displayed rows only (review 2026-07-17 finding 7)
+        required_rows = displayed_table_rows(total_rows, self.max_prompt_table_rows)
+        truncated_note = (
+            f" (table truncated in prompt: {required_rows} of {total_rows} rows displayed)"
+            if required_rows < total_rows
+            else ""
+        )
 
         # Count positive and negative test cases
         positive_count = sum(1 for tc in test_cases if tc.get("test_type") == "positive")
@@ -293,8 +367,9 @@ class SemanticValidator:
                     "test_case_index": -1,  # Global issue, not specific to one test case
                     "summary": "Table Coverage Deficiency",
                     "issues": [
-                        f"Generated {positive_count} positive test cases but table has {required_rows} rows. "
-                        f"Required: at least one positive test per table row."
+                        f"Generated {positive_count} positive test cases but {required_rows} "
+                        f"displayed table rows require coverage{truncated_note}. "
+                        f"Required: at least one positive test per displayed row."
                     ],
                 }
             )
@@ -345,7 +420,10 @@ class SemanticValidator:
         if not table_data:
             return {"is_table_based": False}
 
-        required_rows = table_data.get("rows", 0)
+        total_rows = table_data.get("rows", 0)
+        # Coverage is owed only for the displayed rows (see
+        # _validate_table_coverage / review 2026-07-17 finding 7)
+        required_rows = displayed_table_rows(total_rows, self.max_prompt_table_rows)
         positive_count = sum(1 for tc in test_cases if tc.get("test_type") == "positive")
         negative_count = sum(1 for tc in test_cases if tc.get("test_type") == "negative")
 
@@ -354,6 +432,8 @@ class SemanticValidator:
         return {
             "is_table_based": True,
             "required_table_rows": required_rows,
+            "total_table_rows": total_rows,
+            "truncated": required_rows < total_rows,
             "positive_test_cases": positive_count,
             "negative_test_cases": negative_count,
             "coverage_percentage": coverage_percentage,

@@ -59,6 +59,7 @@ class REQIFZFileProcessor(BaseProcessor):
 
         for reqifz_path in reqifz_files:
             result = self.process_file(reqifz_path, model, template, output_dir)
+            result.setdefault("input_file", str(reqifz_path))
             results.append(result)
 
         return results
@@ -123,6 +124,7 @@ class REQIFZFileProcessor(BaseProcessor):
             # Step 3: Generate test cases sequentially
             all_test_cases = []
             successful_requirements = 0
+            failed_requirements: list[dict[str, str]] = []
 
             for augmented_req in augmented_requirements:
                 req_id = augmented_req.get("id", "UNKNOWN")
@@ -140,9 +142,27 @@ class REQIFZFileProcessor(BaseProcessor):
                 else:
                     self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {heading})")
 
-                test_cases = self.generator.generate_test_cases_for_requirement(
+                generation_result = self.generator.generate_test_cases_for_requirement(
                     augmented_req, selected_model, template
                 )
+
+                if isinstance(generation_result, dict):
+                    # Structured error object from the generator
+                    error_type = generation_result.get("error_type", "Unknown")
+                    error_msg = generation_result.get("error_message", "No details")
+                    self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
+                    if hasattr(self.logger, "add_requirement_failure"):
+                        self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
+                    failed_requirements.append(
+                        {
+                            "requirement_id": req_id,
+                            "error_type": error_type,
+                            "error_message": error_msg,
+                        }
+                    )
+                    continue
+
+                test_cases = generation_result
 
                 if test_cases:
                     all_test_cases.extend(test_cases)
@@ -164,10 +184,19 @@ class REQIFZFileProcessor(BaseProcessor):
                         self._save_raft_example(augmented_req, test_cases_str, model)
                 else:
                     self.logger.warning(f"⚠️  No test cases generated for {req_id}")
+                    failed_requirements.append(
+                        {
+                            "requirement_id": req_id,
+                            "error_type": "EmptyResult",
+                            "error_message": "No test cases generated",
+                        }
+                    )
 
             if not all_test_cases:
                 return self._create_error_result(
-                    "No test cases were generated", time.time() - start_time
+                    "No test cases were generated",
+                    time.time() - start_time,
+                    failed_requirements=failed_requirements,
                 )
 
             # Step 4: Format and save to Excel
@@ -203,7 +232,14 @@ class REQIFZFileProcessor(BaseProcessor):
                 processing_time,
                 model,
                 template,
+                failed_requirements=failed_requirements,
             )
+
+            if failed_requirements:
+                self.logger.warning(
+                    f"⚠️  Partial completion: {len(failed_requirements)} of "
+                    f"{len(augmented_requirements)} requirements failed"
+                )
 
             self.logger.info("🎉 Processing complete!")
             self.logger.info(

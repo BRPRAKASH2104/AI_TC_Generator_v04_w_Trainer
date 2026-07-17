@@ -50,26 +50,24 @@ class TestEndToEndWorkflows:
         return {
             "test_cases": [
                 {
-                    "test_id": "TC_001",
-                    "summary": "Test door window operation",
+                    "summary_suffix": "Test door window operation",
                     "preconditions": "Vehicle ignition on",
                     "test_steps": [
                         "Press window down button",
                         "Verify window moves down"
                     ],
                     "expected_result": "Window moves down smoothly",
-                    "test_type": "Functional"
+                    "test_type": "positive"
                 },
                 {
-                    "test_id": "TC_002",
-                    "summary": "Test window obstruction detection",
+                    "summary_suffix": "Test window obstruction detection",
                     "preconditions": "Window in motion",
                     "test_steps": [
                         "Simulate obstruction during window movement",
                         "Verify window stops and reverses"
                     ],
                     "expected_result": "Window stops and reverses direction",
-                    "test_type": "Safety"
+                    "test_type": "negative"
                 }
             ]
         }

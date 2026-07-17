@@ -289,3 +289,41 @@ class TestHTMLTableParser:
         assert result[0]["Value"] == "30"
         assert result[1]["Parameter"] == "Voltage"
         assert result[1]["Value"] == "12"
+
+
+class TestCanonicalStructureValidation:
+    """validate_test_cases_structure must check the ACTIVE canonical schema,
+    not the retired action/data schema (review 2026-07-17 finding 4).
+    """
+
+    CANONICAL_CASE = {
+        "summary_suffix": "door locks on command",
+        "preconditions": "Ignition ON",
+        "test_steps": "1) Send lock command",
+        "expected_result": "Door locked",
+        "test_type": "positive",
+    }
+
+    def test_canonical_case_is_valid(self):
+        data = {"test_cases": [self.CANONICAL_CASE]}
+        assert JSONResponseParser.validate_test_cases_structure(data) is True
+
+    def test_retired_schema_is_invalid(self):
+        data = {
+            "test_cases": [
+                {
+                    "summary": "old schema",
+                    "action": "do it",
+                    "data": "input",
+                    "expected_result": "ok",
+                }
+            ]
+        }
+        assert JSONResponseParser.validate_test_cases_structure(data) is False
+
+    def test_empty_object_is_invalid(self):
+        assert JSONResponseParser.validate_test_cases_structure({"test_cases": [{}]}) is False
+
+    def test_any_invalid_case_fails_the_batch(self):
+        data = {"test_cases": [self.CANONICAL_CASE, {}]}
+        assert JSONResponseParser.validate_test_cases_structure(data) is False

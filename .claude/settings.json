@@ -27,5 +27,27 @@
     "claude-session-driver@superpowers-marketplace": true,
     "episodic-memory@superpowers-marketplace": true,
     "self-improving-agent@claude-code-skills": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Library/Frameworks/Python.framework/Versions/3.14/bin/graphify hook-guard search"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Library/Frameworks/Python.framework/Versions/3.14/bin/graphify hook-guard read"
+          }
+        ]
+      }
+    ]
   }
 }
