@@ -302,6 +302,7 @@
   "300": "test_build_relation_type_mapping",
   "301": "test_multiple_levels_hierarchy",
   "302": "sample_reqif_without_relationships",
+  "303": "test_parse_relationships_with_data",
   "304": "__init__.py",
   "305": "example.md",
   "306": "app.json",
