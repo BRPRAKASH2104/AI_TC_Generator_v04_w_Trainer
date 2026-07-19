@@ -56,8 +56,8 @@ Start here when exploring this area:
 | `test_build_augmented_requirements_with_context` | Method | `tests/test_refactoring.py` | 41 |
 | `test_build_augmented_requirements_no_requirements` | Method | `tests/test_refactoring.py` | 81 |
 | `test_build_augmented_requirements_no_heading` | Method | `tests/test_refactoring.py` | 98 |
-| `test_build_augmented_requirements_unchanged_with_raft` | Method | `tests/training/test_raft_integration.py` | 92 |
-| `test_context_reset_behavior_intact` | Method | `tests/training/test_raft_integration.py` | 126 |
+| `test_build_augmented_requirements_unchanged_with_raft` | Method | `tests/training/test_raft_integration.py` | 94 |
+| `test_context_reset_behavior_intact` | Method | `tests/training/test_raft_integration.py` | 128 |
 | `build_prompt` | Method | `src/core/prompt_builder.py` | 67 |
 | `test_image_context_rendered_for_requirement_with_images` | Method | `tests/core/test_prompt_builder.py` | 33 |
 | `test_image_context_default_for_requirement_without_images` | Method | `tests/core/test_prompt_builder.py` | 50 |

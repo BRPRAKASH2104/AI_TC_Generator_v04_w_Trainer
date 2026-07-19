@@ -272,7 +272,7 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (3797 symbols, 5741 relationships, 130 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (4387 symbols, 6333 relationships, 130 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -311,7 +311,7 @@ This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (3797 s
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Integration area (158 symbols) | `.claude/skills/generated/integration/SKILL.md` |
+| Work in the Integration area (159 symbols) | `.claude/skills/generated/integration/SKILL.md` |
 | Work in the Training area (80 symbols) | `.claude/skills/generated/training/SKILL.md` |
 | Work in the Tests area (53 symbols) | `.claude/skills/generated/tests/SKILL.md` |
 | Work in the Unit area (49 symbols) | `.claude/skills/generated/unit/SKILL.md` |

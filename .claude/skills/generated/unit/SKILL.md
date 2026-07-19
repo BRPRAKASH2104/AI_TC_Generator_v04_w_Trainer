@@ -46,7 +46,7 @@ Start here when exploring this area:
 | `test_substitute_variables_basic` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 78 |
 | `test_substitute_variables_missing_variable` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 95 |
 | `test_get_template_info` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 130 |
-| `load_cli_config` | Method | `src/config.py` | 570 |
+| `load_cli_config` | Method | `src/config.py` | 571 |
 | `test_production_preset_mode_and_flags_survive` | Method | `tests/unit/test_main_helpers.py` | 118 |
 | `test_production_preset_concurrency_not_clobbered_by_model_defaults` | Method | `tests/unit/test_main_helpers.py` | 125 |
 | `test_development_preset_verbose_survives_absent_cli_flag` | Method | `tests/unit/test_main_helpers.py` | 131 |

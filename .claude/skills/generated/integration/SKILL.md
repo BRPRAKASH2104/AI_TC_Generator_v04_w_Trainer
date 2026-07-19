@@ -1,11 +1,11 @@
 ---
 name: integration
-description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 158 symbols across 24 files."
+description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 159 symbols across 24 files."
 ---
 
 # Integration
 
-158 symbols | 24 files | Cohesion: 84%
+159 symbols | 24 files | Cohesion: 84%
 
 ## When to Use
 
@@ -33,7 +33,7 @@ description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 1
 Start here when exploring this area:
 
 - **`show_banner`** (Function) — `main.py:41`
-- **`main`** (Function) — `main.py:254`
+- **`main`** (Function) — `main.py:247`
 - **`get_app_logger`** (Function) — `src/app_logger.py:332`
 - **`shutdown_app_logger`** (Function) — `src/app_logger.py:363`
 - **`run_processing`** (Function) — `tests/performance/test_regression_benchmarks.py:80`
@@ -43,7 +43,7 @@ Start here when exploring this area:
 | Symbol | Type | File | Line |
 |--------|------|------|------|
 | `show_banner` | Function | `main.py` | 41 |
-| `main` | Function | `main.py` | 254 |
+| `main` | Function | `main.py` | 247 |
 | `get_app_logger` | Function | `src/app_logger.py` | 332 |
 | `shutdown_app_logger` | Function | `src/app_logger.py` | 363 |
 | `run_processing` | Function | `tests/performance/test_regression_benchmarks.py` | 80 |
@@ -87,9 +87,9 @@ Start here when exploring this area:
 | Tests | 4 calls |
 | Cluster_1 | 3 calls |
 | Cluster_34 | 2 calls |
-| Training | 2 calls |
 | Cluster_28 | 2 calls |
-| Cluster_32 | 1 calls |
+| Training | 2 calls |
+| Cluster_35 | 1 calls |
 
 ## How to Explore
 

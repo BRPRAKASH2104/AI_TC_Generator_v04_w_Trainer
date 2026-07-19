@@ -55,11 +55,11 @@ Start here when exploring this area:
 | `test_create_success_result` | Method | `tests/core/test_base_processor.py` | 421 |
 | `test_create_success_result_auto_template` | Method | `tests/core/test_base_processor.py` | 446 |
 | `test_create_success_result` | Method | `tests/test_refactoring.py` | 157 |
-| `test_raft_does_not_change_success_result` | Method | `tests/training/test_raft_integration.py` | 159 |
+| `test_raft_does_not_change_success_result` | Method | `tests/training/test_raft_integration.py` | 161 |
 | `test_create_error_result` | Method | `tests/core/test_base_processor.py` | 463 |
 | `test_create_error_result_default_time` | Method | `tests/core/test_base_processor.py` | 475 |
 | `test_create_error_result` | Method | `tests/test_refactoring.py` | 176 |
-| `test_raft_does_not_change_error_result` | Method | `tests/training/test_raft_integration.py` | 189 |
+| `test_raft_does_not_change_error_result` | Method | `tests/training/test_raft_integration.py` | 191 |
 
 ## Execution Flows
 
