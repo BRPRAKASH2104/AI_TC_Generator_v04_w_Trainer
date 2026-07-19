@@ -131,9 +131,7 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
         self._initialize_logger(reqifz_path)
         assert self.logger is not None, "_initialize_logger() must set self.logger"
 
-        self.extractor = HighPerformanceREQIFArtifactExtractor(
-            self.logger, max_workers=4, config=self.config
-        )
+        self.extractor = HighPerformanceREQIFArtifactExtractor(self.logger, config=self.config)
         self.formatter = StreamingTestCaseFormatter(self.config, self.logger)
 
         self.logger.info(f"🚀 High-Performance Processing: {reqifz_path.name}")

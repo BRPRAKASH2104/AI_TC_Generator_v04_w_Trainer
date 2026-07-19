@@ -39,20 +39,15 @@ class ArtifactType(StrEnum):
 class REQIFArtifactExtractor:
     """Extracts and processes artifacts from REQIFZ files"""
 
-    __slots__ = ("logger", "html_parser", "use_streaming", "config")
+    __slots__ = ("logger", "html_parser", "config")
 
     def __init__(
         self,
         logger: FileProcessingLogger | None = None,
-        use_streaming: bool = False,
         config: ConfigManager | None = None,
     ):
         self.logger = logger
         self.html_parser = HTMLTableParser()
-        # use_streaming is retained for interface compatibility only; the
-        # streaming parser was removed (it was never enabled and re-read the
-        # already-in-memory XML twice)
-        self.use_streaming = use_streaming
         self.config = config
 
     def extract_reqifz_content(self, reqifz_file_path: Path) -> ArtifactList:
@@ -593,13 +588,3 @@ class HighPerformanceREQIFArtifactExtractor(REQIFArtifactExtractor):
     the base class; the HP pipeline's real parallelism is the async Ollama
     calls across requirements.
     """
-
-    def __init__(
-        self,
-        logger: FileProcessingLogger | None = None,
-        max_workers: int = 4,
-        config: ConfigManager | None = None,
-    ):
-        super().__init__(logger, use_streaming=False, config=config)
-        # Retained for interface compatibility; no longer used for threading
-        self.max_workers = max_workers

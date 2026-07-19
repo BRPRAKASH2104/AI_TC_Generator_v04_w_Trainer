@@ -163,7 +163,7 @@ class TestMalformedFiles:
 
             try:
                 # Test with high-performance extractor
-                extractor = HighPerformanceREQIFArtifactExtractor(max_workers=2)
+                extractor = HighPerformanceREQIFArtifactExtractor()
                 start_time = time.time()
                 result = extractor.extract_reqifz_content(Path(temp_file.name))
                 processing_time = time.time() - start_time

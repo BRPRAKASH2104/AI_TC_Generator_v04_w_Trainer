@@ -89,9 +89,7 @@ class REQIFZFileProcessor(BaseProcessor):
         self._initialize_logger(reqifz_path)
         assert self.logger is not None, "_initialize_logger() must set self.logger"
 
-        self.extractor = REQIFArtifactExtractor(
-            self.logger, use_streaming=False, config=self.config
-        )
+        self.extractor = REQIFArtifactExtractor(self.logger, config=self.config)
         self.generator = TestCaseGenerator(
             self.ollama_client, self.yaml_manager, self.logger, config=self.config
         )
