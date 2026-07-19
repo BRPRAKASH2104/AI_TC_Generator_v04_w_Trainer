@@ -4,7 +4,7 @@ High-level processors for the AI Test Case Generator.
 This package contains the main processing workflows for different execution modes.
 """
 
-from .base_processor import BaseProcessor
+from .base_processor import AsyncFileProcessor, BaseProcessor, SyncFileProcessor
 from .hp_processor import HighPerformanceREQIFZFileProcessor
 from .standard_processor import REQIFZFileProcessor
 
@@ -12,4 +12,6 @@ __all__ = [
     "BaseProcessor",
     "REQIFZFileProcessor",
     "HighPerformanceREQIFZFileProcessor",
+    "SyncFileProcessor",
+    "AsyncFileProcessor",
 ]

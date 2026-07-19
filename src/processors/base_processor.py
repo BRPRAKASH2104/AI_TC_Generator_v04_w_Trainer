@@ -8,7 +8,7 @@ and high-performance processors, eliminating code duplication.
 import re
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from src.config import ConfigManager
 from src.file_processing_logger import FileProcessingLogger
@@ -18,6 +18,36 @@ from src.yaml_prompt_manager import YAMLPromptManager
 # Type aliases
 type ProcessingResult = dict[str, Any]
 type AugmentedRequirement = dict[str, Any]
+
+
+class SyncFileProcessor(Protocol):
+    """Structural type for synchronous per-file processing (e.g. REQIFZFileProcessor).
+
+    process_file has no shared declaration on BaseProcessor - sync and async
+    processors define it independently with incompatible calling conventions
+    (this one is not a coroutine), so a `processor` variable of unresolved
+    concrete type otherwise has no static type connecting it to this method.
+    """
+
+    def process_file(
+        self,
+        reqifz_path: Path,
+        model: str = ...,
+        template: str | None = ...,
+        output_dir: Path | None = ...,
+    ) -> ProcessingResult: ...
+
+
+class AsyncFileProcessor(Protocol):
+    """Structural type for asynchronous per-file processing (e.g. HighPerformanceREQIFZFileProcessor)."""
+
+    async def process_file(
+        self,
+        reqifz_path: Path,
+        model: str = ...,
+        template: str | None = ...,
+        output_dir: Path | None = ...,
+    ) -> ProcessingResult: ...
 
 
 class BaseProcessor:
