@@ -229,7 +229,6 @@ class TestNoDoubleSemaphore:
             client=mock_client,
             yaml_manager=None,
             logger=None,
-            _max_concurrent=4
         )
 
         # AsyncTestCaseGenerator should NOT have its own semaphore
@@ -245,7 +244,6 @@ class TestNoDoubleSemaphore:
             client=mock_client,
             yaml_manager=None,
             logger=None,
-            _max_concurrent=4
         )
 
         # Verify only client has semaphore
@@ -521,7 +519,6 @@ class TestPerformanceRegression:
             client=mock_client,
             yaml_manager=mock_yaml_manager,
             logger=None,
-            _max_concurrent=4
         )
 
         # Create 8 requirements (should process 4 at a time with semaphore)

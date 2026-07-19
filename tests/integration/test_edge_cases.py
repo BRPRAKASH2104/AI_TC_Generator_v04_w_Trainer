@@ -304,7 +304,7 @@ class TestResourceConstraints:
 
         # The generator no longer limits concurrency itself (delegates to client)
         # So we just verify it runs all tasks.
-        generator = AsyncTestCaseGenerator(mock_client, _max_concurrent=2)
+        generator = AsyncTestCaseGenerator(mock_client)
 
         # Create multiple requirements
         requirements = [

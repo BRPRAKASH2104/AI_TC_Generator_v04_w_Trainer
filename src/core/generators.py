@@ -506,16 +506,15 @@ class AsyncTestCaseGenerator(_GeneratorCore):
         validator: SemanticValidator | None = None,
         deduplicator: TestCaseDeduplicator | None = None,
         config: ConfigManager | None = None,
-        _max_concurrent: int = 4,
     ):
         super().__init__(client, yaml_manager, logger, validator, deduplicator, config)
         # Narrow the inherited union type: this subclass always holds an
         # AsyncOllamaClient, needed so awaiting self.client's async methods
         # type-checks (the base type also admits the sync OllamaClient).
         self.client: AsyncOllamaClient = client
-        # _max_concurrent retained for interface compatibility only:
-        # concurrency limiting is handled by AsyncOllamaClient's semaphore
-        # (a second semaphore here would halve throughput)
+        # No semaphore here by design: concurrency limiting is handled by
+        # AsyncOllamaClient's semaphore (a second one here would halve
+        # throughput - see TestNoDoubleSemaphore)
 
     async def generate_test_cases(
         self, requirement: RequirementData, model: str, template_name: str | None = None

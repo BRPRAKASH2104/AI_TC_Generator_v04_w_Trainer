@@ -171,7 +171,6 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                     self.yaml_manager,
                     self.logger,
                     config=self.config,
-                    _max_concurrent=self.max_concurrent_requirements,
                 )
 
                 # Start performance monitoring
