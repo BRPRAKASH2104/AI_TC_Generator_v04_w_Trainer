@@ -12,7 +12,7 @@ This file provides guidance to Codex when working with code in this repository.
 
 **Docstrings**: Follow Google Python Style Guide for all modules, classes, functions, and methods.
 
-**CHANGELOG.md**: No CHANGELOG.md exists yet. If one is created, update the `[Unreleased]` section (Added/Changed/Fixed/Removed) for every significant change.
+**CHANGELOG.md**: Update (Added/Changed/Fixed/Removed) for every significant change.
 
 ## Workflow: Codebase Architecture & Investigation
 
@@ -270,7 +270,7 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (4644 symbols, 6588 relationships, 130 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (4730 symbols, 6738 relationships, 134 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -298,17 +298,6 @@ This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (4644 s
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/clusters` | All functional areas |
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/processes` | All execution flows |
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
 
