@@ -30,7 +30,7 @@ Several other defects found in this review—broken wheel contents, unbounded ar
 |---:|---|---|---|
 | 1 | Partial output reported as success | **Fixed** | Sync and async generation return structured errors; processors retain failed requirement IDs; directory aggregation distinguishes complete, partial, and failed runs; exit codes are 0/2/1 (`main.py:126-178`, processor regression tests). |
 | 2 | `<object>` placeholder overwrites saved image metadata | **Fixed** | `augment_artifacts_with_images()` preserves the saved record and merges placeholder metadata (`src/core/image_extractor.py:644-727`); focused collision tests pass. The exact end-to-end test requested in the prior review—REQIFZ to selected model to sent image bytes—is still missing. |
-| 3 | RAFT path does not train on its dataset | **Partially fixed** | User-facing wording now admits this is prompt customization, not weight training. However, two datasets with different counts/content/images produced byte-identical Modelfiles after timestamp normalization. The new claim that the prompt is dataset-informed is therefore still false. |
+| 3 | RAFT path does not train on its dataset | **Deferred by design** | Misleading wording is fixed: the module/`_prepare_modelfile` docstrings now state the system prompt "is not derived from the RAFT dataset" and `_analyze_dataset` stats are "for reporting only" (`src/training/vision_raft_trainer.py:280-286`). No false dataset-informed claim remains. The remaining gap — the dataset genuinely customizing the model — is intentionally **not** implemented: assessed 2026-07-20 and deferred as separate future work, because the cheap route (dataset-derived Ollama `MESSAGE` few-shots) cannot carry the vision examples this trainer exists for and taxes every inference call, while the correct route (LoRA/adapter fine-tuning) needs an HF-format + GPU pipeline this local-Ollama tool does not target. Tracked under [Recommended] finding 6 and "Remaining Archived Work". |
 | 4 | Invalid model objects become plausible `N/A` rows | **Fixed** | One canonical five-field schema is sent through Ollama `format` and enforced locally; strict validation is honored before formatting (`src/core/validators.py:17-70`, `src/core/generators.py:266-314`). |
 | 5 | Presets do not control execution reliably | **Fixed** | CLI booleans are tri-state, dispatch uses effective configuration, and preset-applied keys are protected from model defaults (`main.py:120-123,225-231`; preset precedence tests pass). |
 | 6 | RAFT collection ignores the consent contract | **Fixed** | The collector is created only when both consent flags are true, and YAML/environment wiring plus all four truth-table combinations are tested (`src/processors/base_processor.py:82-91`). |
@@ -44,7 +44,7 @@ Several other defects found in this review—broken wheel contents, unbounded ar
 ### Status totals
 
 - **Fixed:** 1, 2, 4, 5, 6, 7, 8, 9 (7/8/9 completed in the P1 pass, 2026-07-20)
-- **Partial:** 3
+- **Deferred by design:** 3 (misleading wording fixed; genuine dataset-driven training intentionally not built — see the finding note and finding 6)
 - **Open:** 10, 11, 12
 
 ## New Critical Findings
