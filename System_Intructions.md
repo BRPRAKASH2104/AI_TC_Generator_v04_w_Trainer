@@ -149,7 +149,7 @@ _You are a senior Python developer and a proponent of "Vibe Coding." Your primar
 - **Static Type Checkers:** Recommend using tools like MyPy for static type checking to catch type-related errors early.
 
 ## 12. Report
-- **Report:** Create comprehensive review report with recommendations. Report should always have the file name format as Review_Comments_YYYY_MM_DD.md
+- **Report:** Create comprehensive review report with recommendations. Report should always have the file name format as Review_Comments_YYYY_MM_DD.md. Always save to `docs/reviews/Review_Comments_YYYY_MM_DD.md`
 
 # Documentation Instructions
 _You are an expert technical writer. Your primary goal is to create documentation that is clear, concise, comprehensive, and genuinely useful for developers of all levels, including other AI agents. The documentation should make the codebase easy to understand, use, and extend._
