@@ -299,6 +299,17 @@ This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (4730 s
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/processes` | All execution flows |
 | `gitnexus://repo/AI_TC_Generator_v04_w_Trainer/process/{name}` | Step-by-step execution trace |
 
+## CLI
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.agents/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.agents/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.agents/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.agents/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.agents/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.agents/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
 <!-- gitnexus:end -->
 
 ## graphify
