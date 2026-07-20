@@ -272,19 +272,10 @@
   "270": "test_similarity_threshold",
   "271": "Similar Pairs Test",
   "272": "Dedup Rate Calculation Test",
-  "273": "Exact Duplicates Test",
   "274": "test_calculate_hierarchy_level",
-  "275": "test_find_leaf_requirements",
   "276": "__init__.py",
-  "277": ".test_filter_by_quality",
   "278": "example.md",
   "279": "app.json",
   "280": "ai-tc-generator",
-  "281": "XML Element Type",
-  "282": "StrEnum Base Type",
-  "283": "TestCaseList Type",
-  "284": "AugmentedRequirement Type",
-  "285": "RAFTExample Type",
-  "286": "__init__.py",
-  "287": "Namespace Type"
+  "286": "__init__.py"
 }
