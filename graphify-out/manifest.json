@@ -10,9 +10,9 @@
     "semantic_hash": "202d24619c9ea07782bab9878d0eb9f8"
   },
   ".claude/settings.local.json": {
-    "mtime": 1784448286.247795,
-    "ast_hash": "9856ecf9394af09af11d9061121a6724",
-    "semantic_hash": "9856ecf9394af09af11d9061121a6724"
+    "mtime": 1784550256.4801502,
+    "ast_hash": "e0d33b4c1327056e5eb2f18c8594c698",
+    "semantic_hash": ""
   },
   ".claude/statusline.mjs": {
     "mtime": 1775370298.0,
@@ -130,9 +130,9 @@
     "semantic_hash": "b46d300761c8c0f75be7e24c72adc62b"
   },
   "src/core/prompt_builder.py": {
-    "mtime": 1784282445.0,
-    "ast_hash": "2ccde57990b300b749fd1f3042c98de3",
-    "semantic_hash": "2ccde57990b300b749fd1f3042c98de3"
+    "mtime": 1784550779.2861257,
+    "ast_hash": "d927af18bdeaa1684e72a3cb140ce870",
+    "semantic_hash": ""
   },
   "src/core/relationship_parser.py": {
     "mtime": 1783325791.0,
@@ -140,8 +140,8 @@
     "semantic_hash": "438be8dc8529a2e2afb201f2d469e8ec"
   },
   "src/core/validators.py": {
-    "mtime": 1784535717.5447438,
-    "ast_hash": "490ae973c5c28c85eb6cb8dc7af4b2b2",
+    "mtime": 1784552195.9761462,
+    "ast_hash": "2d3d1414df648d47e631fe01942685ac",
     "semantic_hash": ""
   },
   "src/file_processing_logger.py": {
@@ -655,32 +655,32 @@
     "semantic_hash": "5f5d02f15a6dcd7a0b8ded32499f9eff"
   },
   ".claude/skills/gitnexus/gitnexus-cli/SKILL.md": {
-    "mtime": 1784537027.8173773,
+    "mtime": 1784557518.202229,
     "ast_hash": "77da703128a8f2f84ab1367f9bb60d09",
     "semantic_hash": "77da703128a8f2f84ab1367f9bb60d09"
   },
   ".claude/skills/gitnexus/gitnexus-debugging/SKILL.md": {
-    "mtime": 1784537027.8156176,
+    "mtime": 1784557518.2004333,
     "ast_hash": "c7284b8f06cb8323f572564363df59e2",
     "semantic_hash": "c7284b8f06cb8323f572564363df59e2"
   },
   ".claude/skills/gitnexus/gitnexus-exploring/SKILL.md": {
-    "mtime": 1784537027.8152406,
+    "mtime": 1784557518.199964,
     "ast_hash": "680f3e0bef0d75b4e82b461715213126",
     "semantic_hash": "680f3e0bef0d75b4e82b461715213126"
   },
   ".claude/skills/gitnexus/gitnexus-guide/SKILL.md": {
-    "mtime": 1784537027.8169668,
+    "mtime": 1784557518.201754,
     "ast_hash": "51eee64e023b05990b57ea22eac4957d",
     "semantic_hash": "51eee64e023b05990b57ea22eac4957d"
   },
   ".claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md": {
-    "mtime": 1784537027.8160896,
+    "mtime": 1784557518.2008543,
     "ast_hash": "f8b8d25ad42baa867a37791ee09f106e",
     "semantic_hash": "f8b8d25ad42baa867a37791ee09f106e"
   },
   ".claude/skills/gitnexus/gitnexus-refactoring/SKILL.md": {
-    "mtime": 1784537027.8164744,
+    "mtime": 1784557518.2012932,
     "ast_hash": "4d0bf7aa2b876bd4318add73d5e4918e",
     "semantic_hash": "4d0bf7aa2b876bd4318add73d5e4918e"
   },
@@ -740,13 +740,13 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1784537027.814104,
-    "ast_hash": "0bdcda5760838efbc5778c9d53266443",
+    "mtime": 1784557518.198541,
+    "ast_hash": "45bf87f2f70945b4d1a8c88c86236cd3",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1784537027.814556,
-    "ast_hash": "34cfc46f0b4c9a49e4967893578f3f72",
+    "mtime": 1784557518.1990714,
+    "ast_hash": "5d28380fc71dceb383ccc070c1cd7610",
     "semantic_hash": ""
   },
   "GEMINI.md": {
@@ -960,8 +960,8 @@
     "semantic_hash": "f56b6dac3a9eacc5de8c4d5195157bc5"
   },
   "prompts/templates/test_generation_adaptive.yaml": {
-    "mtime": 1784535685.3918762,
-    "ast_hash": "3baffef4303d1beec3b8c76a0648edad",
+    "mtime": 1784550779.2857964,
+    "ast_hash": "91ebc9338b69439676cd0726c880eca8",
     "semantic_hash": ""
   },
   "tests/helpers/USAGE_EXAMPLES.md": {
@@ -1025,8 +1025,8 @@
     "semantic_hash": ""
   },
   "docs/reviews/Review_Comments_2026_07_20.md": {
-    "mtime": 1784536998.703345,
-    "ast_hash": "bbf7625c88fcf6e5539d2c03fdb66cc3",
+    "mtime": 1784552609.8719323,
+    "ast_hash": "adf87116f7163ff97f8da3be92619164",
     "semantic_hash": ""
   },
   "src/core/interface_matcher.py": {
@@ -1050,8 +1050,13 @@
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
-    "mtime": 1784534764.437381,
-    "ast_hash": "e5af6e398fb4a5f716146335f69a1cf0",
+    "mtime": 1784552635.1170516,
+    "ast_hash": "b16acc47d81d2481a40de3cacb553110",
+    "semantic_hash": ""
+  },
+  "tests/integration/test_ollama_schema_smoke.py": {
+    "mtime": 1784552900.655925,
+    "ast_hash": "90920c3dec9ed04a23deffd7b33581b0",
     "semantic_hash": ""
   }
 }
