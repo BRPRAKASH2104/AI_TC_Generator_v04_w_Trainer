@@ -30,7 +30,7 @@ description: "Skill for the Processors area of AI_TC_Generator_v04_w_Trainer. 32
 
 Start here when exploring this area:
 
-- **`BaseProcessor`** (Class) — `src/processors/base_processor.py:22`
+- **`BaseProcessor`** (Class) — `src/processors/base_processor.py:52`
 - **`HighPerformanceREQIFZFileProcessor`** (Class) — `src/processors/hp_processor.py:35`
 - **`REQIFZFileProcessor`** (Class) — `src/processors/standard_processor.py:32`
 - **`test_metrics_reset_between_files`** (Method) — `tests/integration/test_processors.py:219`
@@ -40,7 +40,7 @@ Start here when exploring this area:
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `BaseProcessor` | Class | `src/processors/base_processor.py` | 22 |
+| `BaseProcessor` | Class | `src/processors/base_processor.py` | 52 |
 | `HighPerformanceREQIFZFileProcessor` | Class | `src/processors/hp_processor.py` | 35 |
 | `REQIFZFileProcessor` | Class | `src/processors/standard_processor.py` | 32 |
 | `test_metrics_reset_between_files` | Method | `tests/integration/test_processors.py` | 219 |

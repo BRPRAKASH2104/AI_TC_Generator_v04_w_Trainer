@@ -54,9 +54,9 @@ Start here when exploring this area:
 | `test_very_long_test_cases` | Method | `tests/training/test_raft_collector.py` | 281 |
 | `test_unicode_characters_in_context` | Method | `tests/training/test_raft_collector.py` | 306 |
 | `test_empty_info_and_interface_lists` | Method | `tests/training/test_raft_collector.py` | 338 |
-| `start_curriculum_training` | Method | `src/training/progressive_trainer.py` | 142 |
-| `get_training_recommendations` | Method | `src/training/progressive_trainer.py` | 390 |
-| `get_curriculum_status` | Method | `src/training/progressive_trainer.py` | 461 |
+| `start_curriculum_training` | Method | `src/training/progressive_trainer.py` | 148 |
+| `get_training_recommendations` | Method | `src/training/progressive_trainer.py` | 403 |
+| `get_curriculum_status` | Method | `src/training/progressive_trainer.py` | 474 |
 | `build_dataset` | Method | `src/training/raft_dataset_builder.py` | 44 |
 | `test_build_dataset_success` | Method | `tests/training/test_raft_dataset_builder.py` | 75 |
 | `test_filter_by_quality` | Method | `tests/training/test_raft_dataset_builder.py` | 144 |

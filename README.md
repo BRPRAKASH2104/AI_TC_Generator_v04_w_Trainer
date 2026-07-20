@@ -16,7 +16,7 @@ This tool automatically generates comprehensive test cases from automotive requi
 - ✅ **Context-Aware Processing**: Enriches requirements with headings, information blocks, and system interfaces for better test case quality
 - ✅ **High-Performance Mode**: Async/concurrent processing with 3-9x performance improvement
 - ✅ **Image Extraction**: Extracts and processes embedded images from REQIFZ files for vision AI analysis
-- ✅ **RAFT Training**: Fine-tune models with custom automotive domain data for improved accuracy
+- ✅ **RAFT-Customized Models**: Create Ollama models with an automotive-domain-tuned system prompt from curated RAFT examples (prompt customization, not weight fine-tuning)
 - ✅ **Production Ready**: 87% test coverage, comprehensive validation, robust error handling
 
 ## 🚀 Quick Start
@@ -230,9 +230,9 @@ export OLLAMA__BASE_URL="http://localhost:11434"
 
 See `src/config.py` for all configuration options (Pydantic-based with environment variable support).
 
-## 🎓 Training Custom Models
+## 🎓 Creating Prompt-Customized Models
 
-Fine-tune vision models on your automotive domain data using RAFT methodology.
+Create a prompt-customized Ollama model informed by your automotive domain data using RAFT methodology. This builds an Ollama Modelfile (`FROM` + `SYSTEM`) and registers it via `ollama create` — it does not fine-tune model weights or produce an adapter.
 
 **RAFT collection is opt-in and disabled by default.** Enable it in `config/cli_config.yaml` (`training.enable_raft: true`, `training.collect_training_data: true`) or via environment variables before running.
 
@@ -251,15 +251,15 @@ ai-tc-generator input/ --hp --verbose
 # 4. Build RAFT dataset (using utility script)
 python3 utilities/build_vision_dataset.py
 
-# 5. Train custom vision model (using utility script)
+# 5. Create prompt-customized vision model (using utility script)
 python3 utilities/train_vision_model.py
 
-# 6. Deploy trained model
+# 6. Deploy the customized model
 export OLLAMA__VISION_MODEL="automotive-tc-vision-raft-v1"
 ai-tc-generator input/ --hp --verbose
 ```
 
-**Expected Results**: 40-60% better test case quality for requirements with diagrams.
+**Note**: This customizes the system prompt only — no weights are fine-tuned. Actual quality impact depends on your dataset and prompt, and has not been benchmarked; evaluate the customized model against the base model on your own requirements before relying on it.
 
 See [Vision Training Guide](docs/training/training_guideline.md) for complete guide including:
 - Hardware requirements (12+ GB VRAM)

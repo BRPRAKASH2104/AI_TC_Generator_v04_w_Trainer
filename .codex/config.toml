@@ -5,9 +5,10 @@ inherit = "core"
 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
 
 [mcp_servers.gitnexus]
-command = "npx"
+command = "gitnexus"
 args = [
-    "-y",
-    "gitnexus@latest",
-    "mcp",
+    "mcp"
 ]
+
+[features]
+multi_agent = true

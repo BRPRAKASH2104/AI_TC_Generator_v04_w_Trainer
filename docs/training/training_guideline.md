@@ -45,12 +45,12 @@ The vision training infrastructure extends the **RAFT (Retrieval-Augmented Fine-
 - May misinterpret technical diagrams
 - Struggle with industry-specific visual vocabulary
 
-**Custom Vision RAFT Models**:
-- ✅ Specialized diagram understanding (state machines, timing diagrams, signal flows)
-- ✅ Domain-specific visual vocabulary
-- ✅ 40-60% better test case quality for visual requirements
-- ✅ Correct interpretation of automotive-specific diagrams
-- ✅ Better context prioritization for test case generation
+**Custom Vision RAFT Models** (via the default Modelfile/prompt-customization path — see note below):
+- Domain-tuned system prompt referencing state machines, timing diagrams, signal flows
+- Domain-specific visual vocabulary in the prompt
+- Intended to improve interpretation of automotive-specific diagrams and context prioritization
+
+**Note**: The default pipeline customizes the system prompt only; it does not fine-tune model weights. Any quality improvement depends on your dataset and prompt, and has not been benchmarked in this repo — evaluate against the base model on your own requirements before relying on a specific number. Real fine-tuning (LoRA or full) is a separate, more involved path — see the comparison table below.
 
 ### What's New in v2.2.0?
 
@@ -1362,7 +1362,7 @@ Vision model training with RAFT methodology:
 1. **Enable RAFT collection** → Automatically captures images during processing
 2. **Annotate examples** → Mark oracle/distractor for text AND images (quality > quantity)
 3. **Build dataset** → Use `utilities/build_vision_dataset.py` to create Ollama-compatible JSONL
-4. **Train model** → Use `utilities/train_vision_model.py` for Modelfile (fast) or fine-tuning (better)
+4. **Create the customized model** → Use `utilities/train_vision_model.py` (Modelfile/prompt customization only; it does not perform fine-tuning — see comparison table for that separate path)
 5. **Evaluate** → Compare with base model, validate quality improvements
 6. **Deploy** → Set as default vision model via `OLLAMA__VISION_MODEL` environment variable
 
@@ -1372,8 +1372,7 @@ Vision model training with RAFT methodology:
 - Iterative improvement (train, evaluate, collect more data, retrain)
 - Proper validation (compare with base model, check quality metrics)
 
-**Expected Results**:
-- 40-60% better test case quality for visual requirements
+**Intended Benefits** (Modelfile/prompt-customization path; unbenchmarked in this repo — evaluate against the base model on your own requirements):
 - Correct interpretation of automotive diagrams
 - Domain-specific visual understanding
 - Better context prioritization

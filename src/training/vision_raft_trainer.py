@@ -1,10 +1,13 @@
 """
-Vision-Aware RAFT Training Pipeline
+Vision-Aware RAFT Prompt-Customized Model Creation
 
-This module orchestrates training for vision-capable models using RAFT methodology.
-Supports hybrid training with both text-only and vision examples.
+This module does not fine-tune model weights. It builds an Ollama Modelfile
+(FROM + PARAMETER + SYSTEM, no ADAPTER) with a system prompt informed by RAFT
+dataset statistics, then runs `ollama create` to register it as a named
+model - a prompt customization, not a trained model (review 2026-07-17
+finding 3). Supports both text-only and vision RAFT datasets.
 
-Vision Support (v2.2.0+): Complete training pipeline for llama3.2-vision and other
+Vision Support (v2.2.0+): Modelfile creation for llama3.2-vision and other
 vision models using the hybrid vision/text strategy.
 """
 
@@ -80,13 +83,14 @@ class TrainingProgress:
 
 class VisionRAFTTrainer:
     """
-    Vision-aware RAFT training pipeline.
+    Creates a prompt-customized Ollama model from a RAFT dataset.
 
-    This trainer handles:
-    1. Mixed text/vision datasets
-    2. Ollama fine-tuning for vision models
-    3. RAFT oracle/distractor methodology
-    4. Hybrid training strategy
+    This class handles:
+    1. Mixed text/vision dataset analysis
+    2. Ollama Modelfile creation (system-prompt customization, not
+       weight-level fine-tuning - see module docstring)
+    3. RAFT oracle/distractor methodology (reflected in the system prompt)
+    4. Hybrid vision/text strategy
     """
 
     __slots__ = ("config", "dataset_path", "output_dir", "logger", "progress")
@@ -121,13 +125,13 @@ class VisionRAFTTrainer:
 
     def train(self) -> TrainingResult:
         """
-        Execute complete vision RAFT training pipeline.
+        Create a prompt-customized Ollama model from the RAFT dataset.
 
         Returns:
-            Training results with metrics and model info
+            Creation results with metrics and model info
         """
         if self.logger:
-            self.logger.info(f"🚀 Starting vision RAFT training: {self.config.output_model}")
+            self.logger.info(f"🚀 Creating prompt-customized model: {self.config.output_model}")
             self.logger.info(f"   Base model: {self.config.base_model}")
             self.logger.info(f"   Dataset: {self.dataset_path}")
 
@@ -157,11 +161,11 @@ class VisionRAFTTrainer:
                 )
                 self.logger.info(f"   Text-only: {dataset_stats['text_only_examples']}")
 
-            # Step 2: Prepare training configuration
+            # Step 2: Prepare the Modelfile (system-prompt customization)
             modelfile = self._prepare_modelfile()
             result["modelfile"] = str(modelfile)
 
-            # Step 3: Train with Ollama
+            # Step 3: Register the customized model with Ollama
             training_metrics = self._train_with_ollama(modelfile)
             result["metrics"] = training_metrics
             result["success"] = training_metrics.get("success", False)
@@ -175,7 +179,7 @@ class VisionRAFTTrainer:
 
             if self.logger:
                 self.logger.info(
-                    f"✅ Training completed: {self.config.output_model} "
+                    f"✅ Model created: {self.config.output_model} "
                     f"({result['duration_seconds']:.1f}s)"
                 )
 
@@ -186,7 +190,7 @@ class VisionRAFTTrainer:
             result["errors"].append(str(e))
 
             if self.logger:
-                self.logger.error(f"❌ Training failed: {e}")
+                self.logger.error(f"❌ Model creation failed: {e}")
 
         return result
 
@@ -306,12 +310,12 @@ Output test cases in structured JSON format as demonstrated in training examples
 
     def _train_with_ollama(self, modelfile: Path) -> dict[str, Any]:
         """
-        Train model using Ollama fine-tuning.
+        Register the Modelfile as a named model via `ollama create`.
 
-        Note: This is a simplified implementation. Full Ollama fine-tuning
-        requires enterprise features or custom training scripts.
-
-        For now, this creates a custom model with optimized prompts.
+        This is prompt customization, not fine-tuning: no adapter or weight
+        update is produced. Real fine-tuning would require a training
+        framework producing an adapter applied via Ollama's ADAPTER
+        directive, or imported fine-tuned/fused weights.
         """
         metrics = {
             "success": False,
@@ -453,7 +457,7 @@ def create_vision_training_pipeline(
     Args:
         dataset_path: Path to RAFT training dataset
         base_model: Vision-capable base model
-        output_model: Name for trained model
+        output_model: Name for the created model
         logger: Optional logger
 
     Returns:

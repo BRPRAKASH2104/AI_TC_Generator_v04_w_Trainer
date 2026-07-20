@@ -86,10 +86,10 @@ Start here when exploring this area:
 | Unit | 7 calls |
 | Tests | 4 calls |
 | Cluster_1 | 3 calls |
-| Cluster_34 | 2 calls |
-| Cluster_28 | 2 calls |
+| Cluster_33 | 2 calls |
 | Training | 2 calls |
-| Cluster_35 | 1 calls |
+| Cluster_27 | 2 calls |
+| Cluster_31 | 1 calls |
 
 ## How to Explore
 

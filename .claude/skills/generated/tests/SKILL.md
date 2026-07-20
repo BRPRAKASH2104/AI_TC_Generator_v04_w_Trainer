@@ -51,8 +51,8 @@ Start here when exploring this area:
 | `test_build_augmented_requirements_no_heading_uses_default` | Method | `tests/core/test_base_processor.py` | 270 |
 | `test_build_augmented_requirements_multiple_requirements_same_heading` | Method | `tests/core/test_base_processor.py` | 287 |
 | `test_build_augmented_requirements_no_system_requirements` | Method | `tests/core/test_base_processor.py` | 306 |
-| `test_base_processor_context_aware_logic_preserved` | Method | `tests/test_critical_improvements.py` | 331 |
-| `test_context_reset_after_each_requirement` | Method | `tests/test_critical_improvements.py` | 393 |
+| `test_base_processor_context_aware_logic_preserved` | Method | `tests/test_critical_improvements.py` | 329 |
+| `test_context_reset_after_each_requirement` | Method | `tests/test_critical_improvements.py` | 391 |
 | `test_build_augmented_requirements_with_context` | Method | `tests/test_refactoring.py` | 41 |
 | `test_build_augmented_requirements_no_requirements` | Method | `tests/test_refactoring.py` | 81 |
 | `test_build_augmented_requirements_no_heading` | Method | `tests/test_refactoring.py` | 98 |

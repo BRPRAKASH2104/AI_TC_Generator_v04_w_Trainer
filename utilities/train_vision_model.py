@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Train vision RAFT model using Ollama Modelfile.
+"""Create a prompt-customized vision model using Ollama Modelfile.
 
-This script trains a custom vision-capable model for automotive test case
-generation using the RAFT methodology. It:
+This script does not fine-tune model weights. It creates a named Ollama
+model with a RAFT-informed system prompt for automotive test case
+generation. It:
 1. Loads vision RAFT dataset (JSONL format with base64 images)
 2. Creates Ollama Modelfile with optimized system prompt
 3. Registers custom model in Ollama
@@ -69,7 +70,7 @@ def parse_args() -> argparse.Namespace:
         Parsed arguments namespace
     """
     parser = argparse.ArgumentParser(
-        description="Train vision RAFT model using Ollama Modelfile",
+        description="Create a prompt-customized vision model using Ollama Modelfile",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -199,15 +200,15 @@ def check_output_model_exists(output_model: str) -> bool:
 
 
 def print_training_result(result: dict[str, Any]) -> None:
-    """Print training result summary.
+    """Print model-creation result summary.
 
     Args:
-        result: Training result dictionary from VisionRAFTTrainer
+        result: Result dictionary from VisionRAFTTrainer.train()
     """
     logger.info("")
     logger.info("=" * 60)
     if result["success"]:
-        logger.info("✅ Training Completed Successfully")
+        logger.info("✅ Model Created Successfully")
         logger.info("=" * 60)
         logger.info(f"Model name:       {result['model_name']}")
         logger.info(f"Duration:         {result['duration_seconds']:.1f}s")
@@ -231,7 +232,7 @@ def print_training_result(result: dict[str, Any]) -> None:
         logger.info("  3. Deploy: export OLLAMA__VISION_MODEL=" + result["model_name"])
         logger.info("  4. See docs/training/training_guideline.md for evaluation guide")
     else:
-        logger.error("❌ Training Failed")
+        logger.error("❌ Model Creation Failed")
         logger.error("=" * 60)
         errors = result.get("errors", [])
         for error in errors:
@@ -248,7 +249,7 @@ def print_training_result(result: dict[str, Any]) -> None:
 
 
 def main() -> int:
-    """Train vision RAFT model.
+    """Create a prompt-customized vision model from the RAFT dataset.
 
     Returns:
         Exit code (0 for success, 1 for failure)
@@ -293,10 +294,10 @@ def main() -> int:
                 logger.error("Use --force to overwrite or choose a different --output-model name")
                 return 1
 
-        # Training summary
+        # Model creation summary
         logger.info("")
         logger.info("=" * 60)
-        logger.info("Vision RAFT Model Training")
+        logger.info("Vision RAFT Prompt-Customized Model Creation")
         logger.info("=" * 60)
         logger.info(f"Dataset:      {args.dataset}")
         logger.info(f"Base model:   {args.base_model}")
@@ -314,8 +315,8 @@ def main() -> int:
             logger=logger,
         )
 
-        # Train model
-        logger.info("Starting training...")
+        # Create the customized model
+        logger.info("Creating model...")
         logger.info("")
         result = trainer.train()
 

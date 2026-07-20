@@ -5,14 +5,14 @@
     "semantic_hash": "3543387a633fefac0742ed8c8ce3147e"
   },
   ".claude/settings.json": {
-    "mtime": 1784445699.0140407,
+    "mtime": 1784524309.3869615,
     "ast_hash": "202d24619c9ea07782bab9878d0eb9f8",
     "semantic_hash": "202d24619c9ea07782bab9878d0eb9f8"
   },
   ".claude/settings.local.json": {
-    "mtime": 1784359451.0,
-    "ast_hash": "87bfe6d6408b152158d6c0a6936ab411",
-    "semantic_hash": "87bfe6d6408b152158d6c0a6936ab411"
+    "mtime": 1784448286.247795,
+    "ast_hash": "9856ecf9394af09af11d9061121a6724",
+    "semantic_hash": "9856ecf9394af09af11d9061121a6724"
   },
   ".claude/statusline.mjs": {
     "mtime": 1775370298.0,
@@ -100,9 +100,9 @@
     "semantic_hash": "73c80f17b439b16b2b906c1e46251a36"
   },
   "src/core/extractors.py": {
-    "mtime": 1783325791.0,
-    "ast_hash": "5c1233f0b79a60df3dcd14fb54214afe",
-    "semantic_hash": "5c1233f0b79a60df3dcd14fb54214afe"
+    "mtime": 1784447248.465285,
+    "ast_hash": "7466f57ade944714b02b69359ddb0782",
+    "semantic_hash": "7466f57ade944714b02b69359ddb0782"
   },
   "src/core/formatters.py": {
     "mtime": 1784282040.0,
@@ -110,9 +110,9 @@
     "semantic_hash": "1ab2c6902fffeab0375acb2868940fde"
   },
   "src/core/generators.py": {
-    "mtime": 1784282487.0,
-    "ast_hash": "d442764a38ce035a53bbb4b7bef94fba",
-    "semantic_hash": "d442764a38ce035a53bbb4b7bef94fba"
+    "mtime": 1784447672.2001827,
+    "ast_hash": "071bd07d7ede7d052d0831fa9da373dd",
+    "semantic_hash": "071bd07d7ede7d052d0831fa9da373dd"
   },
   "src/core/image_extractor.py": {
     "mtime": 1784281290.0,
@@ -150,24 +150,24 @@
     "semantic_hash": "9493f12652d10c325fd078ac9ee3cde5"
   },
   "src/processors/__init__.py": {
-    "mtime": 1760160300.0,
-    "ast_hash": "c5dfef511528c8ffd1c829775b0d3613",
-    "semantic_hash": "c5dfef511528c8ffd1c829775b0d3613"
+    "mtime": 1784446672.7747617,
+    "ast_hash": "543d1f31c6c066e05d380e2c656f8cda",
+    "semantic_hash": "543d1f31c6c066e05d380e2c656f8cda"
   },
   "src/processors/base_processor.py": {
-    "mtime": 1784282330.0,
-    "ast_hash": "dd4f3ad83acea3da092be217bcc67a61",
-    "semantic_hash": "dd4f3ad83acea3da092be217bcc67a61"
+    "mtime": 1784446653.3018022,
+    "ast_hash": "a67a9d5955c910072ffd3ae7cede6314",
+    "semantic_hash": "a67a9d5955c910072ffd3ae7cede6314"
   },
   "src/processors/hp_processor.py": {
-    "mtime": 1784279691.0,
-    "ast_hash": "9e884c0d4d54ccb435e97450dd6b78a2",
-    "semantic_hash": "9e884c0d4d54ccb435e97450dd6b78a2"
+    "mtime": 1784447659.4054742,
+    "ast_hash": "b826bdd96015718cccdaad2d313b493a",
+    "semantic_hash": "b826bdd96015718cccdaad2d313b493a"
   },
   "src/processors/standard_processor.py": {
-    "mtime": 1784279619.0,
-    "ast_hash": "868b17df3a82a4bea1095515ee43816c",
-    "semantic_hash": "868b17df3a82a4bea1095515ee43816c"
+    "mtime": 1784447256.4240663,
+    "ast_hash": "7cecb9082b6fa84ca60323e11b8e6360",
+    "semantic_hash": "7cecb9082b6fa84ca60323e11b8e6360"
   },
   "src/training/__init__.py": {
     "mtime": 1760167656.0,
@@ -175,9 +175,9 @@
     "semantic_hash": "b6f4ec47225cc211a7b13d8b0c74d4a0"
   },
   "src/training/progressive_trainer.py": {
-    "mtime": 1783321916.0,
-    "ast_hash": "7566a5cdaee08cbb50c24ab02d67e51d",
-    "semantic_hash": "7566a5cdaee08cbb50c24ab02d67e51d"
+    "mtime": 1784453333.1442096,
+    "ast_hash": "6a1c06ae87cb64baf52d6d5a205b64ee",
+    "semantic_hash": "6a1c06ae87cb64baf52d6d5a205b64ee"
   },
   "src/training/quality_scorer.py": {
     "mtime": 1783322202.0,
@@ -200,9 +200,9 @@
     "semantic_hash": "ac4360e77a199db0809d7c2b41da46d8"
   },
   "src/training/vision_raft_trainer.py": {
-    "mtime": 1783322277.0,
-    "ast_hash": "f29f39aae1cc8d0dc871d5ef6fbb3e59",
-    "semantic_hash": "f29f39aae1cc8d0dc871d5ef6fbb3e59"
+    "mtime": 1784453195.6251593,
+    "ast_hash": "2b74330ec2d7cc14c78a2b1ab01a933f",
+    "semantic_hash": "2b74330ec2d7cc14c78a2b1ab01a933f"
   },
   "src/yaml_prompt_manager.py": {
     "mtime": 1783326039.0,
@@ -240,9 +240,9 @@
     "semantic_hash": "41cdf5cd2f41164b1bb3ccf081beb7ae"
   },
   "tests/core/test_generators.py": {
-    "mtime": 1784281969.0,
-    "ast_hash": "e22f8c3740022ac37589f6bba548abad",
-    "semantic_hash": "e22f8c3740022ac37589f6bba548abad"
+    "mtime": 1784447715.1072404,
+    "ast_hash": "b6f458af5d43f69bfac03bd9aa42e4d4",
+    "semantic_hash": "b6f458af5d43f69bfac03bd9aa42e4d4"
   },
   "tests/core/test_image_extractor.py": {
     "mtime": 1784281265.0,
@@ -315,9 +315,9 @@
     "semantic_hash": "870552aec697cf50374d69c4eec88680"
   },
   "tests/integration/test_edge_cases.py": {
-    "mtime": 1784281995.0,
-    "ast_hash": "9aa7eb4f6bd915492485e655808849f9",
-    "semantic_hash": "9aa7eb4f6bd915492485e655808849f9"
+    "mtime": 1784447730.2274933,
+    "ast_hash": "80776c9566295d301b16ad980b61937f",
+    "semantic_hash": "80776c9566295d301b16ad980b61937f"
   },
   "tests/integration/test_end_to_end.py": {
     "mtime": 1784282000.0,
@@ -345,9 +345,9 @@
     "semantic_hash": "88111c84875a81675046065c5cfb0f33"
   },
   "tests/test_critical_improvements.py": {
-    "mtime": 1783310394.0,
-    "ast_hash": "2e3294af5388482d168fc78bb4197e4a",
-    "semantic_hash": "2e3294af5388482d168fc78bb4197e4a"
+    "mtime": 1784447691.706211,
+    "ast_hash": "553788c22f9642f7f7a4ca8afdc245ab",
+    "semantic_hash": "553788c22f9642f7f7a4ca8afdc245ab"
   },
   "tests/test_integration_refactored.py": {
     "mtime": 1775466297.0,
@@ -430,9 +430,9 @@
     "semantic_hash": "c458681ff70a64b15fc042006ded6b32"
   },
   "utilities/train_vision_model.py": {
-    "mtime": 1762878433.0,
-    "ast_hash": "27312ca5c8c438fd52abf263982c287f",
-    "semantic_hash": "27312ca5c8c438fd52abf263982c287f"
+    "mtime": 1784453250.1321383,
+    "ast_hash": "71980b96febf4ec0989ebbc5a5686f88",
+    "semantic_hash": "71980b96febf4ec0989ebbc5a5686f88"
   },
   "utilities/verify_v03_compatibility.py": {
     "mtime": 1761911907.0,
@@ -590,139 +590,104 @@
     "semantic_hash": "45b6dd7a53825d4f2623cd6d8cfc7f4d"
   },
   ".claude/skills/generated/cluster-1/SKILL.md": {
-    "mtime": 1784445698.873116,
+    "mtime": 1784524309.261218,
     "ast_hash": "8763833f2148ae6d1c31b538cdb771d1",
-    "semantic_hash": ""
+    "semantic_hash": "8763833f2148ae6d1c31b538cdb771d1"
   },
   ".claude/skills/generated/cluster-11/SKILL.md": {
-    "mtime": 1784445698.8700073,
+    "mtime": 1784524309.2577677,
     "ast_hash": "03bc9f45b48c11f4d357e294f97ae592",
     "semantic_hash": "03bc9f45b48c11f4d357e294f97ae592"
   },
   ".claude/skills/generated/cluster-19/SKILL.md": {
-    "mtime": 1784445698.8718727,
-    "ast_hash": "630e0d49e00101c6372fab6aa13e558a",
-    "semantic_hash": "630e0d49e00101c6372fab6aa13e558a"
-  },
-  ".claude/skills/generated/cluster-20/SKILL.md": {
-    "mtime": 1784445698.873402,
-    "ast_hash": "2412775235d415efba30f84821b2e686",
-    "semantic_hash": "2412775235d415efba30f84821b2e686"
-  },
-  ".claude/skills/generated/cluster-24/SKILL.md": {
-    "mtime": 1784445698.8740053,
-    "ast_hash": "f5de49dde9347c3df13ed94f8ee74eea",
-    "semantic_hash": "f5de49dde9347c3df13ed94f8ee74eea"
-  },
-  ".claude/skills/generated/cluster-33/SKILL.md": {
-    "mtime": 1784445698.8706083,
-    "ast_hash": "68706797f7189bc23f9335bb05eb27a0",
-    "semantic_hash": "68706797f7189bc23f9335bb05eb27a0"
-  },
-  ".claude/skills/generated/cluster-35/SKILL.md": {
-    "mtime": 1784445698.8712852,
-    "ast_hash": "51c735334044bb5a1748bf918d0bb482",
-    "semantic_hash": "51c735334044bb5a1748bf918d0bb482"
+    "mtime": 1784524309.2615225,
+    "ast_hash": "c9f7b28a5fde3ba717468b9a58fe6a1b",
+    "semantic_hash": "c9f7b28a5fde3ba717468b9a58fe6a1b"
   },
   ".claude/skills/generated/cluster-40/SKILL.md": {
-    "mtime": 1784445698.870966,
-    "ast_hash": "3a199903957fdc70e2e0c179e1bfb433",
-    "semantic_hash": "3a199903957fdc70e2e0c179e1bfb433"
-  },
-  ".claude/skills/generated/cluster-41/SKILL.md": {
-    "mtime": 1784445698.872205,
-    "ast_hash": "9b424d11f03b58f5d2ecac2a36f0e4bd",
-    "semantic_hash": "9b424d11f03b58f5d2ecac2a36f0e4bd"
+    "mtime": 1784524309.2602482,
+    "ast_hash": "722573775d101847b9767a340441d6e8",
+    "semantic_hash": "722573775d101847b9767a340441d6e8"
   },
   ".claude/skills/generated/cluster-48/SKILL.md": {
-    "mtime": 1784445698.8715892,
-    "ast_hash": "dacbd0f3b3a8606ab952295d73a4192a",
-    "semantic_hash": "dacbd0f3b3a8606ab952295d73a4192a"
-  },
-  ".claude/skills/generated/cluster-49/SKILL.md": {
-    "mtime": 1784445698.8725243,
-    "ast_hash": "8b082cce97f077f32599846e98ec6395",
-    "semantic_hash": "8b082cce97f077f32599846e98ec6395"
+    "mtime": 1784524309.2605755,
+    "ast_hash": "894698adabbd402507cf723bb3e08834",
+    "semantic_hash": "894698adabbd402507cf723bb3e08834"
   },
   ".claude/skills/generated/cluster-82/SKILL.md": {
-    "mtime": 1784445698.8737068,
-    "ast_hash": "b69e48604469beb30930312515cc4fbd",
-    "semantic_hash": "b69e48604469beb30930312515cc4fbd"
-  },
-  ".claude/skills/generated/cluster-83/SKILL.md": {
-    "mtime": 1784445698.8728209,
-    "ast_hash": "4423bd59d582ba2de91443cb92e16186",
-    "semantic_hash": "4423bd59d582ba2de91443cb92e16186"
+    "mtime": 1784524309.2609007,
+    "ast_hash": "ccd23195b647f34174bb3ad36f510e44",
+    "semantic_hash": "ccd23195b647f34174bb3ad36f510e44"
   },
   ".claude/skills/generated/integration/SKILL.md": {
-    "mtime": 1784445698.867198,
-    "ast_hash": "651537a4e1fcb3cac2ba31953f970d15",
-    "semantic_hash": ""
+    "mtime": 1784524309.254816,
+    "ast_hash": "0b67d3e8615ad62374a7b1bdf73020af",
+    "semantic_hash": "0b67d3e8615ad62374a7b1bdf73020af"
   },
   ".claude/skills/generated/processors/SKILL.md": {
-    "mtime": 1784445698.8696578,
-    "ast_hash": "71dcdccd4122652f4dfe41e7d8da6fb7",
-    "semantic_hash": ""
+    "mtime": 1784524309.2574213,
+    "ast_hash": "51e75bec5ef131c301c930f8a6e545a4",
+    "semantic_hash": "51e75bec5ef131c301c930f8a6e545a4"
   },
   ".claude/skills/generated/tests/SKILL.md": {
-    "mtime": 1784445698.868364,
-    "ast_hash": "188b345afa7b5b0d9754d2d1c1de8d02",
-    "semantic_hash": ""
+    "mtime": 1784524309.2560685,
+    "ast_hash": "1dacd0b6a5c4b6f378dd7d5c5cd895da",
+    "semantic_hash": "1dacd0b6a5c4b6f378dd7d5c5cd895da"
   },
   ".claude/skills/generated/tools/SKILL.md": {
-    "mtime": 1784445698.870315,
+    "mtime": 1784524309.2581062,
     "ast_hash": "75542903ea5f32bd4f7bfa3025e7104b",
     "semantic_hash": "75542903ea5f32bd4f7bfa3025e7104b"
   },
   ".claude/skills/generated/training/SKILL.md": {
-    "mtime": 1784445698.8678923,
-    "ast_hash": "38e42773ec6d202e6c607c9c733f25e5",
-    "semantic_hash": "38e42773ec6d202e6c607c9c733f25e5"
+    "mtime": 1784524309.2555587,
+    "ast_hash": "e05ed902e46aa6f44218c0275be6fab6",
+    "semantic_hash": "e05ed902e46aa6f44218c0275be6fab6"
   },
   ".claude/skills/generated/unit/SKILL.md": {
-    "mtime": 1784445698.8688629,
+    "mtime": 1784524309.2565403,
     "ast_hash": "4a12b3fb80a550df255bcf888e6c4015",
-    "semantic_hash": ""
+    "semantic_hash": "4a12b3fb80a550df255bcf888e6c4015"
   },
   ".claude/skills/generated/utilities/SKILL.md": {
-    "mtime": 1784445698.8692918,
-    "ast_hash": "500d0aca11f069763c61d86e056a820c",
-    "semantic_hash": "500d0aca11f069763c61d86e056a820c"
+    "mtime": 1784524309.257022,
+    "ast_hash": "5f5d02f15a6dcd7a0b8ded32499f9eff",
+    "semantic_hash": "5f5d02f15a6dcd7a0b8ded32499f9eff"
   },
   ".claude/skills/gitnexus/gitnexus-cli/SKILL.md": {
-    "mtime": 1784445698.8764906,
+    "mtime": 1784524309.2646558,
     "ast_hash": "77da703128a8f2f84ab1367f9bb60d09",
     "semantic_hash": "77da703128a8f2f84ab1367f9bb60d09"
   },
   ".claude/skills/gitnexus/gitnexus-debugging/SKILL.md": {
-    "mtime": 1784445698.8756266,
+    "mtime": 1784524309.263638,
     "ast_hash": "c7284b8f06cb8323f572564363df59e2",
     "semantic_hash": "c7284b8f06cb8323f572564363df59e2"
   },
   ".claude/skills/gitnexus/gitnexus-exploring/SKILL.md": {
-    "mtime": 1784445698.8754232,
+    "mtime": 1784524309.2634435,
     "ast_hash": "680f3e0bef0d75b4e82b461715213126",
     "semantic_hash": "680f3e0bef0d75b4e82b461715213126"
   },
   ".claude/skills/gitnexus/gitnexus-guide/SKILL.md": {
-    "mtime": 1784445698.8762438,
+    "mtime": 1784524309.2644038,
     "ast_hash": "51eee64e023b05990b57ea22eac4957d",
     "semantic_hash": "51eee64e023b05990b57ea22eac4957d"
   },
   ".claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md": {
-    "mtime": 1784445698.8758256,
+    "mtime": 1784524309.2638497,
     "ast_hash": "f8b8d25ad42baa867a37791ee09f106e",
     "semantic_hash": "f8b8d25ad42baa867a37791ee09f106e"
   },
   ".claude/skills/gitnexus/gitnexus-refactoring/SKILL.md": {
-    "mtime": 1784445698.876024,
+    "mtime": 1784524309.2640662,
     "ast_hash": "4d0bf7aa2b876bd4318add73d5e4918e",
     "semantic_hash": "4d0bf7aa2b876bd4318add73d5e4918e"
   },
   ".claude/skills/graphify/SKILL.md": {
-    "mtime": 1784445699.0124884,
+    "mtime": 1784524309.3848903,
     "ast_hash": "f8d5ef667aae74129e01fcca97bbfddd",
-    "semantic_hash": ""
+    "semantic_hash": "f8d5ef667aae74129e01fcca97bbfddd"
   },
   ".claude/skills/graphify/references/add-watch.md": {
     "mtime": 1784303187.2958117,
@@ -775,13 +740,13 @@
     "semantic_hash": "901cdc3c7087da38fc84dcfaaf2d6302"
   },
   "AGENTS.md": {
-    "mtime": 1784445698.8749578,
-    "ast_hash": "5846ffe93af882d98e04315619e22d91",
+    "mtime": 1784524309.2629428,
+    "ast_hash": "26a14a2e0aa05729f4b8b260ba4cd8b3",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1784445698.8751998,
-    "ast_hash": "0d6d4ca7812606cb9b66e81b7238be21",
+    "mtime": 1784524309.2632046,
+    "ast_hash": "963b780030ec6188736dc3126421f197",
     "semantic_hash": ""
   },
   "GEMINI.md": {
@@ -790,9 +755,9 @@
     "semantic_hash": "330a1bc28f30b6c2e56ca78fb80eb0e3"
   },
   "README.md": {
-    "mtime": 1775465916.0,
-    "ast_hash": "1b36acf86d2ccc8f6bee85d2e49a1b73",
-    "semantic_hash": "1b36acf86d2ccc8f6bee85d2e49a1b73"
+    "mtime": 1784453275.3128808,
+    "ast_hash": "949ce3a82eff7171d1341bf4cdc1504e",
+    "semantic_hash": "949ce3a82eff7171d1341bf4cdc1504e"
   },
   "System_Intructions.md": {
     "mtime": 1775455474.0,
@@ -975,9 +940,9 @@
     "semantic_hash": "bf0e8faa9c6a4e008ab1f8abdd8d0f2b"
   },
   "docs/training/training_guideline.md": {
-    "mtime": 1762878433.0,
-    "ast_hash": "53fb38bbe717a0bad76214da592a7c6e",
-    "semantic_hash": "53fb38bbe717a0bad76214da592a7c6e"
+    "mtime": 1784453320.4094996,
+    "ast_hash": "0772b09408d842bdd210ff0a2e507a99",
+    "semantic_hash": "0772b09408d842bdd210ff0a2e507a99"
   },
   "example.md": {
     "mtime": 1775457420.0,
@@ -1013,5 +978,40 @@
     "mtime": 1784350907.0,
     "ast_hash": "05b6e50b335a8bbbebb3cfc971102425",
     "semantic_hash": "05b6e50b335a8bbbebb3cfc971102425"
+  },
+  ".claude/skills/generated/cluster-18/SKILL.md": {
+    "mtime": 1784524309.2598805,
+    "ast_hash": "a3f2e99d23b763c44dfaab2059ba5ced",
+    "semantic_hash": "a3f2e99d23b763c44dfaab2059ba5ced"
+  },
+  ".claude/skills/generated/cluster-23/SKILL.md": {
+    "mtime": 1784524309.2620795,
+    "ast_hash": "31b1c5271a410d0d164e8aefb4364122",
+    "semantic_hash": "31b1c5271a410d0d164e8aefb4364122"
+  },
+  ".claude/skills/generated/cluster-32/SKILL.md": {
+    "mtime": 1784524309.2584836,
+    "ast_hash": "9ef04ea3f53ec11e0481d854b77b0eea",
+    "semantic_hash": "9ef04ea3f53ec11e0481d854b77b0eea"
+  },
+  ".claude/skills/generated/cluster-34/SKILL.md": {
+    "mtime": 1784524309.2592018,
+    "ast_hash": "1fc96d0a2c915adc4c5445fe8471f604",
+    "semantic_hash": "1fc96d0a2c915adc4c5445fe8471f604"
+  },
+  ".claude/skills/generated/cluster-39/SKILL.md": {
+    "mtime": 1784524309.258835,
+    "ast_hash": "5d7304e2b80f6fcaca2e63b65a4a8736",
+    "semantic_hash": "5d7304e2b80f6fcaca2e63b65a4a8736"
+  },
+  ".claude/skills/generated/cluster-47/SKILL.md": {
+    "mtime": 1784524309.2595458,
+    "ast_hash": "a87a1555adf023779c651feab73dbca4",
+    "semantic_hash": "a87a1555adf023779c651feab73dbca4"
+  },
+  ".claude/skills/generated/cluster-81/SKILL.md": {
+    "mtime": 1784524309.2617943,
+    "ast_hash": "0e0d796b869913d9fb3392e69634813c",
+    "semantic_hash": "0e0d796b869913d9fb3392e69634813c"
   }
 }

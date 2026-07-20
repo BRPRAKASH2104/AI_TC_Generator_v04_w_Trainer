@@ -31,24 +31,24 @@ description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 40 
 
 Start here when exploring this area:
 
-- **`create_vision_training_pipeline`** (Function) — `src/training/vision_raft_trainer.py:443`
-- **`parse_args`** (Function) — `utilities/train_vision_model.py:64`
-- **`validate_dataset`** (Function) — `utilities/train_vision_model.py:117`
-- **`check_ollama_connection`** (Function) — `utilities/train_vision_model.py:143`
-- **`check_base_model_exists`** (Function) — `utilities/train_vision_model.py:158`
+- **`create_vision_training_pipeline`** (Function) — `src/training/vision_raft_trainer.py:447`
+- **`parse_args`** (Function) — `utilities/train_vision_model.py:65`
+- **`validate_dataset`** (Function) — `utilities/train_vision_model.py:118`
+- **`check_ollama_connection`** (Function) — `utilities/train_vision_model.py:144`
+- **`check_base_model_exists`** (Function) — `utilities/train_vision_model.py:159`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `create_vision_training_pipeline` | Function | `src/training/vision_raft_trainer.py` | 443 |
-| `parse_args` | Function | `utilities/train_vision_model.py` | 64 |
-| `validate_dataset` | Function | `utilities/train_vision_model.py` | 117 |
-| `check_ollama_connection` | Function | `utilities/train_vision_model.py` | 143 |
-| `check_base_model_exists` | Function | `utilities/train_vision_model.py` | 158 |
-| `check_output_model_exists` | Function | `utilities/train_vision_model.py` | 179 |
-| `print_training_result` | Function | `utilities/train_vision_model.py` | 200 |
-| `main` | Function | `utilities/train_vision_model.py` | 249 |
+| `create_vision_training_pipeline` | Function | `src/training/vision_raft_trainer.py` | 447 |
+| `parse_args` | Function | `utilities/train_vision_model.py` | 65 |
+| `validate_dataset` | Function | `utilities/train_vision_model.py` | 118 |
+| `check_ollama_connection` | Function | `utilities/train_vision_model.py` | 144 |
+| `check_base_model_exists` | Function | `utilities/train_vision_model.py` | 159 |
+| `check_output_model_exists` | Function | `utilities/train_vision_model.py` | 180 |
+| `print_training_result` | Function | `utilities/train_vision_model.py` | 201 |
+| `main` | Function | `utilities/train_vision_model.py` | 250 |
 | `test_excel_description_includes_confidence` | Function | `tests/core/test_formatters_custom.py` | 4 |
 | `test_excel_description_handles_missing_confidence` | Function | `tests/core/test_formatters_custom.py` | 22 |
 | `main` | Function | `utilities/verify_v03_compatibility.py` | 352 |

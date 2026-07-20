@@ -1,8 +1,12 @@
 """
-Progressive RAFT Training with Curriculum Learning
+Progressive RAFT Curriculum Assessment
 
-This module implements progressive training strategies that gradually increase
-complexity and difficulty to improve model learning effectiveness.
+This module does not train or fine-tune any model. It organizes a validated
+RAFT dataset into difficulty-ordered curriculum phases and computes a
+heuristic readiness score per phase from example quality metrics
+(review 2026-07-17 finding 3) - useful for judging whether a dataset is
+large/diverse enough before attempting real training elsewhere, not a
+substitute for training.
 """
 
 import json
@@ -58,10 +62,12 @@ class CurriculumStage:
 
 class ProgressiveRAFTTrainer:
     """
-    Progressive RAFT training with curriculum learning.
+    Progressive RAFT curriculum assessment.
 
-    This trainer implements staged learning where model progresses from simple
-    to complex examples, improving learning effectiveness and generalization.
+    Organizes validated examples into difficulty-ordered phases (foundation,
+    intermediate, advanced) and scores each phase's readiness from example
+    quality metrics alone. No model is created or fine-tuned by this class -
+    see module docstring.
     """
 
     __slots__ = (
@@ -144,22 +150,26 @@ class ProgressiveRAFTTrainer:
         self, model_name: str = "progressive-raft-model"
     ) -> dict[str, Any]:
         """
-        Start progressive curriculum training.
+        Assess dataset readiness through the progressive curriculum.
+
+        Scores the validated dataset phase-by-phase; does not create or
+        fine-tune any model (`model_name` is a label for the assessment run
+        only, carried into the result for bookkeeping).
 
         Args:
-            model_name: Name for the trained model
+            model_name: Label for this assessment run
 
         Returns:
-            Training results and progress summary
+            Curriculum assessment results and progress summary
         """
         if self.logger:
-            self.logger.info(f"🚀 Starting progressive RAFT training: {model_name}")
+            self.logger.info(f"🚀 Starting progressive RAFT curriculum assessment: {model_name}")
 
         training_results: dict[str, Any] = {
             "model_name": model_name,
             "phases_completed": [],
             "total_examples_trained": 0,
-            "final_performance_score": 0.0,
+            "final_readiness_score": 0.0,
             "training_duration": 0.0,
             "issues_encountered": [],
         }
@@ -213,7 +223,7 @@ class ProgressiveRAFTTrainer:
                 if any(p["phase"] == phase.value for p in training_results["phases_completed"])
             )
 
-            training_results["final_performance_score"] = self._evaluate_final_performance()
+            training_results["final_readiness_score"] = self._estimate_readiness_score()
             training_results["training_duration"] = time.time() - start_time
 
             # Save progress
@@ -290,20 +300,22 @@ class ProgressiveRAFTTrainer:
         self, phase: CurriculumPhase, examples: list[RAFTExample], _model_name: str
     ) -> dict[str, Any]:
         """
-        Train a specific curriculum phase.
+        Score one curriculum phase's readiness from its examples.
+
+        No model is trained here - see class docstring.
 
         Args:
-            phase: Curriculum phase to train
+            phase: Curriculum phase to score
             examples: Examples for this phase
-            model_name: Base model name
+            _model_name: Unused; label only, kept for call-site symmetry
 
         Returns:
-            Phase training results
+            Phase readiness-assessment results
         """
         stage = self.curriculum[phase]
 
         if self.logger:
-            self.logger.info(f"🎯 Training phase {phase.value} with {len(examples)} examples")
+            self.logger.info(f"🎯 Assessing phase {phase.value} with {len(examples)} examples")
 
         result: dict[str, Any] = {
             "phase": phase.value,
@@ -321,28 +333,26 @@ class ProgressiveRAFTTrainer:
             return result
 
         try:
-            # Simulate progressive training (in real implementation, this would call actual training)
+            # Heuristic readiness score from example quality - no model is trained
             training_score = self._simulate_phase_training(phase, examples)
 
-            # Evaluate phase completion
+            # Evaluate phase readiness
             if training_score >= stage.min_quality_score:
                 result["success"] = True
                 result["phase_score"] = training_score
                 self.progress.phase_completed_examples += len(examples)
 
                 if self.logger:
-                    self.logger.info(
-                        f"✅ Phase {phase.value} completed with score: {training_score:.3f}"
-                    )
+                    self.logger.info(f"✅ Phase {phase.value} ready, score: {training_score:.3f}")
             else:
                 result["issues"].append(
-                    f"Training score {training_score:.3f} below threshold {stage.min_quality_score}"
+                    f"Readiness score {training_score:.3f} below threshold {stage.min_quality_score}"
                 )
 
         except Exception as e:
-            result["issues"].append(f"Phase training failed: {str(e)}")
+            result["issues"].append(f"Phase assessment failed: {str(e)}")
             if self.logger:
-                self.logger.error(f"Phase {phase.value} training failed: {e}")
+                self.logger.error(f"Phase {phase.value} assessment failed: {e}")
 
         return result
 
@@ -350,11 +360,12 @@ class ProgressiveRAFTTrainer:
         self, phase: CurriculumPhase, examples: list[RAFTExample]
     ) -> float:
         """
-        Simulate phase training and return performance score.
+        Compute a heuristic readiness score for a phase from example quality.
 
-        In real implementation, this would train the model and evaluate performance.
+        This does not train or evaluate any model - it is a static function of
+        the dataset's own text (see module docstring).
         """
-        # Simulate training based on example quality
+        # Score derived only from example quality, not from any model
         total_quality = 0.0
         count = 0
 
@@ -379,17 +390,19 @@ class ProgressiveRAFTTrainer:
 
         return training_score
 
-    def _evaluate_final_performance(self) -> float:
-        """Evaluate final trained model performance"""
-        # In real implementation, this would load the trained model and evaluate
-        # For now, return a score based on training progress
+    def _estimate_readiness_score(self) -> float:
+        """Estimate overall dataset readiness from curriculum completion.
+
+        No model is loaded or evaluated - this is the fraction of curriculum
+        phases graduated, not a measured model-performance metric.
+        """
         graduated_count = len(self.progress.graduated_phases)
         total_phases = len(CurriculumPhase)
 
         return (graduated_count / total_phases) * 0.9  # Max 0.9, room for improvement
 
     def get_training_recommendations(self) -> list[str]:
-        """Get recommendations for improving training effectiveness"""
+        """Get recommendations for improving the curated dataset's curriculum readiness"""
         recommendations = []
 
         # Check example distribution
