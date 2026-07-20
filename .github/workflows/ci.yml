@@ -172,6 +172,21 @@ jobs:
       - name: Check package
         run: twine check dist/*
 
+      - name: Smoke-test installed wheel in a clean environment
+        run: |
+          set -euo pipefail
+          # Install the built wheel into a fresh venv OUTSIDE the repository so
+          # the source checkout cannot leak onto sys.path and mask packaging
+          # defects (e.g. missing `main` module or prompt/config assets).
+          smoke_dir="$(mktemp -d)"
+          python -m venv "$smoke_dir/venv"
+          wheel="$(ls "$PWD"/dist/*.whl | head -n1)"
+          "$smoke_dir/venv/bin/pip" install --upgrade pip
+          "$smoke_dir/venv/bin/pip" install "$wheel"
+          cd "$smoke_dir"
+          "$smoke_dir/venv/bin/ai-tc-generator" --help
+          "$smoke_dir/venv/bin/ai-tc-generator" --validate-prompts
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

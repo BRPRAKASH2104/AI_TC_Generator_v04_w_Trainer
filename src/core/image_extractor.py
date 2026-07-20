@@ -23,6 +23,13 @@ if TYPE_CHECKING:
 
     from src.file_processing_logger import FileProcessingLogger
 
+from .archive_limits import (
+    MAX_ENTRY_UNCOMPRESSED_SIZE,
+    ArchiveLimitError,
+    safe_zip_read,
+    validate_archive_safety,
+)
+
 try:
     from PIL import Image
 
@@ -108,6 +115,9 @@ class RequirementImageExtractor:
         """
         try:
             with zipfile.ZipFile(reqifz_file_path, "r") as zip_file:
+                # Bound decompression before reading any entry (ZIP-bomb guard).
+                validate_archive_safety(zip_file, self.logger)
+
                 images = []
                 report = {
                     "total_images": 0,
@@ -125,7 +135,9 @@ class RequirementImageExtractor:
                 # Phase 2: Extract embedded images from REQIF XML
                 reqif_files = [f for f in zip_file.namelist() if f.endswith(".reqif")]
                 if reqif_files:
-                    reqif_content = zip_file.read(reqif_files[0])
+                    reqif_content = safe_zip_read(
+                        zip_file, reqif_files[0], MAX_ENTRY_UNCOMPRESSED_SIZE
+                    )
                     embedded_images = self._extract_embedded_images(reqif_content, reqifz_file_path)
                     images.extend(embedded_images)
                     report["embedded_images"] = len(embedded_images)
@@ -142,6 +154,10 @@ class RequirementImageExtractor:
 
                 return images, report
 
+        except ArchiveLimitError as e:
+            if self.logger:
+                self.logger.error(f"Rejected unsafe REQIFZ archive {reqifz_file_path}: {e}")
+            return [], {"total_images": 0, "error": str(e)}
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Error extracting images from {reqifz_file_path}: {e}")
@@ -157,8 +173,9 @@ class RequirementImageExtractor:
             # Check if this is an image file
             if any(file_name.lower().endswith(ext) for ext in self.IMAGE_EXTENSIONS):
                 try:
-                    # Read image data
-                    image_data = zip_file.read(file_name)
+                    # Read image data, rejecting anything over MAX_FILE_SIZE
+                    # before it is fully decompressed into memory.
+                    image_data = safe_zip_read(zip_file, file_name, MAX_FILE_SIZE)
 
                     # Determine format
                     image_format = self._determine_image_format(file_name, image_data)

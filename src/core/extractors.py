@@ -11,6 +11,12 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .archive_limits import (
+    MAX_ENTRY_UNCOMPRESSED_SIZE,
+    ArchiveLimitError,
+    safe_zip_read,
+    validate_archive_safety,
+)
 from .image_extractor import RequirementImageExtractor
 from .parsers import HTMLTableParser
 from .relationship_parser import RequirementRelationshipParser
@@ -62,6 +68,9 @@ class REQIFArtifactExtractor:
         """
         try:
             with zipfile.ZipFile(reqifz_file_path, "r") as zip_file:
+                # Bound decompression before reading any entry (ZIP-bomb guard).
+                validate_archive_safety(zip_file, self.logger)
+
                 reqif_files = [f for f in zip_file.namelist() if f.endswith(".reqif")]
 
                 if not reqif_files:
@@ -69,13 +78,17 @@ class REQIFArtifactExtractor:
                         self.logger.warning(f"No .reqif files found in {reqifz_file_path}")
                     return []
 
-                # Process the first REQIF file found
-                reqif_content = zip_file.read(reqif_files[0])
+                # Process the first REQIF file found (size-capped read)
+                reqif_content = safe_zip_read(zip_file, reqif_files[0], MAX_ENTRY_UNCOMPRESSED_SIZE)
                 artifacts = self._parse_reqif_xml(reqif_content)
 
             artifacts = self._extract_and_augment_images(reqifz_file_path, artifacts)
             return self._augment_relationships_if_enabled(reqifz_file_path, artifacts)
 
+        except ArchiveLimitError as e:
+            if self.logger:
+                self.logger.error(f"Rejected unsafe REQIFZ archive {reqifz_file_path}: {e}")
+            return []
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Error extracting REQIFZ file {reqifz_file_path}: {e}")

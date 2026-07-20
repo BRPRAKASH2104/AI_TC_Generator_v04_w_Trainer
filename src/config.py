@@ -573,7 +573,10 @@ class ConfigManager(BaseSettings):
         """Load CLI configuration from file and merge with current settings"""
         config_paths = [
             cli_config_path,  # Explicitly provided path
-            Path("config/cli_config.yaml"),  # Project config
+            Path("config/cli_config.yaml"),  # Project config (source checkout / cwd)
+            # Config bundled alongside the installed package (wheel force-include):
+            # <site-packages>/config/cli_config.yaml relative to this module.
+            Path(__file__).resolve().parent.parent / "config" / "cli_config.yaml",
             Path.home() / ".config" / "ai_tc_generator" / "config.yaml",  # User config
         ]
 
