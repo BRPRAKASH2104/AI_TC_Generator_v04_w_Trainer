@@ -39,14 +39,6 @@ class OllamaConfig(BaseModel):
     port: int = Field(11434, ge=1, le=65535, description="Ollama port")
     timeout: int = Field(600, gt=0, description="API timeout in seconds")
 
-    # Security settings - using environment variables for sensitive data
-    api_key: str | None = Field(
-        None, description="API key for authentication (use AI_TG_API_KEY env var)"
-    )
-    auth_token: str | None = Field(
-        None, description="Auth token for API access (use AI_TG_AUTH_TOKEN env var)"
-    )
-
     # Model settings
     temperature: float = Field(0.0, ge=0.0, le=2.0, description="Model temperature")
     max_retries: int = Field(3, ge=0, description="Maximum number of API retries")
@@ -470,10 +462,10 @@ class ConfigManager(BaseSettings):
         """
         Save current configuration to a YAML file.
 
-        Credential-bearing fields (the entire secrets section plus
-        ollama.api_key/auth_token) are excluded from the export, and the
-        file is written with owner-only permissions so credentials are
-        never persisted in plaintext (review 2026-07-17 finding 9).
+        The entire credential-bearing secrets section is excluded from the
+        export, and the file is written with owner-only permissions so
+        credentials are never persisted in plaintext (review 2026-07-17
+        finding 9).
 
         Args:
             config_file: Path where to save configuration
@@ -486,10 +478,7 @@ class ConfigManager(BaseSettings):
             # strings so the export is loadable with yaml.safe_load
             exportable = self.model_dump(
                 mode="json",
-                exclude={
-                    "secrets": True,
-                    "ollama": {"api_key", "auth_token"},
-                },
+                exclude={"secrets": True},
             )
 
             fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)

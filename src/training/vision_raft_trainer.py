@@ -2,10 +2,12 @@
 Vision-Aware RAFT Prompt-Customized Model Creation
 
 This module does not fine-tune model weights. It builds an Ollama Modelfile
-(FROM + PARAMETER + SYSTEM, no ADAPTER) with a system prompt informed by RAFT
-dataset statistics, then runs `ollama create` to register it as a named
-model - a prompt customization, not a trained model (review 2026-07-17
-finding 3). Supports both text-only and vision RAFT datasets.
+(FROM + PARAMETER + SYSTEM, no ADAPTER) with a fixed system prompt, then runs
+`ollama create` to register it as a named model - a prompt customization, not
+a trained model (review 2026-07-17 finding 3). The RAFT dataset is analyzed
+for reporting statistics only; its contents do not currently alter the
+Modelfile or system prompt (review 2026-07-20 finding 6). Supports both
+text-only and vision RAFT datasets.
 
 Vision Support (v2.2.0+): Modelfile creation for llama3.2-vision and other
 vision models using the hybrid vision/text strategy.
@@ -168,20 +170,36 @@ class VisionRAFTTrainer:
             # Step 3: Register the customized model with Ollama
             training_metrics = self._train_with_ollama(modelfile)
             result["metrics"] = training_metrics
-            result["success"] = training_metrics.get("success", False)
+            succeeded = training_metrics.get("success", False)
+            result["success"] = succeeded
 
-            # Step 4: Save progress
-            self.progress.status = "completed"
-            self._save_training_progress(result)
-
+            # Populate final fields before persisting so the saved log is
+            # consistent regardless of outcome.
             result["training_completed"] = datetime.now().isoformat()
             result["duration_seconds"] = time.time() - self.progress.start_time
 
-            if self.logger:
-                self.logger.info(
-                    f"✅ Model created: {self.config.output_model} "
-                    f"({result['duration_seconds']:.1f}s)"
-                )
+            if succeeded:
+                # Step 4: Persist a completed run
+                self.progress.status = "completed"
+                self._save_training_progress(result)
+                if self.logger:
+                    self.logger.info(
+                        f"✅ Model created: {self.config.output_model} "
+                        f"({result['duration_seconds']:.1f}s)"
+                    )
+            else:
+                # Model creation failed. `_train_with_ollama` stores the cause
+                # under metrics["errors"]; surface it at the top level so the
+                # CLI failure printer (which reads result["errors"]) shows it.
+                self.progress.status = "failed"
+                error_detail = str(training_metrics.get("errors") or "Model creation failed")
+                self.progress.error_message = error_detail
+                result["errors"].append(error_detail)
+                self._save_training_progress(result)
+                if self.logger:
+                    self.logger.error(
+                        f"❌ Model creation failed: {self.config.output_model} ({error_detail})"
+                    )
 
         except Exception as e:
             self.progress.status = "failed"
@@ -260,7 +278,12 @@ class VisionRAFTTrainer:
         return stats
 
     def _prepare_modelfile(self) -> Path:
-        """Prepare Ollama Modelfile for vision training"""
+        """Build a static Ollama Modelfile for prompt customization.
+
+        The system prompt is fixed and is not derived from the RAFT dataset;
+        `_analyze_dataset` statistics are for reporting only (review
+        2026-07-20 finding 6).
+        """
         modelfile_content = f"""# Vision RAFT Model
 # Generated: {datetime.now().isoformat()}
 

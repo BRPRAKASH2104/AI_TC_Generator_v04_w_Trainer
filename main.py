@@ -28,6 +28,7 @@ from src.app_logger import get_app_logger, shutdown_app_logger
 # Import utilities
 from src.config import ConfigManager
 from src.core.image_extractor import RequirementImageExtractor
+from src.core.validators import template_schema_issues
 from src.processors.hp_processor import HighPerformanceREQIFZFileProcessor
 from src.processors.standard_processor import REQIFZFileProcessor
 from src.yaml_prompt_manager import YAMLPromptManager
@@ -550,6 +551,7 @@ def _validate_templates() -> None:
         template_count = len(manager.test_prompts)
         console.print(f"📋 Found {template_count} template(s)")
 
+        schema_failures = 0
         for template_name in manager.test_prompts:
             try:
                 # Render with placeholder values for required variables —
@@ -562,12 +564,31 @@ def _validate_templates() -> None:
                 placeholder_vars = {var: f"<{var}>" for var in required}
 
                 template = manager.get_test_prompt(template_name, **placeholder_vars)
-                if template and isinstance(template, str) and len(template.strip()) > 0:
-                    console.print(f"✅ {template_name}")
-                else:
+                if not (template and isinstance(template, str) and len(template.strip()) > 0):
                     console.print(f"❌ {template_name} - Invalid or empty template")
+                    schema_failures += 1
+                    continue
+
+                # Semantic check: the template must instruct the canonical
+                # output schema and not any retired field directives.
+                issues = template_schema_issues(template)
+                if issues:
+                    schema_failures += 1
+                    console.print(f"❌ {template_name} - schema mismatch:")
+                    for issue in issues:
+                        console.print(f"     - {issue}")
+                else:
+                    console.print(f"✅ {template_name}")
             except Exception as e:
                 console.print(f"❌ {template_name} - Error: {e}")
+                schema_failures += 1
+
+        if schema_failures:
+            console.print(
+                f"\n[red]❌ Template validation failed: {schema_failures} template(s) "
+                f"with issues[/red]"
+            )
+            sys.exit(1)
 
         console.print("\n✅ Template validation complete!")
 

@@ -15,8 +15,6 @@ class TestSecretExclusion:
     @staticmethod
     def _config_with_secrets():
         config = ConfigManager()
-        config.ollama.api_key = "ollama-api-key-plain"
-        config.ollama.auth_token = "ollama-auth-token-plain"
         config.secrets.ollama_api_key = "secrets-section-key"
         return config
 
@@ -27,8 +25,6 @@ class TestSecretExclusion:
         config.save_to_file(str(export_path))
 
         content = export_path.read_text(encoding="utf-8")
-        assert "ollama-api-key-plain" not in content
-        assert "ollama-auth-token-plain" not in content
         assert "secrets-section-key" not in content
 
     def test_secrets_section_absent_and_config_still_valid(self, tmp_path):
@@ -39,8 +35,6 @@ class TestSecretExclusion:
 
         data = yaml.safe_load(export_path.read_text(encoding="utf-8"))
         assert "secrets" not in data
-        assert "api_key" not in data["ollama"]
-        assert "auth_token" not in data["ollama"]
         # Non-secret content must still be exported
         assert data["ollama"]["synthesizer_model"]
 

@@ -16,7 +16,7 @@ This tool automatically generates comprehensive test cases from automotive requi
 - ✅ **Context-Aware Processing**: Enriches requirements with headings, information blocks, and system interfaces for better test case quality
 - ✅ **High-Performance Mode**: Async/concurrent processing with 3-9x performance improvement
 - ✅ **Image Extraction**: Extracts and processes embedded images from REQIFZ files for vision AI analysis
-- ✅ **RAFT-Customized Models**: Create Ollama models with an automotive-domain-tuned system prompt from curated RAFT examples (prompt customization, not weight fine-tuning)
+- ✅ **RAFT-Customized Models**: Create Ollama models with a fixed automotive-domain system prompt (prompt customization, not weight fine-tuning; the RAFT dataset is analyzed for statistics but does not alter the prompt)
 - ✅ **Production Ready**: 87% test coverage, comprehensive validation, robust error handling
 
 ## 🚀 Quick Start
@@ -232,7 +232,7 @@ See `src/config.py` for all configuration options (Pydantic-based with environme
 
 ## 🎓 Creating Prompt-Customized Models
 
-Create a prompt-customized Ollama model informed by your automotive domain data using RAFT methodology. This builds an Ollama Modelfile (`FROM` + `SYSTEM`) and registers it via `ollama create` — it does not fine-tune model weights or produce an adapter.
+Create a prompt-customized Ollama model with a fixed automotive-domain system prompt. This builds an Ollama Modelfile (`FROM` + `SYSTEM`) and registers it via `ollama create` — it does not fine-tune model weights or produce an adapter. The RAFT dataset is analyzed for statistics only; its contents do not currently alter the Modelfile or system prompt.
 
 **RAFT collection is opt-in and disabled by default.** Enable it in `config/cli_config.yaml` (`training.enable_raft: true`, `training.collect_training_data: true`) or via environment variables before running.
 

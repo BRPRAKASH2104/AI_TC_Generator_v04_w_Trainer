@@ -122,7 +122,7 @@ test_generation_prompts:
       - Row 1: Create test case using input/output values from Row 1 of table
       - Row 2: Create test case using input/output values from Row 2 of table
       - Row N: Create test case using input/output values from Row N of table
-      - Format each: `"data"`: "1) Set [Parameter] = [Row_Value]\n2) Trigger action..."
+      - Format each: `"test_steps"`: "1) Set [Parameter] = [Row_Value]\n2) Trigger action..."
       - Format each: `"expected_result"`: "Verify [Output] = [Expected_Value_From_Row]"
       - Each positive test case maps directly to one table row
       - Mark each with `"test_type": "positive"`
@@ -150,7 +150,7 @@ test_generation_prompts:
         * Expected functional behavior
         * Valid state transitions (if applicable)
       - Use specific values from interface definitions where available
-      - Format `"data"`: Numbered steps: "1) Set [Parameter] = [Value]\n2) Trigger [Action]..."
+      - Format `"test_steps"`: Numbered steps: "1) Set [Parameter] = [Value]\n2) Trigger [Action]..."
       - Format `"expected_result"`: "Verify [Observable Outcome]"
       - Mark each with `"test_type": "positive"`
 

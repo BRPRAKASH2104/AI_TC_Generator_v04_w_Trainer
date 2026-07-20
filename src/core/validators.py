@@ -44,6 +44,42 @@ TEST_CASE_RESPONSE_JSON_SCHEMA: dict[str, Any] = {
 }
 
 
+# Retired v3 output-field directives. The archived template instructed the
+# model to emit `action`/`data` fields; the active canonical schema uses
+# `test_steps`/`expected_result`. An active template that still references
+# these directives contradicts the schema and produces rows the downstream
+# validator rejects (review 2026-07-20 finding 4). Matched as backtick-quoted
+# JSON key directives so ordinary prose ("table data", "trigger action") does
+# not false-positive.
+RETIRED_FIELD_DIRECTIVES: tuple[str, ...] = ('`"data"`', '`"action"`')
+
+
+def template_schema_issues(rendered_template: str) -> list[str]:
+    """Return semantic schema problems in a rendered prompt template.
+
+    Complements the render check in `--validate-prompts`: renderability alone
+    does not catch a template that instructs a schema the pipeline rejects.
+
+    Args:
+        rendered_template: A fully rendered prompt template string.
+
+    Returns:
+        A list of human-readable issues. Empty when the template instructs the
+        canonical schema and references no retired field directives.
+    """
+    issues: list[str] = []
+
+    for directive in RETIRED_FIELD_DIRECTIVES:
+        if directive in rendered_template:
+            issues.append(f"references retired output-field directive {directive}")
+
+    for field in CANONICAL_TEST_CASE_FIELDS:
+        if f'"{field}"' not in rendered_template:
+            issues.append(f'missing canonical field directive "{field}"')
+
+    return issues
+
+
 def is_canonical_test_case(test_case: Any) -> bool:
     """Check that a test case carries every canonical field with content.
 
