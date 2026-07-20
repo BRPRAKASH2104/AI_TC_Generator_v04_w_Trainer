@@ -174,7 +174,6 @@ test_generation_prompts:
       1. **MANDATORY JSON STRUCTURE**: Your ENTIRE response MUST be valid JSON with this exact structure:
          ```json
          {
-           "analysis": "Detailed chain-of-thought analysis of the requirement, parameters, edge/boundary cases, and visual diagrams.",
            "test_cases": [
              {
                "summary_suffix": "Brief descriptive title",

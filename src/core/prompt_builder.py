@@ -165,7 +165,6 @@ Description: {text}
 --- YOUR TASK ---
 Generate test cases in JSON format with the following EXACT structure:
 {{
-    "analysis": "Chain of thought: Analyze the requirement, break it into functional blocks, describe any visual diagrams, identify boundary conditions, and list all edge cases/negative scenarios before generating the test cases.",
     "test_cases": [
         {{
             "summary_suffix": "Brief descriptive title for this specific test",
@@ -350,7 +349,6 @@ Return ONLY valid JSON with the exact field names shown above."""
    - Test scenarios that validate the visual logic
    - Edge cases visible in the diagram but not explicit in text
    - Boundary values from any numerical data shown
-4. Describe your visual analysis explicitly in the "analysis" field of the JSON output.
-5. If the diagram contradicts or extends the text description, note this in your test cases."""
+4. If the diagram contradicts or extends the text description, note this in your test cases."""
 
         return context
