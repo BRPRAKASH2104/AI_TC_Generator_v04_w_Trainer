@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Protocol, cast
 
 from src.config import ConfigManager
+from src.core.interface_matcher import build_interface_index, select_relevant_interfaces
 from src.file_processing_logger import FileProcessingLogger
 from src.training.raft_collector import RAFTDataCollector
 from src.yaml_prompt_manager import YAMLPromptManager
@@ -164,6 +165,11 @@ class BaseProcessor:
             {**iface, "text": self._clean_text_for_logging(iface.get("text", ""))}
             for iface in raw_interfaces
         ]
+        # Pre-index interface signal names once; each requirement is then
+        # attached only the interfaces it references (archived finding 8),
+        # bounding prompt growth instead of fanning the full dictionary out.
+        interface_index = build_interface_index(system_interfaces)
+        attached_interface_total = 0
 
         # Context-aware artifact processing (v03 restoration)
         augmented_requirements = []
@@ -205,13 +211,20 @@ class BaseProcessor:
                     f"⚡ Augmenting requirement: {req_id} (heading: {current_heading})"
                 )
 
+                relevant_interfaces = select_relevant_interfaces(
+                    req_text,
+                    [info.get("text", "") for info in info_since_heading],
+                    interface_index,
+                )
+                attached_interface_total += len(relevant_interfaces)
+
                 augmented_requirement = obj.copy()
                 augmented_requirement.update(
                     {
                         "text": req_text,
                         "heading": current_heading,
                         "info_list": info_since_heading.copy(),
-                        "interface_list": system_interfaces,
+                        "interface_list": relevant_interfaces,
                     }
                 )
                 augmented_requirements.append(augmented_requirement)
@@ -225,6 +238,15 @@ class BaseProcessor:
             self.logger.info(
                 f"📋 Built {len(augmented_requirements)} context-enriched requirements"
             )
+            # Report interface-scoping effect vs. the old full fan-out so the
+            # prompt-size impact is observable (archived finding 8).
+            full_fanout = len(augmented_requirements) * len(system_interfaces)
+            if full_fanout:
+                self.logger.info(
+                    f"🔌 Interface scoping: attached {attached_interface_total} "
+                    f"interface refs vs {full_fanout} with full fan-out "
+                    f"({100 * attached_interface_total // full_fanout}% of prior size)"
+                )
 
         return augmented_requirements, len(system_interfaces)
 
