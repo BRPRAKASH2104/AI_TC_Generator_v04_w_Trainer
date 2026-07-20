@@ -1,0 +1,335 @@
+# Full Codebase Re-Review — Archived Findings and Regression Audit
+
+**Date:** 2026-07-20  
+**Archived review:** `docs/reviews/Review_Comments_2026_07_17.md`  
+**Current revision:** `cf0fcd0` (`CHanges`, 2026-07-20)  
+**Post-report comparison:** `5263d4e..cf0fcd0`  
+**Scope:** `main.py`, `src/`, active prompts and configuration, training utilities, tests, packaging, CI, dependencies, security, and user documentation
+
+## Executive Summary
+
+The remediation work materially improved the core generation path. Of the 12 archived findings, **5 are fixed, 3 are partially fixed, and 4 remain open**. The full local suite is green at **410 passed, 4 skipped**, and the source code used by CI passes its configured Ruff, format, and mypy checks.
+
+The repository was nevertheless **not production-ready as a distributable package** at the time of this review: a wheel built from the current revision could not start in a clean virtual environment, and untrusted REQIFZ files could trigger unbounded decompression and memory/disk consumption.
+
+> **Update (2026-07-20, commit `404dbfa`):** Both release-blocking Critical
+> findings below are now fixed and verified — the wheel runs in a clean venv, and
+> archive decompression is bounded before any read. See the per-finding status
+> notes for evidence.
+
+The changes after the archived report did not introduce a new internal extraction-to-Excel processing failure in the exercised paths. They did introduce two regressions/mismatches:
+
+1. constructor keywords deliberately retained for interface compatibility were removed without a changelog or versioned breaking-change notice; and
+2. the rewritten RAFT documentation now says the generated system prompt is informed by dataset data/statistics, but the dataset still has no effect on the Modelfile.
+
+Several other defects found in this review—broken wheel contents, unbounded archive reads, trainer failure state, and prompt/schema conflict—already existed at the archived-review revision. They are newly identified here, not newly introduced by the most recent commits.
+
+## Archived Finding Status
+
+| # | Archived finding | Status | Current evidence |
+|---:|---|---|---|
+| 1 | Partial output reported as success | **Fixed** | Sync and async generation return structured errors; processors retain failed requirement IDs; directory aggregation distinguishes complete, partial, and failed runs; exit codes are 0/2/1 (`main.py:126-178`, processor regression tests). |
+| 2 | `<object>` placeholder overwrites saved image metadata | **Fixed** | `augment_artifacts_with_images()` preserves the saved record and merges placeholder metadata (`src/core/image_extractor.py:644-727`); focused collision tests pass. The exact end-to-end test requested in the prior review—REQIFZ to selected model to sent image bytes—is still missing. |
+| 3 | RAFT path does not train on its dataset | **Partially fixed** | User-facing wording now admits this is prompt customization, not weight training. However, two datasets with different counts/content/images produced byte-identical Modelfiles after timestamp normalization. The new claim that the prompt is dataset-informed is therefore still false. |
+| 4 | Invalid model objects become plausible `N/A` rows | **Fixed** | One canonical five-field schema is sent through Ollama `format` and enforced locally; strict validation is honored before formatting (`src/core/validators.py:17-70`, `src/core/generators.py:266-314`). |
+| 5 | Presets do not control execution reliably | **Fixed** | CLI booleans are tri-state, dispatch uses effective configuration, and preset-applied keys are protected from model defaults (`main.py:120-123,225-231`; preset precedence tests pass). |
+| 6 | RAFT collection ignores the consent contract | **Fixed** | The collector is created only when both consent flags are true, and YAML/environment wiring plus all four truth-table combinations are tested (`src/processors/base_processor.py:82-91`). |
+| 7 | Large-table truncation conflicts with validation | **Partially fixed** | `max_table_rows` is wired and validation now covers the displayed rows, eliminating the impossible validation loop. Rows between the first and last ten are still never sent or tested, so a truncated run is not comprehensive coverage (`src/core/prompt_builder.py:202-270`). |
+| 8 | Every requirement gets every interface | **Open** | The same global `system_interfaces` list is still attached to each requirement and serialized into every prompt (`src/processors/base_processor.py:159-215`, `src/core/prompt_builder.py:293-311`). |
+| 9 | Configuration export/authentication security | **Partially fixed** | Exports now omit secrets and use restrictive permissions. `api_key`/`auth_token` remain unused, URLs remain HTTP-only host/port URLs, and neither sync nor async client adds a Bearer header. |
+| 10 | Design Information mapping is unreachable | **Open** | `"information"` is still matched before `"design information"` (`src/core/extractors.py:381-394`). |
+| 11 | Relationship metadata is parsed but unused in prompts | **Open** | Parent/child/dependency metadata is created, but the active prompt variables contain no relationship context. |
+| 12 | `--training` is a placeholder | **Open** | With an input path it still prints that training “would be implemented here” and returns successfully (`main.py:290-298`). |
+
+### Status totals
+
+- **Fixed:** 1, 2, 4, 5, 6
+- **Partial:** 3, 7, 9
+- **Open:** 8, 10, 11, 12
+
+## New Critical Findings
+
+### [Critical] 1. The built wheel installs but its console commands cannot import `main`
+
+> **Status: Fixed** (2026-07-20, commit `404dbfa`). The wheel now force-includes
+> `main.py`, `prompts/`, and `config/`; `ConfigManager.load_cli_config` gained a
+> `__file__`-relative fallback so the bundled config resolves outside a source
+> checkout; and CI installs the wheel into a fresh venv **outside** the repo and
+> smoke-tests `--help` and `--validate-prompts`. Verified: the clean-venv smoke
+> test that previously failed with `ModuleNotFoundError: No module named 'main'`
+> now passes. This resolution follows alternative 2 (force-include) as a P0
+> unblock; the conventional `src/ai_tc_generator/` restructure (alternative 1)
+> remains available as a later, non-blocking refactor.
+
+`pyproject.toml` declares both console scripts as `main:main`, while the wheel target includes only `packages = ["src"]` (`pyproject.toml:85-96`). The prompt/config assets used at runtime are also outside that package.
+
+This was verified against the actual artifact, not inferred from configuration:
+
+- the built wheel contained 33 files under `src/` plus metadata;
+- it contained no `main.py`, `prompts/`, or `config/` runtime assets;
+- installation into a clean virtual environment succeeded; and
+- running `venv/bin/ai-tc-generator --help` failed with `ModuleNotFoundError: No module named 'main'`.
+
+The CI build job only runs `python -m build` and `twine check`; neither command imports the entry point, so the broken artifact can pass the current package check (`.github/workflows/ci.yml:153-179`). Editable installs mask the defect by leaving the repository root importable.
+
+**Recommendation:** use a real import package such as `src/ai_tc_generator/`, move the CLI to `ai_tc_generator.cli:main`, include YAML assets as package data, and resolve assets with `importlib.resources`. Add a CI smoke test that installs the wheel into a fresh venv outside the repository and runs `ai-tc-generator --help` and `--validate-prompts`.
+
+**Alternatives:**
+
+1. **Recommended:** normalize to a conventional `src/ai_tc_generator/` package and package resources properly. This is the clean long-term fix.
+2. Force-include root `main.py`, `prompts/`, and `config/` in the wheel. This is smaller but keeps fragile current-working-directory assumptions.
+3. Remove distributable console scripts and explicitly support source checkouts only. This is honest but contradicts the README and `Production/Stable` packaging metadata.
+
+### [Critical] 2. REQIFZ decompression and image extraction are unbounded
+
+> **Status: Fixed** (2026-07-20, commit `404dbfa`). New `src/core/archive_limits.py`
+> enforces entry-count, per-entry size, total-size, and compression-ratio limits.
+> `validate_archive_safety()` inspects every `ZipInfo` **before** any read, and
+> `safe_zip_read()` caps per-entry decompression so a lying header cannot force
+> unbounded output. Both extractors were rewired; `MAX_FILE_SIZE` is now a
+> pre-read reject for images rather than a post-decompression warning. Covered by
+> `tests/core/test_archive_limits.py` (11 tests, incl. a real deflate ratio-bomb
+> and end-to-end rejection through both extractors).
+
+The primary extractor calls `ZipFile.read()` on the first `.reqif` entry with no size, aggregate, entry-count, or compression-ratio limit (`src/core/extractors.py:64-74`). Image extraction reopens the archive, reads the REQIF again, and then reads every recognized image fully into memory (`src/core/image_extractor.py:110-161`).
+
+`MAX_FILE_SIZE = 10 MiB` is only checked after the complete image has already been decompressed and loaded; exceeding it produces a warning rather than rejection (`src/core/image_extractor.py:36-39,430-435`). Saved images are then written without a hard cap (`:470-485`). A small compressed REQIFZ can therefore consume arbitrary RAM, CPU, and disk.
+
+Python's current XML documentation explicitly warns that attacker-controlled XML can cause denial of service and that decompression bombs can reduce transmitted size by orders of magnitude. The current interpreter uses Expat 2.8.1, outside the documented `<2.7.2` vulnerable range for specific entity attacks, but that does not mitigate the surrounding ZIP bomb.
+
+**Recommendation:** inspect every `ZipInfo` before reading; enforce maximum entries, per-entry uncompressed size, total uncompressed size, and compression ratio; stream data through a byte-counting reader; reject oversized images before decompression where metadata permits; and add archive-bomb regression tests with small fixtures. Treat `MAX_FILE_SIZE` as a limit, not a post-allocation warning.
+
+## New Recommended Findings
+
+### [Recommended] 3. Failed model creation is persisted as `completed`
+
+`VisionRAFTTrainer.train()` copies `_train_with_ollama()`'s false success value, then unconditionally sets `self.progress.status = "completed"`, saves the log, and sets `training_completed` (`src/training/vision_raft_trainer.py:169-177`). A non-zero `ollama create` result stores its message only under `metrics.errors`, not the top-level `errors` list (`:349-362`).
+
+A focused subprocess-failure reproduction produced:
+
+```text
+return_success: false
+return_errors: []
+return_completed: <timestamp>
+in_memory_status: completed
+saved_status: completed
+metric_error: simulated ollama failure
+```
+
+The CLI's failure printer iterates the empty top-level list, so the most useful cause can also disappear from user output.
+
+**Recommendation:** set `completed` and `training_completed` only when model creation succeeds; otherwise set `failed`, propagate stderr into top-level errors, persist the final result after all fields are populated, and add timeout/non-zero/command-not-found tests.
+
+### [Recommended] 4. The active prompt contradicts the canonical output schema
+
+The only active/default prompt explicitly tells the model to format both table and text test steps as `"data"` (`prompts/templates/test_generation_adaptive.yaml:125,153`). Later in the same prompt, and in the enforced JSON schema, the required field is `"test_steps"` (`:173-190`; `src/core/validators.py:19-40`).
+
+A test-case object that follows the earlier prompt instruction is rejected by `is_canonical_test_case()`. Ollama's JSON Schema constraint reduces the likelihood on compliant backends, but the contradictory prose still wastes model attention and becomes a real drop/failure path if a backend follows the prose or only partially honors structured output.
+
+**Recommendation:** replace both `data` instructions with `test_steps`, remove retired-schema language from active code paths, and extend `--validate-prompts` to compare examples/field directives against `CANONICAL_TEST_CASE_FIELDS`. The current validator checks renderability, not semantic schema consistency.
+
+### [Recommended] 5. Recent cleanup removed accepted constructor keywords without a release contract
+
+After the archived report, `use_streaming`, `max_workers`, and `_max_concurrent` were removed from constructors. Current reproductions show:
+
+```text
+REQIFArtifactExtractor(use_streaming=True) -> TypeError
+HighPerformanceREQIFArtifactExtractor(max_workers=8) -> TypeError
+```
+
+Internal callers were updated and the full suite passes. This is therefore not an internal runtime regression, but it is a source-compatibility break introduced by `da28695`/`37088cb`. The previous comments explicitly said the first two arguments were retained for interface compatibility. No `CHANGELOG.md` exists, despite `System_Intructions.md` requiring significant changes under an Unreleased section.
+
+The project instructions do not prioritize backward compatibility, so restoring dead behavior is unnecessary. The break should still be intentional and discoverable.
+
+**Recommendation:** document removals and migration in a changelog/release note, version the breaking API appropriately, and make the remaining `config` parameter keyword-only to avoid old positional calls silently binding a boolean to `config`.
+
+### [Recommended] 6. RAFT wording changed, but the dataset still does not customize the model
+
+The current module docstring says the system prompt is “informed by RAFT dataset statistics,” and the README says the model is informed by automotive domain data. In fact, `_analyze_dataset()` computes statistics, but `_prepare_modelfile()` receives no statistics or examples and emits a static `FROM + PARAMETER + SYSTEM` file (`src/training/vision_raft_trainer.py:197-305`).
+
+The focused check used two deliberately different datasets—one text example and three vision/distractor examples. Their statistics differed, but the normalized Modelfiles were identical.
+
+Official Ollama documentation confirms that `SYSTEM` customizes behavior, `MESSAGE` can add example history, and real fine-tuning requires trained/fused weights or an `ADAPTER`. The code currently uses neither dataset-derived `MESSAGE` examples nor an adapter.
+
+**Recommendation:** either generate a bounded, evaluated set of dataset-derived `MESSAGE` examples/system rules, or remove every claim that the dataset informs the model and describe the dataset step as analysis-only. Keep real fine-tuning as a separately implemented and measured workflow.
+
+### [Recommended] 7. Documentation is not a reliable user contract
+
+Current code coverage is 69%, but the README advertises 87% and lists old test counts (`README.md:20,293-300`). Other live documentation problems include:
+
+- README/User Manual examples use unsupported `--profile`, `--mode`, `--dry-run`, or `--reload-prompts` options;
+- `docs/training/MODEL_TRAINING_GUIDE.md` references nonexistent `src/training/lora_trainer.py` and `src/training/train_lora.py` implementations;
+- `docs/training/RAFT_TECHNICAL.md` describes a training path that is not present; and
+- the README presents the package command as installable even though the clean wheel is broken.
+
+**Recommendation:** treat `main.py --help`, the packaged artifact, and executable examples as the documentation source of truth. Consolidate the training guides into one current guide, archive speculative design documents, and verify shell examples in CI.
+
+### [Recommended] 8. CI misses release behavior and currently has a security-policy failure
+
+- The integration job is permanently disabled with `if: false` (`.github/workflows/ci.yml:80-106`).
+- The build job validates metadata but never installs or runs the artifact.
+- The current Bandit scan returns non-zero with four medium-confidence `B314` XML-parser findings in `extractors.py`, `image_extractor.py`, and `parsers.py`; the workflow runs Bandit without a reviewed baseline or suppression policy (`:108-130`).
+- Dependency audit is `continue-on-error: true`, so known vulnerabilities would not block a merge (`:132-151`).
+
+**Recommendation:** add a mock-backed integration job that always runs, keep a separate opt-in real-Ollama job, install/smoke-test wheels, resolve or explicitly baseline Bandit findings, and make dependency vulnerabilities fail according to a documented severity policy.
+
+### [Recommended] 9. Latest-stable dependency policy is not being followed
+
+The latest-version check on 2026-07-20 found seven upper bounds that exclude current stable releases:
+
+| Dependency | Declared line | Latest stable |
+|---|---:|---:|
+| pandas | `<3.0.0` | 3.0.3 |
+| rich | `<14.0.0` | 15.0.0 |
+| psutil | `<7.0.0` | 7.2.2 |
+| pytest | `<9.0.0` | 9.1.1 |
+| pytest-cov | `<7.0.0` | 7.1.0 |
+| pytest-asyncio | `<0.26.0` | 1.4.0 |
+| mypy | `<2.0.0` | 2.3.0 |
+
+The existing `pytest-asyncio` version emits extensive Python 3.14 deprecation warnings and targets APIs scheduled for removal in Python 3.16. No rationale for these old major-line caps is recorded, and there is no lock file for reproducible application environments.
+
+**Recommendation:** upgrade one dependency family at a time with tests, record any necessary caps and reasons in `pyproject.toml`, and generate a reviewed lock/constraints artifact for deployment. Do not remove all caps blindly.
+
+### [Recommended] 10. Whole-repository quality gates are weaker than the core-source gates
+
+The exact CI source scopes pass, but a whole-repository pass found:
+
+- Ruff: 4 violations, all in tests;
+- Ruff formatting: 28 files would be reformatted;
+- mypy: 23 errors in six utility/prompt-tool files;
+- coverage: 69% overall, with `vision_raft_trainer.py` at 0%, `quality_scorer.py` at 12%, `raft_annotator.py` at 13%, and `progressive_trainer.py` at 21%; and
+- `tests/integration/test_processors.py:392-410` ends a deprecated performance test with `assert True`, while the async logprobs test remains skipped because of its mock setup.
+
+Function-size analysis also found `HighPerformanceREQIFZFileProcessor.process_file()` at 313 lines, the standard `process_file()` at 249, and `ConfigManager.apply_cli_overrides()` at 178, far above the project's 20–30-line guideline. These sizes make error-path reasoning and focused testing harder.
+
+**Recommendation:** include tests and maintained utilities in style/type gates, replace placeholder tests, add direct trainer failure/dataset-influence coverage, and extract processor phases into typed result-building functions without changing business behavior.
+
+## Remaining Archived Work
+
+### [Recommended] Reduce global interface prompt growth
+
+Prompt size still scales approximately as requirements × interfaces. Pre-index normalized signal names and attach only exact/fuzzy matches mentioned in requirement text and nearby information. Add a bounded fallback and log token/character estimates. Do this before increasing context windows; a larger context only makes the waste more expensive.
+
+### [Recommended] Make large-table semantics explicit
+
+Choose one contract:
+
+1. **Recommended:** chunk all rows, generate per chunk, merge/deduplicate, and validate each chunk.
+2. Reject tables above the configured limit with a clear error and no “comprehensive” claim.
+3. Keep first/last-row sampling but label the output and metadata as sampled/incomplete.
+
+The current implementation silently chooses option 3 while normal success metadata still implies complete processing.
+
+### [Recommended] Finish or remove remote authentication
+
+Official Ollama documentation says local `http://localhost:11434` needs no authentication, while direct `https://ollama.com/api` calls require `Authorization: Bearer ...`. The current configuration models credentials but cannot construct that endpoint/header. Add an explicit scheme/base URL plus Bearer header support, or remove the unused secret fields.
+
+### [Optional] Remove or connect dead surfaces
+
+- Put `design information` before the generic `information` match and decide how it contributes to context.
+- Feed relationship context into prompts with a cap, or disable parsing by default to avoid repeat archive/XML work.
+- Connect `--training` to the maintained utility, or remove it.
+- Implement or remove `VisionRAFTTrainer.evaluate_model()`, which currently returns zero metrics with a TODO.
+- Remove the unused top-level chain-of-thought `analysis` request from the active prompt; downstream code discards it, so it only consumes tokens.
+
+## Architecture and Change-Risk Review
+
+The execution path remains:
+
+```text
+REQIFZ extraction
+  -> image/relationship augmentation
+  -> contextual requirement construction
+  -> active prompt rendering
+  -> Ollama /api/generate
+  -> JSON parsing and canonical/semantic validation
+  -> deduplication
+  -> Excel formatting
+  -> per-file/directory status and exit code
+```
+
+GitNexus was refreshed at `cf0fcd0` and reported 4,644 symbols, 6,588 relationships, 100 clusters, and 130 flows. Changed-symbol upstream impact was LOW or MEDIUM only; no HIGH/CRITICAL blast radius was reported. Representative results:
+
+| Symbol group | Risk | Impact summary |
+|---|---|---|
+| `REQIFArtifactExtractor` / HP extractor | MEDIUM / LOW | 13 / 5 impacted symbols; processor extraction flows |
+| `AsyncTestCaseGenerator` | MEDIUM | 15 impacted symbols, 10 direct callers; lower-bound interface analysis |
+| sync/async processor protocols and concrete processors | MEDIUM | 6–9 impacted symbols per processor |
+| progressive/vision trainer wording and readiness helper | LOW | isolated training/assessment paths |
+
+No dependency cycles were reported. GitNexus's PDG/taint layer is not present, so the security conclusions are source/tool based rather than a taint proof. `detect_changes(scope=compare, base_ref=main)` reported low risk and no committed code delta because the checkout is on `main`; a historical compare against the review-era commit timed out on the large generated Graphify history, so the 14 changed source/test/doc files were isolated with Git diff instead.
+
+## Verification Results
+
+| Check | Result |
+|---|---|
+| Focused archived-finding regressions | **50 passed** |
+| Full suite, no coverage | **410 passed, 4 skipped**, 222 warnings |
+| Full suite with coverage | **410 passed, 4 skipped; 69% total** |
+| CI-equivalent Ruff check (`src`, `main.py`, `utilities`) | **Passed** |
+| CI-equivalent Ruff format | **Passed; 36 files formatted** |
+| CI-equivalent mypy (`src`) | **Passed; 28 files checked** |
+| Whole-repository Ruff | **Failed: 4 findings** |
+| Whole-repository format | **Failed: 28 files** |
+| Whole-repository mypy | **Failed: 23 errors in 6 files** |
+| Compileall | **Passed** |
+| `main.py --help` | **Passed from source checkout** |
+| `main.py --validate-prompts` | **Passed; one active template rendered** |
+| Clean wheel console smoke test | **Failed: `No module named 'main'`** |
+| `pip check` | **Passed** |
+| `pip-audit .` | **No known vulnerabilities in the 27 resolved default-dependency packages**; optional training stack was not claimed as audited |
+| Bandit medium/high scan | **4 medium B314 findings; no high findings** |
+| GitNexus cycles | **0 cycles** |
+| Real Ollama integration | **Not run**; no server was available, and the relevant tests skipped |
+
+The local `RequestsDependencyWarning` is environment-specific: an unrelated installed `chardet 7.4.3` is outside Requests' optional compatibility range. `pip check` still reports a consistent environment, and the project does not declare `chardet`; this is not attributed to repository code.
+
+## Ollama API Verification
+
+Checked against current official documentation on 2026-07-20:
+
+- [`POST /api/generate`](https://docs.ollama.com/api/generate) supports base64 `images`, a JSON Schema object in `format`, and top-level `logprobs`/`top_logprobs`. The current payload builder uses those fields correctly.
+- The [`Modelfile` reference](https://docs.ollama.com/modelfile) distinguishes `SYSTEM` customization from a fine-tuned `ADAPTER` and supports `MESSAGE` examples.
+- The [model import guide](https://docs.ollama.com/import) requires separately produced adapter/weight artifacts for actual fine-tuning.
+- The [authentication reference](https://docs.ollama.com/api/authentication) confirms no auth for local HTTP and Bearer auth for direct Ollama cloud API access.
+
+No current API mismatch is reported for images, structured output, or log probabilities.
+
+## Chain-of-Verification
+
+### Verification questions
+
+1. Were all 12 archived comments checked against current source and tests?
+2. Are “fixed” statuses based on executable evidence rather than comments?
+3. Are the newly reported bugs actually new to the latest commits?
+4. Could the wheel failure be caused by the developer checkout leaking into imports?
+5. Does RAFT data affect the Modelfile indirectly?
+6. Is the archive risk mitigated by the 10 MiB image constant or current Expat?
+7. Are current Ollama request fields being misreported as unsupported?
+8. Does a green test suite prove the release artifact is usable?
+
+### Independent answers
+
+1. **Yes.** Every archived numbered/optional item has a status row and current source evidence.
+2. **Yes.** Findings 1, 2, 4, 5, and 6 have focused passing regression tests plus inspected production paths.
+3. **Mostly no.** Packaging, archive limits, trainer state, and prompt conflict predate the post-report commits. The constructor compatibility break and the new dataset-informed wording are attributable to the later changes.
+4. **No.** The first installed-script run was contaminated by a repository `.pth`, so it was discarded. A second run in a new isolated venv outside the repository reproduced `ModuleNotFoundError`.
+5. **No.** Statistics are computed but never passed to `_prepare_modelfile`; materially different datasets produced identical normalized files.
+6. **No.** The 10 MiB check occurs after full allocation and only warns. Expat 2.8.1 reduces specific XML entity risks but does not cap ZIP decompression, entry count, aggregate bytes, or output writes.
+7. **No.** Official docs confirm the active fields. Only the archived remote-auth wiring remains incomplete.
+8. **No.** Tests import from the checkout/editable environment. The actual clean wheel smoke test fails before application startup.
+
+### Revised assessment after verification
+
+The core source-checkout pipeline is substantially healthier and five prior release-blocking behaviors are fixed. The project should still not be labeled production-ready until the wheel is executable, hostile/accidental oversized archives are bounded, and the active prompt/trainer failure contracts are corrected. Recent changes appear safe for internal processing, but their public constructor removals and RAFT wording need an explicit release/documentation correction.
+
+## Suggested Fix Order
+
+1. ~~**P0:** repair package layout/resources and add clean-wheel smoke tests.~~ **Done** (commit `404dbfa`).
+2. ~~**P0:** enforce REQIFZ entry/size/compression limits before any `read()`.~~ **Done** (commit `404dbfa`).
+3. **P1:** change active prompt `data` instructions to `test_steps` and add semantic prompt validation.
+4. **P1:** correct trainer failed-state/error propagation and test all subprocess failures.
+5. **P1:** make RAFT customization truly dataset-derived or remove the remaining dataset-informed claims.
+6. **P1:** finish archived interface retrieval, large-table completeness, and remote auth decisions.
+7. **P2:** repair CI blind spots, dependency caps, stale docs, whole-repo typing/style, and oversized processor methods.
