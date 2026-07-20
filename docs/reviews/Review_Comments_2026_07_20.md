@@ -340,7 +340,7 @@ No dependency cycles were reported. GitNexus's PDG/taint layer is not present, s
 | `pip-audit .` | **No known vulnerabilities in the 27 resolved default-dependency packages**; optional training stack was not claimed as audited |
 | Bandit medium/high scan | **4 medium B314 findings; no high findings** |
 | GitNexus cycles | **0 cycles** |
-| Real Ollama integration | **Not run**; no server was available, and the relevant tests skipped |
+| Real Ollama integration | **Run (2026-07-20 follow-up)**: with a local `llama3.1:8b` server, end-to-end generation on `input/automotive_door_window_system.reqifz` produced 7 valid test cases and an Excel file. This exposed Critical finding 3 (empty-object schema → 0 valid cases), now fixed (`0997bed`); guarded by the opt-in `tests/integration/test_ollama_schema_smoke.py` (`2adda48`). At the original review time it was not run — no server was available and the relevant tests skipped. |
 
 The local `RequestsDependencyWarning` is environment-specific: an unrelated installed `chardet 7.4.3` is outside Requests' optional compatibility range. `pip check` still reports a consistent environment, and the project does not declare `chardet`; this is not attributed to repository code.
 
