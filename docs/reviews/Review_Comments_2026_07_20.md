@@ -99,6 +99,31 @@ Python's current XML documentation explicitly warns that attacker-controlled XML
 
 **Recommendation:** inspect every `ZipInfo` before reading; enforce maximum entries, per-entry uncompressed size, total uncompressed size, and compression ratio; stream data through a byte-counting reader; reject oversized images before decompression where metadata permits; and add archive-bomb regression tests with small fixtures. Treat `MAX_FILE_SIZE` as a limit, not a post-allocation warning.
 
+### [Critical] 3. Structured-output schema forced every field to an empty object (0 test cases on real Ollama)
+
+> **Status: Fixed** (2026-07-20). `TEST_CASE_RESPONSE_JSON_SCHEMA`
+> (`src/core/validators.py`) declared each canonical field with an empty `{}`
+> per-field schema. Ollama compiles the `format` schema into a llama.cpp
+> grammar, and an empty `{}` schema compiles to "emit an empty object `{}`",
+> not "any value" — so the model was *forced* to return `{"summary_suffix": {},
+> "preconditions": {}, ...}` for every test case, and `is_canonical_test_case()`
+> correctly dropped 100% of them. Fix: each field now declares
+> `{"type": "string"}`. Verified against a live `llama3.1:8b` run on
+> `input/automotive_door_window_system.reqifz` — output went from **0 valid
+> cases** to **7**, written to Excel; wall-clock also dropped (134s vs 460s+).
+
+This regression was latent because it only manifests against a real Ollama
+backend: all unit/CI tests mock the client, and this review's real-integration
+check was **skipped** ("no server was available", see Verification Results).
+It qualifies the archived **finding 4** ("Fixed") status — the canonical schema
+was enforced in code but never exercised end-to-end, so the enforcement itself
+was silently broken until now.
+
+**Recommendation:** add a real-Ollama smoke test (gated/opt-in) that asserts at
+least one canonical test case survives validation for a small fixture, so a
+malformed `format` schema cannot pass CI again. Ties into recommended finding 8
+(CI never runs the artifact against a backend).
+
 ## New Recommended Findings
 
 ### [Recommended] 3. Failed model creation is persisted as `completed`

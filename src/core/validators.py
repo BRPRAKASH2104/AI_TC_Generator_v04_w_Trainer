@@ -26,8 +26,14 @@ CANONICAL_TEST_CASE_FIELDS: tuple[str, ...] = (
 
 # JSON Schema forwarded to Ollama's `format` parameter so the model is
 # constrained to the canonical schema at generation time
-# (review 2026-07-17 finding 4). Field types stay permissive: validators
-# normalise list-valued fields to strings.
+# (review 2026-07-17 finding 4). Each field MUST declare a concrete type:
+# Ollama compiles the schema into a llama.cpp grammar, and an empty `{}`
+# per-field schema compiles to "emit an empty object `{}`" rather than
+# "any value", which forced every field to `{}` and made 100% of generated
+# test cases fail canonical validation (verified against a live llama3.1:8b
+# run, 2026-07-20). `test_steps` is authored as a newline-joined string; the
+# downstream list->string normalisation in validators still tolerates a list
+# if an unconstrained backend ever returns one.
 TEST_CASE_RESPONSE_JSON_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -35,7 +41,9 @@ TEST_CASE_RESPONSE_JSON_SCHEMA: dict[str, Any] = {
             "type": "array",
             "items": {
                 "type": "object",
-                "properties": {field: {} for field in CANONICAL_TEST_CASE_FIELDS},
+                "properties": {
+                    field: {"type": "string"} for field in CANONICAL_TEST_CASE_FIELDS
+                },
                 "required": list(CANONICAL_TEST_CASE_FIELDS),
             },
         }
