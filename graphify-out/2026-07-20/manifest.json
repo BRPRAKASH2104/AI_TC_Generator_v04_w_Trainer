@@ -65,9 +65,9 @@
     "semantic_hash": "2c33cb8e00bc66ac6f3ba4bd4ca333cb"
   },
   "pyproject.toml": {
-    "mtime": 1783318544.0,
-    "ast_hash": "d8ae6a1fbc52f96514c5f8f0a08c0e55",
-    "semantic_hash": "d8ae6a1fbc52f96514c5f8f0a08c0e55"
+    "mtime": 1784532544.046062,
+    "ast_hash": "c39b90e061716f588d0a5c87afd36960",
+    "semantic_hash": ""
   },
   "src/__init__.py": {
     "mtime": 1761894681.0,
@@ -80,9 +80,9 @@
     "semantic_hash": "3af44cc58c5fa9a52802061fdde52a9c"
   },
   "src/config.py": {
-    "mtime": 1784302762.0,
-    "ast_hash": "105c828ff8f96dbfec8e5448c5bca6ee",
-    "semantic_hash": "105c828ff8f96dbfec8e5448c5bca6ee"
+    "mtime": 1784532535.8005552,
+    "ast_hash": "b15919450cc05dbde31cc10c3e78ef9a",
+    "semantic_hash": ""
   },
   "src/core/__init__.py": {
     "mtime": 1761894681.0,
@@ -100,9 +100,9 @@
     "semantic_hash": "73c80f17b439b16b2b906c1e46251a36"
   },
   "src/core/extractors.py": {
-    "mtime": 1784447248.465285,
-    "ast_hash": "7466f57ade944714b02b69359ddb0782",
-    "semantic_hash": "7466f57ade944714b02b69359ddb0782"
+    "mtime": 1784533161.1536026,
+    "ast_hash": "8d046c7ac8cb6964808b02554f7af105",
+    "semantic_hash": ""
   },
   "src/core/formatters.py": {
     "mtime": 1784282040.0,
@@ -115,9 +115,9 @@
     "semantic_hash": "071bd07d7ede7d052d0831fa9da373dd"
   },
   "src/core/image_extractor.py": {
-    "mtime": 1784281290.0,
-    "ast_hash": "dd33a7746972bf1067b18ed1c08c757f",
-    "semantic_hash": "dd33a7746972bf1067b18ed1c08c757f"
+    "mtime": 1784533161.153672,
+    "ast_hash": "0327ae34385e3555c329a6cd29263b4c",
+    "semantic_hash": ""
   },
   "src/core/ollama_client.py": {
     "mtime": 1784281876.0,
@@ -655,32 +655,32 @@
     "semantic_hash": "5f5d02f15a6dcd7a0b8ded32499f9eff"
   },
   ".claude/skills/gitnexus/gitnexus-cli/SKILL.md": {
-    "mtime": 1784524309.2646558,
+    "mtime": 1784528690.4979901,
     "ast_hash": "77da703128a8f2f84ab1367f9bb60d09",
     "semantic_hash": "77da703128a8f2f84ab1367f9bb60d09"
   },
   ".claude/skills/gitnexus/gitnexus-debugging/SKILL.md": {
-    "mtime": 1784524309.263638,
+    "mtime": 1784528690.4964678,
     "ast_hash": "c7284b8f06cb8323f572564363df59e2",
     "semantic_hash": "c7284b8f06cb8323f572564363df59e2"
   },
   ".claude/skills/gitnexus/gitnexus-exploring/SKILL.md": {
-    "mtime": 1784524309.2634435,
+    "mtime": 1784528690.4961803,
     "ast_hash": "680f3e0bef0d75b4e82b461715213126",
     "semantic_hash": "680f3e0bef0d75b4e82b461715213126"
   },
   ".claude/skills/gitnexus/gitnexus-guide/SKILL.md": {
-    "mtime": 1784524309.2644038,
+    "mtime": 1784528690.4976437,
     "ast_hash": "51eee64e023b05990b57ea22eac4957d",
     "semantic_hash": "51eee64e023b05990b57ea22eac4957d"
   },
   ".claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md": {
-    "mtime": 1784524309.2638497,
+    "mtime": 1784528690.496844,
     "ast_hash": "f8b8d25ad42baa867a37791ee09f106e",
     "semantic_hash": "f8b8d25ad42baa867a37791ee09f106e"
   },
   ".claude/skills/gitnexus/gitnexus-refactoring/SKILL.md": {
-    "mtime": 1784524309.2640662,
+    "mtime": 1784528690.4973047,
     "ast_hash": "4d0bf7aa2b876bd4318add73d5e4918e",
     "semantic_hash": "4d0bf7aa2b876bd4318add73d5e4918e"
   },
@@ -735,18 +735,18 @@
     "semantic_hash": "5836e310935b573498ad74a2bdacaa15"
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1775464971.0,
-    "ast_hash": "901cdc3c7087da38fc84dcfaaf2d6302",
-    "semantic_hash": "901cdc3c7087da38fc84dcfaaf2d6302"
+    "mtime": 1784532552.9935338,
+    "ast_hash": "a399e3473a528e7cdb0e68bdf0e8f9a7",
+    "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1784524309.2629428,
-    "ast_hash": "26a14a2e0aa05729f4b8b260ba4cd8b3",
+    "mtime": 1784532661.6056442,
+    "ast_hash": "32b7fecb1fe456fc8e1c3eade70a64e8",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1784524309.2632046,
-    "ast_hash": "963b780030ec6188736dc3126421f197",
+    "mtime": 1784528690.495568,
+    "ast_hash": "60a40a492338dbb01c18a230320eb4c0",
     "semantic_hash": ""
   },
   "GEMINI.md": {
@@ -1013,5 +1013,20 @@
     "mtime": 1784524309.2617943,
     "ast_hash": "0e0d796b869913d9fb3392e69634813c",
     "semantic_hash": "0e0d796b869913d9fb3392e69634813c"
+  },
+  "src/core/archive_limits.py": {
+    "mtime": 1784533181.5753782,
+    "ast_hash": "4c4b5c6dd8945c97645ef9d79b6a2582",
+    "semantic_hash": ""
+  },
+  "tests/core/test_archive_limits.py": {
+    "mtime": 1784533181.57541,
+    "ast_hash": "0d4d507e49278d9d9639cef502aebf03",
+    "semantic_hash": ""
+  },
+  "docs/reviews/Review_Comments_2026_07_20.md": {
+    "mtime": 1784531359.7874813,
+    "ast_hash": "6bc757be5c836e28dcef8ca48fe83fd0",
+    "semantic_hash": ""
   }
 }
