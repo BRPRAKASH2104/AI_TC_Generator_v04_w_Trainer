@@ -26,6 +26,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `Design Information` requirement artifacts were misclassified as generic
+  `INFORMATION`. In `_map_reqif_type_to_artifact_type`
+  (`src/core/extractors.py`) the generic `"information"` branch was ordered
+  before `"design information"`; since the latter contains `"information"`, the
+  generic branch shadowed it and `ArtifactType.DESIGN_INFORMATION` was
+  effectively dead. The `"design"` branch now precedes the generic
+  `"information"` branch. Paired with a matching change in
+  `BaseProcessor._build_augmented_requirements`
+  (`src/processors/base_processor.py`), which now folds `Design Information`
+  into the same per-heading context bucket as `Information` — without it,
+  correctly typing these artifacts would have silently dropped them from
+  prompts. Prompt content is unchanged for existing files (design info already
+  reached context as `INFORMATION`); it is now correctly typed. Regression
+  tests in `tests/core/test_artifact_type_mapping.py` and
+  `tests/core/test_base_processor.py`. Addresses finding 10 in
+  `docs/reviews/Review_Comments_2026_07_20.md`.
+
 - Structured-output schema forced every generated test-case field to an empty
   object, so 100% of test cases failed canonical validation and no Excel output
   was produced on a real Ollama backend. `TEST_CASE_RESPONSE_JSON_SCHEMA`

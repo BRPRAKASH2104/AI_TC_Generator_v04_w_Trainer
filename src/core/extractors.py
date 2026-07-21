@@ -401,10 +401,14 @@ class REQIFArtifactExtractor:
                 return ArtifactType.SYSTEM_REQUIREMENT
             case name if "heading" in name:
                 return ArtifactType.HEADING
+            # "design" MUST be tested before the generic "information" branch:
+            # a type named "Design Information" also contains "information", so
+            # ordering "information" first would shadow this branch entirely and
+            # misclassify every design-information artifact as generic INFORMATION.
+            case name if "design" in name:
+                return ArtifactType.DESIGN_INFORMATION
             case name if "information" in name:
                 return ArtifactType.INFORMATION
-            case name if "design information" in name or "design" in name:
-                return ArtifactType.DESIGN_INFORMATION
             case name if "application parameter" in name or "parameter" in name:
                 return ArtifactType.APPLICATION_PARAMETER
             case name if "system interface" in name or "interface" in name:

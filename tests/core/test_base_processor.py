@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 from src.config import ConfigManager
 from src.processors.base_processor import BaseProcessor
 from tests.helpers import (
+    create_test_artifact,
     create_test_heading,
     create_test_information,
     create_test_requirement,
@@ -198,6 +199,39 @@ class TestContextAwareProcessing:
         assert len(req["info_list"]) == 1
         assert "This section covers door operations" in req["info_list"][0]["text"]
         assert len(req["interface_list"]) == 2
+
+    def test_build_augmented_requirements_includes_design_information_in_context(self):
+        """Design Information artifacts are folded into requirement context.
+
+        Paired with the extractors fix that types 'Design Information' as
+        DESIGN_INFORMATION instead of generic INFORMATION (review 2026-07-20
+        finding 10): the context loop must still collect these into info_list,
+        or correctly-typed design info would be silently dropped from prompts.
+        """
+        processor = BaseProcessor()
+        processor.logger = Mock()
+        processor.extractor = Mock()
+        processor.extractor.classify_artifacts.return_value = {"System Interface": []}
+
+        artifacts = [
+            create_test_heading("Door Control System", heading_id="H_001"),
+            create_test_artifact(
+                "State machine: LOCKED -> UNLOCKED on valid key",
+                artifact_type="Design Information",
+                artifact_id="DES_001",
+            ),
+            create_test_requirement(
+                "Door shall unlock on valid key", requirement_id="REQ_001"
+            ),
+        ]
+
+        augmented_reqs, _ = processor._build_augmented_requirements(artifacts)
+
+        assert len(augmented_reqs) == 1
+        info_texts = [info["text"] for info in augmented_reqs[0]["info_list"]]
+        assert any("State machine" in text for text in info_texts), (
+            "Design Information artifact was dropped from requirement context"
+        )
 
     def test_build_augmented_requirements_resets_info_after_requirement(self):
         """Information context resets after each requirement (critical!)"""

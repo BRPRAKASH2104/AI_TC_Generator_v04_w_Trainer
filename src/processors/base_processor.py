@@ -190,7 +190,13 @@ class BaseProcessor:
                 )
                 continue
 
-            elif obj.get("type") == "Information":
+            elif obj.get("type") in ("Information", "Design Information"):
+                # Design Information (state machines, ECU architecture, etc.) is
+                # design-context and is collected into the same per-heading
+                # context bucket as generic Information so it still reaches the
+                # prompt. Without this, correctly typing it as DESIGN_INFORMATION
+                # (extractors._map_reqif_type_to_artifact_type) would silently
+                # drop it from context — the paired half of that fix.
                 clean_info = {**obj, "text": self._clean_text_for_logging(obj.get("text", ""))}
                 info_since_heading.append(clean_info)
                 self.logger.debug(f"📝 Stored information artifact: {id(obj)}")
