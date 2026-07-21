@@ -30,7 +30,7 @@ description: "Skill for the Processors area of AI_TC_Generator_v04_w_Trainer. 32
 
 Start here when exploring this area:
 
-- **`BaseProcessor`** (Class) — `src/processors/base_processor.py:52`
+- **`BaseProcessor`** (Class) — `src/processors/base_processor.py:53`
 - **`HighPerformanceREQIFZFileProcessor`** (Class) — `src/processors/hp_processor.py:35`
 - **`REQIFZFileProcessor`** (Class) — `src/processors/standard_processor.py:32`
 - **`test_metrics_reset_between_files`** (Method) — `tests/integration/test_processors.py:219`
@@ -40,7 +40,7 @@ Start here when exploring this area:
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `BaseProcessor` | Class | `src/processors/base_processor.py` | 52 |
+| `BaseProcessor` | Class | `src/processors/base_processor.py` | 53 |
 | `HighPerformanceREQIFZFileProcessor` | Class | `src/processors/hp_processor.py` | 35 |
 | `REQIFZFileProcessor` | Class | `src/processors/standard_processor.py` | 32 |
 | `test_metrics_reset_between_files` | Method | `tests/integration/test_processors.py` | 219 |
@@ -69,7 +69,7 @@ Start here when exploring this area:
 | `Verify_augmentation → _extract_foreign_id` | cross_community | 5 |
 | `Verify_augmentation → _extract_xhtml_content` | cross_community | 5 |
 | `Verify_augmentation → _determine_artifact_type` | cross_community | 5 |
-| `Verify_augmentation → _compute_hash` | cross_community | 5 |
+| `Verify_augmentation → Safe_zip_read` | cross_community | 5 |
 | `Main → _clean_text_for_logging` | cross_community | 5 |
 | `Verify_augmentation → _build_foreign_id_mapping` | cross_community | 4 |
 | `Verify_augmentation → _build_attribute_definition_mapping` | cross_community | 4 |

@@ -1,11 +1,11 @@
 ---
 name: integration
-description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 159 symbols across 24 files."
+description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 159 symbols across 26 files."
 ---
 
 # Integration
 
-159 symbols | 24 files | Cohesion: 84%
+159 symbols | 26 files | Cohesion: 83%
 
 ## When to Use
 
@@ -26,14 +26,14 @@ description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 1
 | `tests/core/test_generators.py` | test_generate_test_cases_success, test_generate_test_cases_with_template, test_generate_test_cases_ai_failure, test_generate_test_cases_invalid_json_response, test_prompt_variable_substitution (+4) |
 | `tests/test_critical_improvements.py` | test_standard_processor_handles_connection_error, test_standard_processor_handles_model_not_found, test_hp_processor_processes_all_requirements_concurrently, test_connection_error_raises_ollama_connection_error, test_timeout_error_raises_ollama_timeout_error (+3) |
 | `tests/test_integration_refactored.py` | test_standard_processor_complete_flow, test_standard_processor_no_artifacts, test_standard_processor_no_test_cases_generated, test_standard_processor_excel_save_failure, test_context_reset_between_requirements (+3) |
-| `src/core/generators.py` | generate_test_cases_for_requirement, extract_image_paths, _error_result, generate_test_cases_batch, _generate_test_cases_for_requirement_async (+2) |
+| `main.py` | show_banner, _print_partial_details, main, _run_standard_mode, _run_hp_mode (+1) |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`show_banner`** (Function) — `main.py:41`
-- **`main`** (Function) — `main.py:247`
+- **`show_banner`** (Function) — `main.py:42`
+- **`main`** (Function) — `main.py:248`
 - **`get_app_logger`** (Function) — `src/app_logger.py:332`
 - **`shutdown_app_logger`** (Function) — `src/app_logger.py:363`
 - **`run_processing`** (Function) — `tests/performance/test_regression_benchmarks.py:80`
@@ -42,8 +42,8 @@ Start here when exploring this area:
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `show_banner` | Function | `main.py` | 41 |
-| `main` | Function | `main.py` | 247 |
+| `show_banner` | Function | `main.py` | 42 |
+| `main` | Function | `main.py` | 248 |
 | `get_app_logger` | Function | `src/app_logger.py` | 332 |
 | `shutdown_app_logger` | Function | `src/app_logger.py` | 363 |
 | `run_processing` | Function | `tests/performance/test_regression_benchmarks.py` | 80 |
@@ -72,24 +72,24 @@ Start here when exploring this area:
 | `Main → _build_foreign_id_mapping` | cross_community | 6 |
 | `Main → _build_attribute_definition_mapping` | cross_community | 6 |
 | `Verify_extraction → _determine_image_format` | cross_community | 6 |
-| `Verify_extraction → _compute_hash` | cross_community | 6 |
 | `Verify_classification → _determine_image_format` | cross_community | 6 |
-| `Verify_classification → _compute_hash` | cross_community | 6 |
 | `Verify_augmentation → _map_reqif_type_to_artifact_type` | cross_community | 5 |
 | `Verify_augmentation → _extract_foreign_id` | cross_community | 5 |
+| `Verify_augmentation → _extract_xhtml_content` | cross_community | 5 |
+| `Verify_augmentation → _determine_artifact_type` | cross_community | 5 |
 
 ## Connected Areas
 
 | Area | Connections |
 |------|-------------|
 | Processors | 16 calls |
+| Cluster_26 | 9 calls |
 | Unit | 7 calls |
 | Tests | 4 calls |
 | Cluster_1 | 3 calls |
-| Cluster_33 | 2 calls |
+| Cluster_11 | 3 calls |
+| Cluster_35 | 2 calls |
 | Training | 2 calls |
-| Cluster_27 | 2 calls |
-| Cluster_31 | 1 calls |
 
 ## How to Explore
 

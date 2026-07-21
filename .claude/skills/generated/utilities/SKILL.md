@@ -31,7 +31,7 @@ description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 40 
 
 Start here when exploring this area:
 
-- **`create_vision_training_pipeline`** (Function) — `src/training/vision_raft_trainer.py:447`
+- **`create_vision_training_pipeline`** (Function) — `src/training/vision_raft_trainer.py:470`
 - **`parse_args`** (Function) — `utilities/train_vision_model.py:65`
 - **`validate_dataset`** (Function) — `utilities/train_vision_model.py:118`
 - **`check_ollama_connection`** (Function) — `utilities/train_vision_model.py:144`
@@ -41,7 +41,7 @@ Start here when exploring this area:
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `create_vision_training_pipeline` | Function | `src/training/vision_raft_trainer.py` | 447 |
+| `create_vision_training_pipeline` | Function | `src/training/vision_raft_trainer.py` | 470 |
 | `parse_args` | Function | `utilities/train_vision_model.py` | 65 |
 | `validate_dataset` | Function | `utilities/train_vision_model.py` | 118 |
 | `check_ollama_connection` | Function | `utilities/train_vision_model.py` | 144 |
@@ -70,12 +70,12 @@ Start here when exploring this area:
 | `Main → _build_foreign_id_mapping` | cross_community | 6 |
 | `Main → _build_attribute_definition_mapping` | cross_community | 6 |
 | `Verify_extraction → _determine_image_format` | cross_community | 6 |
-| `Verify_extraction → _compute_hash` | cross_community | 6 |
 | `Verify_classification → _determine_image_format` | cross_community | 6 |
-| `Verify_classification → _compute_hash` | cross_community | 6 |
 | `Main → Version_tuple` | cross_community | 5 |
 | `Main → _clean_text_for_logging` | cross_community | 5 |
 | `Verify_extraction → _map_reqif_type_to_artifact_type` | cross_community | 5 |
+| `Verify_extraction → _extract_foreign_id` | cross_community | 5 |
+| `Verify_extraction → _extract_xhtml_content` | cross_community | 5 |
 
 ## Connected Areas
 

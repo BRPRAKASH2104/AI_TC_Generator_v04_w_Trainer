@@ -1,76 +1,67 @@
 ---
 name: cluster-11
-description: "Skill for the Cluster_11 area of AI_TC_Generator_v04_w_Trainer. 21 symbols across 2 files."
+description: "Skill for the Cluster_11 area of AI_TC_Generator_v04_w_Trainer. 14 symbols across 3 files."
 ---
 
 # Cluster_11
 
-21 symbols | 2 files | Cohesion: 95%
+14 symbols | 3 files | Cohesion: 83%
 
 ## When to Use
 
 - Working with code in `tests/`
-- Understanding how test_no_duplicates, test_exact_duplicates, test_similar_duplicates work
+- Understanding how validate_archive_safety, safe_zip_read, test_valid_archive_passes work
 - Modifying cluster_11-related functionality
 
 ## Key Files
 
 | File | Symbols |
 |------|---------|
-| `tests/core/test_deduplicator.py` | test_no_duplicates, test_exact_duplicates, test_similar_duplicates, test_multiple_duplicate_groups, test_keep_strategy_first (+14) |
-| `src/core/deduplicator.py` | deduplicate, _create_report |
+| `tests/core/test_archive_limits.py` | _make_zip, test_valid_archive_passes, test_rejects_too_many_entries, test_rejects_oversized_entry, test_rejects_oversized_total (+4) |
+| `src/core/archive_limits.py` | validate_archive_safety, safe_zip_read, _reject |
+| `src/file_processing_logger.py` | add_warning, warning |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`test_no_duplicates`** (Function) — `tests/core/test_deduplicator.py:5`
-- **`test_exact_duplicates`** (Function) — `tests/core/test_deduplicator.py:24`
-- **`test_similar_duplicates`** (Function) — `tests/core/test_deduplicator.py:43`
-- **`test_multiple_duplicate_groups`** (Function) — `tests/core/test_deduplicator.py:59`
-- **`test_keep_strategy_first`** (Function) — `tests/core/test_deduplicator.py:78`
+- **`validate_archive_safety`** (Function) — `src/core/archive_limits.py:46`
+- **`safe_zip_read`** (Function) — `src/core/archive_limits.py:98`
+- **`test_valid_archive_passes`** (Function) — `tests/core/test_archive_limits.py:41`
+- **`test_rejects_too_many_entries`** (Function) — `tests/core/test_archive_limits.py:47`
+- **`test_rejects_oversized_entry`** (Function) — `tests/core/test_archive_limits.py:58`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `test_no_duplicates` | Function | `tests/core/test_deduplicator.py` | 5 |
-| `test_exact_duplicates` | Function | `tests/core/test_deduplicator.py` | 24 |
-| `test_similar_duplicates` | Function | `tests/core/test_deduplicator.py` | 43 |
-| `test_multiple_duplicate_groups` | Function | `tests/core/test_deduplicator.py` | 59 |
-| `test_keep_strategy_first` | Function | `tests/core/test_deduplicator.py` | 78 |
-| `test_keep_strategy_last` | Function | `tests/core/test_deduplicator.py` | 94 |
-| `test_keep_strategy_best` | Function | `tests/core/test_deduplicator.py` | 110 |
-| `test_keep_strategy_best_by_length` | Function | `tests/core/test_deduplicator.py` | 126 |
-| `test_similarity_threshold` | Function | `tests/core/test_deduplicator.py` | 142 |
-| `test_custom_fields_to_compare` | Function | `tests/core/test_deduplicator.py` | 160 |
-| `test_empty_test_cases_list` | Function | `tests/core/test_deduplicator.py` | 179 |
-| `test_deduplication_report_structure` | Function | `tests/core/test_deduplicator.py` | 209 |
-| `test_case_insensitive_comparison` | Function | `tests/core/test_deduplicator.py` | 229 |
-| `test_whitespace_handling` | Function | `tests/core/test_deduplicator.py` | 244 |
-| `test_deduplication_rate_calculation` | Function | `tests/core/test_deduplicator.py` | 259 |
-| `test_adaptive_schema_distinct_cases_are_kept` | Function | `tests/core/test_deduplicator.py` | 289 |
-| `test_adaptive_schema_exact_duplicates_removed` | Function | `tests/core/test_deduplicator.py` | 321 |
-| `test_cross_schema_aliases_detected_as_duplicates` | Function | `tests/core/test_deduplicator.py` | 339 |
-| `test_list_valued_test_steps_supported` | Function | `tests/core/test_deduplicator.py` | 362 |
-| `deduplicate` | Method | `src/core/deduplicator.py` | 57 |
+| `validate_archive_safety` | Function | `src/core/archive_limits.py` | 46 |
+| `safe_zip_read` | Function | `src/core/archive_limits.py` | 98 |
+| `test_valid_archive_passes` | Function | `tests/core/test_archive_limits.py` | 41 |
+| `test_rejects_too_many_entries` | Function | `tests/core/test_archive_limits.py` | 47 |
+| `test_rejects_oversized_entry` | Function | `tests/core/test_archive_limits.py` | 58 |
+| `test_rejects_oversized_total` | Function | `tests/core/test_archive_limits.py` | 66 |
+| `test_rejects_high_compression_ratio` | Function | `tests/core/test_archive_limits.py` | 77 |
+| `test_tiny_compressible_entry_is_exempt_from_ratio` | Function | `tests/core/test_archive_limits.py` | 85 |
+| `test_safe_zip_read_returns_data_within_cap` | Function | `tests/core/test_archive_limits.py` | 97 |
+| `test_safe_zip_read_rejects_over_cap` | Function | `tests/core/test_archive_limits.py` | 103 |
+| `add_warning` | Method | `src/file_processing_logger.py` | 128 |
+| `warning` | Method | `src/file_processing_logger.py` | 228 |
+| `_reject` | Function | `src/core/archive_limits.py` | 126 |
+| `_make_zip` | Function | `tests/core/test_archive_limits.py` | 26 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
-| `Deduplicate → _field_value` | cross_community | 5 |
-
-## Connected Areas
-
-| Area | Connections |
-|------|-------------|
-| Cluster_12 | 1 calls |
-| Cluster_13 | 1 calls |
+| `Verify_augmentation → Safe_zip_read` | cross_community | 5 |
+| `Extract_images_from_reqifz → Add_warning` | cross_community | 5 |
+| `Verify_extraction → Safe_zip_read` | cross_community | 5 |
+| `Verify_classification → Safe_zip_read` | cross_community | 5 |
 
 ## How to Explore
 
-1. `context({name: "test_no_duplicates"})` — see callers and callees
+1. `context({name: "validate_archive_safety"})` — see callers and callees
 2. `query({search_query: "cluster_11"})` — find related execution flows
 3. Read key files listed above for implementation details
 4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`

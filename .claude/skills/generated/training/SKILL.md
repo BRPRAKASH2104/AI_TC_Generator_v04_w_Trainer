@@ -1,16 +1,16 @@
 ---
 name: training
-description: "Skill for the Training area of AI_TC_Generator_v04_w_Trainer. 80 symbols across 11 files."
+description: "Skill for the Training area of AI_TC_Generator_v04_w_Trainer. 85 symbols across 12 files."
 ---
 
 # Training
 
-80 symbols | 11 files | Cohesion: 88%
+85 symbols | 12 files | Cohesion: 89%
 
 ## When to Use
 
 - Working with code in `src/`
-- Understanding how assess_example_quality, batch_assess_quality, annotate_examples work
+- Understanding how test_nonzero_returncode_is_failed_with_error, test_timeout_is_failed_with_error, test_command_not_found_is_failed_with_error work
 - Modifying training-related functionality
 
 ## Key Files
@@ -24,24 +24,28 @@ description: "Skill for the Training area of AI_TC_Generator_v04_w_Trainer. 80 s
 | `src/training/raft_annotator.py` | annotate_examples, _annotate_single_example, _build_context_items_list, _display_context_table, _get_user_oracle_selection (+6) |
 | `src/training/raft_dataset_builder.py` | build_dataset, _build_raft_example, save_dataset, get_dataset_stats, validate_dataset |
 | `src/training/vision_raft_trainer.py` | train, _analyze_dataset, _prepare_modelfile, _train_with_ollama, _save_training_progress |
+| `tests/training/test_vision_raft_trainer.py` | _trainer, test_nonzero_returncode_is_failed_with_error, test_timeout_is_failed_with_error, test_command_not_found_is_failed_with_error, test_success_is_completed_without_errors |
 | `src/training/raft_collector.py` | collect_example, _extract_images_for_training, get_collection_stats, clear_collected_data |
 | `tests/training/test_raft_integration.py` | test_save_raft_example_no_op_when_disabled, test_save_raft_example_collects_when_enabled, test_raft_collection_minimal_overhead |
-| `tests/core/test_base_processor.py` | test_save_raft_example_when_enabled, test_save_raft_example_when_disabled |
 
 ## Entry Points
 
 Start here when exploring this area:
 
+- **`test_nonzero_returncode_is_failed_with_error`** (Function) — `tests/training/test_vision_raft_trainer.py:40`
+- **`test_timeout_is_failed_with_error`** (Function) — `tests/training/test_vision_raft_trainer.py:53`
+- **`test_command_not_found_is_failed_with_error`** (Function) — `tests/training/test_vision_raft_trainer.py:66`
+- **`test_success_is_completed_without_errors`** (Function) — `tests/training/test_vision_raft_trainer.py:79`
 - **`assess_example_quality`** (Method) — `src/training/quality_scorer.py:122`
-- **`batch_assess_quality`** (Method) — `src/training/quality_scorer.py:563`
-- **`annotate_examples`** (Method) — `src/training/raft_annotator.py:53`
-- **`collect_example`** (Method) — `src/training/raft_collector.py:50`
-- **`test_collect_example_success`** (Method) — `tests/training/test_raft_collector.py:72`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
+| `test_nonzero_returncode_is_failed_with_error` | Function | `tests/training/test_vision_raft_trainer.py` | 40 |
+| `test_timeout_is_failed_with_error` | Function | `tests/training/test_vision_raft_trainer.py` | 53 |
+| `test_command_not_found_is_failed_with_error` | Function | `tests/training/test_vision_raft_trainer.py` | 66 |
+| `test_success_is_completed_without_errors` | Function | `tests/training/test_vision_raft_trainer.py` | 79 |
 | `assess_example_quality` | Method | `src/training/quality_scorer.py` | 122 |
 | `batch_assess_quality` | Method | `src/training/quality_scorer.py` | 563 |
 | `annotate_examples` | Method | `src/training/raft_annotator.py` | 53 |
@@ -58,10 +62,6 @@ Start here when exploring this area:
 | `get_training_recommendations` | Method | `src/training/progressive_trainer.py` | 403 |
 | `get_curriculum_status` | Method | `src/training/progressive_trainer.py` | 474 |
 | `build_dataset` | Method | `src/training/raft_dataset_builder.py` | 44 |
-| `test_build_dataset_success` | Method | `tests/training/test_raft_dataset_builder.py` | 75 |
-| `test_filter_by_quality` | Method | `tests/training/test_raft_dataset_builder.py` | 144 |
-| `test_build_dataset_empty_directory` | Method | `tests/training/test_raft_dataset_builder.py` | 173 |
-| `test_build_dataset_nonexistent_directory` | Method | `tests/training/test_raft_dataset_builder.py` | 182 |
 
 ## Execution Flows
 
@@ -80,7 +80,7 @@ Start here when exploring this area:
 
 ## How to Explore
 
-1. `context({name: "assess_example_quality"})` — see callers and callees
+1. `context({name: "test_nonzero_returncode_is_failed_with_error"})` — see callers and callees
 2. `query({search_query: "training"})` — find related execution flows
 3. Read key files listed above for implementation details
 4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`

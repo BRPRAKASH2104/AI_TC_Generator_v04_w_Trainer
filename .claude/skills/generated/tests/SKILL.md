@@ -5,7 +5,7 @@ description: "Skill for the Tests area of AI_TC_Generator_v04_w_Trainer. 53 symb
 
 # Tests
 
-53 symbols | 9 files | Cohesion: 87%
+53 symbols | 9 files | Cohesion: 86%
 
 ## When to Use
 
@@ -73,6 +73,13 @@ Start here when exploring this area:
 | `Verify_prompt_generation → Format_info_list` | cross_community | 4 |
 | `Verify_prompt_generation → Format_interfaces` | cross_community | 4 |
 | `Verify_prompt_generation → Format_image_context` | cross_community | 4 |
+
+## Connected Areas
+
+| Area | Connections |
+|------|-------------|
+| Cluster_36 | 1 calls |
+| Cluster_37 | 1 calls |
 
 ## How to Explore
 
