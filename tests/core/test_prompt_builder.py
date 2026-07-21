@@ -57,6 +57,59 @@ class TestImageContextRendering:
         assert "No diagrams or images provided." in prompt
 
 
+class TestRelationshipRendering:
+    """The adaptive template must render parsed traceability relationships."""
+
+    def test_relationships_rendered_for_requirement_with_parent_and_children(self):
+        manager = YAMLPromptManager()
+        builder = PromptBuilder(manager)
+
+        requirement = _requirement(
+            parent_id="REQ_PARENT_001",
+            child_ids=["REQ_CHILD_001", "REQ_CHILD_002"],
+            hierarchy_level=2,
+        )
+
+        prompt = builder.build_prompt(requirement)
+
+        assert "REQUIREMENT RELATIONSHIPS" in prompt
+        assert "REQ_PARENT_001" in prompt
+        assert "REQ_CHILD_001" in prompt
+        assert "REQ_CHILD_002" in prompt
+        assert "Hierarchy level: 2" in prompt
+
+    def test_relationships_default_none_for_unrelated_requirement(self):
+        """A requirement with no parent/children renders the 'None' placeholder."""
+        manager = YAMLPromptManager()
+        builder = PromptBuilder(manager)
+
+        prompt = builder.build_prompt(_requirement())
+
+        # Section header present, but no traceability IDs invented
+        assert "REQUIREMENT RELATIONSHIPS" in prompt
+
+    def test_format_relationships_returns_none_when_no_relationships(self):
+        assert PromptBuilder.format_relationships({}) == "None"
+        assert PromptBuilder.format_relationships({"child_ids": [], "parent_id": None}) == "None"
+
+    def test_format_relationships_parent_only(self):
+        result = PromptBuilder.format_relationships({"parent_id": "REQ_P"})
+        assert "Parent requirement: REQ_P" in result
+        assert "Child requirements" not in result
+
+    def test_format_relationships_children_only(self):
+        result = PromptBuilder.format_relationships({"child_ids": ["A", "B"]})
+        assert "Child requirements: A, B" in result
+        assert "Parent requirement" not in result
+
+    def test_format_relationships_omits_zero_hierarchy_level(self):
+        """Level 0 (top-level) is the default and should not add noise."""
+        result = PromptBuilder.format_relationships(
+            {"child_ids": ["A"], "hierarchy_level": 0}
+        )
+        assert "Hierarchy level" not in result
+
+
 class TestFormatTableCoverageConsistency:
     """Table display must be consistent with the row-coverage instructions."""
 

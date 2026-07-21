@@ -112,6 +112,9 @@ class PromptBuilder:
                 # Context-aware fields (v03 restoration)
                 "info_str": self.format_info_list(requirement.get("info_list", [])),
                 "interface_str": self.format_interfaces(requirement.get("interface_list", [])),
+                # Requirement traceability (parent/child/hierarchy) — parsed by
+                # RequirementRelationshipParser and carried on the requirement dict
+                "relationship_str": self.format_relationships(requirement),
                 # Vision model support (v2.2.0)
                 "image_context": self.format_image_context(requirement.get("images", [])),
             }
@@ -148,6 +151,7 @@ class PromptBuilder:
 
         info_str = self.format_info_list(info_list) if info_list else "None"
         interface_str = self.format_interfaces(interface_list) if interface_list else "None"
+        relationship_str = self.format_relationships(requirement)
         image_context = self.format_image_context(requirement.get("images", []))
 
         prompt = f"""You are an expert automotive test engineer. Generate comprehensive test cases for the following requirement with provided context:
@@ -156,6 +160,7 @@ class PromptBuilder:
 FEATURE HEADING: {heading}
 ADDITIONAL INFORMATION: {info_str}
 SYSTEM INTERFACES: {interface_str}
+REQUIREMENT RELATIONSHIPS: {relationship_str}
 VISUAL DIAGRAMS: {image_context}
 
 --- PRIMARY REQUIREMENT TO TEST ---
@@ -308,6 +313,51 @@ Return ONLY valid JSON with the exact field names shown above."""
                 for interface in interface_list
             ]
         )
+
+    @staticmethod
+    def format_relationships(requirement: RequirementData) -> str:
+        """
+        Format requirement traceability relationships for inclusion in prompt.
+
+        Renders the parent/child/hierarchy metadata attached by
+        ``RequirementRelationshipParser.augment_requirements_with_relationships``
+        (``parent_id``, ``child_ids``, ``hierarchy_level``) so the model can
+        reason about a requirement's place in the traceability tree. Returns
+        ``"None"`` when the requirement participates in no relationships, keeping
+        parity with the other ``format_*`` helpers.
+
+        Args:
+            requirement: Requirement data, optionally carrying ``parent_id``,
+                ``child_ids``, and ``hierarchy_level`` keys.
+
+        Returns:
+            Formatted string for the prompt template, or ``"None"`` when the
+            requirement has neither a parent nor children.
+        """
+        parent_id = requirement.get("parent_id")
+        child_ids = requirement.get("child_ids") or []
+        hierarchy_level = requirement.get("hierarchy_level")
+
+        if not parent_id and not child_ids:
+            return "None"
+
+        lines = []
+        if parent_id:
+            lines.append(
+                f"- Parent requirement: {parent_id} "
+                f"(inherit its constraints/preconditions where they still apply)"
+            )
+        if child_ids:
+            joined = ", ".join(str(child_id) for child_id in child_ids)
+            lines.append(
+                f"- Child requirements: {joined} "
+                f"(these refine the current requirement; keep this requirement's "
+                f"tests at its own level and avoid duplicating child-specific detail)"
+            )
+        if hierarchy_level:
+            lines.append(f"- Hierarchy level: {hierarchy_level} (0 = top-level requirement)")
+
+        return "\n".join(lines)
 
     @staticmethod
     def format_image_context(images: list[dict[str, Any]]) -> str:

@@ -37,11 +37,13 @@ test_generation_prompts:
         - row_count
         - info_str
         - interface_str
+        - relationship_str
         - voltage_precondition
         - image_context
       defaults:
         info_str: "None"
         interface_str: "None"
+        relationship_str: "None"
         table_str: ""
         row_count: 0
         # Single-quoted so \n stays a literal JSON escape sequence — the value
@@ -61,6 +63,9 @@ test_generation_prompts:
 
       ## SYSTEM INTERFACE DICTIONARY (Inputs/Outputs/Variables):
       {interface_str}
+
+      ## REQUIREMENT RELATIONSHIPS (Traceability):
+      {relationship_str}
 
       ## VISUAL DIAGRAMS:
       {image_context}
@@ -168,6 +173,7 @@ test_generation_prompts:
       - Reference the System Interface Dictionary to understand signal meanings, ranges, and data types
       - Use Additional Information Notes to understand special conditions or dependencies
       - Consider the Feature Heading to understand the broader context
+      - Use Requirement Relationships (Traceability) to respect inherited constraints from a parent requirement and to avoid duplicating scope already covered by child requirements
       - For parameters not explicitly defined, make reasonable automotive assumptions
 
       ## CRITICAL REQUIREMENTS:

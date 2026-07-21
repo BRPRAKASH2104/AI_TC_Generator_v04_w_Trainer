@@ -38,14 +38,14 @@ Several other defects found in this review—broken wheel contents, unbounded ar
 | 8 | Every requirement gets every interface | **Fixed** (P1) | Each requirement is now attached only the interfaces it references by signal name (exact + fuzzy), with a bounded, capped fallback (`src/core/interface_matcher.py`, `src/processors/base_processor.py`; `tests/core/test_interface_matcher.py`). Commit `7ceaf7e`. |
 | 9 | Configuration export/authentication security | **Resolved** (P1) | Unused `ollama.api_key`/`auth_token` removed rather than left dangling; secrets-section exclusion + `0o600` export perms remain. Remote Bearer auth intentionally not added (local-Ollama-only tool). Commit `7a2d86b`. |
 | 10 | Design Information mapping is unreachable | **Open** | `"information"` is still matched before `"design information"` (`src/core/extractors.py:381-394`). |
-| 11 | Relationship metadata is parsed but unused in prompts | **Open** | Parent/child/dependency metadata is created, but the active prompt variables contain no relationship context. |
+| 11 | Relationship metadata is parsed but unused in prompts | **Fixed** | Parsed `parent_id`/`child_ids`/`hierarchy_level` now rendered by `PromptBuilder.format_relationships()` into the active template (`{relationship_str}` section) and the `_build_default` fallback (`src/core/prompt_builder.py`); requirements with no relationships render `"None"`. Unit tests in `tests/core/test_prompt_builder.py::TestRelationshipRendering`; verified live with `llama3.1:8b` (section rendered, 4/4 canonical cases). |
 | 12 | `--training` is a placeholder | **Open** | With an input path it still prints that training “would be implemented here” and returns successfully (`main.py:290-298`). |
 
 ### Status totals
 
-- **Fixed:** 1, 2, 4, 5, 6, 7, 8, 9 (7/8/9 completed in the P1 pass, 2026-07-20)
+- **Fixed:** 1, 2, 4, 5, 6, 7, 8, 9, 11 (7/8/9 in the P1 pass 2026-07-20; 11 on 2026-07-21)
 - **Deferred by design:** 3 (misleading wording fixed; genuine dataset-driven training intentionally not built — see the finding note and finding 6)
-- **Open:** 10, 11, 12
+- **Open:** 10, 12
 
 ## New Critical Findings
 

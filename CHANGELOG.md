@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Requirement traceability relationships (parent/child/hierarchy) are now
+  injected into generation prompts. `RequirementRelationshipParser` already
+  parsed SPEC-RELATION elements and attached `parent_id`, `child_ids`, and
+  `hierarchy_level` to each requirement (enabled by default), but the metadata
+  was never surfaced to the model. A new `PromptBuilder.format_relationships()`
+  renders it, wired into both the active template
+  (`prompts/templates/test_generation_adaptive.yaml`, new
+  `{relationship_str}` section + "use context" guidance) and the
+  `_build_default` fallback (`src/core/prompt_builder.py`). Requirements with no
+  relationships render `"None"`, so prompts are unchanged for flat requirement
+  sets. Verified with a live `llama3.1:8b` run: the relationship section
+  rendered and generation still produced canonical test cases (4/4 valid).
+  Addresses the "relationship metadata parsed but never used" finding in
+  `docs/reviews/Review_Comments_2026_07_20.md`.
+
 ### Fixed
 
 - Structured-output schema forced every generated test-case field to an empty
