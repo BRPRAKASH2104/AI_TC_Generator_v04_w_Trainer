@@ -201,7 +201,21 @@ Official Ollama documentation confirms that `SYSTEM` customizes behavior, `MESSA
 
 ### [Recommended] 7. Documentation is not a reliable user contract
 
-Current code coverage is 69%, but the README advertises 87% and lists old test counts (`README.md:20,293-300`). Other live documentation problems include:
+**Status: Partially fixed (2026-07-21).** Corrected the concrete inaccuracies:
+`README.md` now shows real measured numbers (73% coverage; 460 collected / 456
+passed / 1 skipped) instead of 87% and the fabricated Nov-3-2025 counts; Ollama
+minimum corrected to `0.31.1+`; the unsupported `--profile`/`profiles.yaml`
+sections in `README.md` and `docs/USER_MANUAL.md` were replaced with the real
+`--preset` mechanism (`config/cli_config.yaml`) and the unsupported
+`--mode standard` example removed; `docs/training/MODEL_TRAINING_GUIDE.md` gained
+an "aspirational — not implemented" banner (its `lora_trainer.py`/`train_lora.py`
+scripts do not exist) directing readers to the real prompt-customization
+workflow. **Still open:** consolidating the training guides into one current
+guide and archiving speculative design docs (incl. `RAFT_TECHNICAL.md`); wiring
+shell-example verification into CI; and the "installable package" claim, which
+is gated on New Critical 1 (broken wheel).
+
+Original finding (for reference): current code coverage is 69%, but the README advertises 87% and lists old test counts (`README.md:20,293-300`). Other live documentation problems include:
 
 - README/User Manual examples use unsupported `--profile`, `--mode`, `--dry-run`, or `--reload-prompts` options;
 - `docs/training/MODEL_TRAINING_GUIDE.md` references nonexistent `src/training/lora_trainer.py` and `src/training/train_lora.py` implementations;

@@ -17,14 +17,14 @@ This tool automatically generates comprehensive test cases from automotive requi
 - ✅ **High-Performance Mode**: Async/concurrent processing with 3-9x performance improvement
 - ✅ **Image Extraction**: Extracts and processes embedded images from REQIFZ files for vision AI analysis
 - ✅ **RAFT-Customized Models**: Create Ollama models with a fixed automotive-domain system prompt (prompt customization, not weight fine-tuning; the RAFT dataset is analyzed for statistics but does not alter the prompt)
-- ✅ **Production Ready**: 87% test coverage, comprehensive validation, robust error handling
+- ✅ **Production Ready**: 73% test coverage, comprehensive validation, robust error handling
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - **Python 3.14+** (no backward compatibility)
-- **Ollama 0.17.4+** with models:
+- **Ollama 0.31.1+** with models:
   ```bash
   ollama pull llama3.1:8b          # Text-only processing
   ollama pull llama3.2-vision:11b  # Vision + text processing
@@ -70,20 +70,15 @@ ai-tc-generator input/file.reqifz --clean-temp
 ai-tc-generator input/ --verbose
 ```
 
-### Profile-Based Configuration
+### Preset-Based Configuration
 
-Run with a named preset that bundles model + mode + options:
+Run with a named preset that bundles model + options:
 
 ```bash
-ai-tc-generator input/file.reqifz --profile Llama31.HP.Quality
+ai-tc-generator input/file.reqifz --preset qwen_vision
 ```
 
-Profile format: `Model.Mode[.Modifier]`
-- **Models**: `Llama31`, `Deepseek`, `Qwen`
-- **Modes**: `Standard`, `HP`
-- **Modifiers**: `Verbose`, `Debug`, `Fast`, `Quality`
-
-Profiles are defined in `profiles/profiles.yaml`. See `profiles/sample-profiles.yaml` for examples.
+Presets are defined under the `presets:` key in `config/cli_config.yaml`.
 
 ### Output
 
@@ -292,17 +287,18 @@ See [CLAUDE.md](CLAUDE.md) for complete troubleshooting guide.
 
 ## 🧪 Test Suite Status
 
-Current test coverage (as of Nov 3, 2025):
+Current status (as of 2026-07-21):
 
-- **Core unit tests**: 83/83 (100%) ✅
-- **Integration tests**: 223/255 (87%) ✅
-- **Helper verification**: 10/10 (100%) ✅
-- **Production validation**: 104/104 (100%) ✅
+- **Total tests collected**: 460
+- **Default suite** (`-m "not integration"`): 456 passed, 1 skipped ✅
+- **Line coverage** (`--cov=src`): 73%
+
+Regenerate these numbers with `python3 -m pytest tests/ -m "not integration" --cov=src`.
 
 ## 🔒 Requirements
 
 - **Python**: 3.14+ only (no backward compatibility)
-- **Ollama**: 0.17.4+ with GPU support (recommended: 12+ GB VRAM for vision models)
+- **Ollama**: 0.31.1+ with GPU support (recommended: 12+ GB VRAM for vision models)
 - **Dependencies**: Managed in `pyproject.toml`
   - Core: pandas, pydantic, click, rich, openpyxl
   - Performance: aiohttp, ujson, psutil

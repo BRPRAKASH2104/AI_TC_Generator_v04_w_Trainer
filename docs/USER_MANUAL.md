@@ -317,8 +317,8 @@ ai-tc-generator part_* --output-dir batch_output/
 # High-performance mode with reduced concurrency
 ai-tc-generator req.reqifz --hp --max-concurrent 1
 
-# Use streaming modes when available
-ai-tc-generator very_large.reqifz --mode standard  # More memory efficient
+# Standard (sequential) mode is the default — omit --hp for lower memory use
+ai-tc-generator very_large.reqifz  # More memory efficient
 ```
 
 ---
@@ -446,19 +446,17 @@ top -p $(pgrep -f ai-tc)
 
 ## 📈 Advanced Usage
 
-### Profile-Based Configuration
+### Preset-Based Configuration
 
-Run with a named configuration profile that bundles model, mode, and options:
+Run with a named preset that bundles model and options:
 
 ```bash
-ai-tc-generator input/file.reqifz --profile Llama31.HP.Quality
+ai-tc-generator input/file.reqifz --preset qwen_vision
 ```
 
 | Option | Description |
 |--------|-------------|
-| `--profile TEXT` | Run with a named configuration profile (e.g. `Llama31.HP.Quality`). Profiles are defined in `profiles/profiles.yaml`. |
-
-Profile format: `Model.Mode[.Modifier]`
+| `--preset TEXT` | Run with a named configuration preset (e.g. `qwen_vision`, `qwen_moe`). Presets are defined under the `presets:` key in `config/cli_config.yaml`. |
 
 ### Custom Templates
 

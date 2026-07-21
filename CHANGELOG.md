@@ -26,6 +26,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- User-facing documentation drift corrected (review 2026-07-20 Recommended
+  finding 7). `README.md` advertised 87% test coverage and a fabricated
+  "as of Nov 3, 2025" test-count breakdown — replaced with the real measured
+  numbers (73% line coverage; 460 tests collected, 456 passed / 1 skipped in
+  the default suite) plus the command to regenerate them. Corrected the Ollama
+  minimum version (`0.17.4+` → `0.31.1+`) in both requirement blocks. Replaced
+  the fictional `--profile` / `profiles/profiles.yaml` sections in `README.md`
+  and `docs/USER_MANUAL.md` with the real `--preset` mechanism
+  (`config/cli_config.yaml`), and removed the unsupported `--mode standard`
+  example. Added a prominent "aspirational — not implemented" banner to
+  `docs/training/MODEL_TRAINING_GUIDE.md`, whose LoRA/full-fine-tuning scripts
+  (`src/training/lora_trainer.py`, `src/training/train_lora.py`) do not exist,
+  pointing readers to the real prompt-customization workflow.
+
 - `Design Information` requirement artifacts were misclassified as generic
   `INFORMATION`. In `_map_reqif_type_to_artifact_type`
   (`src/core/extractors.py`) the generic `"information"` branch was ordered

@@ -1,5 +1,22 @@
 # Model Training and Fine-Tuning Guide
 
+> ⚠️ **Status: aspirational — not implemented in this repository.**
+> This guide describes a LoRA / full weight-fine-tuning pipeline that this
+> project does **not** ship. The scripts it references
+> (`src/training/lora_trainer.py`, `src/training/train_lora.py`) **do not exist**,
+> and no code path in this repo fine-tunes model weights. What the tool actually
+> supports is **prompt customization** (building an Ollama Modelfile with a fixed
+> automotive-domain system prompt) plus RAFT data collection/analysis.
+>
+> For the workflow that actually works, use:
+> - **[training_guideline.md](training_guideline.md)** — the real prompt-customization guide
+> - Utility scripts: `utilities/build_vision_dataset.py`, `utilities/train_vision_model.py`, `utilities/annotate_raft.py`
+> - RAFT modules under `src/training/`: `raft_collector.py`, `raft_annotator.py`,
+>   `raft_dataset_builder.py`, `progressive_trainer.py`, `vision_raft_trainer.py`, `quality_scorer.py`
+>
+> The remainder of this document is retained as a design sketch for a future
+> weight-fine-tuning capability; treat its code samples as illustrative, not runnable.
+
 This document provides comprehensive guidance for training and fine-tuning AI models for the AI Test Case Generator system.
 
 ## 📋 Table of Contents
