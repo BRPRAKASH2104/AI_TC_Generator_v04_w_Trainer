@@ -169,6 +169,14 @@ A test-case object that follows the earlier prompt instruction is rejected by `i
 
 ### [Recommended] 5. Recent cleanup removed accepted constructor keywords without a release contract
 
+**Status: Fixed (2026-07-21).** `CHANGELOG.md` now documents the removed
+`use_streaming` / `max_workers` / `_max_concurrent` constructor kwargs under
+**Removed** with migration guidance, and `REQIFArtifactExtractor` /
+`HighPerformanceREQIFArtifactExtractor` now take `config` as keyword-only
+(`__init__(self, logger=None, *, config=None)`) so a stale positional call can no
+longer silently bind a value to `config`. All in-tree callers already pass
+`config` by keyword; regression tests in `tests/core/test_extractor_api.py`.
+
 After the archived report, `use_streaming`, `max_workers`, and `_max_concurrent` were removed from constructors. Current reproductions show:
 
 ```text

@@ -50,8 +50,13 @@ class REQIFArtifactExtractor:
     def __init__(
         self,
         logger: FileProcessingLogger | None = None,
+        *,
         config: ConfigManager | None = None,
     ):
+        # `config` is keyword-only (review 2026-07-20 Recommended 5): earlier
+        # cleanup removed the leading `use_streaming`/`max_workers` positional
+        # kwargs, and keyword-only `config` stops a stale positional call from
+        # silently binding a value (e.g. a bool) to `config`.
         self.logger = logger
         self.html_parser = HTMLTableParser()
         self.config = config

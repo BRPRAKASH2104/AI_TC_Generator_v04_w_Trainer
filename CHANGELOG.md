@@ -24,6 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Addresses the "relationship metadata parsed but never used" finding in
   `docs/reviews/Review_Comments_2026_07_20.md`.
 
+### Changed
+
+- **Breaking (internal API):** `REQIFArtifactExtractor` /
+  `HighPerformanceREQIFArtifactExtractor` now take `config` as a **keyword-only**
+  argument (`__init__(self, logger=None, *, config=None)`, `src/core/extractors.py`).
+  This prevents a stale positional call from silently binding an unrelated value
+  to `config` after the removals below. **Migration:** pass `config=...` by
+  keyword (all in-tree callers already do). Addresses review 2026-07-20
+  Recommended finding 5.
+
 ### Fixed
 
 - User-facing documentation drift corrected (review 2026-07-20 Recommended
@@ -68,6 +78,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the review's real-integration check was skipped (no server available).
 
 ### Removed
+
+- **Breaking (internal API):** the `use_streaming` and `max_workers` constructor
+  keyword arguments on the REQIF extractor classes, and `_max_concurrent` on
+  `AsyncTestCaseGenerator`, were removed (commits `da28695` / `37088cb` and the
+  later async-generator cleanup). They were previously retained only for
+  interface compatibility and had no runtime effect. **Migration:** drop these
+  arguments; concurrency is controlled via `--max-concurrent` / `OllamaConfig`,
+  and streaming is always on where supported. Passing them now raises
+  `TypeError`. Documents review 2026-07-20 Recommended finding 5.
 
 - Unused `"analysis"` chain-of-thought output field from the prompt surfaces.
   The model was instructed to emit it on every generation, but no parser,
