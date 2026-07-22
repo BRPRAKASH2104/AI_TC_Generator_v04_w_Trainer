@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -211,7 +211,7 @@ class TestHPProcessorIntegration:
         ]
 
         processor = HighPerformanceREQIFZFileProcessor()
-        
+
         with patch.object(processor, 'formatter') as mock_formatter:
             mock_formatter.format_to_excel_streaming = Mock(return_value=True)
 

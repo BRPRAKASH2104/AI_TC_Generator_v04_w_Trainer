@@ -303,7 +303,24 @@ The existing `pytest-asyncio` version emits extensive Python 3.14 deprecation wa
 
 ### [Recommended] 10. Whole-repository quality gates are weaker than the core-source gates
 
-The exact CI source scopes pass, but a whole-repository pass found:
+**Status: Partially fixed (2026-07-22).** Scoped, low-risk sub-items done: the
+four whole-repo Ruff violations (all in tests) are fixed — `ruff check .` is now
+clean; the `assert True` placeholder in
+`tests/integration/test_processors.py::test_calculate_performance_metrics` is
+replaced with real assertions against `_get_performance_summary()`; and Pillow
+(an undeclared runtime dep that silently disabled image preprocessing) is now
+declared and locked. **Still open** and intentionally deferred: the whole-repo
+`ruff format` drift (~31 files) and the utility-module mypy errors — these are
+*not* swept here because CLAUDE.md forbids mass-reformatting/mass-type-fixing
+unrelated files in a scoped change; expanding the CI style/type gate to
+tests+utilities must be paired with that cleanup as its own change. Also still
+open: direct trainer failure/dataset-influence coverage (low-covered
+`vision_raft_trainer.py`/`quality_scorer.py`/etc.) and extracting the oversized
+`process_file()` (313/249 lines) and `apply_cli_overrides()` (178) — a higher-risk
+refactor of protected processor files that warrants its own session with impact
+analysis and real-Ollama verification.
+
+Original finding (for reference): the exact CI source scopes pass, but a whole-repository pass found:
 
 - Ruff: 4 violations, all in tests;
 - Ruff formatting: 28 files would be reformatted;

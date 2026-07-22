@@ -49,6 +49,10 @@ dependencies = [
     "pydantic-settings>=2.7.0,<3.0.0",
     # Hardened XML parsing for user-supplied REQIFZ archives (XXE/entity defense)
     "defusedxml>=0.7.1,<0.8.0",
+    # Image preprocessing for the vision path (image extraction is enabled by
+    # default); image_extractor guards it with try/except but it is a core
+    # feature, so declare it rather than leave it a silent optional import.
+    "pillow>=11.0.0,<13.0.0",
 
     # Performance optimization dependencies
     "ujson>=5.10.0,<6.0.0",

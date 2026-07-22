@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (test quality)
+
+- **Scoped quality fixes toward review 2026-07-20 Recommended finding 10.**
+  Replaced the `assert True` placeholder in
+  `tests/integration/test_processors.py::test_calculate_performance_metrics`
+  with real assertions against the current `_get_performance_summary()`
+  (success rate, avg/peak CPU & memory, pass-through counts). Fixed the four
+  whole-repo Ruff violations that were all in tests (unused `pathlib.Path` and
+  `mock_response` — the latter also used the retired `action`/`data` schema —
+  plus an import-sort and a trailing-whitespace issue); whole-repo `ruff check`
+  is now clean. (The whole-repo `ruff format` drift and utility-module mypy
+  errors are deliberately **not** swept here per the CLAUDE.md rule against
+  mass-formatting unrelated files.)
+
+- **Declared Pillow as a runtime dependency** (`pillow>=11.0.0,<13.0.0`).
+  Image extraction is enabled by default and `image_extractor` needs Pillow, but
+  it was only a silent `try/except` import — so a default install quietly
+  skipped image preprocessing (and 12 vision tests skipped). Now declared and
+  pinned in `constraints.txt` (`pillow==12.3.0`); the vision test suite runs
+  instead of skipping.
+
 ### Security
 
 - **Hardened REQIFZ XML parsing against XXE and entity-expansion.** REQIFZ

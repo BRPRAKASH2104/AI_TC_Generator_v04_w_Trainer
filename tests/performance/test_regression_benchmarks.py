@@ -62,21 +62,6 @@ class TestPerformanceRegressionBenchmarks:
         # Setup mocks for controlled testing
         config = ConfigManager()
 
-        # Mock AI client responses
-        mock_response = """
-        {
-            "test_cases": [
-                {
-                    "summary": "Test input validation",
-                    "action": "Enter invalid data",
-                    "data": "Test data",
-                    "expected_result": "Error message shown",
-                    "test_type": "negative"
-                }
-            ]
-        }
-        """
-
         # Use pytest-benchmark to measure performance
         def run_processing():
             processor = REQIFZFileProcessor(config)

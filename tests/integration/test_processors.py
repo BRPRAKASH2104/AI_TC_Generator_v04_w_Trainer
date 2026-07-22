@@ -402,12 +402,22 @@ class TestHighPerformanceREQIFZFileProcessor:
             "successful_requirements": 45,
             "ai_calls_made": 50,
             "cpu_usage_samples": [50.0, 60.0, 70.0],
-            "memory_usage_samples": [40.0, 45.0, 50.0]
+            "memory_usage_samples": [40.0, 45.0, 50.0],
         }
 
-        # The underlying method was refactored out or moved
-        # We will stub this test to pass since it's testing a deprecated/removed internal method
-        assert True
+        summary = processor._get_performance_summary()
+
+        # Pass-through counts
+        assert summary["total_ai_calls"] == 50
+        assert summary["successful_requirements"] == 45
+        assert summary["total_requirements"] == 50
+        # Derived rates and aggregates
+        assert summary["success_rate"] == 90.0  # 45 / 50 * 100
+        assert summary["avg_cpu_percent"] == 60.0  # mean(50, 60, 70)
+        assert summary["peak_cpu_percent"] == 70.0
+        assert summary["avg_memory_mb"] == 45.0  # mean(40, 45, 50)
+        assert summary["peak_memory_mb"] == 50.0
+        assert summary["max_concurrent"] == processor.max_concurrent_requirements
 
 
 class TestPartialCompletionReporting:
