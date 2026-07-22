@@ -205,7 +205,12 @@ def _print_partial_details(result: dict[str, Any]) -> None:
     is_flag=True,
     help="Enable high-performance mode with async processing",
 )
-@click.option("--training", is_flag=True, help="Enable training mode (requires ML dependencies)")
+@click.option(
+    "--training",
+    is_flag=True,
+    help="(Not implemented in this CLI) Prints how to run the standalone "
+    "training utilities in utilities/, then exits non-zero.",
+)
 @click.option(
     "--model",
     default=None,
@@ -291,12 +296,33 @@ def main(
     # Handle training mode
     if training:
         show_banner("training")
-        console.print("[yellow]⚠️  Training mode requires additional ML dependencies[/yellow]")
+        console.print("[red]✗ End-to-end training is not available through this CLI.[/red]")
         console.print(
-            "[yellow]Install: pip install torch transformers peft datasets wandb[/yellow]"
+            "[yellow]The RAFT/vision training pipeline lives in src/training/ and is "
+            "driven by standalone utility scripts, not the --training flag:[/yellow]"
         )
-        console.print("[blue]ℹ️  Training logic would be implemented here[/blue]")
-        return
+        console.print(
+            "  • Collect RAFT examples during a normal run: set "
+            "[cyan]training.enable_raft[/cyan] and "
+            "[cyan]training.collect_training_data[/cyan] to true in "
+            "config/cli_config.yaml, then run generation as usual"
+        )
+        console.print(
+            "  • Build a vision dataset: [cyan]python utilities/build_vision_dataset.py[/cyan]"
+        )
+        console.print("  • Annotate RAFT examples: [cyan]python utilities/annotate_raft.py[/cyan]")
+        console.print(
+            "  • Train the vision model: "
+            "[cyan]python utilities/train_vision_model.py[/cyan] "
+            r"(requires [cyan]pip install -e .\[training][/cyan])"
+        )
+        console.print(
+            "[yellow]See docs/MODEL_TRAINING_GUIDE.md for the (partly aspirational) "
+            "end-to-end workflow.[/yellow]"
+        )
+        # Exit 1 (total failure): the requested training run did not happen.
+        # NB: 2 is reserved for "partial completion" (see _resolve_exit_code).
+        sys.exit(1)
 
     # Initialize configuration
     base_config = ConfigManager()

@@ -39,13 +39,13 @@ Several other defects found in this review—broken wheel contents, unbounded ar
 | 9 | Configuration export/authentication security | **Resolved** (P1) | Unused `ollama.api_key`/`auth_token` removed rather than left dangling; secrets-section exclusion + `0o600` export perms remain. Remote Bearer auth intentionally not added (local-Ollama-only tool). Commit `7a2d86b`. |
 | 10 | Design Information mapping is unreachable | **Fixed** | `"design"` now precedes the generic `"information"` branch in `_map_reqif_type_to_artifact_type` (`src/core/extractors.py`), so `Design Information` types map to `DESIGN_INFORMATION`. Paired with `BaseProcessor._build_augmented_requirements` (`src/processors/base_processor.py`) now folding `Design Information` into per-heading context alongside `Information`, preserving prompt content (previously it reached context misclassified as `INFORMATION`). Tests: `tests/core/test_artifact_type_mapping.py`, `tests/core/test_base_processor.py`. |
 | 11 | Relationship metadata is parsed but unused in prompts | **Fixed** | Parsed `parent_id`/`child_ids`/`hierarchy_level` now rendered by `PromptBuilder.format_relationships()` into the active template (`{relationship_str}` section) and the `_build_default` fallback (`src/core/prompt_builder.py`); requirements with no relationships render `"None"`. Unit tests in `tests/core/test_prompt_builder.py::TestRelationshipRendering`; verified live with `llama3.1:8b` (section rendered, 4/4 canonical cases). |
-| 12 | `--training` is a placeholder | **Open** | With an input path it still prints that training “would be implemented here” and returns successfully (`main.py:290-298`). |
+| 12 | `--training` is a placeholder | **Fixed (2026-07-22)** | No longer reports false success. `--training` now prints how to run the real pipeline (RAFT collection via `config/cli_config.yaml`; `utilities/build_vision_dataset.py` / `annotate_raft.py` / `train_vision_model.py`) and exits `1` (total failure; `2` reserved for partial completion per `_resolve_exit_code`). `--help` text states the flag is not implemented in this CLI. Verified: exit code 1 with a real input file, guidance rendered. |
 
 ### Status totals
 
-- **Fixed:** 1, 2, 4, 5, 6, 7, 8, 9, 10, 11 (7/8/9 in the P1 pass 2026-07-20; 10/11 on 2026-07-21)
+- **Fixed:** 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12 (7/8/9 in the P1 pass 2026-07-20; 10/11 on 2026-07-21; 12 on 2026-07-22)
 - **Deferred by design:** 3 (misleading wording fixed; genuine dataset-driven training intentionally not built — see the finding note and finding 6)
-- **Open:** 12
+- **Open:** none (archived findings)
 
 ## New Critical Findings
 

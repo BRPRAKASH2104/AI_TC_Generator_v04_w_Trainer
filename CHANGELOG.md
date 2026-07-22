@@ -68,6 +68,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`--training` CLI flag no longer reports false success** (review 2026-07-20
+  Archived finding 12, `main.py`). It previously printed "Training logic would
+  be implemented here" and returned exit code 0, signalling success for an
+  action that never ran. It now prints how to actually run the training
+  pipeline — RAFT collection via `config/cli_config.yaml`, and the standalone
+  `utilities/build_vision_dataset.py` / `annotate_raft.py` /
+  `train_vision_model.py` scripts — and exits `1` (total failure; `2` is
+  reserved for partial completion per `_resolve_exit_code`). The `--help` text
+  now states the flag is not implemented in this CLI.
+
 - User-facing documentation drift corrected (review 2026-07-20 Recommended
   finding 7). `README.md` advertised 87% test coverage and a fabricated
   "as of Nov 3, 2025" test-count breakdown — replaced with the real measured
