@@ -261,7 +261,18 @@ Original findings (for reference):
 
 ### [Recommended] 9. Latest-stable dependency policy is not being followed
 
-The latest-version check on 2026-07-20 found seven upper bounds that exclude current stable releases:
+**Status: FIXED (2026-07-22).** All seven caps raised to the next unreleased
+major and validated one family at a time in a clean Python 3.14.6 venv: full
+non-integration suite 413 passed / 1 skipped (identical to the pre-bump
+baseline), `mypy src/` clean, pandas-3.0 Excel-output path (36 formatter tests)
+green, console entry point runs under a constrained install. No cap needed to be
+retained. Rationale recorded in `pyproject.toml`; a tested runtime lock added as
+`constraints.txt` (`pip install -e . -c constraints.txt`). A redundant `click.*`
+mypy override was removed (mypy 2.3 flagged it unused). Bumps: pandas
+`<3`→`<4`, rich `<14`→`<16`, psutil `<7`→`<8`, pytest `<9`→`<10`, pytest-cov
+`<7`→`<8`, pytest-asyncio `<0.26`→`<2`, mypy `<2`→`<3`.
+
+Original finding (for reference): the latest-version check on 2026-07-20 found seven upper bounds that exclude current stable releases:
 
 | Dependency | Declared line | Latest stable |
 |---|---:|---:|
@@ -432,4 +443,7 @@ The core source-checkout pipeline is substantially healthier and five prior rele
 5. ~~**P1:** make RAFT customization truly dataset-derived or remove the remaining dataset-informed claims.~~ **Done** — removed the claims (`7a2d86b`).
 6. ~~**P1:** finish archived interface retrieval, large-table completeness, and remote auth decisions.~~ **Done** — interface scoping (`7ceaf7e`), table chunking (`99679e6`), auth removed (`7a2d86b`).
 7. ~~**Critical (severity), discovered post-review:** fix the structured-output schema so it does not force empty-object fields (Critical finding 3), and add a live-Ollama smoke test that asserts a canonical test case survives validation.~~ **Done** — schema fields typed `string` (`0997bed`), unused `analysis` prompt field removed (`c13a636`), opt-in live-Ollama smoke test added (`2adda48`). This was the highest-severity item overall: generation produced **0 valid test cases** end-to-end until fixed.
-8. **P2:** repair remaining CI blind spots (the new smoke test is a first step on finding 8, but the integration job is still `if: false` and wheels are still not run), dependency caps, stale docs, whole-repo typing/style, and oversized processor methods.
+8. **P2:** repair remaining CI blind spots, dependency caps, stale docs, whole-repo typing/style, and oversized processor methods.
+   - ~~CI blind spots (finding 8): integration job `if: false`, wheels not smoke-tested, Bandit B314, non-gating pip-audit.~~ **Done (2026-07-22, `3943f3b`)** — mock-backed + opt-in Ollama integration jobs, clean-venv wheel smoke test, B314 resolved via defusedxml, `pip-audit --strict`.
+   - ~~Dependency caps (finding 9).~~ **Done (2026-07-22)** — seven caps refreshed to next major with per-family testing; `constraints.txt` lock added.
+   - Still open: stale training-guide docs (finding 7 remainder), whole-repo typing/style + oversized processor methods (finding 10).

@@ -25,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (698-artifact DIAG file parses unchanged). Addresses part of review 2026-07-20
   Recommended finding 8.
 
+### Changed (dependencies)
+
+- **Refreshed stale dependency upper bounds to current stable majors** (review
+  2026-07-20 Recommended finding 9, `pyproject.toml`). Seven caps that excluded
+  current releases were raised to the next unreleased major and validated one
+  family at a time against the full non-integration suite (413 passed / 1
+  skipped, unchanged) plus `mypy src/` (clean) on Python 3.14.6:
+  pandas `<3`→`<4` (3.0.3), rich `<14`→`<16` (15.0.0), psutil `<7`→`<8` (7.2.2),
+  pytest `<9`→`<10` (9.1.1), pytest-cov `<7`→`<8` (7.1.0),
+  pytest-asyncio `<0.26`→`<2` (1.4.0), mypy `<2`→`<3` (2.3.0). No cap needed to
+  be retained. Added **`constraints.txt`** — a tested, fully-resolved runtime
+  lock for reproducible deployment (`pip install -e . -c constraints.txt`).
+  Removed a now-redundant `click.*` mypy override (click ships inline types;
+  mypy 2.3 flagged it as unused).
+
 ### Changed (CI)
 
 - **Repaired CI release/security blind spots (review 2026-07-20 Recommended

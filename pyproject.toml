@@ -33,12 +33,17 @@ classifiers = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    # Core production dependencies - Python 3.14 compatible
-    "pandas>=2.2.3,<3.0.0",
+    # Core production dependencies - Python 3.14 compatible.
+    # Upper bounds are the NEXT unreleased major (guard against surprise
+    # breaking releases), not a pin below current stable. pandas 3, rich 15,
+    # psutil 7 were validated against the full suite on 2026-07-22 (review
+    # 2026-07-20 Recommended 9). A tested runtime resolution is pinned in
+    # constraints.txt (`pip install -e . -c constraints.txt`).
+    "pandas>=2.2.3,<4.0.0",
     "requests>=2.32.3,<3.0.0",
     "PyYAML>=6.0.2,<7.0.0",
     "click>=8.1.8,<9.0.0",
-    "rich>=13.9.4,<14.0.0",
+    "rich>=13.9.4,<16.0.0",
     "openpyxl>=3.1.5,<4.0.0",
     "pydantic>=2.10.4,<3.0.0",
     "pydantic-settings>=2.7.0,<3.0.0",
@@ -49,17 +54,17 @@ dependencies = [
     "ujson>=5.10.0,<6.0.0",
     "urllib3>=2.3.0,<3.0.0",
     "aiohttp>=3.12.15,<4.0.0",
-    "psutil>=6.1.0,<7.0.0",
+    "psutil>=6.1.0,<8.0.0",
 ]
 
 [project.optional-dependencies]
 # Development dependencies - Python 3.14 compatible
 dev = [
-    "pytest>=8.4.0,<9.0.0",
-    "pytest-cov>=6.0.0,<7.0.0",
-    "pytest-asyncio>=0.25.2,<0.26.0",
+    "pytest>=8.4.0,<10.0.0",
+    "pytest-cov>=6.0.0,<8.0.0",
+    "pytest-asyncio>=0.25.2,<2.0.0",
     "pytest-benchmark>=5.1.0,<6.0.0",
-    "mypy>=1.16.0,<2.0.0",
+    "mypy>=1.16.0,<3.0.0",
     "types-requests>=2.32.0,<3.0.0",
     "types-PyYAML>=6.0.0,<7.0.0",
     "ruff>=0.9.1,<1.0.0",
@@ -202,7 +207,6 @@ module = [
     "yaml.*",
     "openpyxl.*",
     "rich.*",
-    "click.*",
     "aiohttp.*",
     "psutil.*",
     "ujson.*",

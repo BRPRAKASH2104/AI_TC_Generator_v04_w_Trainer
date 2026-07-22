@@ -1,0 +1,53 @@
+# Reproducible runtime dependency lock (review 2026-07-20 Recommended finding 9).
+#
+# This pins the fully-resolved *runtime* dependency tree (i.e. `pip install -e .`,
+# NOT the [dev]/[training] extras) for deployment reproducibility. The abstract
+# version ranges live in pyproject.toml; this file is the concrete, tested
+# resolution.
+#
+# Generated on Python 3.14.6 from a clean virtualenv:
+#   python3 -m venv .lockenv && . .lockenv/bin/activate
+#   pip install -e .
+#   pip freeze --exclude-editable > constraints.txt
+#
+# Use for a reproducible install:
+#   pip install -e . -c constraints.txt
+#
+# Regenerate after changing runtime dependencies in pyproject.toml, and re-run
+# the test suite before committing the update. Do NOT hand-edit version pins.
+
+aiohappyeyeballs==2.7.1
+aiohttp==3.14.2
+aiosignal==1.4.0
+annotated-types==0.7.0
+attrs==26.1.0
+certifi==2026.7.22
+charset-normalizer==3.4.9
+click==8.4.2
+defusedxml==0.7.1
+et_xmlfile==2.0.0
+frozenlist==1.8.0
+idna==3.18
+markdown-it-py==4.2.0
+mdurl==0.1.2
+multidict==6.7.1
+numpy==2.5.1
+openpyxl==3.1.5
+pandas==3.0.3
+propcache==0.5.2
+psutil==7.2.2
+pydantic==2.13.4
+pydantic-settings==2.14.2
+pydantic_core==2.46.4
+Pygments==2.20.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+PyYAML==6.0.3
+requests==2.34.2
+rich==15.0.0
+six==1.17.0
+typing-inspection==0.4.2
+typing_extensions==4.16.0
+ujson==5.13.0
+urllib3==2.7.0
+yarl==1.24.5
