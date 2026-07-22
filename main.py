@@ -312,13 +312,12 @@ def main(
         )
         console.print("  • Annotate RAFT examples: [cyan]python utilities/annotate_raft.py[/cyan]")
         console.print(
-            "  • Train the vision model: "
+            "  • Create a prompt-customized Ollama model: "
             "[cyan]python utilities/train_vision_model.py[/cyan] "
-            r"(requires [cyan]pip install -e .\[training][/cyan])"
+            "(uses an Ollama Modelfile; no extra dependencies needed)"
         )
         console.print(
-            "[yellow]See docs/MODEL_TRAINING_GUIDE.md for the (partly aspirational) "
-            "end-to-end workflow.[/yellow]"
+            "[yellow]See docs/training/README.md for the current training workflow.[/yellow]"
         )
         # Exit 1 (total failure): the requested training run did not happen.
         # NB: 2 is reserved for "partial completion" (see _resolve_exit_code).

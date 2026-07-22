@@ -28,4 +28,4 @@ This directory contains all documentation for the AI Test Case Generator.
 - For common problems: [FAQ.md](FAQ.md)
 - For REQIFZ format questions: [REQIFZ_REFERENCE.md](REQIFZ_REFERENCE.md)
 - For prompt customization: [prompt_documentation.md](prompt_documentation.md)
-- For training custom models: [training/MODEL_TRAINING_GUIDE.md](training/MODEL_TRAINING_GUIDE.md)
+- For training custom models: [training/README.md](training/README.md)

@@ -209,7 +209,20 @@ Official Ollama documentation confirms that `SYSTEM` customizes behavior, `MESSA
 
 ### [Recommended] 7. Documentation is not a reliable user contract
 
-**Status: Partially fixed (2026-07-21).** Corrected the concrete inaccuracies:
+**Status: FIXED (2026-07-22).** The 2026-07-21 pass corrected the concrete
+inaccuracies (below); the 2026-07-22 pass closed the remainder: the five
+overlapping/partly-speculative training guides were consolidated into a single
+accurate `docs/training/README.md` (real prompt-customization pipeline, explicit
+"not implemented" LoRA section) with the old guides moved to
+`docs/training/archive/` behind a superseded banner; shell-example verification
+was wired into CI (`scripts/verify_doc_examples.sh` + `verify-doc-examples`
+job); and the "installable package" claim is now accurate because New Critical 1
+(broken wheel) was fixed (`404dbfa`) and is guarded by the clean-venv wheel
+smoke test added under finding 8. The `--training` CLI message and
+`docs/README.md` link were also corrected (they pointed at the wrong path and
+overstated the `[training]` dependency).
+
+Original partial-fix note (2026-07-21). Corrected the concrete inaccuracies:
 `README.md` now shows real measured numbers (73% coverage; 460 collected / 456
 passed / 1 skipped) instead of 87% and the fabricated Nov-3-2025 counts; Ollama
 minimum corrected to `0.31.1+`; the unsupported `--profile`/`profiles.yaml`

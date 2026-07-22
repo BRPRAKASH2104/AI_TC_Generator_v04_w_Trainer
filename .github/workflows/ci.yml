@@ -246,3 +246,25 @@ jobs:
 
       - name: Validate prompt templates
         run: python -c "from src.yaml_prompt_manager import YAMLPromptManager; mgr = YAMLPromptManager(); print('✅ All prompt templates valid')"
+
+  verify-doc-examples:
+    name: Verify Documented Shell Examples
+    runs-on: ubuntu-latest
+    # Runs the documented CLI/utility invocations that need neither Ollama nor a
+    # real input file, so the docs stay a reliable contract (review 2026-07-20
+    # Recommended finding 7).
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+
+      - name: Verify documented shell examples
+        run: bash scripts/verify_doc_examples.sh

@@ -81,6 +81,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keyword (all in-tree callers already do). Addresses review 2026-07-20
   Recommended finding 5.
 
+### Changed (docs)
+
+- **Consolidated the training documentation into one accurate guide** (review
+  2026-07-20 Recommended finding 7 remainder). Five overlapping/partly
+  speculative guides (~3,360 lines) were replaced by a single current
+  `docs/training/README.md` that documents the capability that actually
+  ships — a *prompt-customization* pipeline (RAFT collect → annotate → build
+  dataset → `ollama create` a Modelfile-based model), **not** weight
+  fine-tuning — with verified commands, config keys, and an explicit
+  "not implemented" section for the LoRA path. The old guides
+  (`GETTING_STARTED_WITH_TRAINING.md`, `MODEL_TRAINING_GUIDE.md`,
+  `RAFT_TECHNICAL.md`, `TRAINING_GUIDE.md`, `training_guideline.md`) were moved
+  to `docs/training/archive/` (via `git mv`, preserving history) behind a
+  superseded banner. Corrected the `--training` CLI message and `docs/README.md`
+  link, which pointed at the (now archived, wrong-path) `MODEL_TRAINING_GUIDE.md`
+  and wrongly claimed `train_vision_model.py` needs the `[training]` extra (it
+  uses an Ollama Modelfile and needs no extra dependencies).
+
+### Added (CI)
+
+- **`scripts/verify_doc_examples.sh` + a `verify-doc-examples` CI job** (review
+  2026-07-20 Recommended finding 7). Executes the documented CLI/utility
+  invocations that need neither Ollama nor an input file (`--help`,
+  `--validate-prompts`, `--list-templates`, the training utilities' `--help`)
+  and asserts they exit 0, plus a guard that `--training` exits non-zero — so
+  the documentation stays an executable, verified contract.
+
 ### Fixed
 
 - **`--training` CLI flag no longer reports false success** (review 2026-07-20
