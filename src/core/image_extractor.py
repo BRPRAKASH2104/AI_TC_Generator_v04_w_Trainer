@@ -18,6 +18,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
+from defusedxml.ElementTree import fromstring as safe_fromstring
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
@@ -227,8 +229,8 @@ class RequirementImageExtractor:
         images = []
 
         try:
-            # Parse XML content
-            root = ET.fromstring(reqif_content)
+            # Parse XML content (defused against XXE/entity-expansion)
+            root = safe_fromstring(reqif_content)
 
             # REQIF namespaces
             namespaces = {

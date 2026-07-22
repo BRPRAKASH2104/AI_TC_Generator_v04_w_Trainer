@@ -42,6 +42,8 @@ dependencies = [
     "openpyxl>=3.1.5,<4.0.0",
     "pydantic>=2.10.4,<3.0.0",
     "pydantic-settings>=2.7.0,<3.0.0",
+    # Hardened XML parsing for user-supplied REQIFZ archives (XXE/entity defense)
+    "defusedxml>=0.7.1,<0.8.0",
 
     # Performance optimization dependencies
     "ujson>=5.10.0,<6.0.0",

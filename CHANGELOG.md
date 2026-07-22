@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Hardened REQIFZ XML parsing against XXE and entity-expansion.** REQIFZ
+  archives are user-supplied, so their embedded XML is untrusted. The four
+  `xml.etree.ElementTree.fromstring` call sites in `src/core/extractors.py`
+  (`_parse_reqif_xml`, `parse_and_augment_relationships`),
+  `src/core/image_extractor.py` (`_extract_embedded_images`), and
+  `src/core/parsers.py` (`HTMLTableParser`) now use
+  `defusedxml.ElementTree.fromstring`, which rejects DTD/entity definitions
+  ("billion laughs") and external-entity references while returning the same
+  standard `ElementTree` nodes for legitimate input. `defusedxml>=0.7.1` is now
+  a declared runtime dependency, and `_parse_reqif_xml`'s handler was widened to
+  `except (ET.ParseError, DefusedXmlException)`. Resolves the four Bandit B314
+  findings at source (no suppression/baseline). Guarded by
+  `tests/core/test_xml_hardening.py` and verified against real REQIFZ files
+  (698-artifact DIAG file parses unchanged). Addresses part of review 2026-07-20
+  Recommended finding 8.
+
+### Changed (CI)
+
+- **Repaired CI release/security blind spots (review 2026-07-20 Recommended
+  finding 8, `.github/workflows/ci.yml`).** The integration job was permanently
+  disabled with `if: false`; it is replaced by two jobs: `test-integration-mock`
+  runs the mock-backed `tests/integration/` suite on every push/PR (these were
+  previously never run — the unit job `--ignore`s that directory), and
+  `test-integration-ollama` runs the real-Ollama-marked tests opt-in via
+  `workflow_dispatch`. `pip-audit` no longer uses `continue-on-error`
+  (`--strict`): known dependency vulnerabilities now fail the build under a
+  documented, auditable `--ignore-vuln` policy. The Bandit job's gating policy
+  is documented inline. (Wheel build+clean-venv smoke-test was already added in
+  a prior session.)
+
 ### Added
 
 - Requirement traceability relationships (parent/child/hierarchy) are now

@@ -11,6 +11,9 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from defusedxml.common import DefusedXmlException
+from defusedxml.ElementTree import fromstring as safe_fromstring
+
 from .archive_limits import (
     MAX_ENTRY_UNCOMPRESSED_SIZE,
     ArchiveLimitError,
@@ -158,8 +161,9 @@ class REQIFArtifactExtractor:
     def _parse_reqif_xml(self, xml_content: bytes) -> ArtifactList:
         """Parse REQIF XML content and extract artifacts"""
         try:
-            # DOM-based parsing
-            root = ET.fromstring(xml_content)
+            # DOM-based parsing (defused: rejects XXE/entity-expansion in
+            # user-supplied REQIFZ archives; returns standard ElementTree nodes)
+            root = safe_fromstring(xml_content)
 
             # REQIF namespaces
             namespaces = {
@@ -189,7 +193,7 @@ class REQIFArtifactExtractor:
 
             return artifacts
 
-        except ET.ParseError as e:
+        except (ET.ParseError, DefusedXmlException) as e:
             if self.logger:
                 self.logger.error(f"XML parsing error: {e}")
             return []
@@ -527,9 +531,9 @@ class REQIFArtifactExtractor:
                         self.logger.warning(f"No .reqif files found in {reqifz_file_path}")
                     return artifacts, {"relationships": [], "parent_child_map": {}}
 
-                # Parse REQIF XML
+                # Parse REQIF XML (defused against XXE/entity-expansion)
                 reqif_content = zip_file.read(reqif_files[0])
-                root = ET.fromstring(reqif_content)
+                root = safe_fromstring(reqif_content)
 
                 # REQIF namespaces
                 namespaces = {

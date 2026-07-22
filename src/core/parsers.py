@@ -10,6 +10,8 @@ import re
 from typing import TYPE_CHECKING, Any
 from xml.etree import ElementTree as ET
 
+from defusedxml.ElementTree import fromstring as safe_fromstring
+
 from .validators import is_canonical_test_case
 
 if TYPE_CHECKING:
@@ -155,8 +157,9 @@ class HTMLTableParser:
             # Clean and prepare HTML content
             cleaned_html = HTMLTableParser._clean_html_content(html_content)
 
-            # Parse with ElementTree (faster than BeautifulSoup for simple tables)
-            root = ET.fromstring(f"<div>{cleaned_html}</div>")
+            # Parse with defused ElementTree (rejects XXE/entity-expansion;
+            # faster than BeautifulSoup for simple tables)
+            root = safe_fromstring(f"<div>{cleaned_html}</div>")
             tables = root.findall(".//table")
 
             all_table_data = []

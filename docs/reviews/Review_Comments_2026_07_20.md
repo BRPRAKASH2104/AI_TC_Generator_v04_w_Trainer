@@ -234,6 +234,24 @@ Original finding (for reference): current code coverage is 69%, but the README a
 
 ### [Recommended] 8. CI misses release behavior and currently has a security-policy failure
 
+**Status: FIXED (2026-07-22).** All four sub-points resolved:
+- Integration job no longer `if: false`. Split into `test-integration-mock`
+  (always-on, 52 mock-backed tests that the unit job's `--ignore=tests/integration`
+  previously skipped entirely) and `test-integration-ollama` (opt-in via
+  `workflow_dispatch`, real Ollama).
+- Wheel is built AND smoke-tested in a clean venv outside the repo (added prior
+  session; `build-check` job).
+- The four B314 findings are **resolved at source** by moving all
+  `ET.fromstring` calls to `defusedxml.ElementTree.fromstring`
+  (`extractors.py`, `image_extractor.py`, `parsers.py`); `defusedxml>=0.7.1`
+  is a declared dependency. No baseline/suppression carried. Guarded by
+  `tests/core/test_xml_hardening.py`; verified against real REQIFZ (698-artifact
+  DIAG file). This is a real XXE/entity-expansion hardening, not a CI-only fix.
+- `pip-audit` now runs `--strict` with no `continue-on-error`: known vulns fail
+  the build under a documented `--ignore-vuln` policy (empty today). Bandit
+  gating policy documented inline.
+
+Original findings (for reference):
 - The integration job is permanently disabled with `if: false` (`.github/workflows/ci.yml:80-106`).
 - The build job validates metadata but never installs or runs the artifact.
 - The current Bandit scan returns non-zero with four medium-confidence `B314` XML-parser findings in `extractors.py`, `image_extractor.py`, and `parsers.py`; the workflow runs Bandit without a reviewed baseline or suppression policy (`:108-130`).
