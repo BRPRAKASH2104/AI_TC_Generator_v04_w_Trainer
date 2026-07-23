@@ -42,12 +42,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   annotator's oracle-selection input parser (all/none/skip/numeric/invalid). No
   Ollama or subprocess is exercised. Full suite: 522 passed, 3 skipped.
 
-- **Pinned the `VisionRAFTTrainer.evaluate_model` stub contract**
-  (`tests/training/test_vision_raft_evaluate.py`). `evaluate_model` is still a
-  `# TODO` stub returning hardcoded `0.0` scores; these characterization tests
-  lock its shape and all-zero "not implemented" behavior so it cannot silently
-  begin reporting fabricated non-zero metrics, and guard that it shells out to no
-  subprocess while stubbed. To be updated when real evaluation is implemented.
+- **Implemented `VisionRAFTTrainer.evaluate_model` (Phase 1: output-quality
+  evaluation)**, replacing the `# TODO` stub that returned hardcoded `0.0`
+  scores. It now runs the prompt-customized model over an explicit held-out RAFT
+  dataset and scores each generation by the **canonical-schema pass rate**
+  (`is_canonical_test_case` — the same gate the production pipeline applies),
+  aggregating text / vision / overall scores plus parse-success rate and
+  per-example detail. Design decisions: an explicit `test_dataset` is **required**
+  (no held-out split is produced yet, so there is no honest default — passing
+  `None` raises `ValueError`); a metric with no examples behind it is reported as
+  `None`, never a fabricated `0.0`; and the Ollama client is injectable so tests
+  stay deterministic. Vision examples (base64 in the dataset) are decoded to temp
+  files and routed through the vision method. Reachable via a new
+  `train_vision_model.py --evaluate <TEST_DATASET>` evaluation-only mode.
+  Tests: rewrote `tests/training/test_vision_raft_evaluate.py` (9 tests, fake
+  client) and added `tests/training/test_train_vision_cli.py` (5 tests). Verified
+  with **real Ollama** — `llama3.1:8b` scored 1.00 (5 canonical test cases) via
+  both the direct API and the `--evaluate` CLI; a live `llama3.2-vision:11b` run
+  confirmed the vision path routes correctly and degrades gracefully (this
+  environment's Ollama cannot load the `mllama` architecture, surfaced as a
+  per-example error rather than a crash). Phase 1 measures output validity, not
+  closeness to the reference answer (a later phase).
 
 ### Changed (style/CI)
 

@@ -52,7 +52,11 @@ from typing import Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.training.vision_raft_trainer import create_vision_training_pipeline  # noqa: E402
+from src.training.vision_raft_trainer import (  # noqa: E402
+    VisionRAFTTrainer,
+    VisionTrainingConfig,
+    create_vision_training_pipeline,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -111,6 +115,18 @@ def parse_args() -> argparse.Namespace:
         "-f",
         action="store_true",
         help="Force model creation even if model already exists",
+    )
+
+    parser.add_argument(
+        "--evaluate",
+        type=str,
+        default=None,
+        metavar="TEST_DATASET",
+        help=(
+            "Evaluation-only mode: score the --output-model on this held-out "
+            "RAFT dataset (JSONL) instead of creating a model. Reports the "
+            "canonical-schema pass rate."
+        ),
     )
 
     return parser.parse_args()
@@ -248,6 +264,73 @@ def print_training_result(result: dict[str, Any]) -> None:
     logger.info("")
 
 
+def print_evaluation_result(result: dict[str, Any]) -> None:
+    """Print an evaluation summary.
+
+    Args:
+        result: Result dictionary from ``VisionRAFTTrainer.evaluate_model()``.
+    """
+    metrics = result["metrics"]
+    text_score = metrics.get("text_examples_score")
+    vision_score = metrics.get("vision_examples_score")
+    text_str = "n/a" if text_score is None else f"{text_score:.2f}"
+    vision_str = "n/a" if vision_score is None else f"{vision_score:.2f}"
+
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("Vision RAFT Model Evaluation")
+    logger.info("=" * 60)
+    logger.info(f"Model:            {result['model']}")
+    logger.info(f"Test dataset:     {result['test_dataset']}")
+    logger.info(
+        f"Examples:         {metrics.get('total_examples', 0)} "
+        f"(text: {metrics.get('text_examples', 0)}, vision: {metrics.get('vision_examples', 0)})"
+    )
+    logger.info(
+        f"Overall score:    {metrics.get('overall_score', 0.0):.2f}  (canonical-schema pass rate)"
+    )
+    logger.info(f"  Text score:     {text_str}")
+    logger.info(f"  Vision score:   {vision_str}")
+    logger.info(f"Parse success:    {metrics.get('parse_success_rate', 0.0):.2f}")
+    logger.info(f"Avg TCs/example:  {metrics.get('avg_test_cases_per_example', 0.0):.2f}")
+    if result["errors"]:
+        logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
+        for error in result["errors"]:
+            logger.warning(f"  - {error}")
+    logger.info("=" * 60)
+    logger.info("")
+
+
+def run_evaluation(test_dataset: str, output_model: str) -> int:
+    """Evaluate a customized model on a held-out RAFT dataset and print metrics.
+
+    Args:
+        test_dataset: Path to the held-out RAFT dataset (JSONL).
+        output_model: Name of the customized Ollama model to evaluate.
+
+    Returns:
+        0 if at least one example was evaluated without a generation error,
+        1 if the dataset is missing/empty or every example failed.
+    """
+    test_path = Path(test_dataset)
+    if not test_path.exists():
+        logger.error(f"Evaluation dataset not found: {test_dataset}")
+        return 1
+
+    trainer = VisionRAFTTrainer(
+        dataset_path=test_path,
+        config=VisionTrainingConfig(output_model=output_model),
+        logger=logger,
+    )
+    result = trainer.evaluate_model(test_dataset=test_path)
+    print_evaluation_result(result)
+
+    total = result["metrics"].get("total_examples", 0)
+    failed = len(result["errors"])
+    # Nothing scored (empty set or every example errored) is not a usable result.
+    return 1 if total == 0 or failed >= total else 0
+
+
 def main() -> int:
     """Create a prompt-customized vision model from the RAFT dataset.
 
@@ -262,6 +345,18 @@ def main() -> int:
         if args.verbose:
             logging.getLogger().setLevel(logging.DEBUG)
             logger.debug("Verbose logging enabled")
+
+        # Evaluation-only mode: score an existing customized model on a held-out
+        # dataset. This is a separate path - the training dataset and the base /
+        # output-model existence guards below are irrelevant here.
+        if args.evaluate:
+            logger.info("Checking Ollama connection...")
+            if not check_ollama_connection():
+                logger.error("Cannot connect to Ollama at http://localhost:11434")
+                logger.error("Please ensure Ollama is running: ollama serve")
+                return 1
+            logger.info("✅ Ollama is running")
+            return run_evaluation(args.evaluate, args.output_model)
 
         # Validate dataset
         logger.info("Validating dataset...")
