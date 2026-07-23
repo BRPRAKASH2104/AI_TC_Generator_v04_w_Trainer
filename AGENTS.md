@@ -23,6 +23,10 @@ When asked to analyze architecture, find dependencies, or trace execution flows,
 
 **IMPORTANT:** Do not blindly `grep` or read raw files to understand the system architecture. Rely on GitNexus for the "how" (the code) and Graphify for the "why" (the documentation).
 
+# Repository Instructions
+
+## Git Practices
+Read and adhere strictly to `commit.md` for all staging, committing, and GitHub PR workflows.
 ---
 
 ## Project
