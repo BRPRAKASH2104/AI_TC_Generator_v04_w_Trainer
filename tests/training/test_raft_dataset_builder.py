@@ -40,11 +40,9 @@ class TestRAFTDatasetBuilder:
                 "heading": {"id": "HEADING", "text": "Door Control System"},
                 "info_artifacts": [
                     {"id": "INFO_001", "text": "CAN-based signals"},
-                    {"id": "INFO_002", "text": "Voltage 9-16V"}
+                    {"id": "INFO_002", "text": "Voltage 9-16V"},
                 ],
-                "interfaces": [
-                    {"id": "IF_BCM_001", "text": "Body Control Module"}
-                ]
+                "interfaces": [{"id": "IF_BCM_001", "text": "Body Control Module"}],
             },
             "generated_test_cases": "Test Case 1: Verify lock at 12V...",
             "model_used": "llama3.1:8b",
@@ -52,9 +50,9 @@ class TestRAFTDatasetBuilder:
                 "oracle_context": ["HEADING", "INFO_001", "IF_BCM_001"],
                 "distractor_context": ["INFO_002"],
                 "annotation_notes": "Voltage info not relevant for lock timing",
-                "quality_rating": 4
+                "quality_rating": 4,
             },
-            "validation_status": "validated"
+            "validation_status": "validated",
         }
 
     # ===== POSITIVE TESTS =====
@@ -64,9 +62,7 @@ class TestRAFTDatasetBuilder:
         validated_dir, output_dir = temp_dirs
 
         builder = RAFTDatasetBuilder(
-            validated_dir=validated_dir,
-            output_dir=output_dir,
-            logger=mock_logger
+            validated_dir=validated_dir, output_dir=output_dir, logger=mock_logger
         )
 
         assert builder.validated_dir == validated_dir
@@ -83,9 +79,7 @@ class TestRAFTDatasetBuilder:
             json.dump(annotated_example, f)
 
         builder = RAFTDatasetBuilder(
-            validated_dir=validated_dir,
-            output_dir=output_dir,
-            logger=mock_logger
+            validated_dir=validated_dir, output_dir=output_dir, logger=mock_logger
         )
 
         raft_examples = builder.build_dataset()
@@ -185,7 +179,7 @@ class TestRAFTDatasetBuilder:
         builder = RAFTDatasetBuilder(
             validated_dir=tmp_path / "nonexistent",
             output_dir=tmp_path / "output",
-            logger=mock_logger
+            logger=mock_logger,
         )
 
         raft_examples = builder.build_dataset()
@@ -203,15 +197,15 @@ class TestRAFTDatasetBuilder:
             "retrieved_context": {
                 "heading": {"id": "HEADING", "text": "Test"},
                 "info_artifacts": [],
-                "interfaces": []
+                "interfaces": [],
             },
             "generated_test_cases": "Test cases",
             "context_annotation": {
                 "oracle_context": [],  # Empty!
                 "distractor_context": [],
-                "quality_rating": 4
+                "quality_rating": 4,
             },
-            "validation_status": "validated"
+            "validation_status": "validated",
         }
 
         file_path = validated_dir / "raft_UNANNOTATED.json"
@@ -300,7 +294,9 @@ class TestRAFTDatasetBuilder:
         validated_dir, output_dir = temp_dirs
 
         # Add Unicode to context
-        annotated_example["retrieved_context"]["info_artifacts"][0]["text"] = "Temperature: -40°C to +85°C 🌡️"
+        annotated_example["retrieved_context"]["info_artifacts"][0]["text"] = (
+            "Temperature: -40°C to +85°C 🌡️"
+        )
 
         file_path = validated_dir / "raft_REQ_001.json"
         with open(file_path, "w", encoding="utf-8") as f:

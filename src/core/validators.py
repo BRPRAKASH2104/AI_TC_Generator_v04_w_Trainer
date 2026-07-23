@@ -41,9 +41,7 @@ TEST_CASE_RESPONSE_JSON_SCHEMA: dict[str, Any] = {
             "type": "array",
             "items": {
                 "type": "object",
-                "properties": {
-                    field: {"type": "string"} for field in CANONICAL_TEST_CASE_FIELDS
-                },
+                "properties": {field: {"type": "string"} for field in CANONICAL_TEST_CASE_FIELDS},
                 "required": list(CANONICAL_TEST_CASE_FIELDS),
             },
         }

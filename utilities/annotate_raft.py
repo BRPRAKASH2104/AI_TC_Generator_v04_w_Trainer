@@ -255,7 +255,7 @@ def show_stats() -> None:
     print("=" * 50)
 
 
-def main():
+def main() -> None:
     """Main entry point for annotation tool"""
     if len(sys.argv) > 1:
         if sys.argv[1] == "--stats":

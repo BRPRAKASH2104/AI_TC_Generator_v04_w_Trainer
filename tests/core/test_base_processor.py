@@ -220,9 +220,7 @@ class TestContextAwareProcessing:
                 artifact_type="Design Information",
                 artifact_id="DES_001",
             ),
-            create_test_requirement(
-                "Door shall unlock on valid key", requirement_id="REQ_001"
-            ),
+            create_test_requirement("Door shall unlock on valid key", requirement_id="REQ_001"),
         ]
 
         augmented_reqs, _ = processor._build_augmented_requirements(artifacts)

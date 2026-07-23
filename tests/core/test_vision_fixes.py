@@ -174,9 +174,7 @@ class TestImagePreprocessing:
         processed_img = Image.open(io.BytesIO(processed))
 
         # Should be RGB or L (grayscale)
-        assert processed_img.mode in ("RGB", "L"), (
-            f"Expected RGB/L mode, got {processed_img.mode}"
-        )
+        assert processed_img.mode in ("RGB", "L"), f"Expected RGB/L mode, got {processed_img.mode}"
 
     @pytest.mark.skipif(not PILLOW_AVAILABLE, reason="Pillow required")
     def test_preprocess_maintains_aspect_ratio(self, extractor, large_image_bytes):
@@ -250,9 +248,9 @@ class TestImageLoadingErrorHandling:
 
             # Should have logged the warning
             assert any(
-                "not found" in record.message.lower() or
-                "failed" in record.message.lower() or
-                "warning" in record.levelname.lower()
+                "not found" in record.message.lower()
+                or "failed" in record.message.lower()
+                or "warning" in record.levelname.lower()
                 for record in caplog.records
             ), "Missing image should generate a warning log"
 
@@ -285,8 +283,7 @@ class TestImageLoadingErrorHandling:
 
                 # Should log permission error
                 assert any(
-                    "permission" in record.message.lower() or
-                    "denied" in record.message.lower()
+                    "permission" in record.message.lower() or "denied" in record.message.lower()
                     for record in caplog.records
                 ), "Permission error should be logged specifically"
 
@@ -319,9 +316,7 @@ class TestImageLoadingErrorHandling:
 
             # The new implementation should track failed loads
             # This tests the enhanced return value
-            client.generate_response_with_vision(
-                "llama3.2-vision:11b", "test", image_paths
-            )
+            client.generate_response_with_vision("llama3.2-vision:11b", "test", image_paths)
 
             # Verify only valid image was loaded (check payload)
             call_args = mock_session.post.call_args
@@ -367,8 +362,7 @@ class TestAsyncImageLoadingErrorHandling:
 
                 # Should have logged warning
                 assert any(
-                    "not found" in record.message.lower() or
-                    "failed" in record.message.lower()
+                    "not found" in record.message.lower() or "failed" in record.message.lower()
                     for record in caplog.records
                 ), "Async client should log missing image warning"
 
@@ -406,9 +400,7 @@ class TestVisionContextWindow:
             mock_response.raise_for_status = MagicMock()
             mock_session.post.return_value = mock_response
 
-            client.generate_response_with_vision(
-                "llama3.2-vision:11b", "test", [valid_path]
-            )
+            client.generate_response_with_vision("llama3.2-vision:11b", "test", [valid_path])
 
             # Check the payload
             call_args = mock_session.post.call_args
@@ -565,22 +557,18 @@ class TestEnhancedImageValidation:
         assert validation["valid"] is True
         assert "warnings" in validation
         assert any(
-            "large" in w.lower() or "resize" in w.lower()
-            for w in validation.get("warnings", [])
+            "large" in w.lower() or "resize" in w.lower() for w in validation.get("warnings", [])
         ), f"Expected size warning, got: {validation.get('warnings', [])}"
 
     @pytest.mark.skipif(not PILLOW_AVAILABLE, reason="Pillow required")
-    def test_validation_warns_on_extreme_aspect_ratio(
-        self, extractor, extreme_aspect_ratio_image
-    ):
+    def test_validation_warns_on_extreme_aspect_ratio(self, extractor, extreme_aspect_ratio_image):
         """Validation should warn for extreme aspect ratios."""
         validation = extractor._validate_image(extreme_aspect_ratio_image)
 
         assert validation["valid"] is True
         assert "warnings" in validation
         assert any(
-            "aspect" in w.lower() or "ratio" in w.lower()
-            for w in validation.get("warnings", [])
+            "aspect" in w.lower() or "ratio" in w.lower() for w in validation.get("warnings", [])
         ), f"Expected aspect ratio warning, got: {validation.get('warnings', [])}"
         assert "aspect_ratio" in validation
 
@@ -592,8 +580,7 @@ class TestEnhancedImageValidation:
         assert validation["valid"] is True
         assert "warnings" in validation
         assert any(
-            "small" in w.lower() or "tiny" in w.lower()
-            for w in validation.get("warnings", [])
+            "small" in w.lower() or "tiny" in w.lower() for w in validation.get("warnings", [])
         ), f"Expected small image warning, got: {validation.get('warnings', [])}"
 
     @pytest.mark.skipif(not PILLOW_AVAILABLE, reason="Pillow required")
@@ -605,8 +592,7 @@ class TestEnhancedImageValidation:
         assert validation.get("animated") is True
         assert "warnings" in validation
         assert any(
-            "animated" in w.lower() or "frame" in w.lower()
-            for w in validation.get("warnings", [])
+            "animated" in w.lower() or "frame" in w.lower() for w in validation.get("warnings", [])
         ), f"Expected animated GIF warning, got: {validation.get('warnings', [])}"
 
     @pytest.mark.skipif(not PILLOW_AVAILABLE, reason="Pillow required")
@@ -643,11 +629,14 @@ class TestVisionIntegration:
         reqifz_path = temp_output_dir / "test_large.reqifz"
 
         with zipfile.ZipFile(reqifz_path, "w") as zf:
-            zf.writestr("content.reqif", """<?xml version="1.0"?>
+            zf.writestr(
+                "content.reqif",
+                """<?xml version="1.0"?>
                 <REQ-IF xmlns="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">
                     <CORE-CONTENT><REQ-IF-CONTENT><SPEC-TYPES/></REQ-IF-CONTENT></CORE-CONTENT>
                 </REQ-IF>
-            """)
+            """,
+            )
             zf.writestr("images/large_diagram.png", large_image_bytes)
 
         extractor = RequirementImageExtractor(

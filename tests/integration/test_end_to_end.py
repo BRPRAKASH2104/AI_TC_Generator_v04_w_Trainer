@@ -52,35 +52,37 @@ class TestEndToEndWorkflows:
                 {
                     "summary_suffix": "Test door window operation",
                     "preconditions": "Vehicle ignition on",
-                    "test_steps": [
-                        "Press window down button",
-                        "Verify window moves down"
-                    ],
+                    "test_steps": ["Press window down button", "Verify window moves down"],
                     "expected_result": "Window moves down smoothly",
-                    "test_type": "positive"
+                    "test_type": "positive",
                 },
                 {
                     "summary_suffix": "Test window obstruction detection",
                     "preconditions": "Window in motion",
                     "test_steps": [
                         "Simulate obstruction during window movement",
-                        "Verify window stops and reverses"
+                        "Verify window stops and reverses",
                     ],
                     "expected_result": "Window stops and reverses direction",
-                    "test_type": "negative"
-                }
+                    "test_type": "negative",
+                },
             ]
         }
 
-    def test_standard_mode_complete_workflow(self, mock_config, temp_output_dir, sample_reqifz_path, mock_ai_response):
+    def test_standard_mode_complete_workflow(
+        self, mock_config, temp_output_dir, sample_reqifz_path, mock_ai_response
+    ):
         """Test complete standard mode workflow from REQIFZ to Excel"""
         if not sample_reqifz_path.exists():
             pytest.skip(f"Sample REQIFZ file not found: {sample_reqifz_path}")
 
         # Mock AI client to avoid external dependencies
-        with patch('src.processors.standard_processor.OllamaClient') as mock_client_class:
+        with patch("src.processors.standard_processor.OllamaClient") as mock_client_class:
             mock_client = mock_client_class.return_value
-            mock_client.generate_completion.return_value = {"response": json.dumps(mock_ai_response), "done": True}
+            mock_client.generate_completion.return_value = {
+                "response": json.dumps(mock_ai_response),
+                "done": True,
+            }
 
             # Initialize processor
             processor = REQIFZFileProcessor(mock_config)
@@ -90,7 +92,7 @@ class TestEndToEndWorkflows:
                 reqifz_path=sample_reqifz_path,
                 model="llama3.1:8b",
                 template=None,
-                output_dir=temp_output_dir
+                output_dir=temp_output_dir,
             )
 
             # Verify successful processing
@@ -113,13 +115,15 @@ class TestEndToEndWorkflows:
             assert mock_client.generate_completion.called
 
     @pytest.mark.asyncio
-    async def test_hp_mode_complete_workflow(self, mock_config, temp_output_dir, sample_reqifz_path, mock_ai_response):
+    async def test_hp_mode_complete_workflow(
+        self, mock_config, temp_output_dir, sample_reqifz_path, mock_ai_response
+    ):
         """Test complete high-performance mode workflow"""
         if not sample_reqifz_path.exists():
             pytest.skip(f"Sample REQIFZ file not found: {sample_reqifz_path}")
 
         # Mock async AI client (hp_processor uses: async with AsyncOllamaClient(...) as client)
-        with patch('src.processors.hp_processor.AsyncOllamaClient') as mock_client_class:
+        with patch("src.processors.hp_processor.AsyncOllamaClient") as mock_client_class:
             mock_inner = MagicMock()
             mock_inner.generate_completion = AsyncMock(
                 return_value={"response": json.dumps(mock_ai_response), "done": True}
@@ -128,14 +132,16 @@ class TestEndToEndWorkflows:
             mock_client_class.return_value.__aexit__ = AsyncMock(return_value=False)
 
             # Initialize HP processor
-            processor = HighPerformanceREQIFZFileProcessor(mock_config, max_concurrent_requirements=2)
+            processor = HighPerformanceREQIFZFileProcessor(
+                mock_config, max_concurrent_requirements=2
+            )
 
             # Process file
             result = await processor.process_file(
                 reqifz_path=sample_reqifz_path,
                 model="llama3.1:8b",
                 template=None,
-                output_dir=temp_output_dir
+                output_dir=temp_output_dir,
             )
 
             # Verify successful processing
@@ -168,9 +174,12 @@ class TestEndToEndWorkflows:
             mock_file2.touch()
 
             # Mock the extraction and AI processing
-            with patch('src.core.extractors.REQIFArtifactExtractor.extract_reqifz_content') as mock_extract, \
-                 patch('src.processors.standard_processor.OllamaClient') as mock_client_class:
-
+            with (
+                patch(
+                    "src.core.extractors.REQIFArtifactExtractor.extract_reqifz_content"
+                ) as mock_extract,
+                patch("src.processors.standard_processor.OllamaClient") as mock_client_class,
+            ):
                 # Mock extraction to return sample artifacts
                 mock_extract.return_value = [
                     {
@@ -183,7 +192,10 @@ class TestEndToEndWorkflows:
 
                 # Mock AI client
                 mock_client = mock_client_class.return_value
-                mock_client.generate_completion.return_value = {"response": json.dumps(mock_ai_response), "done": True}
+                mock_client.generate_completion.return_value = {
+                    "response": json.dumps(mock_ai_response),
+                    "done": True,
+                }
 
                 # Initialize processor
                 processor = REQIFZFileProcessor(mock_config)
@@ -193,7 +205,7 @@ class TestEndToEndWorkflows:
                     directory_path=input_path,
                     model="llama3.1:8b",
                     template=None,
-                    output_dir=temp_output_dir
+                    output_dir=temp_output_dir,
                 )
 
                 # Verify results
@@ -215,7 +227,7 @@ class TestEndToEndWorkflows:
             reqifz_path=non_existent_file,
             model="llama3.1:8b",
             template=None,
-            output_dir=temp_output_dir
+            output_dir=temp_output_dir,
         )
 
         # Verify error handling
@@ -239,8 +251,12 @@ class TestEndToEndWorkflows:
             assert "category" in template_data
             assert "description" in template_data
             # Validating against updated structure assuming 'system_prompt', 'prompt', or 'template'
-            template_content = template_data.get("system_prompt", template_data.get("prompt", template_data.get("template")))
-            assert isinstance(template_content, str), "Template must contain a string prompt/system_prompt/template field"
+            template_content = template_data.get(
+                "system_prompt", template_data.get("prompt", template_data.get("template"))
+            )
+            assert isinstance(template_content, str), (
+                "Template must contain a string prompt/system_prompt/template field"
+            )
             assert len(template_content) > 0
 
     def test_configuration_workflow(self, mock_config):
@@ -250,7 +266,7 @@ class TestEndToEndWorkflows:
             model="deepseek-coder-v2:16b",
             template="custom_template",
             max_concurrent=8,
-            verbose=True
+            verbose=True,
         )
 
         # Verify overrides were applied
@@ -266,7 +282,9 @@ class TestEndToEndWorkflows:
         assert "configuration_health" in secrets_status
 
     @pytest.mark.asyncio
-    async def test_performance_comparison_workflow(self, mock_config, sample_reqifz_path, mock_ai_response):
+    async def test_performance_comparison_workflow(
+        self, mock_config, sample_reqifz_path, mock_ai_response
+    ):
         """Test performance comparison between standard and HP modes"""
         if not sample_reqifz_path.exists():
             pytest.skip(f"Sample REQIFZ file not found: {sample_reqifz_path}")
@@ -275,11 +293,15 @@ class TestEndToEndWorkflows:
             temp_output_dir = Path(temp_dir)
 
             # Mock AI clients for both modes
-            with patch('src.processors.standard_processor.OllamaClient') as mock_sync_client, \
-                 patch('src.processors.hp_processor.AsyncOllamaClient') as mock_async_client:
-
+            with (
+                patch("src.processors.standard_processor.OllamaClient") as mock_sync_client,
+                patch("src.processors.hp_processor.AsyncOllamaClient") as mock_async_client,
+            ):
                 # Configure mock responses
-                mock_sync_client.return_value.generate_completion.return_value = {"response": json.dumps(mock_ai_response), "done": True}
+                mock_sync_client.return_value.generate_completion.return_value = {
+                    "response": json.dumps(mock_ai_response),
+                    "done": True,
+                }
                 mock_async_inner = MagicMock()
                 mock_async_inner.generate_completion = AsyncMock(
                     return_value={"response": json.dumps(mock_ai_response), "done": True}
@@ -294,7 +316,7 @@ class TestEndToEndWorkflows:
                     reqifz_path=sample_reqifz_path,
                     model="llama3.1:8b",
                     template=None,
-                    output_dir=temp_output_dir / "standard"
+                    output_dir=temp_output_dir / "standard",
                 )
                 standard_time = time.time() - start_time
 
@@ -305,7 +327,7 @@ class TestEndToEndWorkflows:
                     reqifz_path=sample_reqifz_path,
                     model="llama3.1:8b",
                     template=None,
-                    output_dir=temp_output_dir / "hp"
+                    output_dir=temp_output_dir / "hp",
                 )
                 hp_time = time.time() - start_time
 
@@ -362,7 +384,7 @@ class TestEndToEndWorkflows:
         test_env_vars = {
             "AI_TG_OLLAMA_API_KEY": "test_api_key_123",
             "AI_TG_EXTERNAL_API_KEY": "external_key_456",
-            "AI_TG_ENCRYPTION": "true"
+            "AI_TG_ENCRYPTION": "true",
         }
 
         # Set environment variables
@@ -379,7 +401,10 @@ class TestEndToEndWorkflows:
 
             # Test secrets masking
             secrets_summary = new_config.secrets.get_masked_summary()
-            assert "test***" in secrets_summary["ollama_api_key"] or "test_" in secrets_summary["ollama_api_key"]
+            assert (
+                "test***" in secrets_summary["ollama_api_key"]
+                or "test_" in secrets_summary["ollama_api_key"]
+            )
             assert "23" in secrets_summary["ollama_api_key"]
             assert "***" in secrets_summary["ollama_api_key"]
 
@@ -432,7 +457,7 @@ class TestErrorConditions:
                     reqifz_path=Path(temp_file.name),
                     model="llama3.1:8b",
                     template=None,
-                    output_dir=temp_output_dir
+                    output_dir=temp_output_dir,
                 )
 
                 # Verify graceful error handling
@@ -440,7 +465,7 @@ class TestErrorConditions:
                 assert "error" in result
 
             finally:
-                pass # Tempfile handles cleanup or edge case test closes it
+                pass  # Tempfile handles cleanup or edge case test closes it
 
     def test_ai_service_timeout_handling(self, mock_config, sample_reqifz_path, temp_output_dir):
         """Test handling of AI service timeouts"""
@@ -448,7 +473,7 @@ class TestErrorConditions:
             pytest.skip(f"Sample REQIFZ file not found: {sample_reqifz_path}")
 
         # Mock AI client to simulate timeout
-        with patch('src.processors.standard_processor.OllamaClient') as mock_client_class:
+        with patch("src.processors.standard_processor.OllamaClient") as mock_client_class:
             mock_client = mock_client_class.return_value
             mock_client.generate_completion.side_effect = TimeoutError("AI service timeout")
 
@@ -457,7 +482,7 @@ class TestErrorConditions:
                 reqifz_path=sample_reqifz_path,
                 model="llama3.1:8b",
                 template=None,
-                output_dir=temp_output_dir
+                output_dir=temp_output_dir,
             )
 
             # Verify timeout was handled gracefully
@@ -479,7 +504,7 @@ class TestErrorConditions:
             reqifz_path=sample_reqifz_path,
             model="llama3.1:8b",
             template=None,
-            output_dir=read_only_dir
+            output_dir=read_only_dir,
         )
 
         # Verify permission error was handled gracefully

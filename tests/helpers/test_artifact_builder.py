@@ -26,9 +26,9 @@ def _wrap_in_xhtml(text: str, include_namespace: bool = True) -> str:
     if include_namespace:
         namespace = ' xmlns:ns0="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd" xmlns:html="http://www.w3.org/1999/xhtml"'
     else:
-        namespace = ''
+        namespace = ""
 
-    return f'<THE-VALUE{namespace}><html:div><html:p>{text}</html:p></html:div></THE-VALUE>'
+    return f"<THE-VALUE{namespace}><html:div><html:p>{text}</html:p></html:div></THE-VALUE>"
 
 
 def create_test_artifact(
@@ -37,7 +37,7 @@ def create_test_artifact(
     artifact_id: str | None = None,
     include_table: bool = False,
     include_namespace: bool = True,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """
     Create a test artifact with XHTML-formatted text.
@@ -87,7 +87,7 @@ def create_test_requirement(
     requirement_id: str | None = None,
     include_table: bool = True,
     test_table_data: list[list[str]] | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """
     Create a test System Requirement artifact with optional test table.
@@ -114,22 +114,20 @@ def create_test_requirement(
         artifact_type="System Requirement",
         artifact_id=requirement_id,
         include_table=include_table,
-        **kwargs
+        **kwargs,
     )
 
     if test_table_data:
         artifact["table"] = {
             "data": test_table_data,
-            "headers": ["Test ID", "Description", "Expected Result"]
+            "headers": ["Test ID", "Description", "Expected Result"],
         }
 
     return artifact
 
 
 def create_test_heading(
-    heading_text: str,
-    heading_id: str | None = None,
-    **kwargs: Any
+    heading_text: str, heading_id: str | None = None, **kwargs: Any
 ) -> dict[str, Any]:
     """
     Create a test Heading artifact.
@@ -147,17 +145,12 @@ def create_test_heading(
         >>> assert heading["type"] == "Heading"
     """
     return create_test_artifact(
-        text=heading_text,
-        artifact_type="Heading",
-        artifact_id=heading_id,
-        **kwargs
+        text=heading_text, artifact_type="Heading", artifact_id=heading_id, **kwargs
     )
 
 
 def create_test_information(
-    info_text: str,
-    info_id: str | None = None,
-    **kwargs: Any
+    info_text: str, info_id: str | None = None, **kwargs: Any
 ) -> dict[str, Any]:
     """
     Create a test Information artifact.
@@ -175,18 +168,12 @@ def create_test_information(
         >>> assert info["type"] == "Information"
     """
     return create_test_artifact(
-        text=info_text,
-        artifact_type="Information",
-        artifact_id=info_id,
-        **kwargs
+        text=info_text, artifact_type="Information", artifact_id=info_id, **kwargs
     )
 
 
 def create_test_interface(
-    interface_text: str,
-    interface_id: str | None = None,
-    input_output: str = "Input",
-    **kwargs: Any
+    interface_text: str, interface_id: str | None = None, input_output: str = "Input", **kwargs: Any
 ) -> dict[str, Any]:
     """
     Create a test System Interface artifact.
@@ -211,7 +198,7 @@ def create_test_interface(
         artifact_type="System Interface",
         artifact_id=interface_id,
         input_output=input_output,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -221,7 +208,7 @@ def create_test_artifact_with_images(
     artifact_type: str = "System Requirement",
     artifact_id: str | None = None,
     image_types: list[str] | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """
     Create a test artifact with embedded image references.
@@ -266,12 +253,12 @@ def create_test_artifact_with_images(
 
     # Combine text and images in XHTML structure
     xhtml_content = (
-        f'<THE-VALUE{namespace}>'
-        f'<html:div>'
-        f'<html:p>{text}</html:p>'
-        f'{"".join(object_tags)}'
-        f'</html:div>'
-        f'</THE-VALUE>'
+        f"<THE-VALUE{namespace}>"
+        f"<html:div>"
+        f"<html:p>{text}</html:p>"
+        f"{''.join(object_tags)}"
+        f"</html:div>"
+        f"</THE-VALUE>"
     )
 
     artifact = {
@@ -311,10 +298,7 @@ def create_test_table(
         ...     ]
         ... )
     """
-    return {
-        "headers": headers,
-        "data": rows
-    }
+    return {"headers": headers, "data": rows}
 
 
 def create_augmented_requirement(
@@ -323,7 +307,7 @@ def create_augmented_requirement(
     info_list: list[dict[str, Any]] | None = None,
     interface_list: list[dict[str, Any]] | None = None,
     requirement_id: str | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> dict[str, Any]:
     """
     Create an augmented requirement with context (heading, info, interfaces).
@@ -358,9 +342,7 @@ def create_augmented_requirement(
         interface_list = []
 
     requirement = create_test_requirement(
-        requirement_text=requirement_text,
-        requirement_id=requirement_id,
-        **kwargs
+        requirement_text=requirement_text, requirement_id=requirement_id, **kwargs
     )
 
     # Add context fields (matching BaseProcessor output)

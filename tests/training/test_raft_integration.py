@@ -53,11 +53,7 @@ class TestRAFTIntegration:
         processor = BaseProcessor(config=config_raft_disabled)
 
         # Mock requirement and test cases
-        requirement = {
-            "id": "REQ_TEST",
-            "text": "Test requirement",
-            "heading": "Test"
-        }
+        requirement = {"id": "REQ_TEST", "text": "Test requirement", "heading": "Test"}
 
         # Should not raise error, just no-op
         processor._save_raft_example(requirement, "Test cases", "llama3.1:8b")
@@ -77,7 +73,7 @@ class TestRAFTIntegration:
             "text": "Test requirement",
             "heading": "Test",
             "info_list": [],
-            "interface_list": []
+            "interface_list": [],
         }
 
         # Call save method
@@ -98,18 +94,25 @@ class TestRAFTIntegration:
 
         # Mock extractor
         processor.extractor = Mock()
-        processor.extractor.classify_artifacts = Mock(return_value={
-            "System Interface": [{"id": "IF_001", "text": "Interface 1"}],
-            "Heading": [],
-            "Information": [],
-            "System Requirement": []
-        })
+        processor.extractor.classify_artifacts = Mock(
+            return_value={
+                "System Interface": [{"id": "IF_001", "text": "Interface 1"}],
+                "Heading": [],
+                "Information": [],
+                "System Requirement": [],
+            }
+        )
 
         # Sample artifacts
         artifacts = [
             {"type": "Heading", "text": "Test Heading"},
             {"type": "Information", "text": "Test Info", "id": "INFO_001"},
-            {"type": "System Requirement", "id": "REQ_001", "text": "Test requirement", "table": {"data": []}},
+            {
+                "type": "System Requirement",
+                "id": "REQ_001",
+                "text": "Test requirement",
+                "table": {"data": []},
+            },
         ]
 
         # Mock logger
@@ -137,9 +140,19 @@ class TestRAFTIntegration:
         artifacts = [
             {"type": "Heading", "text": "Heading 1"},
             {"type": "Information", "text": "Info for REQ1", "id": "INFO_001"},
-            {"type": "System Requirement", "id": "REQ_001", "text": "Requirement 1", "table": {"data": []}},
+            {
+                "type": "System Requirement",
+                "id": "REQ_001",
+                "text": "Requirement 1",
+                "table": {"data": []},
+            },
             {"type": "Information", "text": "Info for REQ2", "id": "INFO_002"},
-            {"type": "System Requirement", "id": "REQ_002", "text": "Requirement 2", "table": {"data": []}},
+            {
+                "type": "System Requirement",
+                "id": "REQ_002",
+                "text": "Requirement 2",
+                "table": {"data": []},
+            },
         ]
 
         processor.logger = Mock()
@@ -172,7 +185,7 @@ class TestRAFTIntegration:
             artifacts_count=20,
             processing_time=5.5,
             model="llama3.1:8b",
-            template="test_template"
+            template="test_template",
         )
 
         # Verify structure is unchanged
@@ -193,10 +206,7 @@ class TestRAFTIntegration:
         """Test that RAFT doesn't modify error result structure"""
         processor = BaseProcessor(config=config_raft_enabled)
 
-        result = processor._create_error_result(
-            error_message="Test error",
-            processing_time=1.0
-        )
+        result = processor._create_error_result(error_message="Test error", processing_time=1.0)
 
         # Verify structure is unchanged
         assert result["success"] is False

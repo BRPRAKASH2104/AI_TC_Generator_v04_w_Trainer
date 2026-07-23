@@ -74,9 +74,7 @@ def test_fuzzy_matching_suggestion():
     test_case = {"action": "Send ACCSP1 signal", "data": "ACCSP1=100"}  # Close to ACCSP
 
     requirement = {
-        "interface_list": [
-            {"id": "IF_001", "text": "CANSignal - ACCSP (Message: FCM1S39)"}
-        ]
+        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP (Message: FCM1S39)"}]
     }
 
     is_valid, issues = validator.validate_test_case(test_case, requirement)
@@ -141,9 +139,7 @@ def test_empty_data_field():
     }
 
     requirement = {
-        "interface_list": [
-            {"id": "IF_001", "text": "CANSignal - ACCSP (Message: FCM1S39)"}
-        ]
+        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP (Message: FCM1S39)"}]
     }
 
     is_valid, issues = validator.validate_test_case(test_case, requirement)
@@ -207,9 +203,7 @@ def test_similarity_threshold_configuration():
     strict_validator = SemanticValidator(similarity_threshold=0.9)
     test_case = {"action": "Send ACSP signal", "data": "ACSP=100"}  # Missing one C
 
-    requirement = {
-        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
-    }
+    requirement = {"interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]}
 
     is_valid, issues = strict_validator.validate_test_case(test_case, requirement)
     # With high threshold, "ACSP" might not match "ACCSP"
@@ -238,9 +232,7 @@ def test_unknown_signal_in_test_steps_flagged_without_close_match():
         "expected_result": "Verify lock engages",
     }
 
-    requirement = {
-        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
-    }
+    requirement = {"interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]}
 
     is_valid, issues = validator.validate_test_case(test_case, requirement)
 
@@ -257,9 +249,7 @@ def test_generic_words_in_test_steps_not_flagged():
         "expected_result": "Verify behaviour",
     }
 
-    requirement = {
-        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
-    }
+    requirement = {"interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]}
 
     is_valid, issues = validator.validate_test_case(test_case, requirement)
 
@@ -273,12 +263,8 @@ def test_signal_names_extracted_once_per_batch():
 
     validator = SemanticValidator()
 
-    test_cases = [
-        {"test_steps": f"1) Set ACCSP = {i}", "expected_result": "ok"} for i in range(5)
-    ]
-    requirement = {
-        "interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]
-    }
+    test_cases = [{"test_steps": f"1) Set ACCSP = {i}", "expected_result": "ok"} for i in range(5)]
+    requirement = {"interface_list": [{"id": "IF_001", "text": "CANSignal - ACCSP"}]}
 
     with patch.object(
         SemanticValidator, "_extract_signal_names", wraps=validator._extract_signal_names
@@ -319,12 +305,8 @@ class TestTruncatedTableCoverage:
 
     @staticmethod
     def _cases(positives, negatives):
-        cases = [
-            {"summary_suffix": f"p{i}", "test_type": "positive"} for i in range(positives)
-        ]
-        cases += [
-            {"summary_suffix": f"n{i}", "test_type": "negative"} for i in range(negatives)
-        ]
+        cases = [{"summary_suffix": f"p{i}", "test_type": "positive"} for i in range(positives)]
+        cases += [{"summary_suffix": f"n{i}", "test_type": "negative"} for i in range(negatives)]
         return cases
 
     def test_displayed_rows_helper(self):

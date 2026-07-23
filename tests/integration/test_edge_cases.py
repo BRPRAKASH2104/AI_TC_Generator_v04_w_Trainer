@@ -52,7 +52,7 @@ class TestMalformedFiles:
             # Write random bytes that are not a valid ZIP
             temp_file.write(b"This is definitely not a ZIP file content")
             temp_file.flush()
-            temp_file.close() # Close to allow extraction and unlinking
+            temp_file.close()  # Close to allow extraction and unlinking
 
             try:
                 extractor = REQIFArtifactExtractor()
@@ -68,9 +68,9 @@ class TestMalformedFiles:
     def test_zip_without_reqif_files(self, mock_config):
         """Test handling of ZIP files without .reqif files"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
-            temp_file.close() # Close so zipfile can open it
+            temp_file.close()  # Close so zipfile can open it
             # Create a valid ZIP file but without .reqif files
-            with zipfile.ZipFile(temp_file.name, 'w') as zip_file:
+            with zipfile.ZipFile(temp_file.name, "w") as zip_file:
                 zip_file.writestr("readme.txt", "This ZIP has no REQIF files")
                 zip_file.writestr("data.json", '{"message": "no reqif here"}')
 
@@ -87,9 +87,9 @@ class TestMalformedFiles:
     def test_malformed_xml_in_reqif(self, mock_config):
         """Test handling of malformed XML in REQIF files"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
-            temp_file.close() # Close so zipfile can open it
+            temp_file.close()  # Close so zipfile can open it
             # Create ZIP with malformed XML
-            with zipfile.ZipFile(temp_file.name, 'w') as zip_file:
+            with zipfile.ZipFile(temp_file.name, "w") as zip_file:
                 malformed_xml = """<?xml version="1.0" encoding="UTF-8"?>
                 <reqif:REQ-IF xmlns:reqif="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">
                     <reqif:SPEC-OBJECT>
@@ -113,9 +113,9 @@ class TestMalformedFiles:
     def test_xml_with_invalid_namespaces(self, mock_config):
         """Test handling of XML with invalid or missing namespaces"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
-            temp_file.close() # Close so zipfile can open it
+            temp_file.close()  # Close so zipfile can open it
             # Create ZIP with XML using wrong namespaces
-            with zipfile.ZipFile(temp_file.name, 'w') as zip_file:
+            with zipfile.ZipFile(temp_file.name, "w") as zip_file:
                 invalid_namespace_xml = """<?xml version="1.0" encoding="UTF-8"?>
                 <wrong:REQ-IF xmlns:wrong="http://wrong.namespace.com">
                     <wrong:SPEC-OBJECT IDENTIFIER="TEST_001">
@@ -141,9 +141,9 @@ class TestMalformedFiles:
     def test_extremely_large_reqif_file(self, mock_config):
         """Test handling of very large REQIF files"""
         with tempfile.NamedTemporaryFile(suffix=".reqifz", delete=False) as temp_file:
-            temp_file.close() # Close so zipfile can open it
+            temp_file.close()  # Close so zipfile can open it
             # Create a large XML file (simulate many spec objects)
-            with zipfile.ZipFile(temp_file.name, 'w', compression=zipfile.ZIP_DEFLATED) as zip_file:
+            with zipfile.ZipFile(temp_file.name, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
                 large_xml = """<?xml version="1.0" encoding="UTF-8"?>
                 <reqif:REQ-IF xmlns:reqif="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">"""
 
@@ -232,14 +232,13 @@ class TestNetworkErrorConditions:
         import aiohttp
 
         async with AsyncOllamaClient(mock_config.ollama) as client:
-            with patch.object(client.session, 'post') as mock_post:
+            with patch.object(client.session, "post") as mock_post:
                 # Create proper ClientConnectorError
                 os_error = OSError("Connection refused")
                 os_error.errno = 61
                 os_error.strerror = "Connection refused"
                 mock_post.side_effect = aiohttp.ClientConnectorError(
-                    connection_key=Mock(),
-                    os_error=os_error
+                    connection_key=Mock(), os_error=os_error
                 )
 
                 with pytest.raises(OllamaConnectionError):
@@ -260,19 +259,19 @@ class TestResourceConstraints:
         # Create a large number of requirements to process
         large_requirements = []
         for i in range(100):
-            large_requirements.append({
-                "id": f"REQ_{i:03d}",
-                "type": "System Requirement",
-                "heading": f"Requirement {i}",
-                "text": "x" * 1000,  # Large text content
-            })
+            large_requirements.append(
+                {
+                    "id": f"REQ_{i:03d}",
+                    "type": "System Requirement",
+                    "heading": f"Requirement {i}",
+                    "text": "x" * 1000,  # Large text content
+                }
+            )
 
         # Mock AI client to return responses quickly
         mock_client = Mock()
         mock_client.generate_completion.return_value = {
-            "response": json.dumps({
-                "test_cases": [{"test_id": "TC_001", "summary": "Test case"}]
-            })
+            "response": json.dumps({"test_cases": [{"test_id": "TC_001", "summary": "Test case"}]})
         }
 
         generator = TestCaseGenerator(mock_client)
@@ -308,7 +307,12 @@ class TestResourceConstraints:
 
         # Create multiple requirements
         requirements = [
-            {"id": f"REQ_{i:03d}", "type": "System Requirement", "heading": f"Req {i}", "text": "text"}
+            {
+                "id": f"REQ_{i:03d}",
+                "type": "System Requirement",
+                "heading": f"Req {i}",
+                "text": "text",
+            }
             for i in range(10)
         ]
 
@@ -335,8 +339,13 @@ class TestMalformedResponses:
 
         generator = TestCaseGenerator(mock_client)
         result = generator.generate_test_cases_for_requirement(
-            {"id": "REQ_001", "type": "System Requirement", "heading": "Test", "text": "Test requirement"},
-            "test-model"
+            {
+                "id": "REQ_001",
+                "type": "System Requirement",
+                "heading": "Test",
+                "text": "Test requirement",
+            },
+            "test-model",
         )
 
         # Failures return structured error objects (review 2026-07-17 finding 1)
@@ -349,17 +358,24 @@ class TestMalformedResponses:
         """Test handling of JSON response missing expected keys"""
         mock_client = Mock()
         mock_client.generate_completion.return_value = {
-            "response": json.dumps({
-                "response": "I generated some test cases",
-                "metadata": {"model": "test-model"}
-                # Missing "test_cases" key
-            })
+            "response": json.dumps(
+                {
+                    "response": "I generated some test cases",
+                    "metadata": {"model": "test-model"},
+                    # Missing "test_cases" key
+                }
+            )
         }
 
         generator = TestCaseGenerator(mock_client)
         result = generator.generate_test_cases_for_requirement(
-            {"id": "REQ_001", "type": "System Requirement", "heading": "Test", "text": "Test requirement"},
-            "test-model"
+            {
+                "id": "REQ_001",
+                "type": "System Requirement",
+                "heading": "Test",
+                "text": "Test requirement",
+            },
+            "test-model",
         )
 
         # Failures return structured error objects (review 2026-07-17 finding 1)
@@ -372,35 +388,42 @@ class TestMalformedResponses:
         """Test handling of malformed test case structures in response"""
         mock_client = Mock()
         mock_client.generate_completion.return_value = {
-            "response": json.dumps({
-                "test_cases": [
-                    # Valid canonical test case
-                    {
-                        "summary_suffix": "Valid test case",
-                        "preconditions": "Valid preconditions",
-                        "test_steps": ["Step 1", "Step 2"],
-                        "expected_result": "Valid result",
-                        "test_type": "positive"
-                    },
-                    # Malformed test case - missing required fields
-                    {
-                        "test_id": "TC_002"
-                        # Missing other required fields
-                    },
-                    # Test case with wrong data types
-                    {
-                        "test_id": 123,  # Should be string
-                        "summary": ["Should", "be", "string"],  # Should be string
-                        "test_steps": "Should be list"  # Should be list
-                    }
-                ]
-            })
+            "response": json.dumps(
+                {
+                    "test_cases": [
+                        # Valid canonical test case
+                        {
+                            "summary_suffix": "Valid test case",
+                            "preconditions": "Valid preconditions",
+                            "test_steps": ["Step 1", "Step 2"],
+                            "expected_result": "Valid result",
+                            "test_type": "positive",
+                        },
+                        # Malformed test case - missing required fields
+                        {
+                            "test_id": "TC_002"
+                            # Missing other required fields
+                        },
+                        # Test case with wrong data types
+                        {
+                            "test_id": 123,  # Should be string
+                            "summary": ["Should", "be", "string"],  # Should be string
+                            "test_steps": "Should be list",  # Should be list
+                        },
+                    ]
+                }
+            )
         }
 
         generator = TestCaseGenerator(mock_client)
         result = generator.generate_test_cases_for_requirement(
-            {"id": "REQ_001", "type": "System Requirement", "heading": "Test", "text": "Test requirement"},
-            "test-model"
+            {
+                "id": "REQ_001",
+                "type": "System Requirement",
+                "heading": "Test",
+                "text": "Test requirement",
+            },
+            "test-model",
         )
 
         # Should process valid test cases and skip malformed ones
@@ -411,27 +434,32 @@ class TestMalformedResponses:
     def test_extremely_large_response(self, mock_config):
         """Test handling of extremely large AI responses"""
         # Create a very large response
-        large_response = {
-            "test_cases": []
-        }
+        large_response = {"test_cases": []}
 
         # Add many test cases with large content
         for i in range(1000):
-            large_response["test_cases"].append({
-                "summary_suffix": f"Test case {i} " + "x" * 1000,  # Large summary
-                "preconditions": "Large preconditions " + "y" * 500,
-                "test_steps": [f"Step {j} " + "z" * 200 for j in range(10)],  # Many large steps
-                "expected_result": "Large expected result " + "w" * 800,
-                "test_type": "positive"
-            })
+            large_response["test_cases"].append(
+                {
+                    "summary_suffix": f"Test case {i} " + "x" * 1000,  # Large summary
+                    "preconditions": "Large preconditions " + "y" * 500,
+                    "test_steps": [f"Step {j} " + "z" * 200 for j in range(10)],  # Many large steps
+                    "expected_result": "Large expected result " + "w" * 800,
+                    "test_type": "positive",
+                }
+            )
 
         mock_client = Mock()
         mock_client.generate_completion.return_value = {"response": json.dumps(large_response)}
 
         generator = TestCaseGenerator(mock_client)
         result = generator.generate_test_cases_for_requirement(
-            {"id": "REQ_001", "type": "System Requirement", "heading": "Test", "text": "Test requirement"},
-            "test-model"
+            {
+                "id": "REQ_001",
+                "type": "System Requirement",
+                "heading": "Test",
+                "text": "Test requirement",
+            },
+            "test-model",
         )
 
         # Should handle large responses efficiently
@@ -494,16 +522,18 @@ class TestJSONParserEdgeCases:
         """Test handling of JSON with escaped characters"""
         parser = JSONResponseParser()
 
-        response = json.dumps({
-            "test_cases": [
-                {
-                    "test_id": "TC_001",
-                    "summary": "Test with \"quotes\" and \\backslashes\\",
-                    "test_steps": ["Step with\nnewlines", "Step with\ttabs"],
-                    "expected_result": "Result with special chars: !@#$%^&*()"
-                }
-            ]
-        })
+        response = json.dumps(
+            {
+                "test_cases": [
+                    {
+                        "test_id": "TC_001",
+                        "summary": 'Test with "quotes" and \\backslashes\\',
+                        "test_steps": ["Step with\nnewlines", "Step with\ttabs"],
+                        "expected_result": "Result with special chars: !@#$%^&*()",
+                    }
+                ]
+            }
+        )
 
         result = parser.extract_json_from_response(response)
         assert result is not None

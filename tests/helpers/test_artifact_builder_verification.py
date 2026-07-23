@@ -26,7 +26,7 @@ class TestArtifactBuilder:
         artifact = create_test_artifact(
             "Door shall lock when speed > 10 km/h",
             artifact_type="System Requirement",
-            artifact_id="REQ_001"
+            artifact_id="REQ_001",
         )
 
         assert artifact["id"] == "REQ_001"
@@ -44,8 +44,8 @@ class TestArtifactBuilder:
             requirement_id="REQ_ACC_001",
             test_table_data=[
                 ["TC001", "Test safe distance", "Pass"],
-                ["TC002", "Test emergency brake", "Pass"]
-            ]
+                ["TC002", "Test emergency brake", "Pass"],
+            ],
         )
 
         assert req["type"] == "System Requirement"
@@ -74,9 +74,7 @@ class TestArtifactBuilder:
     def test_create_interface(self):
         """Test creating an interface artifact."""
         interface = create_test_interface(
-            "Vehicle speed signal",
-            interface_id="IF_001",
-            input_output="Input"
+            "Vehicle speed signal", interface_id="IF_001", input_output="Input"
         )
 
         assert interface["type"] == "System Interface"
@@ -89,14 +87,17 @@ class TestArtifactBuilder:
         artifact = create_test_artifact_with_images(
             "ACC state machine with 4 states",
             image_paths=["diagrams/acc_states.png", "diagrams/acc_transitions.png"],
-            artifact_id="REQ_001"
+            artifact_id="REQ_001",
         )
 
         assert artifact["id"] == "REQ_001"
         assert artifact["has_images"] is True
         assert artifact["image_count"] == 2
         assert '<html:object data="diagrams/acc_states.png" type="image/png" />' in artifact["text"]
-        assert '<html:object data="diagrams/acc_transitions.png" type="image/png" />' in artifact["text"]
+        assert (
+            '<html:object data="diagrams/acc_transitions.png" type="image/png" />'
+            in artifact["text"]
+        )
         assert "ACC state machine with 4 states" in artifact["text"]
 
     def test_create_augmented_requirement(self):
@@ -104,11 +105,11 @@ class TestArtifactBuilder:
         heading = "ACC System"
         info_list = [
             create_test_information("Safety critical"),
-            create_test_information("ASIL-D rated")
+            create_test_information("ASIL-D rated"),
         ]
         interface_list = [
             create_test_interface("Speed signal", input_output="Input"),
-            create_test_interface("Brake signal", input_output="Output")
+            create_test_interface("Brake signal", input_output="Output"),
         ]
 
         req = create_augmented_requirement(
@@ -116,7 +117,7 @@ class TestArtifactBuilder:
             heading=heading,
             info_list=info_list,
             interface_list=interface_list,
-            requirement_id="REQ_001"
+            requirement_id="REQ_001",
         )
 
         # Verify requirement structure
@@ -144,9 +145,7 @@ class TestArtifactBuilder:
     def test_xhtml_format_matches_production(self):
         """Verify XHTML format matches production extractor output."""
         artifact = create_test_artifact(
-            "Door shall lock",
-            artifact_type="System Requirement",
-            artifact_id="REQ_001"
+            "Door shall lock", artifact_type="System Requirement", artifact_id="REQ_001"
         )
 
         text = artifact["text"]
@@ -168,7 +167,7 @@ class TestArtifactBuilder:
         artifact = create_test_artifact_with_images(
             "Test with image",
             image_paths=["1472801/image-20240709-035006.png"],
-            image_types=["image/png"]
+            image_types=["image/png"],
         )
 
         # Must use <html:object> with data attribute (REQIF format)

@@ -222,7 +222,7 @@ class VersionChecker:
                 requirements = f.readlines()
 
             # Parse requirements (basic parsing)
-            parsed_requirements = []
+            parsed_requirements: list[tuple[str, str | None]] = []
             for line in requirements:
                 line = line.strip()
                 if line and not line.startswith("#") and not line.startswith("-"):
@@ -243,7 +243,7 @@ class VersionChecker:
             print(f"❌ Error reading requirements file: {e}")
             return self._check_core_dependencies()
 
-    def _validate_parsed_requirements(self, requirements: list[tuple[str, str]]) -> bool:
+    def _validate_parsed_requirements(self, requirements: list[tuple[str, str | None]]) -> bool:
         """Validate parsed requirements against installed packages"""
         import pkg_resources
 
@@ -260,7 +260,7 @@ class VersionChecker:
 
                 if min_version:
                     # Simple version comparison
-                    def version_tuple(v):
+                    def version_tuple(v: str) -> tuple[int, ...]:
                         return tuple(
                             map(
                                 int,
@@ -388,17 +388,17 @@ class VersionChecker:
             print("🚨 VALIDATION FAILED!")
             print("❌ Environment is not ready - please fix the issues above")
             print("\n🔧 Next steps:")
-            if not version_ok:
-                print("   1. Upgrade Python to 3.14.0 or higher")
+            # NB: version_ok is always True here — a failed version check returns
+            # early above, so no "upgrade Python" step is reachable at this point.
             if not features_ok:
-                print("   2. Verify Python installation completeness")
+                print("   1. Verify Python installation completeness")
             if not deps_ok:
-                print("   3. Install missing dependencies: pip install -e .[dev]")
+                print("   2. Install missing dependencies: pip install -e .[dev]")
 
         return all_passed
 
 
-def main():
+def main() -> None:
     """Main entry point for version checking"""
     import argparse
 

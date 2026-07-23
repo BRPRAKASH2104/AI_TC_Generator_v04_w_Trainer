@@ -37,7 +37,7 @@ class TestBaseProcessor:
 
         assert processor.logger is not None
         # Logger should have file info
-        assert hasattr(processor.logger, 'info')
+        assert hasattr(processor.logger, "info")
 
     def test_build_augmented_requirements_with_context(self):
         """Test context-aware requirement augmentation (POSITIVE)"""
@@ -47,18 +47,18 @@ class TestBaseProcessor:
 
         # Mock classified artifacts
         processor.extractor.classify_artifacts.return_value = {
-            "System Interface": [
-                create_test_interface("Speed signal", interface_id="IF_001")
-            ]
+            "System Interface": [create_test_interface("Speed signal", interface_id="IF_001")]
         }
 
         # Simulate artifact sequence with context (using helpers for XHTML format)
         artifacts = [
             create_test_heading("Door Lock System"),
             create_test_information("Safety critical", info_id="INFO_001"),
-            create_test_requirement("Door shall lock when speed exceeds threshold", requirement_id="REQ_001"),
+            create_test_requirement(
+                "Door shall lock when speed exceeds threshold", requirement_id="REQ_001"
+            ),
             create_test_heading("Window System"),
-            create_test_requirement("Window shall close automatically", requirement_id="REQ_002")
+            create_test_requirement("Window shall close automatically", requirement_id="REQ_002"),
         ]
 
         augmented_reqs, interface_count = processor._build_augmented_requirements(artifacts)
@@ -88,7 +88,7 @@ class TestBaseProcessor:
 
         artifacts = [
             create_test_heading("Test"),
-            create_test_information("Info", info_id="INFO_001")
+            create_test_information("Info", info_id="INFO_001"),
         ]
 
         augmented_reqs, interface_count = processor._build_augmented_requirements(artifacts)
@@ -146,7 +146,7 @@ class TestBaseProcessor:
             reqifz_path=Path("/test/file.reqifz"),
             total_cases=50,
             requirements_processed=10,
-            successful_requirements=9
+            successful_requirements=9,
         )
 
         assert metadata["model"] == "llama3.1:8b"
@@ -167,7 +167,7 @@ class TestBaseProcessor:
             artifacts_count=150,
             processing_time=45.5,
             model="llama3.1:8b",
-            template="test"
+            template="test",
         )
 
         assert result["success"] is True
@@ -191,11 +191,7 @@ class TestPromptBuilder:
     def test_build_prompt_default_no_yaml(self):
         """Test default prompt building without YAML manager (POSITIVE)"""
         builder = PromptBuilder()
-        requirement = {
-            "id": "REQ_001",
-            "heading": "Door Lock",
-            "text": "System shall lock doors"
-        }
+        requirement = {"id": "REQ_001", "heading": "Door Lock", "text": "System shall lock doors"}
 
         prompt = builder.build_prompt(requirement)
 
@@ -234,10 +230,7 @@ class TestPromptBuilder:
     def test_format_table_with_data(self):
         """Test table formatting with valid data (POSITIVE)"""
         table_data = {
-            "data": [
-                {"col1": "value1", "col2": "value2"},
-                {"col1": "value3", "col2": "value4"}
-            ]
+            "data": [{"col1": "value1", "col2": "value2"}, {"col1": "value3", "col2": "value4"}]
         }
 
         result = PromptBuilder.format_table(table_data)
@@ -254,9 +247,7 @@ class TestPromptBuilder:
 
     def test_format_table_truncation(self):
         """Test table truncation for large tables (EDGE CASE)"""
-        table_data = {
-            "data": [{"col": f"val{i}"} for i in range(15)]
-        }
+        table_data = {"data": [{"col": f"val{i}"} for i in range(15)]}
 
         result = PromptBuilder.format_table(table_data)
 
@@ -266,11 +257,7 @@ class TestPromptBuilder:
 
     def test_format_info_list_with_data(self):
         """Test info list formatting (POSITIVE)"""
-        info_list = [
-            {"text": "Info 1"},
-            {"text": "Info 2"},
-            {"text": "Info 3"}
-        ]
+        info_list = [{"text": "Info 1"}, {"text": "Info 2"}, {"text": "Info 3"}]
 
         result = PromptBuilder.format_info_list(info_list)
 
@@ -287,7 +274,7 @@ class TestPromptBuilder:
         """Test interface formatting (POSITIVE)"""
         interfaces = [
             {"id": "IF_001", "text": "Speed signal"},
-            {"id": "IF_002", "text": "Door status"}
+            {"id": "IF_002", "text": "Door status"},
         ]
 
         result = PromptBuilder.format_interfaces(interfaces)
@@ -319,7 +306,7 @@ class TestGeneratorRefactoring:
 
         generator = TestCaseGenerator(client, yaml_manager)
 
-        assert hasattr(generator, 'prompt_builder')
+        assert hasattr(generator, "prompt_builder")
         assert generator.prompt_builder.yaml_manager == yaml_manager
 
     def test_async_generator_uses_prompt_builder(self):
@@ -329,7 +316,7 @@ class TestGeneratorRefactoring:
 
         generator = AsyncTestCaseGenerator(client, yaml_manager)
 
-        assert hasattr(generator, 'prompt_builder')
+        assert hasattr(generator, "prompt_builder")
         assert generator.prompt_builder.yaml_manager == yaml_manager
 
     def test_test_case_generator_no_coupling(self):
@@ -338,12 +325,12 @@ class TestGeneratorRefactoring:
         generator = TestCaseGenerator(client)
 
         # Should NOT have methods from old implementation
-        assert not hasattr(generator, '_build_prompt_from_template')
-        assert not hasattr(generator, '_format_table_for_prompt')
-        assert not hasattr(generator, '_format_info_for_prompt')
+        assert not hasattr(generator, "_build_prompt_from_template")
+        assert not hasattr(generator, "_format_table_for_prompt")
+        assert not hasattr(generator, "_format_info_for_prompt")
 
         # Should have PromptBuilder
-        assert hasattr(generator, 'prompt_builder')
+        assert hasattr(generator, "prompt_builder")
 
     def test_async_generator_no_sync_instantiation(self):
         """Test AsyncGenerator doesn't create sync generator (ARCHITECTURE)"""
@@ -354,7 +341,7 @@ class TestGeneratorRefactoring:
         async_gen = AsyncTestCaseGenerator(client, yaml_manager)
 
         # Verify it has its own PromptBuilder (not from sync generator)
-        assert hasattr(async_gen, 'prompt_builder')
+        assert hasattr(async_gen, "prompt_builder")
         assert isinstance(async_gen.prompt_builder, PromptBuilder)
 
 
@@ -422,12 +409,7 @@ def run_tests():
     print("=" * 70)
 
     # Run pytest
-    pytest_args = [
-        __file__,
-        "-v",
-        "--tb=short",
-        "-k", "test_"
-    ]
+    pytest_args = [__file__, "-v", "--tb=short", "-k", "test_"]
 
     exit_code = pytest.main(pytest_args)
 

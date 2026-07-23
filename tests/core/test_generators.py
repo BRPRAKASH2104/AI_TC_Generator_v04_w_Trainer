@@ -22,7 +22,7 @@ class TestTestCaseGenerator:
         mock_yaml_manager = Mock()
         mock_yaml_manager.get_test_prompt.return_value = {
             "prompt": "Generate test cases for: {requirement_text}",
-            "variables": ["requirement_text"]
+            "variables": ["requirement_text"],
         }
 
         # Setup mock client to return full response structure (canonical schema)
@@ -30,7 +30,7 @@ class TestTestCaseGenerator:
             "response": '{"test_cases": [{"summary_suffix": "Test basic functionality", '
             '"preconditions": "System ready", "test_steps": "1) Run", '
             '"expected_result": "OK", "test_type": "positive"}]}',
-            "logprobs": None
+            "logprobs": None,
         }
 
         generator = TestCaseGenerator(mock_ollama_client, mock_yaml_manager, mock_logger)
@@ -42,7 +42,9 @@ class TestTestCaseGenerator:
         assert result[0]["summary_suffix"] == "Test basic functionality"
         mock_ollama_client.generate_completion.assert_called_once()
 
-    def test_generate_test_cases_with_template(self, mock_ollama_client, sample_requirement, mock_logger):
+    def test_generate_test_cases_with_template(
+        self, mock_ollama_client, sample_requirement, mock_logger
+    ):
         """Test test case generation with specific template."""
         mock_yaml_manager = Mock()
         mock_yaml_manager.get_test_prompt.return_value = "Custom template: {requirement_text}"
@@ -73,7 +75,9 @@ class TestTestCaseGenerator:
         mock_client.generate_completion.return_value = {"response": ""}
 
         mock_yaml_manager = Mock()
-        mock_yaml_manager.get_test_prompt.return_value = "Generate test cases for: {requirement_text}"
+        mock_yaml_manager.get_test_prompt.return_value = (
+            "Generate test cases for: {requirement_text}"
+        )
 
         generator = TestCaseGenerator(mock_client, mock_yaml_manager, mock_logger)
 
@@ -92,7 +96,7 @@ class TestTestCaseGenerator:
         mock_yaml_manager = Mock()
         mock_yaml_manager.get_test_prompt.return_value = {
             "prompt": "Generate test cases",
-            "variables": []
+            "variables": [],
         }
 
         generator = TestCaseGenerator(mock_client, mock_yaml_manager, mock_logger)
@@ -103,14 +107,14 @@ class TestTestCaseGenerator:
         assert result["error"] is True
         assert result["error_type"] == "InvalidJSONStructure"
 
-    def test_prompt_variable_substitution(self, mock_ollama_client, sample_requirement, mock_logger):
+    def test_prompt_variable_substitution(
+        self, mock_ollama_client, sample_requirement, mock_logger
+    ):
         """Test that prompt variables are correctly substituted."""
         mock_yaml_manager = Mock()
         mock_yaml_manager.get_test_prompt.return_value = "Requirement ID: REQ_001, Text: The system shall validate user input and respond within 2 seconds"
 
-        mock_ollama_client.generate_completion.return_value = {
-             "response": '{"test_cases": []}'
-        }
+        mock_ollama_client.generate_completion.return_value = {"response": '{"test_cases": []}'}
 
         generator = TestCaseGenerator(mock_ollama_client, mock_yaml_manager, mock_logger)
 
@@ -129,7 +133,9 @@ class TestAsyncTestCaseGenerator:
     """Test asynchronous test case generation."""
 
     @pytest.mark.asyncio
-    async def test_generate_test_cases_batch_success(self, mock_async_ollama_client, sample_requirements_list, mock_logger):
+    async def test_generate_test_cases_batch_success(
+        self, mock_async_ollama_client, sample_requirements_list, mock_logger
+    ):
         """Test successful batch test case generation."""
         # Setup async mock
         mock_async_ollama_client.generate_completion = AsyncMock(
@@ -143,7 +149,7 @@ class TestAsyncTestCaseGenerator:
         mock_yaml_manager = Mock()
         mock_yaml_manager.get_test_prompt.return_value = {
             "prompt": "Generate test cases for: {requirement_text}",
-            "variables": ["requirement_text"]
+            "variables": ["requirement_text"],
         }
 
         generator = AsyncTestCaseGenerator(mock_async_ollama_client, mock_yaml_manager, mock_logger)
@@ -156,10 +162,13 @@ class TestAsyncTestCaseGenerator:
             assert result[0]["summary_suffix"] == "Async test case"
 
     @pytest.mark.asyncio
-    async def test_generate_test_cases_batch_with_failures(self, sample_requirements_list, mock_logger):
+    async def test_generate_test_cases_batch_with_failures(
+        self, sample_requirements_list, mock_logger
+    ):
         """Test batch generation with some failures."""
         # Mock client that fails for second requirement
         mock_client = Mock()
+
         async def mock_response(model, prompt, is_json=False, return_full_response=True, **kwargs):
             if "REQ_002" in prompt:
                 raise Exception("AI API timeout")
@@ -172,10 +181,12 @@ class TestAsyncTestCaseGenerator:
         mock_client.generate_completion = AsyncMock(side_effect=mock_response)
 
         mock_yaml_manager = Mock()
+
         def mock_prompt(**kwargs):
-            req_id = kwargs.get('requirement_id', 'UNKNOWN')
-            req_text = kwargs.get('requirement_text', 'No text')
+            req_id = kwargs.get("requirement_id", "UNKNOWN")
+            req_text = kwargs.get("requirement_text", "No text")
             return f"Generate for {req_id}: {req_text}"
+
         mock_yaml_manager.get_test_prompt.side_effect = mock_prompt
 
         generator = AsyncTestCaseGenerator(mock_client, mock_yaml_manager, mock_logger)
@@ -196,6 +207,7 @@ class TestAsyncTestCaseGenerator:
 
         async def mock_response(model, prompt, is_json=False, return_full_response=True, **kwargs):
             import asyncio
+
             call_times.append(asyncio.get_event_loop().time())
             await asyncio.sleep(0.1)  # Simulate API delay
             return {"response": '{"test_cases": [{"summary": "Concurrent test"}]}'}
@@ -426,9 +438,7 @@ class TestValidationStamping:
         assert result[1]["validation_passed"] is False  # old logic marked this True
         assert result[2]["validation_passed"] is True
 
-    def test_table_coverage_issues_do_not_invalidate_cases(
-        self, sample_requirement, mock_logger
-    ):
+    def test_table_coverage_issues_do_not_invalidate_cases(self, sample_requirement, mock_logger):
         """Global table-coverage issues (test_case_index=-1) must not mark any case invalid."""
         issues = [{"test_case_index": -1, "summary": "Table Coverage Deficiency", "issues": ["x"]}]
         generator, _ = self._make_sync_generator(issues, mock_logger)
@@ -503,9 +513,7 @@ class TestSyncGeneratorErrorContract:
         )
         generator = self._make_generator(mock_client, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, dict)
         assert result["error"] is True
@@ -519,9 +527,7 @@ class TestSyncGeneratorErrorContract:
         mock_client.generate_completion.return_value = {"response": ""}
         generator = self._make_generator(mock_client, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, dict)
         assert result["error"] is True
@@ -533,25 +539,19 @@ class TestSyncGeneratorErrorContract:
         mock_client.generate_completion.return_value = {"response": "This is not JSON"}
         generator = self._make_generator(mock_client, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, dict)
         assert result["error"] is True
         assert result["error_type"] == "InvalidJSONStructure"
 
-    def test_empty_test_cases_list_returns_structured_error(
-        self, sample_requirement, mock_logger
-    ):
+    def test_empty_test_cases_list_returns_structured_error(self, sample_requirement, mock_logger):
         """A response with an empty test_cases array must be reported as a failure."""
         mock_client = Mock()
         mock_client.generate_completion.return_value = {"response": '{"test_cases": []}'}
         generator = self._make_generator(mock_client, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, dict)
         assert result["error"] is True
@@ -586,9 +586,7 @@ class TestCanonicalSchemaEnforcement:
         response = json.dumps({"test_cases": [{}, self.CANONICAL_CASE]})
         generator = self._make_generator(response, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, list)
         assert len(result) == 1
@@ -600,25 +598,19 @@ class TestCanonicalSchemaEnforcement:
         response = json.dumps({"test_cases": [blank_case, self.CANONICAL_CASE]})
         generator = self._make_generator(response, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, list)
         assert len(result) == 1
 
-    def test_strict_mode_fails_generation_on_invalid_case(
-        self, sample_requirement, mock_logger
-    ):
+    def test_strict_mode_fails_generation_on_invalid_case(self, sample_requirement, mock_logger):
         """fail_on_validation_error=True must fail the requirement instead of
         exporting defaults."""
         response = json.dumps({"test_cases": [{}]})
         generator = self._make_generator(response, mock_logger)
         generator.fail_on_validation_error = True
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, dict)
         assert result["error"] is True
@@ -629,9 +621,7 @@ class TestCanonicalSchemaEnforcement:
         response = json.dumps({"test_cases": [self.CANONICAL_CASE]})
         generator = self._make_generator(response, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, list)
         assert len(result) == 1
@@ -643,9 +633,7 @@ class TestCanonicalSchemaEnforcement:
         response = json.dumps({"test_cases": [list_case]})
         generator = self._make_generator(response, mock_logger)
 
-        result = generator.generate_test_cases_for_requirement(
-            sample_requirement, "llama3.1:8b"
-        )
+        result = generator.generate_test_cases_for_requirement(sample_requirement, "llama3.1:8b")
 
         assert isinstance(result, list)
         assert len(result) == 1

@@ -96,7 +96,7 @@ def sample_test_cases():
             "data": "Special characters: @#$%",
             "expected_result": "System displays error message",
             "test_type": "negative",
-            "requirement_id": "REQ_001"
+            "requirement_id": "REQ_001",
         },
         {
             "issue_id": "TC_002",
@@ -105,8 +105,8 @@ def sample_test_cases():
             "data": "Normal user input",
             "expected_result": "System processes successfully",
             "test_type": "positive",
-            "requirement_id": "REQ_001"
-        }
+            "requirement_id": "REQ_001",
+        },
     ]
 
 
@@ -151,8 +151,9 @@ def temp_reqifz_file(tmp_path):
 
     # Create REQIFZ (ZIP) file
     import zipfile
+
     reqifz_path = tmp_path / "test.reqifz"
-    with zipfile.ZipFile(reqifz_path, 'w') as zf:
+    with zipfile.ZipFile(reqifz_path, "w") as zf:
         zf.writestr("test.reqif", reqifz_content)
 
     return reqifz_path

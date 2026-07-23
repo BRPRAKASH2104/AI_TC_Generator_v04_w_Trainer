@@ -16,7 +16,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from config import ConfigManager
+from config import ConfigManager  # type: ignore[attr-defined]  # resolved via sys.path.insert above
 from core.extractors import REQIFArtifactExtractor
 from core.formatters import TestCaseFormatter
 from core.prompt_builder import PromptBuilder
@@ -53,7 +53,7 @@ class V03CompatibilityVerifier:
         self.print_summary()
         return self.results
 
-    def verify_extraction(self):
+    def verify_extraction(self) -> None:
         """Verify artifact extraction extracts ALL spec objects"""
         print("\n[1/5] Testing Artifact Extraction...")
         print("-" * 80)
@@ -70,7 +70,7 @@ class V03CompatibilityVerifier:
             print(f"✅ Extracted {len(artifacts)} artifacts")
 
             # Show type breakdown
-            type_counts = {}
+            type_counts: dict[str, int] = {}
             for artifact in artifacts:
                 artifact_type = artifact.get("type", "UNKNOWN")
                 type_counts[artifact_type] = type_counts.get(artifact_type, 0) + 1
@@ -91,7 +91,7 @@ class V03CompatibilityVerifier:
             print(f"❌ FAIL: Exception during extraction: {e}")
             self.results["extraction"] = False
 
-    def verify_classification(self):
+    def verify_classification(self) -> None:
         """Verify classification doesn't drop valid requirements"""
         print("\n[2/5] Testing Artifact Classification...")
         print("-" * 80)
@@ -140,7 +140,7 @@ class V03CompatibilityVerifier:
             print(f"❌ FAIL: Exception during classification: {e}")
             self.results["classification"] = False
 
-    def verify_augmentation(self):
+    def verify_augmentation(self) -> None:
         """Verify context-aware augmentation"""
         print("\n[3/5] Testing Context-Aware Augmentation...")
         print("-" * 80)
@@ -201,7 +201,7 @@ class V03CompatibilityVerifier:
             traceback.print_exc()
             self.results["augmentation"] = False
 
-    def verify_prompt_generation(self):
+    def verify_prompt_generation(self) -> None:
         """Verify prompt generation includes all context"""
         print("\n[4/5] Testing Prompt Generation...")
         print("-" * 80)
@@ -255,7 +255,7 @@ class V03CompatibilityVerifier:
             traceback.print_exc()
             self.results["prompt_generation"] = False
 
-    def verify_field_mapping(self):
+    def verify_field_mapping(self) -> None:
         """Verify field name mapping works for both v03 and v04 formats"""
         print("\n[5/5] Testing Field Name Mapping...")
         print("-" * 80)
@@ -322,7 +322,7 @@ class V03CompatibilityVerifier:
             traceback.print_exc()
             self.results["field_mapping"] = False
 
-    def print_summary(self):
+    def print_summary(self) -> bool:
         """Print verification summary"""
         print("\n" + "=" * 80)
         print("VERIFICATION SUMMARY")
@@ -350,7 +350,7 @@ class V03CompatibilityVerifier:
         return all_passed
 
 
-def main():
+def main() -> None:
     """Main entry point"""
     if len(sys.argv) < 2:
         print("Usage: python verify_v03_compatibility.py <path_to_reqifz_file>")

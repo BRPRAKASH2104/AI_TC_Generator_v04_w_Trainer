@@ -28,7 +28,11 @@ def test_exact_duplicates():
 
     test_cases = [
         {"action": "Send ACCSP=100", "data": "ACCSP=100", "expected_result": "System responds"},
-        {"action": "Send ACCSP=100", "data": "ACCSP=100", "expected_result": "System responds"},  # Exact duplicate
+        {
+            "action": "Send ACCSP=100",
+            "data": "ACCSP=100",
+            "expected_result": "System responds",
+        },  # Exact duplicate
         {"action": "Send IgnMode=ON", "data": "IgnMode=ON", "expected_result": "System activates"},
     ]
 
@@ -46,8 +50,16 @@ def test_similar_duplicates():
     deduplicator = TestCaseDeduplicator(similarity_threshold=0.85)
 
     test_cases = [
-        {"action": "Send ACCSP signal with value 100", "data": "ACCSP=100", "expected_result": "System processes signal"},
-        {"action": "Send ACCSP signal with value of 100", "data": "ACCSP=100", "expected_result": "System processes the signal"},  # Very similar
+        {
+            "action": "Send ACCSP signal with value 100",
+            "data": "ACCSP=100",
+            "expected_result": "System processes signal",
+        },
+        {
+            "action": "Send ACCSP signal with value of 100",
+            "data": "ACCSP=100",
+            "expected_result": "System processes the signal",
+        },  # Very similar
         {"action": "Send IgnMode=ON", "data": "IgnMode=ON", "expected_result": "System activates"},
     ]
 
@@ -114,7 +126,12 @@ def test_keep_strategy_best():
 
     test_cases = [
         {"action": "Test", "data": "Data", "expected_result": "Result", "validation_passed": False},
-        {"action": "Test", "data": "Data", "expected_result": "Result", "validation_passed": True},  # Best (validated)
+        {
+            "action": "Test",
+            "data": "Data",
+            "expected_result": "Result",
+            "validation_passed": True,
+        },  # Best (validated)
         {"action": "Test", "data": "Data", "expected_result": "Result", "validation_passed": False},
     ]
 
@@ -130,7 +147,11 @@ def test_keep_strategy_best_by_length():
 
     test_cases = [
         {"action": "Send ACCSP signal", "data": "ACCSP=100", "expected_result": "System responds"},
-        {"action": "Send ACCSP signal with value 100", "data": "ACCSP=100", "expected_result": "System responds"},  # Longest (more detailed)
+        {
+            "action": "Send ACCSP signal with value 100",
+            "data": "ACCSP=100",
+            "expected_result": "System responds",
+        },  # Longest (more detailed)
         {"action": "Send ACCSP signal", "data": "ACCSP=100", "expected_result": "System responds"},
     ]
 
@@ -162,12 +183,16 @@ def test_custom_fields_to_compare():
     """Test deduplication with custom fields to compare"""
     deduplicator = TestCaseDeduplicator(
         similarity_threshold=0.85,
-        fields_to_compare=["action"]  # Only compare action field
+        fields_to_compare=["action"],  # Only compare action field
     )
 
     test_cases = [
         {"action": "Test A", "data": "Data 1", "expected_result": "Result 1"},
-        {"action": "Test A", "data": "Data 2", "expected_result": "Result 2"},  # Same action, different data
+        {
+            "action": "Test A",
+            "data": "Data 2",
+            "expected_result": "Result 2",
+        },  # Same action, different data
     ]
 
     deduplicated, report = deduplicator.deduplicate(test_cases)
@@ -193,10 +218,30 @@ def test_find_similar_pairs():
     deduplicator = TestCaseDeduplicator()
 
     test_cases = [
-        {"action": "Test A", "data": "Data A", "expected_result": "Result A", "summary_suffix": "TC1"},
-        {"action": "Test A", "data": "Data A", "expected_result": "Result A", "summary_suffix": "TC2"},  # Very similar
-        {"action": "Test B", "data": "Data B", "expected_result": "Result B", "summary_suffix": "TC3"},
-        {"action": "Test C", "data": "Data C", "expected_result": "Result C", "summary_suffix": "TC4"},
+        {
+            "action": "Test A",
+            "data": "Data A",
+            "expected_result": "Result A",
+            "summary_suffix": "TC1",
+        },
+        {
+            "action": "Test A",
+            "data": "Data A",
+            "expected_result": "Result A",
+            "summary_suffix": "TC2",
+        },  # Very similar
+        {
+            "action": "Test B",
+            "data": "Data B",
+            "expected_result": "Result B",
+            "summary_suffix": "TC3",
+        },
+        {
+            "action": "Test C",
+            "data": "Data C",
+            "expected_result": "Result C",
+            "summary_suffix": "TC4",
+        },
     ]
 
     similar_pairs = deduplicator.find_similar_pairs(test_cases, min_similarity=0.9)
@@ -233,7 +278,11 @@ def test_case_insensitive_comparison():
 
     test_cases = [
         {"action": "Send ACCSP=100", "data": "ACCSP=100", "expected_result": "System responds"},
-        {"action": "SEND ACCSP=100", "data": "accsp=100", "expected_result": "SYSTEM RESPONDS"},  # Same but different case
+        {
+            "action": "SEND ACCSP=100",
+            "data": "accsp=100",
+            "expected_result": "SYSTEM RESPONDS",
+        },  # Same but different case
     ]
 
     deduplicated, report = deduplicator.deduplicate(test_cases)
@@ -248,7 +297,11 @@ def test_whitespace_handling():
 
     test_cases = [
         {"action": "Send ACCSP=100", "data": "ACCSP=100", "expected_result": "System responds"},
-        {"action": "  Send ACCSP=100  ", "data": "  ACCSP=100  ", "expected_result": "  System responds  "},  # Extra whitespace
+        {
+            "action": "  Send ACCSP=100  ",
+            "data": "  ACCSP=100  ",
+            "expected_result": "  System responds  ",
+        },  # Extra whitespace
     ]
 
     deduplicated, report = deduplicator.deduplicate(test_cases)

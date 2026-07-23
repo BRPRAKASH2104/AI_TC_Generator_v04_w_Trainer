@@ -189,18 +189,12 @@ def test_determine_image_format():
     assert extractor._determine_image_format("test.unknown", SAMPLE_PNG_BYTES) == ImageFormat.PNG
 
     # Test JPEG
-    assert (
-        extractor._determine_image_format("test.jpg", SAMPLE_JPEG_BYTES) == ImageFormat.JPG
-    )
-    assert (
-        extractor._determine_image_format("test.unknown", SAMPLE_JPEG_BYTES) == ImageFormat.JPEG
-    )
+    assert extractor._determine_image_format("test.jpg", SAMPLE_JPEG_BYTES) == ImageFormat.JPG
+    assert extractor._determine_image_format("test.unknown", SAMPLE_JPEG_BYTES) == ImageFormat.JPEG
 
     # Test unknown
     unknown_data = b"not an image"
-    assert (
-        extractor._determine_image_format("test.unknown", unknown_data) == ImageFormat.UNKNOWN
-    )
+    assert extractor._determine_image_format("test.unknown", unknown_data) == ImageFormat.UNKNOWN
 
 
 def test_compute_hash():
@@ -411,9 +405,7 @@ class TestObjectPlaceholderCollision:
             "saved": False,
         }
 
-    def test_saved_record_survives_placeholder_registered_later(
-        self, extractor, temp_output_dir
-    ):
+    def test_saved_record_survives_placeholder_registered_later(self, extractor, temp_output_dir):
         """Extraction order (external first, placeholder second) must not
         lose saved_path — losing it silently disables vision processing."""
         saved = self._saved_external_record(temp_output_dir)
@@ -424,9 +416,7 @@ class TestObjectPlaceholderCollision:
             "text": '<object data="media/diagram.png" type="image/png"></object>',
         }
 
-        augmented = extractor.augment_artifacts_with_images(
-            [artifact], [saved, placeholder]
-        )
+        augmented = extractor.augment_artifacts_with_images([artifact], [saved, placeholder])
 
         assert augmented[0]["has_images"] is True
         images = augmented[0]["images"]
@@ -434,9 +424,7 @@ class TestObjectPlaceholderCollision:
         assert images[0]["saved"] is True
         assert images[0]["saved_path"] == str(temp_output_dir / "diagram.png")
 
-    def test_placeholder_metadata_merged_into_saved_record(
-        self, extractor, temp_output_dir
-    ):
+    def test_placeholder_metadata_merged_into_saved_record(self, extractor, temp_output_dir):
         """The object reference metadata should enrich the saved record."""
         saved = self._saved_external_record(temp_output_dir)
         placeholder = self._object_placeholder()
@@ -446,9 +434,7 @@ class TestObjectPlaceholderCollision:
             "text": '<object data="media/diagram.png" type="image/png"></object>',
         }
 
-        augmented = extractor.augment_artifacts_with_images(
-            [artifact], [saved, placeholder]
-        )
+        augmented = extractor.augment_artifacts_with_images([artifact], [saved, placeholder])
 
         linked = augmented[0]["images"][0]
         assert linked["object_data"] == "media/diagram.png"

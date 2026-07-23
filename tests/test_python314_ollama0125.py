@@ -1,4 +1,5 @@
 """Test Python 3.14 and Ollama 0.12.5 specific features"""
+
 import asyncio
 import sys
 
@@ -18,7 +19,7 @@ def test_ollama_version():
         version = response.json()["version"]
 
         # Parse version string (e.g., "0.12.5")
-        major, minor, patch = map(int, version.split('.'))
+        major, minor, patch = map(int, version.split("."))
         assert (major, minor, patch) >= (0, 12, 5), f"Ollama 0.12.5+ required, found {version}"
     except requests.RequestException as e:
         pytest.skip(f"Ollama not available: {e}")
@@ -80,9 +81,7 @@ def test_exception_response_body_field():
     from core.exceptions import OllamaResponseError
 
     error = OllamaResponseError(
-        "Test error",
-        status_code=500,
-        response_body='{"error": "Test detail"}'
+        "Test error", status_code=500, response_body='{"error": "Test detail"}'
     )
     assert error.status_code == 500
     assert error.response_body == '{"error": "Test detail"}'
@@ -120,13 +119,15 @@ def test_no_future_import_annotations():
         full_path = Path(module_path)
         if full_path.exists():
             content = full_path.read_text(encoding="utf-8")
-            assert "from __future__ import annotations" not in content, \
+            assert "from __future__ import annotations" not in content, (
                 f"{module_path} still contains 'from __future__ import annotations'"
+            )
 
 
 def test_package_version():
     """Verify package version is 2.1.0"""
     import src
+
     assert src.__version__ == "2.1.0"
 
 

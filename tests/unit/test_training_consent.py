@@ -6,7 +6,6 @@ config/cli_config.yaml) before any requirement/test content is written to
 training_data/. These tests pin that contract (review 2026-07-17 finding 6).
 """
 
-
 from config import ConfigManager
 
 

@@ -104,9 +104,7 @@ class TestRelationshipRendering:
 
     def test_format_relationships_omits_zero_hierarchy_level(self):
         """Level 0 (top-level) is the default and should not add noise."""
-        result = PromptBuilder.format_relationships(
-            {"child_ids": ["A"], "hierarchy_level": 0}
-        )
+        result = PromptBuilder.format_relationships({"child_ids": ["A"], "hierarchy_level": 0})
         assert "Hierarchy level" not in result
 
 

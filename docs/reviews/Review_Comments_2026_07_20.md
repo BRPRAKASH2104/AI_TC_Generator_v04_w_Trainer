@@ -303,22 +303,25 @@ The existing `pytest-asyncio` version emits extensive Python 3.14 deprecation wa
 
 ### [Recommended] 10. Whole-repository quality gates are weaker than the core-source gates
 
-**Status: Partially fixed (2026-07-22).** Scoped, low-risk sub-items done: the
-four whole-repo Ruff violations (all in tests) are fixed — `ruff check .` is now
-clean; the `assert True` placeholder in
-`tests/integration/test_processors.py::test_calculate_performance_metrics` is
-replaced with real assertions against `_get_performance_summary()`; and Pillow
-(an undeclared runtime dep that silently disabled image preprocessing) is now
-declared and locked. **Still open** and intentionally deferred: the whole-repo
-`ruff format` drift (~31 files) and the utility-module mypy errors — these are
-*not* swept here because CLAUDE.md forbids mass-reformatting/mass-type-fixing
-unrelated files in a scoped change; expanding the CI style/type gate to
-tests+utilities must be paired with that cleanup as its own change. Also still
-open: direct trainer failure/dataset-influence coverage (low-covered
-`vision_raft_trainer.py`/`quality_scorer.py`/etc.) and extracting the oversized
-`process_file()` (313/249 lines) and `apply_cli_overrides()` (178) — a higher-risk
-refactor of protected processor files that warrants its own session with impact
-analysis and real-Ollama verification.
+**Status: Mostly fixed (2026-07-22 style/lint + 2026-07-23 types).** Style/lint
+gaps closed: the four whole-repo Ruff violations are fixed and a **one-time,
+user-authorized repo-wide `ruff format` pass** reformatted the 32 drifting files;
+the CI `lint` job now gates the whole repo (`ruff check .` / `ruff format --check .`),
+so `tests/` and `prompts/` can no longer drift. The `assert True` placeholder in
+`test_processors.py::test_calculate_performance_metrics` is now a real test
+against `_get_performance_summary()`, and Pillow (an undeclared runtime dep that
+silently disabled image preprocessing) is declared and locked. **Type gate
+widened (2026-07-23):** the 17 mypy errors across 5 utility modules are resolved
+(missing annotations added, `parsed_requirements` typed as
+`list[tuple[str, str | None]]`, a dead post-early-return branch removed, and the
+`sys.path.insert`-resolved `ConfigManager` import scoped with
+`# type: ignore[attr-defined]`), and the CI `type-check` job now runs
+`mypy src/ main.py utilities/`. **Still open:** (b) direct trainer failure/
+dataset-influence coverage (low-covered `vision_raft_trainer.py`/
+`quality_scorer.py`/etc.); and (c) extracting the oversized `process_file()`
+(313/249 lines) and `apply_cli_overrides()` (178) — a higher-risk refactor of
+protected processor files that warrants its own session with impact analysis and
+real-Ollama verification.
 
 Original finding (for reference): the exact CI source scopes pass, but a whole-repository pass found:
 

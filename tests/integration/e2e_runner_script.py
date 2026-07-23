@@ -82,13 +82,17 @@ def run_command(cmd: list[str], timeout: int = 300) -> tuple[int, str, str]:
 
 def check_ollama_service() -> bool:
     """Check if Ollama service is running"""
-    returncode, stdout, _ = run_command(["curl", "-s", "http://localhost:11434/api/tags"], timeout=5)
+    returncode, stdout, _ = run_command(
+        ["curl", "-s", "http://localhost:11434/api/tags"], timeout=5
+    )
     return returncode == 0 and "models" in stdout
 
 
 def check_models_available() -> tuple[bool, bool]:
     """Check if required models are available"""
-    returncode, stdout, _ = run_command(["curl", "-s", "http://localhost:11434/api/tags"], timeout=5)
+    returncode, stdout, _ = run_command(
+        ["curl", "-s", "http://localhost:11434/api/tags"], timeout=5
+    )
     if returncode != 0:
         return False, False
 
@@ -170,7 +174,9 @@ def test_negative_invalid_file(result: TestResult, input_dir: Path):
     returncode, stdout, stderr = run_command(cmd, timeout=30)
 
     # Should fail with parsing error
-    if returncode != 0 and ("parsing" in stderr.lower() or "invalid" in stderr.lower() or "error" in stderr.lower()):
+    if returncode != 0 and (
+        "parsing" in stderr.lower() or "invalid" in stderr.lower() or "error" in stderr.lower()
+    ):
         result.add_pass(test_name)
     else:
         result.add_fail(test_name, "Did not handle invalid file correctly")
@@ -292,9 +298,7 @@ def main():
     print(f"{GREEN}✓ Found {len(reqifz_files)} REQIFZ files{RESET}\n")
 
     # Select test files (use small files for faster testing)
-    test_files = [
-        f for f in reqifz_files if f.name == "automotive_door_window_system.reqifz"
-    ]
+    test_files = [f for f in reqifz_files if f.name == "automotive_door_window_system.reqifz"]
     if not test_files:
         # Use first 2 files as fallback
         test_files = reqifz_files[:2]

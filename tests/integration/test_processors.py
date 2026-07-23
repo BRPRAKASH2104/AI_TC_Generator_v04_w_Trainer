@@ -22,14 +22,30 @@ from tests.helpers import (
 class TestREQIFZFileProcessor:
     """Integration tests for standard processor."""
 
-    @patch('processors.standard_processor.REQIFArtifactExtractor')
-    @patch('processors.standard_processor.TestCaseGenerator')
-    @patch('processors.standard_processor.TestCaseFormatter')
-    def test_process_file_success(self, mock_formatter_class, mock_generator_class, mock_extractor_class, temp_reqifz_file, tmp_path):
+    @patch("processors.standard_processor.REQIFArtifactExtractor")
+    @patch("processors.standard_processor.TestCaseGenerator")
+    @patch("processors.standard_processor.TestCaseFormatter")
+    def test_process_file_success(
+        self,
+        mock_formatter_class,
+        mock_generator_class,
+        mock_extractor_class,
+        temp_reqifz_file,
+        tmp_path,
+    ):
         """Test successful file processing end-to-end."""
         # Setup mocks using mock objects
         mock_extractor = Mock()
-        mock_extractor.extract_reqifz_content.return_value = [{"type": "System Requirement", "id": "REQ_001", "table": True, "req_text": "Sample text", "text": "Sample text", "heading": "Heading"}]
+        mock_extractor.extract_reqifz_content.return_value = [
+            {
+                "type": "System Requirement",
+                "id": "REQ_001",
+                "table": True,
+                "req_text": "Sample text",
+                "text": "Sample text",
+                "heading": "Heading",
+            }
+        ]
         mock_extractor.classify_artifacts.return_value = {}
         mock_extractor_class.return_value = mock_extractor
 
@@ -38,9 +54,10 @@ class TestREQIFZFileProcessor:
         mock_generator_class.return_value = mock_generator
 
         mock_formatter = Mock()
+
         def mock_format(*args, **kwargs):
             # args[1] in format_to_excel(test_cases, output_dir, ...) is the output directory
-            out_dir = kwargs.get('output_dir')
+            out_dir = kwargs.get("output_dir")
             if not out_dir and len(args) > 1:
                 out_dir = args[1]
             if not out_dir:
@@ -50,6 +67,7 @@ class TestREQIFZFileProcessor:
             out_dir.mkdir(parents=True, exist_ok=True)
             (out_dir / "test_output.xlsx").touch()
             return True
+
         mock_formatter.format_to_excel.side_effect = mock_format
         mock_formatter_class.return_value = mock_formatter
 
@@ -74,9 +92,11 @@ class TestREQIFZFileProcessor:
         output_files = list(tmp_path.glob("*.xlsx"))
         assert len(output_files) == 1
 
-    @patch('processors.standard_processor.OllamaClient')
-    @patch('processors.base_processor.YAMLPromptManager')
-    def test_process_file_no_system_requirements(self, mock_yaml_manager, mock_ollama_client, tmp_path):
+    @patch("processors.standard_processor.OllamaClient")
+    @patch("processors.base_processor.YAMLPromptManager")
+    def test_process_file_no_system_requirements(
+        self, mock_yaml_manager, mock_ollama_client, tmp_path
+    ):
         """Test processing file with no System Requirements."""
         # Create REQIFZ with no System Requirements
         reqifz_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -105,8 +125,9 @@ class TestREQIFZFileProcessor:
 
         # Create REQIFZ file
         import zipfile
+
         reqifz_path = tmp_path / "empty.reqifz"
-        with zipfile.ZipFile(reqifz_path, 'w') as zf:
+        with zipfile.ZipFile(reqifz_path, "w") as zf:
             zf.writestr("empty.reqif", reqifz_content)
 
         mock_yaml_instance = Mock()
@@ -121,8 +142,8 @@ class TestREQIFZFileProcessor:
         assert not result["success"]
         assert "No System Requirements found" in result["error"]
 
-    @patch('processors.standard_processor.OllamaClient')
-    @patch('processors.base_processor.YAMLPromptManager')
+    @patch("processors.standard_processor.OllamaClient")
+    @patch("processors.base_processor.YAMLPromptManager")
     def test_process_directory(self, mock_yaml_manager, mock_ollama_client, tmp_path):
         """Test processing multiple files in directory."""
         # Create multiple REQIFZ files
@@ -153,14 +174,17 @@ class TestREQIFZFileProcessor:
 </REQ-IF>"""
 
             import zipfile
+
             reqifz_path = tmp_path / f"test_{i}.reqifz"
-            with zipfile.ZipFile(reqifz_path, 'w') as zf:
+            with zipfile.ZipFile(reqifz_path, "w") as zf:
                 zf.writestr(f"test_{i}.reqif", reqifz_content)
 
         # Setup mocks
-        with patch('processors.standard_processor.TestCaseGenerator') as mock_generator_class:
+        with patch("processors.standard_processor.TestCaseGenerator") as mock_generator_class:
             mock_generator = Mock()
-            mock_generator.generate_test_cases_for_requirement.return_value = [{"summary": "Test case"}]
+            mock_generator.generate_test_cases_for_requirement.return_value = [
+                {"summary": "Test case"}
+            ]
             mock_generator_class.return_value = mock_generator
 
             mock_yaml_instance = Mock()
@@ -176,8 +200,6 @@ class TestREQIFZFileProcessor:
         assert len(results) == 2
         for result in results:
             assert result["success"]
-
-
 
 
 class TestHPProcessorIsolation:
@@ -237,10 +259,10 @@ class TestHighPerformanceREQIFZFileProcessor:
     """Integration tests for high-performance processor."""
 
     @pytest.mark.asyncio
-    @patch('processors.hp_processor.HighPerformanceREQIFArtifactExtractor')
-    @patch('processors.hp_processor.AsyncTestCaseGenerator')
-    @patch('processors.hp_processor.StreamingTestCaseFormatter')
-    @patch('processors.hp_processor.AsyncOllamaClient')
+    @patch("processors.hp_processor.HighPerformanceREQIFArtifactExtractor")
+    @patch("processors.hp_processor.AsyncTestCaseGenerator")
+    @patch("processors.hp_processor.StreamingTestCaseFormatter")
+    @patch("processors.hp_processor.AsyncOllamaClient")
     async def test_process_file_success(
         self,
         MockClient,
@@ -291,9 +313,9 @@ class TestHighPerformanceREQIFZFileProcessor:
         assert result["requirements_processed"] == 2
 
     @pytest.mark.asyncio
-    @patch('processors.hp_processor.HighPerformanceREQIFArtifactExtractor')
-    @patch('processors.hp_processor.AsyncTestCaseGenerator')
-    @patch('processors.hp_processor.AsyncOllamaClient')
+    @patch("processors.hp_processor.HighPerformanceREQIFArtifactExtractor")
+    @patch("processors.hp_processor.AsyncTestCaseGenerator")
+    @patch("processors.hp_processor.AsyncOllamaClient")
     async def test_process_file_no_test_cases_generated(
         self,
         MockClient,
@@ -330,9 +352,9 @@ class TestHighPerformanceREQIFZFileProcessor:
         assert "No test cases were generated" in result["error"]
 
     @pytest.mark.asyncio
-    @patch('processors.hp_processor.HighPerformanceREQIFArtifactExtractor')
-    @patch('processors.hp_processor.AsyncTestCaseGenerator')
-    @patch('processors.hp_processor.AsyncOllamaClient')
+    @patch("processors.hp_processor.HighPerformanceREQIFArtifactExtractor")
+    @patch("processors.hp_processor.AsyncTestCaseGenerator")
+    @patch("processors.hp_processor.AsyncOllamaClient")
     async def test_process_file_with_generator_exception(
         self,
         MockClient,
@@ -387,7 +409,10 @@ class TestHighPerformanceREQIFZFileProcessor:
         monitor_task.cancel()
 
         # Should have collected some metrics
-        assert len(processor.metrics["cpu_usage_samples"]) > 0 or len(processor.metrics["memory_usage_samples"]) > 0
+        assert (
+            len(processor.metrics["cpu_usage_samples"]) > 0
+            or len(processor.metrics["memory_usage_samples"]) > 0
+        )
 
     def test_calculate_performance_metrics(self):
         """Test performance metrics calculation."""
@@ -479,9 +504,7 @@ class TestPartialCompletionReporting:
         mock_generator_class.return_value = mock_generator
 
         processor = REQIFZFileProcessor(ConfigManager())
-        result = processor.process_file(
-            temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path
-        )
+        result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
 
         assert result["success"] is True
         assert result["partial"] is True
@@ -511,9 +534,7 @@ class TestPartialCompletionReporting:
         mock_generator_class.return_value = mock_generator
 
         processor = REQIFZFileProcessor(ConfigManager())
-        result = processor.process_file(
-            temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path
-        )
+        result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
 
         assert result["success"] is True
         assert result["partial"] is False
@@ -545,9 +566,7 @@ class TestPartialCompletionReporting:
         mock_generator_class.return_value = mock_generator
 
         processor = REQIFZFileProcessor(ConfigManager())
-        result = processor.process_file(
-            temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path
-        )
+        result = processor.process_file(temp_reqifz_file, "llama3.1:8b", output_dir=tmp_path)
 
         assert result["success"] is False
         assert len(result["failed_requirements"]) == 2

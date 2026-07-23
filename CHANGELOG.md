@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (style/CI)
+
+- **One-time repo-wide `ruff format` pass + whole-repo style gate** (review
+  2026-07-20 Recommended finding 10, explicitly authorized). Reformatted 32
+  drifting files (30 test modules plus `src/core/validators.py` and
+  `prompts/tools/validation_and_tools.py`) — purely mechanical, no logic change;
+  full suite unchanged (413 passed / 1 skipped, 52 mock-integration passed). The
+  CI `lint` job now runs `ruff check .` and `ruff format --check .` (whole repo)
+  instead of only `src/ main.py utilities/`, so `tests/` and `prompts/` are held
+  to the same style gate and cannot drift back.
+
+- **`utilities/` type-cleaned and added to the mypy gate** (review 2026-07-20
+  Recommended finding 10, follow-up to the formatting pass). Resolved the 17
+  mypy errors across 5 utility modules (`create_mock_reqifz.py`,
+  `compare_v03_v04_output.py`, `verify_v03_compatibility.py`,
+  `version_check.py`, `annotate_raft.py`): added missing return/parameter
+  annotations, typed `parsed_requirements` as `list[tuple[str, str | None]]`
+  (unversioned requirement lines legitimately carry `None`), removed a dead
+  `if not version_ok:` branch that was unreachable after the early-return
+  version-check guard, and marked the `sys.path.insert`-resolved
+  `from config import ConfigManager` with a scoped `# type: ignore[attr-defined]`.
+  The CI `type-check` job now runs `mypy src/ main.py utilities/` instead of
+  only `src/`. `tests/` stays out of the gate — its pre-existing errors are a
+  separate, larger effort (see CLAUDE.md).
+
 ### Fixed (test quality)
 
 - **Scoped quality fixes toward review 2026-07-20 Recommended finding 10.**

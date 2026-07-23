@@ -1,4 +1,3 @@
-
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -29,6 +28,7 @@ class MockResponse:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
+
 def test_calculate_confidence():
     """Test confidence calculation logic"""
     # Test valid logprobs (list of dicts)
@@ -48,15 +48,13 @@ def test_calculate_confidence():
     assert calculate_confidence({}) is None
     assert calculate_confidence({"response": "foo"}) is None
 
+
 def test_ollama_client_sync_logprobs():
     """Test Sync OllamaClient request payload and response parsing"""
     config = OllamaConfig(enable_logprobs=True, top_logprobs=2)
     client = OllamaClient(config=config)
 
-    mock_response_data = {
-        "response": "Test Response",
-        "logprobs": [{"logprob": -0.1}]
-    }
+    mock_response_data = {"response": "Test Response", "logprobs": [{"logprob": -0.1}]}
 
     with patch("requests.Session.post") as mock_post:
         mock_post.return_value = MockResponse(mock_response_data)
@@ -74,6 +72,7 @@ def test_ollama_client_sync_logprobs():
         text_res = client.generate_response("model", "prompt")
         assert text_res == "Test Response"
 
+
 @pytest.mark.asyncio
 @pytest.mark.skip(reason="Mocking issue with async context manager, logic covered by sync test")
 async def test_ollama_client_async_logprobs():
@@ -81,10 +80,7 @@ async def test_ollama_client_async_logprobs():
     config = OllamaConfig(enable_logprobs=True)
     async_client = AsyncOllamaClient(config=config)
 
-    mock_response_data = {
-        "response": "Async Response",
-        "logprobs": [{"logprob": -0.5}]
-    }
+    mock_response_data = {"response": "Async Response", "logprobs": [{"logprob": -0.5}]}
 
     # Mock aiohttp session
     mock_session = MagicMock()
@@ -103,6 +99,7 @@ async def test_ollama_client_async_logprobs():
     text_res = await async_client.generate_response("model", "prompt")
     assert text_res == "Async Response"
 
+
 def test_generator_confidence_injection():
     """Test TestCaseGenerator injects confidence score"""
     # Mock Client
@@ -110,7 +107,7 @@ def test_generator_confidence_injection():
     mock_client.generate_completion.return_value = {
         "response": '{"test_cases": [{"summary_suffix": "s", "preconditions": "p", '
         '"test_steps": "1) t", "expected_result": "r", "test_type": "positive"}]}',
-        "logprobs": [{"logprob": 0.0}] # Confidence 1.0
+        "logprobs": [{"logprob": 0.0}],  # Confidence 1.0
     }
 
     generator = TestCaseGenerator(client=mock_client)

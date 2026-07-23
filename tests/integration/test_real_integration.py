@@ -4,6 +4,7 @@ Integration tests with real components (where practical).
 Tests for API compatibility and real component interaction.
 Focuses on non-mocked integration where feasible.
 """
+
 import time
 from unittest.mock import Mock, patch
 
@@ -46,9 +47,7 @@ class TestAPICompatibility:
         config = ConfigManager()
         client = OllamaClient(config.ollama)
 
-        with patch.object(
-            client._session, "post", side_effect=requests.ConnectionError("refused")
-        ):
+        with patch.object(client._session, "post", side_effect=requests.ConnectionError("refused")):
             with pytest.raises(OllamaConnectionError):
                 client.generate_response("llama3.1:8b", "test prompt")
 
@@ -57,7 +56,7 @@ class TestAPICompatibility:
         from src.core.parsers import JSONResponseParser
 
         # Test with actual JSON responses from typical AI models
-        real_json_response = '''
+        real_json_response = """
         {
             "test_cases": [
                 {
@@ -76,7 +75,7 @@ class TestAPICompatibility:
                 }
             ]
         }
-        '''
+        """
 
         parsed = JSONResponseParser.extract_json_from_response(real_json_response)
         assert parsed is not None
@@ -90,7 +89,7 @@ class TestAPICompatibility:
         """Test extraction of JSON from markdown code blocks (common AI response format)."""
         from src.core.parsers import JSONResponseParser
 
-        markdown_response = '''Based on the requirement, here are the test cases:
+        markdown_response = """Based on the requirement, here are the test cases:
 
 ```json
 {
@@ -107,7 +106,7 @@ class TestAPICompatibility:
 ```
 
 These tests ensure comprehensive coverage.
-'''
+"""
 
         parsed = JSONResponseParser.extract_json_from_response(markdown_response)
         assert parsed is not None
@@ -128,7 +127,7 @@ class TestConfigurationValidation:
         test_vars = {
             "OLLAMA_BASE_URL": "http://test:8080",
             "OLLAMA_TIMEOUT": "30",
-            "ENABLE_RAFT": "true"
+            "ENABLE_RAFT": "true",
         }
 
         with patch.dict(os.environ, test_vars):
@@ -146,10 +145,7 @@ class TestConfigurationValidation:
 
         # Test valid config
         ollama_config = OllamaConfig(
-            host="127.0.0.1",
-            port=11434,
-            timeout=30.0,
-            model="llama3.1:8b"
+            host="127.0.0.1", port=11434, timeout=30.0, model="llama3.1:8b"
         )
 
         assert ollama_config.host == "127.0.0.1"
@@ -160,7 +156,7 @@ class TestConfigurationValidation:
         with pytest.raises(ValidationError):  # Pydantic validation error
             OllamaConfig(
                 host="not-a-host-name",  # Invalid Host
-                port=-5,     # Invalid timeout
+                port=-5,  # Invalid timeout
             )
 
 
@@ -181,8 +177,9 @@ class TestPerformanceValidation:
                     "action": f"Action {i}",
                     "data": f"Data {i}" * 10,  # Make it larger
                     "expected_result": f"Result {i}",
-                    "test_type": "functional"
-                } for i in range(50)
+                    "test_type": "functional",
+                }
+                for i in range(50)
             ]
         }
 
@@ -206,7 +203,9 @@ class TestPerformanceValidation:
 
         # ujson should be faster (or at least not slower)
         # Allow for some variability in performance
-        assert parser_time <= std_json_time * 1.5, f"Parser took {parser_time:.3f}s, std json took {std_json_time:.3f}s"
+        assert parser_time <= std_json_time * 1.5, (
+            f"Parser took {parser_time:.3f}s, std json took {std_json_time:.3f}s"
+        )
 
         # Results should be identical
         fast_parsed = JSON_PARSER.loads(json_string)

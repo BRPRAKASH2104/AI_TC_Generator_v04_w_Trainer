@@ -417,7 +417,7 @@ REQIF_XML = """<?xml version="1.0" encoding="UTF-8"?>
 </REQ-IF>"""
 
 
-def create_reqifz_file():
+def create_reqifz_file() -> str:
     """Create the .reqifz file"""
 
     # Step 1: Write the REQIF XML to a temporary file

@@ -35,11 +35,9 @@ class TestRAFTDataCollector:
             "heading": "Door Control System",
             "info_list": [
                 {"id": "INFO_001", "text": "CAN-based signal communication"},
-                {"id": "INFO_002", "text": "Voltage range 9-16V"}
+                {"id": "INFO_002", "text": "Voltage range 9-16V"},
             ],
-            "interface_list": [
-                {"id": "IF_BCM_001", "text": "Body Control Module interface"}
-            ]
+            "interface_list": [{"id": "IF_BCM_001", "text": "Body Control Module interface"}],
         }
 
     @pytest.fixture
@@ -59,29 +57,23 @@ Expected: Door unlocks despite low voltage"""
 
     def test_collector_initialization_enabled(self, temp_output_dir, mock_logger):
         """Test RAFT collector initializes correctly when enabled"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         assert collector.enabled is True
         assert collector.output_dir == temp_output_dir
         assert temp_output_dir.exists()
         assert collector.logger == mock_logger
 
-    def test_collect_example_success(self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases):
+    def test_collect_example_success(
+        self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases
+    ):
         """Test successful RAFT example collection"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         output_path = collector.collect_example(
             requirement=sample_requirement,
             generated_test_cases=sample_test_cases,
-            model="llama3.1:8b"
+            model="llama3.1:8b",
         )
 
         # Verify file was created
@@ -105,13 +97,11 @@ Expected: Door unlocks despite low voltage"""
         assert data["context_annotation"]["oracle_context"] == []
         assert data["context_annotation"]["distractor_context"] == []
 
-    def test_get_collection_stats_with_data(self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases):
+    def test_get_collection_stats_with_data(
+        self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases
+    ):
         """Test collection statistics retrieval with data"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         # Collect multiple examples
         for i in range(5):
@@ -127,13 +117,11 @@ Expected: Door unlocks despite low voltage"""
         assert stats["rejected"] == 0
         assert stats["annotated"] == 0
 
-    def test_clear_collected_data(self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases):
+    def test_clear_collected_data(
+        self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases
+    ):
         """Test clearing collected data"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         # Collect examples
         collector.collect_example(sample_requirement, sample_test_cases, "llama3.1:8b")
@@ -155,16 +143,12 @@ Expected: Door unlocks despite low voltage"""
 
     def test_collector_disabled_no_op(self, temp_output_dir, sample_requirement, sample_test_cases):
         """Test that disabled collector is a no-op"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=None,
-            enabled=False
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=None, enabled=False)
 
         result = collector.collect_example(
             requirement=sample_requirement,
             generated_test_cases=sample_test_cases,
-            model="llama3.1:8b"
+            model="llama3.1:8b",
         )
 
         # Should return None and not create files
@@ -173,17 +157,11 @@ Expected: Door unlocks despite low voltage"""
 
     def test_empty_requirement(self, temp_output_dir, mock_logger):
         """Test collection with empty requirement"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         empty_req = {}
         output_path = collector.collect_example(
-            requirement=empty_req,
-            generated_test_cases="Some test cases",
-            model="llama3.1:8b"
+            requirement=empty_req, generated_test_cases="Some test cases", model="llama3.1:8b"
         )
 
         assert output_path is not None
@@ -199,22 +177,16 @@ Expected: Door unlocks despite low voltage"""
 
     def test_missing_context_fields(self, temp_output_dir, mock_logger):
         """Test collection with missing context fields"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         req_no_context = {
             "id": "REQ_NO_CONTEXT",
-            "text": "Requirement without context"
+            "text": "Requirement without context",
             # No heading, info_list, or interface_list
         }
 
         output_path = collector.collect_example(
-            requirement=req_no_context,
-            generated_test_cases="Test cases",
-            model="llama3.1:8b"
+            requirement=req_no_context, generated_test_cases="Test cases", model="llama3.1:8b"
         )
 
         with open(output_path, encoding="utf-8") as f:
@@ -227,9 +199,7 @@ Expected: Door unlocks despite low voltage"""
     def test_get_stats_no_directory(self, temp_output_dir):
         """Test getting stats when directory doesn't exist"""
         collector = RAFTDataCollector(
-            output_dir=temp_output_dir / "nonexistent",
-            logger=None,
-            enabled=True
+            output_dir=temp_output_dir / "nonexistent", logger=None, enabled=True
         )
 
         # Delete the directory that was created during init
@@ -243,11 +213,7 @@ Expected: Door unlocks despite low voltage"""
 
     def test_clear_data_when_disabled(self, temp_output_dir):
         """Test clearing data when collector is disabled"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=None,
-            enabled=False
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=None, enabled=False)
 
         count = collector.clear_collected_data()
         assert count == 0
@@ -256,36 +222,28 @@ Expected: Door unlocks despite low voltage"""
 
     def test_special_characters_in_requirement_id(self, temp_output_dir, mock_logger):
         """Test handling special characters in requirement ID"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         req = {
             "id": "REQ/TEST/001:SPECIAL",  # Contains / and :
             "text": "Test requirement",
-            "heading": "Test"
+            "heading": "Test",
         }
 
         output_path = collector.collect_example(
-            requirement=req,
-            generated_test_cases="Test cases",
-            model="llama3.1:8b"
+            requirement=req, generated_test_cases="Test cases", model="llama3.1:8b"
         )
 
         # Should sanitize special characters
         assert output_path is not None
         assert "/" not in output_path.name
-        assert ":" not in output_path.name or output_path.name.count(":") <= 1  # timestamp may have :
+        assert (
+            ":" not in output_path.name or output_path.name.count(":") <= 1
+        )  # timestamp may have :
 
     def test_very_long_test_cases(self, temp_output_dir, mock_logger, sample_requirement):
         """Test collection with very long test case string"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         # Create very long test cases (>10KB)
         long_test_cases = "Test case " * 2000
@@ -293,7 +251,7 @@ Expected: Door unlocks despite low voltage"""
         output_path = collector.collect_example(
             requirement=sample_requirement,
             generated_test_cases=long_test_cases,
-            model="llama3.1:8b"
+            model="llama3.1:8b",
         )
 
         assert output_path is not None
@@ -306,25 +264,17 @@ Expected: Door unlocks despite low voltage"""
 
     def test_unicode_characters_in_context(self, temp_output_dir, mock_logger):
         """Test collection with Unicode characters"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         req = {
             "id": "REQ_UNICODE",
             "text": "Tür-Schließ-System 🔒",  # German + emoji
             "heading": "Vehicle Access Control 车辆访问控制",  # Chinese
-            "info_list": [
-                {"id": "INFO_001", "text": "Temperature: -40°C to +85°C"}
-            ]
+            "info_list": [{"id": "INFO_001", "text": "Temperature: -40°C to +85°C"}],
         }
 
         output_path = collector.collect_example(
-            requirement=req,
-            generated_test_cases="Test cases with émojis 🚗",
-            model="llama3.1:8b"
+            requirement=req, generated_test_cases="Test cases with émojis 🚗", model="llama3.1:8b"
         )
 
         assert output_path is not None
@@ -338,24 +288,18 @@ Expected: Door unlocks despite low voltage"""
 
     def test_empty_info_and_interface_lists(self, temp_output_dir, mock_logger):
         """Test collection with empty context lists"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         req = {
             "id": "REQ_EMPTY_LISTS",
             "text": "Test requirement",
             "heading": "Test",
             "info_list": [],
-            "interface_list": []
+            "interface_list": [],
         }
 
         output_path = collector.collect_example(
-            requirement=req,
-            generated_test_cases="Test cases",
-            model="llama3.1:8b"
+            requirement=req, generated_test_cases="Test cases", model="llama3.1:8b"
         )
 
         with open(output_path, encoding="utf-8") as f:
@@ -364,19 +308,17 @@ Expected: Door unlocks despite low voltage"""
         assert data["retrieved_context"]["info_artifacts"] == []
         assert data["retrieved_context"]["interfaces"] == []
 
-    def test_annotated_example_in_stats(self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases):
+    def test_annotated_example_in_stats(
+        self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases
+    ):
         """Test that annotated examples are counted correctly in stats"""
-        collector = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         # Collect and annotate an example
         output_path = collector.collect_example(
             requirement=sample_requirement,
             generated_test_cases=sample_test_cases,
-            model="llama3.1:8b"
+            model="llama3.1:8b",
         )
 
         # Manually annotate it
@@ -397,19 +339,13 @@ Expected: Door unlocks despite low voltage"""
         assert stats["validated"] == 1
         assert stats["annotated"] == 1
 
-    def test_multiple_collectors_same_directory(self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases):
+    def test_multiple_collectors_same_directory(
+        self, temp_output_dir, mock_logger, sample_requirement, sample_test_cases
+    ):
         """Test multiple collector instances using same directory"""
-        collector1 = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector1 = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
-        collector2 = RAFTDataCollector(
-            output_dir=temp_output_dir,
-            logger=mock_logger,
-            enabled=True
-        )
+        collector2 = RAFTDataCollector(output_dir=temp_output_dir, logger=mock_logger, enabled=True)
 
         # Both collect examples
         collector1.collect_example(sample_requirement, sample_test_cases, "llama3.1:8b")

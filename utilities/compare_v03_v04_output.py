@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def compare_outputs(v03_csv: Path, v04_xlsx: Path):
+def compare_outputs(v03_csv: Path, v04_xlsx: Path) -> bool:
     """Compare v03 CSV and v04 Excel outputs"""
     print("=" * 80)
     print("V03 vs V04 OUTPUT COMPARISON")
@@ -175,7 +175,7 @@ def compare_outputs(v03_csv: Path, v04_xlsx: Path):
         return False
 
 
-def main():
+def main() -> None:
     if len(sys.argv) != 3:
         print("Usage: python compare_v03_v04_output.py <v03_output.csv> <v04_output.xlsx>")
         print("\nExample:")

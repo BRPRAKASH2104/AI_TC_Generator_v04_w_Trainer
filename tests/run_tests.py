@@ -17,7 +17,9 @@ def run_tests():
 
     # Run pytest with coverage
     cmd = [
-        "python3", "-m", "pytest",
+        "python3",
+        "-m",
+        "pytest",
         ".",
         "-v",  # Verbose output
         "--tb=short",  # Short traceback format
@@ -38,6 +40,7 @@ def run_tests():
         print("❌ pytest not found. Install with: pip install pytest pytest-cov")
         return False
 
+
 def run_specific_test(test_path):
     """Run a specific test file or test function."""
     print(f"🧪 Running specific test: {test_path}")
@@ -51,6 +54,7 @@ def run_specific_test(test_path):
     except subprocess.CalledProcessError as e:
         print(f"\n❌ Test failed with exit code {e.returncode}")
         return False
+
 
 if __name__ == "__main__":
     # Add src to path for direct execution (from tests/ directory)
