@@ -45,7 +45,7 @@ Start here when exploring this area:
 | `extract_images_from_reqifz` | Method | `src/core/image_extractor.py` | 101 |
 | `augment_artifacts_with_images` | Method | `src/core/image_extractor.py` | 643 |
 | `test_full_extraction_with_preprocessing` | Method | `tests/core/test_vision_fixes.py` | 639 |
-| `_extract_and_augment_images` | Method | `src/core/extractors.py` | 120 |
+| `_extract_and_augment_images` | Method | `src/core/extractors.py` | 125 |
 
 ## Execution Flows
 

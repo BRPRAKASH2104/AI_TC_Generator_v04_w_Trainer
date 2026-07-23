@@ -1,56 +1,55 @@
 ---
 name: cluster-53
-description: "Skill for the Cluster_53 area of AI_TC_Generator_v04_w_Trainer. 9 symbols across 2 files."
+description: "Skill for the Cluster_53 area of AI_TC_Generator_v04_w_Trainer. 11 symbols across 2 files."
 ---
 
 # Cluster_53
 
-9 symbols | 2 files | Cohesion: 80%
+11 symbols | 2 files | Cohesion: 91%
 
 ## When to Use
 
-- Working with code in `src/`
-- Understanding how test_signal_name_extraction, test_batch_validation_report, test_signal_names_extracted_once_per_batch work
+- Working with code in `tests/`
+- Understanding how test_valid_test_case, test_invalid_signal_name, test_fuzzy_matching_suggestion work
 - Modifying cluster_53-related functionality
 
 ## Key Files
 
 | File | Symbols |
 |------|---------|
-| `src/core/validators.py` | _validate_with_signals, _extract_signal_names, _validate_signals, _validate_data_format, validate_batch |
-| `tests/core/test_validators.py` | test_signal_name_extraction, test_batch_validation_report, test_signal_names_extracted_once_per_batch, test_signal_extraction_patterns |
+| `tests/core/test_validators.py` | test_valid_test_case, test_invalid_signal_name, test_fuzzy_matching_suggestion, test_no_interface_list, test_empty_data_field (+5) |
+| `src/core/validators.py` | validate_test_case |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`test_signal_name_extraction`** (Function) — `tests/core/test_validators.py:5`
-- **`test_batch_validation_report`** (Function) — `tests/core/test_validators.py:87`
-- **`test_signal_names_extracted_once_per_batch`** (Function) — `tests/core/test_validators.py:268`
-- **`test_signal_extraction_patterns`** (Function) — `tests/core/test_validators.py:290`
-- **`validate_batch`** (Method) — `src/core/validators.py:314`
+- **`test_valid_test_case`** (Function) — `tests/core/test_validators.py:22`
+- **`test_invalid_signal_name`** (Function) — `tests/core/test_validators.py:45`
+- **`test_fuzzy_matching_suggestion`** (Function) — `tests/core/test_validators.py:69`
+- **`test_no_interface_list`** (Function) — `tests/core/test_validators.py:114`
+- **`test_empty_data_field`** (Function) — `tests/core/test_validators.py:132`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `test_signal_name_extraction` | Function | `tests/core/test_validators.py` | 5 |
-| `test_batch_validation_report` | Function | `tests/core/test_validators.py` | 87 |
-| `test_signal_names_extracted_once_per_batch` | Function | `tests/core/test_validators.py` | 268 |
-| `test_signal_extraction_patterns` | Function | `tests/core/test_validators.py` | 290 |
-| `validate_batch` | Method | `src/core/validators.py` | 314 |
-| `_validate_with_signals` | Method | `src/core/validators.py` | 165 |
-| `_extract_signal_names` | Method | `src/core/validators.py` | 194 |
-| `_validate_signals` | Method | `src/core/validators.py` | 221 |
-| `_validate_data_format` | Method | `src/core/validators.py` | 286 |
+| `test_valid_test_case` | Function | `tests/core/test_validators.py` | 22 |
+| `test_invalid_signal_name` | Function | `tests/core/test_validators.py` | 45 |
+| `test_fuzzy_matching_suggestion` | Function | `tests/core/test_validators.py` | 69 |
+| `test_no_interface_list` | Function | `tests/core/test_validators.py` | 114 |
+| `test_empty_data_field` | Function | `tests/core/test_validators.py` | 132 |
+| `test_data_format_validation` | Function | `tests/core/test_validators.py` | 154 |
+| `test_multiple_invalid_signals` | Function | `tests/core/test_validators.py` | 178 |
+| `test_similarity_threshold_configuration` | Function | `tests/core/test_validators.py` | 203 |
+| `test_unknown_signal_in_test_steps_flagged_without_close_match` | Function | `tests/core/test_validators.py` | 225 |
+| `test_generic_words_in_test_steps_not_flagged` | Function | `tests/core/test_validators.py` | 250 |
+| `validate_test_case` | Method | `src/core/validators.py` | 141 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
-| `Validate_batch → _validate_signals` | intra_community | 3 |
-| `Validate_batch → _validate_data_format` | intra_community | 3 |
-| `Validate_batch → Displayed_table_rows` | cross_community | 3 |
 | `Validate_test_case → _validate_signals` | cross_community | 3 |
 | `Validate_test_case → _validate_data_format` | cross_community | 3 |
 
@@ -58,11 +57,11 @@ Start here when exploring this area:
 
 | Area | Connections |
 |------|-------------|
-| Cluster_45 | 2 calls |
+| Cluster_54 | 2 calls |
 
 ## How to Explore
 
-1. `context({name: "test_signal_name_extraction"})` — see callers and callees
+1. `context({name: "test_valid_test_case"})` — see callers and callees
 2. `query({search_query: "cluster_53"})` — find related execution flows
 3. Read key files listed above for implementation details
 4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`

@@ -429,8 +429,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "validation_and_tools.py"
     },
     {
@@ -440,8 +440,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_validate_all_templates",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "validate_all_templates()"
     },
     {
@@ -451,8 +451,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_test_template_rendering",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "test_template_rendering()"
     },
     {
@@ -462,8 +462,8 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_test_auto_selection",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "test_auto_selection()"
     },
     {
@@ -473,8 +473,8 @@
       "source_location": "L168",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_generate_sample_outputs",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "generate_sample_outputs()"
     },
     {
@@ -484,8 +484,8 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_main",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "main()"
     },
     {
@@ -495,8 +495,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_rationale_18",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "validate all yaml template files"
     },
     {
@@ -506,8 +506,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_rationale_62",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "test prompt template rendering with sample data"
     },
     {
@@ -517,8 +517,8 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_rationale_115",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "test automatic template selection logic"
     },
     {
@@ -528,8 +528,8 @@
       "source_location": "L169",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_rationale_169",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "generate sample outputs for documentation"
     },
     {
@@ -539,8 +539,8 @@
       "source_location": "L234",
       "_origin": "ast",
       "id": "prompts_tools_validation_and_tools_rationale_234",
-      "community": 57,
-      "community_name": "REQIF Extractor Robustness Tests",
+      "community": 17,
+      "community_name": "TestYAMLPromptManagerFixed",
       "norm_label": "main function to run all validation and testing"
     },
     {
@@ -558,7 +558,7 @@
       "norm_label": "ai-tc-generator"
     },
     {
-      "label": "src/__init__.py",
+      "label": "__init__.py",
       "file_type": "code",
       "source_file": "src/__init__.py",
       "source_location": "L1",
@@ -566,7 +566,7 @@
       "id": "src_init",
       "community": 60,
       "community_name": ".process_file",
-      "norm_label": "src/__init__.py"
+      "norm_label": "__init__.py"
     },
     {
       "label": "AI Test Case Generator - Modular Architecture  A comprehensive tool for generati",
@@ -652,8 +652,8 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "src_app_logger_jsonformatter",
-      "community": 27,
-      "community_name": "AppLogger",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "_jsonformatter"
     },
     {
@@ -663,8 +663,8 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "src_app_logger_jsonformatter_format",
-      "community": 27,
-      "community_name": "AppLogger",
+      "community": 31,
+      "community_name": ".__init__",
       "norm_label": ".format()"
     },
     {
@@ -674,8 +674,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "logrecord",
-      "community": 27,
-      "community_name": "AppLogger",
+      "community": 31,
+      "community_name": ".__init__",
       "norm_label": "logrecord"
     },
     {
@@ -872,8 +872,8 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "src_app_logger_rationale_173",
-      "community": 27,
-      "community_name": "AppLogger",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "custom json formatter for structured logging"
     },
     {
@@ -883,8 +883,8 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "src_app_logger_rationale_176",
-      "community": 27,
-      "community_name": "AppLogger",
+      "community": 31,
+      "community_name": ".__init__",
       "norm_label": "format log record as json"
     },
     {
@@ -1279,8 +1279,8 @@
       "source_location": "L425",
       "_origin": "ast",
       "id": "src_config_configmanager",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "configmanager"
     },
     {
@@ -1290,8 +1290,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "basesettings",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "basesettings"
     },
     {
@@ -1301,8 +1301,8 @@
       "source_location": "L445",
       "_origin": "ast",
       "id": "src_config_configmanager_settings_customise_sources",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".settings_customise_sources()"
     },
     {
@@ -1312,8 +1312,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "pydanticbasesettingssource",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "pydanticbasesettingssource"
     },
     {
@@ -1334,8 +1334,8 @@
       "source_location": "L495",
       "_origin": "ast",
       "id": "src_config_configmanager_get_model_for_requirement",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".get_model_for_requirement()"
     },
     {
@@ -1664,8 +1664,8 @@
       "source_location": "L496",
       "_origin": "ast",
       "id": "src_config_rationale_496",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "select appropriate model based on requirement characteristics (hybrid strategy)."
     },
     {
@@ -1768,7 +1768,7 @@
       "norm_label": "get comprehensive secrets status for monitoring and debugging"
     },
     {
-      "label": "core/__init__.py",
+      "label": "__init__.py",
       "file_type": "code",
       "source_file": "src/core/__init__.py",
       "source_location": "L1",
@@ -1776,7 +1776,7 @@
       "id": "src_core_init",
       "community": 45,
       "community_name": "Generator Error Handling Tests",
-      "norm_label": "core/__init__.py"
+      "norm_label": "__init__.py"
     },
     {
       "label": "Core components for the AI Test Case Generator.  This package contains the funda",
@@ -2632,8 +2632,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_extract_reqifz_content",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": ".extract_reqifz_content()"
     },
     {
@@ -2643,8 +2643,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_core_extractors_py_path",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "path"
     },
     {
@@ -2654,8 +2654,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "artifactlist",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "artifactlist"
     },
     {
@@ -2665,8 +2665,8 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_augment_relationships_if_enabled",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "._augment_relationships_if_enabled()"
     },
     {
@@ -2676,8 +2676,8 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_extract_and_augment_images",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "._extract_and_augment_images()"
     },
     {
@@ -2687,8 +2687,8 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_parse_reqif_xml",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "._parse_reqif_xml()"
     },
     {
@@ -2698,8 +2698,8 @@
       "source_location": "L197",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_build_spec_type_mapping",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "._build_spec_type_mapping()"
     },
     {
@@ -2709,8 +2709,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_core_extractors_py_element",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "element"
     },
     {
@@ -2720,8 +2720,8 @@
       "source_location": "L218",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_build_foreign_id_mapping",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "._build_foreign_id_mapping()"
     },
     {
@@ -2731,8 +2731,8 @@
       "source_location": "L240",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_build_attribute_definition_mapping",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "._build_attribute_definition_mapping()"
     },
     {
@@ -2742,8 +2742,8 @@
       "source_location": "L265",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_extract_foreign_id",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "._extract_foreign_id()"
     },
     {
@@ -2753,8 +2753,8 @@
       "source_location": "L288",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_extract_spec_object",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "._extract_spec_object()"
     },
     {
@@ -2764,8 +2764,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_core_extractors_py_requirementdata",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "requirementdata"
     },
     {
@@ -2775,8 +2775,8 @@
       "source_location": "L384",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_extract_xhtml_content",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "._extract_xhtml_content()"
     },
     {
@@ -2808,8 +2808,8 @@
       "source_location": "L487",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_classify_artifacts",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": ".classify_artifacts()"
     },
     {
@@ -2819,8 +2819,8 @@
       "source_location": "L500",
       "_origin": "ast",
       "id": "src_core_extractors_reqifartifactextractor_parse_and_augment_relationships",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": ".parse_and_augment_relationships()"
     },
     {
@@ -2830,8 +2830,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_core_extractors_py_any",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "any"
     },
     {
@@ -2885,8 +2885,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_65",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "extract all artifacts from a reqifz file.          args:             reqifz_file"
     },
     {
@@ -2896,8 +2896,8 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_103",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "parse spec-relation elements and augment artifacts when enabled in config."
     },
     {
@@ -2907,8 +2907,8 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_127",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "extract images and augment artifacts using the shared configuration."
     },
     {
@@ -2918,8 +2918,8 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_159",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "parse reqif xml content and extract artifacts"
     },
     {
@@ -2929,8 +2929,8 @@
       "source_location": "L200",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_200",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "build a mapping of spec-object-type identifiers to their long-name values"
     },
     {
@@ -2940,8 +2940,8 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_221",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "build mapping from spec-object-type ids to their reqif.foreignid attribute ident"
     },
     {
@@ -2951,8 +2951,8 @@
       "source_location": "L243",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_243",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "build mapping from attribute-definition identifiers to their long-name values"
     },
     {
@@ -2962,8 +2962,8 @@
       "source_location": "L268",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_268",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "extract foreign id from values container"
     },
     {
@@ -2973,8 +2973,8 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_296",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "extract a single spec object as an artifact"
     },
     {
@@ -2984,8 +2984,8 @@
       "source_location": "L385",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_385",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 57,
+      "community_name": "REQIF Extractor Robustness Tests",
       "norm_label": "extract content from the-value element containing xhtml.          returns raw xh"
     },
     {
@@ -3017,8 +3017,8 @@
       "source_location": "L488",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_488",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "classify artifacts by type"
     },
     {
@@ -3028,8 +3028,8 @@
       "source_location": "L507",
       "_origin": "ast",
       "id": "src_core_extractors_rationale_507",
-      "community": 62,
-      "community_name": "Relationship Parsing Integration Tests",
+      "community": 80,
+      "community_name": "image_extractor.py",
       "norm_label": "parse spec-relation elements and augment artifacts with relationship metadata."
     },
     {
@@ -3072,8 +3072,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_core_formatters_testcaseformatter_init",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".__init__()"
     },
     {
@@ -3237,8 +3237,8 @@
       "source_location": "L292",
       "_origin": "ast",
       "id": "src_core_formatters_streamingtestcaseformatter",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "streamingtestcaseformatter"
     },
     {
@@ -3380,8 +3380,8 @@
       "source_location": "L293",
       "_origin": "ast",
       "id": "src_core_formatters_rationale_293",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "memory-efficient formatter for large test case sets"
     },
     {
@@ -4480,8 +4480,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_core_ollama_client_build_generate_payload",
-      "community": 61,
-      "community_name": "Custom Exception Hierarchy",
+      "community": 4,
+      "community_name": "Ollama Exception Types",
       "norm_label": "_build_generate_payload()"
     },
     {
@@ -4733,8 +4733,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_core_ollama_client_rationale_48",
-      "community": 61,
-      "community_name": "Custom Exception Hierarchy",
+      "community": 4,
+      "community_name": "Ollama Exception Types",
       "norm_label": "build the /api/generate request payload (shared by sync and async clients)."
     },
     {
@@ -5217,8 +5217,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_core_prompt_builder_promptbuilder_init",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 277,
+      "community_name": "test_keep_strategy_best",
       "norm_label": ".__init__()"
     },
     {
@@ -5371,8 +5371,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_core_prompt_builder_rationale_56",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 277,
+      "community_name": "test_keep_strategy_best",
       "norm_label": "initialize prompt builder.          args:             yaml_manager: optional yam"
     },
     {
@@ -6476,7 +6476,7 @@
       "norm_label": "print warning message and add to warnings list"
     },
     {
-      "label": "processors/__init__.py",
+      "label": "__init__.py",
       "file_type": "code",
       "source_file": "src/processors/__init__.py",
       "source_location": "L1",
@@ -6484,7 +6484,7 @@
       "id": "src_processors_init",
       "community": 60,
       "community_name": ".process_file",
-      "norm_label": "processors/__init__.py"
+      "norm_label": "__init__.py"
     },
     {
       "label": "High-level processors for the AI Test Case Generator.  This package contains the",
@@ -6889,8 +6889,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "highperformancereqifzfileprocessor"
     },
     {
@@ -6900,8 +6900,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor_init",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": ".__init__()"
     },
     {
@@ -6911,8 +6911,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor_reset_metrics",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "._reset_metrics()"
     },
     {
@@ -6922,8 +6922,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor_process_directory",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": ".process_directory()"
     },
     {
@@ -6933,8 +6933,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_processors_hp_processor_py_path",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "path"
     },
     {
@@ -6944,8 +6944,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_processors_hp_processor_py_processingresult",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "processingresult"
     },
     {
@@ -6955,8 +6955,8 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor_process_file",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": ".process_file()"
     },
     {
@@ -6966,8 +6966,8 @@
       "source_location": "L420",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor_create_error_result_hp",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "._create_error_result_hp()"
     },
     {
@@ -6977,8 +6977,8 @@
       "source_location": "L439",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor_monitor_performance",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "._monitor_performance()"
     },
     {
@@ -6988,8 +6988,8 @@
       "source_location": "L463",
       "_origin": "ast",
       "id": "src_processors_hp_processor_highperformancereqifzfileprocessor_get_performance_summary",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "._get_performance_summary()"
     },
     {
@@ -6999,8 +6999,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "performancemetrics",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "performancemetrics"
     },
     {
@@ -7021,8 +7021,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_processors_hp_processor_rationale_37",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "high-performance async processor for reqifz files"
     },
     {
@@ -7032,8 +7032,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_processors_hp_processor_rationale_56",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "reset per-file performance metrics.          process_file reuses the processor i"
     },
     {
@@ -7043,8 +7043,8 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_processors_hp_processor_rationale_82",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "process all reqifz files in a directory concurrently."
     },
     {
@@ -7054,8 +7054,8 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "src_processors_hp_processor_rationale_114",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "process a single reqifz file with high-performance async processing.          ar"
     },
     {
@@ -7065,8 +7065,8 @@
       "source_location": "L426",
       "_origin": "ast",
       "id": "src_processors_hp_processor_rationale_426",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "create hp-specific error result with metrics"
     },
     {
@@ -7076,8 +7076,8 @@
       "source_location": "L440",
       "_origin": "ast",
       "id": "src_processors_hp_processor_rationale_440",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "monitor cpu and memory usage during processing"
     },
     {
@@ -7087,8 +7087,8 @@
       "source_location": "L464",
       "_origin": "ast",
       "id": "src_processors_hp_processor_rationale_464",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "generate performance metrics summary"
     },
     {
@@ -7213,7 +7213,7 @@
       "norm_label": "process a single reqifz file and generate test cases.          args:"
     },
     {
-      "label": "src/training/__init__.py",
+      "label": "__init__.py",
       "file_type": "code",
       "source_file": "src/training/__init__.py",
       "source_location": "L1",
@@ -7221,7 +7221,7 @@
       "id": "src_training_init",
       "community": 247,
       "community_name": "Troubleshooting",
-      "norm_label": "src/training/__init__.py"
+      "norm_label": "__init__.py"
     },
     {
       "label": "Training module for RAFT data collection and dataset preparation",
@@ -9265,8 +9265,8 @@
       "source_location": "L155",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_yamlpromptmanager_get_test_prompt",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": ".get_test_prompt()"
     },
     {
@@ -9276,8 +9276,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_py_any",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "any"
     },
     {
@@ -9287,8 +9287,8 @@
       "source_location": "L200",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_yamlpromptmanager_auto_select_template",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "._auto_select_template()"
     },
     {
@@ -9298,8 +9298,8 @@
       "source_location": "L238",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_yamlpromptmanager_validate_variables",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "._validate_variables()"
     },
     {
@@ -9309,8 +9309,8 @@
       "source_location": "L252",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_yamlpromptmanager_apply_defaults",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "._apply_defaults()"
     },
     {
@@ -9320,8 +9320,8 @@
       "source_location": "L274",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_yamlpromptmanager_substitute_variables",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "._substitute_variables()"
     },
     {
@@ -9342,8 +9342,8 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_yamlpromptmanager_get_template_info",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": ".get_template_info()"
     },
     {
@@ -9474,8 +9474,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_rationale_156",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "get a test generation prompt with variable substitution          args:"
     },
     {
@@ -9485,8 +9485,8 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_rationale_201",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "automatically select appropriate template based on context"
     },
     {
@@ -9496,8 +9496,8 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_rationale_239",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "validate that required variables are provided"
     },
     {
@@ -9507,8 +9507,8 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_rationale_255",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "apply default values for optional variables"
     },
     {
@@ -9518,8 +9518,8 @@
       "source_location": "L275",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_rationale_275",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "substitute {variable_name} placeholders in a single pass.          substituted v"
     },
     {
@@ -9540,8 +9540,8 @@
       "source_location": "L297",
       "_origin": "ast",
       "id": "src_yaml_prompt_manager_rationale_297",
-      "community": 17,
-      "community_name": "TestYAMLPromptManagerFixed",
+      "community": 86,
+      "community_name": ".get_test_prompt",
       "norm_label": "get information about a specific template"
     },
     {
@@ -9600,7 +9600,7 @@
       "norm_label": "validate a yaml template file and return any errors"
     },
     {
-      "label": "tests/__init__.py",
+      "label": "__init__.py",
       "file_type": "code",
       "source_file": "tests/__init__.py",
       "source_location": "L1",
@@ -9608,7 +9608,7 @@
       "id": "tests_init",
       "community": 286,
       "community_name": "__init__.py",
-      "norm_label": "tests/__init__.py"
+      "norm_label": "__init__.py"
     },
     {
       "label": "conftest.py",
@@ -11058,8 +11058,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_no_duplicates",
-      "community": 74,
-      "community_name": "TestCaseDeduplicator Core",
+      "community": 285,
+      "community_name": "test_similar_duplicates",
       "norm_label": "test_no_duplicates()"
     },
     {
@@ -11069,8 +11069,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_exact_duplicates",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 282,
+      "community_name": "Prerequisites",
       "norm_label": "test_exact_duplicates()"
     },
     {
@@ -11080,8 +11080,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_similar_duplicates",
-      "community": 277,
-      "community_name": "test_keep_strategy_best",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "test_similar_duplicates()"
     },
     {
@@ -11113,8 +11113,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_keep_strategy_last",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 74,
+      "community_name": "TestCaseDeduplicator Core",
       "norm_label": "test_keep_strategy_last()"
     },
     {
@@ -11146,8 +11146,8 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_similarity_threshold",
-      "community": 86,
-      "community_name": ".get_test_prompt",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "test_similarity_threshold()"
     },
     {
@@ -11157,8 +11157,8 @@
       "source_location": "L161",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_custom_fields_to_compare",
-      "community": 74,
-      "community_name": "TestCaseDeduplicator Core",
+      "community": 281,
+      "community_name": "test_similarity_threshold",
       "norm_label": "test_custom_fields_to_compare()"
     },
     {
@@ -11190,8 +11190,8 @@
       "source_location": "L210",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_deduplication_report_structure",
-      "community": 132,
-      "community_name": "Cluster_40",
+      "community": 74,
+      "community_name": "TestCaseDeduplicator Core",
       "norm_label": "test_deduplication_report_structure()"
     },
     {
@@ -11201,8 +11201,8 @@
       "source_location": "L230",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_case_insensitive_comparison",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 74,
+      "community_name": "TestCaseDeduplicator Core",
       "norm_label": "test_case_insensitive_comparison()"
     },
     {
@@ -11245,8 +11245,8 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_adaptive_schema_exact_duplicates_removed",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 283,
+      "community_name": "Model Evaluation",
       "norm_label": "test_adaptive_schema_exact_duplicates_removed()"
     },
     {
@@ -11256,8 +11256,8 @@
       "source_location": "L340",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_cross_schema_aliases_detected_as_duplicates",
-      "community": 74,
-      "community_name": "TestCaseDeduplicator Core",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "test_cross_schema_aliases_detected_as_duplicates()"
     },
     {
@@ -11267,8 +11267,8 @@
       "source_location": "L363",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_test_list_valued_test_steps_supported",
-      "community": 234,
-      "community_name": "Installation Prerequisites",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "test_list_valued_test_steps_supported()"
     },
     {
@@ -11289,8 +11289,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_7",
-      "community": 74,
-      "community_name": "TestCaseDeduplicator Core",
+      "community": 285,
+      "community_name": "test_similar_duplicates",
       "norm_label": "test deduplication with no duplicate test cases"
     },
     {
@@ -11300,8 +11300,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_26",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 282,
+      "community_name": "Prerequisites",
       "norm_label": "test deduplication with exact duplicate test cases"
     },
     {
@@ -11311,8 +11311,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_45",
-      "community": 277,
-      "community_name": "test_keep_strategy_best",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "test deduplication with highly similar test cases"
     },
     {
@@ -11344,8 +11344,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_96",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 74,
+      "community_name": "TestCaseDeduplicator Core",
       "norm_label": "test keeping the last occurrence of duplicates"
     },
     {
@@ -11377,8 +11377,8 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_144",
-      "community": 86,
-      "community_name": ".get_test_prompt",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "test different similarity thresholds"
     },
     {
@@ -11388,8 +11388,8 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_162",
-      "community": 74,
-      "community_name": "TestCaseDeduplicator Core",
+      "community": 281,
+      "community_name": "test_similarity_threshold",
       "norm_label": "test deduplication with custom fields to compare"
     },
     {
@@ -11421,8 +11421,8 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_211",
-      "community": 132,
-      "community_name": "Cluster_40",
+      "community": 74,
+      "community_name": "TestCaseDeduplicator Core",
       "norm_label": "test that deduplication report has correct structure"
     },
     {
@@ -11432,8 +11432,8 @@
       "source_location": "L231",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_231",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 74,
+      "community_name": "TestCaseDeduplicator Core",
       "norm_label": "test that comparison is case-insensitive"
     },
     {
@@ -11476,8 +11476,8 @@
       "source_location": "L323",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_323",
-      "community": 66,
-      "community_name": "Deduplicator Unit Tests",
+      "community": 283,
+      "community_name": "Model Evaluation",
       "norm_label": "exact duplicates in the adaptive schema are still detected."
     },
     {
@@ -11487,8 +11487,8 @@
       "source_location": "L341",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_341",
-      "community": 74,
-      "community_name": "TestCaseDeduplicator Core",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "the same content under legacy (action/data) and adaptive (preconditions/test_ste"
     },
     {
@@ -11498,8 +11498,8 @@
       "source_location": "L364",
       "_origin": "ast",
       "id": "tests_core_test_deduplicator_rationale_364",
-      "community": 234,
-      "community_name": "Installation Prerequisites",
+      "community": 66,
+      "community_name": "Deduplicator Unit Tests",
       "norm_label": "test_steps may arrive as a list of steps (see validators.py normalisation)."
     },
     {
@@ -14127,8 +14127,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test_relationship_integration.py"
     },
     {
@@ -14138,8 +14138,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_sample_reqifz_with_relationships",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "sample_reqifz_with_relationships()"
     },
     {
@@ -14149,8 +14149,8 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_sample_reqifz_without_relationships",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "sample_reqifz_without_relationships()"
     },
     {
@@ -14160,8 +14160,8 @@
       "source_location": "L152",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_test_extractor_with_relationships",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test_extractor_with_relationships()"
     },
     {
@@ -14171,8 +14171,8 @@
       "source_location": "L182",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_test_extractor_without_relationships",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test_extractor_without_relationships()"
     },
     {
@@ -14182,8 +14182,8 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_test_extract_reqifz_content_wires_relationship_parsing",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test_extract_reqifz_content_wires_relationship_parsing()"
     },
     {
@@ -14193,8 +14193,8 @@
       "source_location": "L230",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_test_extract_reqifz_content_skips_relationships_when_disabled",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test_extract_reqifz_content_skips_relationships_when_disabled()"
     },
     {
@@ -14204,8 +14204,8 @@
       "source_location": "L247",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_test_extractor_with_dependency_graph",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test_extractor_with_dependency_graph()"
     },
     {
@@ -14215,8 +14215,8 @@
       "source_location": "L269",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_test_extractor_without_augmentation",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test_extractor_without_augmentation()"
     },
     {
@@ -14226,8 +14226,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_1",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "integration tests for relationship parsing with extractor"
     },
     {
@@ -14237,8 +14237,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_14",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "create a temporary reqifz file with spec-relation elements"
     },
     {
@@ -14248,8 +14248,8 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_104",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "create a temporary reqifz file without spec-relation elements"
     },
     {
@@ -14259,8 +14259,8 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_153",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test extractor parses relationships and augments artifacts"
     },
     {
@@ -14270,8 +14270,8 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_183",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test extractor handles files without relationships gracefully"
     },
     {
@@ -14281,8 +14281,8 @@
       "source_location": "L208",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_208",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "extract_reqifz_content must parse relationships itself when enabled in config."
     },
     {
@@ -14292,8 +14292,8 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_233",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "with relationship parsing disabled, artifacts must not carry relationship keys."
     },
     {
@@ -14303,8 +14303,8 @@
       "source_location": "L248",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_248",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test extractor builds dependency graph when requested"
     },
     {
@@ -14314,8 +14314,8 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "tests_core_test_relationship_integration_rationale_270",
-      "community": 31,
-      "community_name": ".__init__",
+      "community": 62,
+      "community_name": "Relationship Parsing Integration Tests",
       "norm_label": "test extractor can parse relationships without augmenting artifacts"
     },
     {
@@ -15667,8 +15667,8 @@
       "source_location": "L557",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_testenhancedimagevalidation",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "testenhancedimagevalidation"
     },
     {
@@ -15678,8 +15678,8 @@
       "source_location": "L561",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_testenhancedimagevalidation_test_validation_warns_on_large_dimensions",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": ".test_validation_warns_on_large_dimensions()"
     },
     {
@@ -15689,8 +15689,8 @@
       "source_location": "L573",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_testenhancedimagevalidation_test_validation_warns_on_extreme_aspect_ratio",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": ".test_validation_warns_on_extreme_aspect_ratio()"
     },
     {
@@ -15700,8 +15700,8 @@
       "source_location": "L588",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_testenhancedimagevalidation_test_validation_warns_on_tiny_images",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": ".test_validation_warns_on_tiny_images()"
     },
     {
@@ -15711,8 +15711,8 @@
       "source_location": "L600",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_testenhancedimagevalidation_test_validation_detects_animated_gif",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": ".test_validation_detects_animated_gif()"
     },
     {
@@ -15722,8 +15722,8 @@
       "source_location": "L613",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_testenhancedimagevalidation_test_validation_reports_file_size",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": ".test_validation_reports_file_size()"
     },
     {
@@ -15733,8 +15733,8 @@
       "source_location": "L621",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_testenhancedimagevalidation_test_validation_no_warnings_for_good_images",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": ".test_validation_no_warnings_for_good_images()"
     },
     {
@@ -16085,8 +16085,8 @@
       "source_location": "L558",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_rationale_558",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "tests for enhanced image validation - medium priority"
     },
     {
@@ -16096,8 +16096,8 @@
       "source_location": "L562",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_rationale_562",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "validation should warn for images with very large dimensions."
     },
     {
@@ -16107,8 +16107,8 @@
       "source_location": "L576",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_rationale_576",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "validation should warn for extreme aspect ratios."
     },
     {
@@ -16118,8 +16118,8 @@
       "source_location": "L589",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_rationale_589",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "validation should warn for very small images."
     },
     {
@@ -16129,8 +16129,8 @@
       "source_location": "L601",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_rationale_601",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "validation should detect and warn about animated gifs."
     },
     {
@@ -16140,8 +16140,8 @@
       "source_location": "L614",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_rationale_614",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "validation should report file size in bytes."
     },
     {
@@ -16151,8 +16151,8 @@
       "source_location": "L622",
       "_origin": "ast",
       "id": "tests_core_test_vision_fixes_rationale_622",
-      "community": 11,
-      "community_name": "REQIFZ Reference Guide",
+      "community": 83,
+      "community_name": "Async Client Init Tests",
       "norm_label": "good images should not generate warnings."
     },
     {
@@ -16178,7 +16178,7 @@
       "norm_label": "full extraction workflow should preprocess images."
     },
     {
-      "label": "helpers/__init__.py",
+      "label": "__init__.py",
       "file_type": "code",
       "source_file": "tests/helpers/__init__.py",
       "source_location": "L1",
@@ -16186,7 +16186,7 @@
       "id": "tests_helpers_init",
       "community": 167,
       "community_name": "JSON Parser Edge Cases",
-      "norm_label": "helpers/__init__.py"
+      "norm_label": "__init__.py"
     },
     {
       "label": "Test helper utilities for creating XHTML-formatted test artifacts.",
@@ -17141,8 +17141,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "tests_integration_test_edge_cases_testmalformedfiles_mock_config",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".mock_config()"
     },
     {
@@ -17295,8 +17295,8 @@
       "source_location": "L253",
       "_origin": "ast",
       "id": "tests_integration_test_edge_cases_testresourceconstraints_mock_config",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".mock_config()"
     },
     {
@@ -17449,8 +17449,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "tests_integration_test_edge_cases_rationale_33",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "create mock configuration for testing"
     },
     {
@@ -17746,8 +17746,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_testendtoendworkflows_mock_config",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".mock_config()"
     },
     {
@@ -17790,8 +17790,8 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_testendtoendworkflows_test_hp_mode_complete_workflow",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": ".test_hp_mode_complete_workflow()"
     },
     {
@@ -17845,8 +17845,8 @@
       "source_location": "L269",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_testendtoendworkflows_test_performance_comparison_workflow",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": ".test_performance_comparison_workflow()"
     },
     {
@@ -17867,8 +17867,8 @@
       "source_location": "L357",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_testendtoendworkflows_test_secrets_management_workflow",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_secrets_management_workflow()"
     },
     {
@@ -17977,8 +17977,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_rationale_33",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "create mock configuration for testing"
     },
     {
@@ -18021,8 +18021,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_rationale_117",
-      "community": 3,
-      "community_name": "ConfigManager Settings",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "test complete high-performance mode workflow"
     },
     {
@@ -18076,8 +18076,8 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_rationale_270",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 60,
+      "community_name": ".process_file",
       "norm_label": "test performance comparison between standard and hp modes"
     },
     {
@@ -18098,8 +18098,8 @@
       "source_location": "L358",
       "_origin": "ast",
       "id": "tests_integration_test_end_to_end_rationale_358",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "test secrets management workflow"
     },
     {
@@ -18747,8 +18747,8 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "tests_integration_test_real_integration_testconfigurationvalidation_test_config_manager_environment_variables",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_config_manager_environment_variables()"
     },
     {
@@ -18901,8 +18901,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "tests_integration_test_real_integration_rationale_122",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "test that configmanager can read environment variables."
     },
     {
@@ -19011,8 +19011,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_testperformanceregressionbenchmarks",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "testperformanceregressionbenchmarks"
     },
     {
@@ -19022,8 +19022,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_testperformanceregressionbenchmarks_test_standard_processor_performance_regression",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_standard_processor_performance_regression()"
     },
     {
@@ -19033,8 +19033,8 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_testperformanceregressionbenchmarks_test_context_aware_processing_performance",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_context_aware_processing_performance()"
     },
     {
@@ -19044,8 +19044,8 @@
       "source_location": "L173",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_testperformanceregressionbenchmarks_test_processor_consistency",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_processor_consistency()"
     },
     {
@@ -19055,8 +19055,8 @@
       "source_location": "L219",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_testperformanceregressionbenchmarks_test_memory_efficiency_regression",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_memory_efficiency_regression()"
     },
     {
@@ -19099,8 +19099,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_rationale_58",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "performance regression tests to ensure optimizations work and don't regress."
     },
     {
@@ -19110,8 +19110,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_rationale_61",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "test that standard processor performance is within expected bounds."
     },
     {
@@ -19121,8 +19121,8 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_rationale_116",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "benchmark the context-aware requirement augmentation logic."
     },
     {
@@ -19132,8 +19132,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_rationale_174",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "test that processor results are consistent across multiple runs."
     },
     {
@@ -19143,8 +19143,8 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "tests_performance_test_regression_benchmarks_rationale_220",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "test that memory usage doesn't regress significantly."
     },
     {
@@ -19462,8 +19462,8 @@
       "source_location": "L438",
       "_origin": "ast",
       "id": "tests_test_critical_improvements_testprocessorexceptionhandling_test_standard_processor_handles_connection_error",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 61,
+      "community_name": "Custom Exception Hierarchy",
       "norm_label": ".test_standard_processor_handles_connection_error()"
     },
     {
@@ -19759,8 +19759,8 @@
       "source_location": "L439",
       "_origin": "ast",
       "id": "tests_test_critical_improvements_rationale_439",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 61,
+      "community_name": "Custom Exception Hierarchy",
       "norm_label": "standard processor should catch and format ollamaconnectionerror"
     },
     {
@@ -21139,7 +21139,7 @@
       "norm_label": "test generator exception handling (negative)"
     },
     {
-      "label": "tests/training/__init__.py",
+      "label": "__init__.py",
       "file_type": "code",
       "source_file": "tests/training/__init__.py",
       "source_location": "L1",
@@ -21147,7 +21147,7 @@
       "id": "tests_training_init",
       "community": 276,
       "community_name": "__init__.py",
-      "norm_label": "tests/training/__init__.py"
+      "norm_label": "__init__.py"
     },
     {
       "label": "Training module tests",
@@ -22861,8 +22861,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "test_training_consent.py"
     },
     {
@@ -22872,8 +22872,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_testtrainingenvvars",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "testtrainingenvvars"
     },
     {
@@ -22883,8 +22883,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_testtrainingenvvars_test_enable_raft_env_var_is_mapped",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_enable_raft_env_var_is_mapped()"
     },
     {
@@ -22894,8 +22894,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_testtrainingenvvars_test_collect_training_data_env_var_is_mapped",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_collect_training_data_env_var_is_mapped()"
     },
     {
@@ -22905,8 +22905,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_testtrainingenvvars_test_env_vars_default_off",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_env_vars_default_off()"
     },
     {
@@ -22916,8 +22916,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_testtrainingyamlsection",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "testtrainingyamlsection"
     },
     {
@@ -22927,8 +22927,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_testtrainingyamlsection_test_training_section_is_loaded",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_training_section_is_loaded()"
     },
     {
@@ -22938,8 +22938,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_testtrainingyamlsection_test_unknown_training_keys_are_ignored",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": ".test_unknown_training_keys_are_ignored()"
     },
     {
@@ -23015,8 +23015,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_rationale_1",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "unit tests for raft training-data collection consent controls.  the readme docum"
     },
     {
@@ -23026,8 +23026,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_rationale_15",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "ai_tg_enable_raft / ai_tg_collect_training_data must be honored."
     },
     {
@@ -23037,8 +23037,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "tests_unit_test_training_consent_rationale_42",
-      "community": 1,
-      "community_name": "Core Extraction & Generation Pipeline",
+      "community": 3,
+      "community_name": "ConfigManager Settings",
       "norm_label": "load_cli_config must import the documented `training:` section."
     },
     {
@@ -24362,7 +24362,7 @@
       "norm_label": "main entry point for version checking"
     },
     {
-      "label": ".agents/skills/browser/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/browser/SKILL.md",
       "source_location": "L1",
@@ -24370,7 +24370,7 @@
       "id": "agents_skills_browser_skill",
       "community": 39,
       "community_name": "Browser Automation Skill",
-      "norm_label": ".agents/skills/browser/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Browser Automation Skill",
@@ -24626,7 +24626,7 @@
       "norm_label": "tips"
     },
     {
-      "label": "cluster-16/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-16/SKILL.md",
       "source_location": "L1",
@@ -24634,7 +24634,7 @@
       "id": "agents_skills_generated_cluster_16_skill",
       "community": 120,
       "community_name": "Cluster_16",
-      "norm_label": "cluster-16/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_16",
@@ -24725,7 +24725,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-17/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-17/SKILL.md",
       "source_location": "L1",
@@ -24733,7 +24733,7 @@
       "id": "agents_skills_generated_cluster_17_skill",
       "community": 121,
       "community_name": "Cluster_17",
-      "norm_label": "cluster-17/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_17",
@@ -24824,7 +24824,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-21/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-21/SKILL.md",
       "source_location": "L1",
@@ -24832,7 +24832,7 @@
       "id": "agents_skills_generated_cluster_21_skill",
       "community": 122,
       "community_name": "Cluster_21",
-      "norm_label": "cluster-21/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_21",
@@ -24923,7 +24923,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-29/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-29/SKILL.md",
       "source_location": "L1",
@@ -24931,7 +24931,7 @@
       "id": "agents_skills_generated_cluster_29_skill",
       "community": 142,
       "community_name": "Cluster_29",
-      "norm_label": "cluster-29/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_29",
@@ -25011,7 +25011,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-30/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-30/SKILL.md",
       "source_location": "L1",
@@ -25019,7 +25019,7 @@
       "id": "agents_skills_generated_cluster_30_skill",
       "community": 169,
       "community_name": "Cluster_30",
-      "norm_label": "cluster-30/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_30",
@@ -25088,7 +25088,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-31/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-31/SKILL.md",
       "source_location": "L1",
@@ -25096,7 +25096,7 @@
       "id": "agents_skills_generated_cluster_31_skill",
       "community": 143,
       "community_name": "Cluster_31",
-      "norm_label": "cluster-31/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_31",
@@ -25176,7 +25176,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-36/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-36/SKILL.md",
       "source_location": "L1",
@@ -25184,7 +25184,7 @@
       "id": "agents_skills_generated_cluster_36_skill",
       "community": 144,
       "community_name": "Cluster_36",
-      "norm_label": "cluster-36/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_36",
@@ -25264,7 +25264,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-43/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-43/SKILL.md",
       "source_location": "L1",
@@ -25272,7 +25272,7 @@
       "id": "agents_skills_generated_cluster_43_skill",
       "community": 123,
       "community_name": "Cluster_43",
-      "norm_label": "cluster-43/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_43",
@@ -25363,7 +25363,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": ".agents/skills/generated/cluster-44/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-44/SKILL.md",
       "source_location": "L1",
@@ -25371,7 +25371,7 @@
       "id": "agents_skills_generated_cluster_44_skill",
       "community": 145,
       "community_name": "Cluster_44",
-      "norm_label": ".agents/skills/generated/cluster-44/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_44",
@@ -25451,7 +25451,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-72/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-72/SKILL.md",
       "source_location": "L1",
@@ -25459,7 +25459,7 @@
       "id": "agents_skills_generated_cluster_72_skill",
       "community": 146,
       "community_name": "Cluster_72",
-      "norm_label": "cluster-72/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_72",
@@ -25539,7 +25539,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-74/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-74/SKILL.md",
       "source_location": "L1",
@@ -25547,7 +25547,7 @@
       "id": "agents_skills_generated_cluster_74_skill",
       "community": 170,
       "community_name": "Cluster_74",
-      "norm_label": "cluster-74/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_74",
@@ -25616,7 +25616,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-75/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-75/SKILL.md",
       "source_location": "L1",
@@ -25624,7 +25624,7 @@
       "id": "agents_skills_generated_cluster_75_skill",
       "community": 147,
       "community_name": "Cluster_75",
-      "norm_label": "cluster-75/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_75",
@@ -25704,7 +25704,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-8/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/cluster-8/SKILL.md",
       "source_location": "L1",
@@ -25712,7 +25712,7 @@
       "id": "agents_skills_generated_cluster_8_skill",
       "community": 124,
       "community_name": "Cluster_8",
-      "norm_label": "cluster-8/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_8",
@@ -25803,7 +25803,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "integration/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/integration/SKILL.md",
       "source_location": "L1",
@@ -25811,7 +25811,7 @@
       "id": "agents_skills_generated_integration_skill",
       "community": 125,
       "community_name": "Integration",
-      "norm_label": "integration/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Integration",
@@ -25902,7 +25902,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "processors/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/processors/SKILL.md",
       "source_location": "L1",
@@ -25910,7 +25910,7 @@
       "id": "agents_skills_generated_processors_skill",
       "community": 126,
       "community_name": "Processors",
-      "norm_label": "processors/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Processors",
@@ -26001,7 +26001,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "tests/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/tests/SKILL.md",
       "source_location": "L1",
@@ -26009,7 +26009,7 @@
       "id": "agents_skills_generated_tests_skill",
       "community": 148,
       "community_name": "Tests",
-      "norm_label": "tests/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Tests",
@@ -26089,7 +26089,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": ".agents/skills/generated/tools/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/tools/SKILL.md",
       "source_location": "L1",
@@ -26097,7 +26097,7 @@
       "id": "agents_skills_generated_tools_skill",
       "community": 127,
       "community_name": "Tools",
-      "norm_label": ".agents/skills/generated/tools/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Tools",
@@ -26188,7 +26188,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "training/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/training/SKILL.md",
       "source_location": "L1",
@@ -26196,7 +26196,7 @@
       "id": "agents_skills_generated_training_skill",
       "community": 149,
       "community_name": "Training",
-      "norm_label": "training/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Training",
@@ -26276,7 +26276,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "unit/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/unit/SKILL.md",
       "source_location": "L1",
@@ -26284,7 +26284,7 @@
       "id": "agents_skills_generated_unit_skill",
       "community": 128,
       "community_name": "Unit",
-      "norm_label": "unit/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Unit",
@@ -26375,7 +26375,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "utilities/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/generated/utilities/SKILL.md",
       "source_location": "L1",
@@ -26383,7 +26383,7 @@
       "id": "agents_skills_generated_utilities_skill",
       "community": 129,
       "community_name": "Utilities",
-      "norm_label": "utilities/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Utilities",
@@ -26474,7 +26474,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": ".agents/skills/gitnexus/gitnexus-cli/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/gitnexus/gitnexus-cli/SKILL.md",
       "source_location": "L1",
@@ -26482,7 +26482,7 @@
       "id": "agents_skills_gitnexus_gitnexus_cli_skill",
       "community": 110,
       "community_name": "Commands",
-      "norm_label": ".agents/skills/gitnexus/gitnexus-cli/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "GitNexus CLI Commands",
@@ -26584,7 +26584,7 @@
       "norm_label": "troubleshooting"
     },
     {
-      "label": ".agents/skills/gitnexus/gitnexus-debugging/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/gitnexus/gitnexus-debugging/SKILL.md",
       "source_location": "L1",
@@ -26592,7 +26592,7 @@
       "id": "agents_skills_gitnexus_gitnexus_debugging_skill",
       "community": 150,
       "community_name": "Debugging with GitNexus",
-      "norm_label": ".agents/skills/gitnexus/gitnexus-debugging/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Debugging with GitNexus",
@@ -26672,7 +26672,7 @@
       "norm_label": "example: \"payment endpoint returns 500 intermittently\""
     },
     {
-      "label": ".agents/skills/gitnexus/gitnexus-exploring/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/gitnexus/gitnexus-exploring/SKILL.md",
       "source_location": "L1",
@@ -26680,7 +26680,7 @@
       "id": "agents_skills_gitnexus_gitnexus_exploring_skill",
       "community": 151,
       "community_name": "Exploring Codebases with GitNexus",
-      "norm_label": ".agents/skills/gitnexus/gitnexus-exploring/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Exploring Codebases with GitNexus",
@@ -26760,7 +26760,7 @@
       "norm_label": "example: \"how does payment processing work?\""
     },
     {
-      "label": ".agents/skills/gitnexus/gitnexus-guide/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/gitnexus/gitnexus-guide/SKILL.md",
       "source_location": "L1",
@@ -26768,7 +26768,7 @@
       "id": "agents_skills_gitnexus_gitnexus_guide_skill",
       "community": 95,
       "community_name": "GitNexus Guide",
-      "norm_label": ".agents/skills/gitnexus/gitnexus-guide/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "GitNexus Guide",
@@ -26881,7 +26881,7 @@
       "norm_label": "graph schema"
     },
     {
-      "label": ".agents/skills/gitnexus/gitnexus-impact-analysis/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/gitnexus/gitnexus-impact-analysis/SKILL.md",
       "source_location": "L1",
@@ -26889,7 +26889,7 @@
       "id": "agents_skills_gitnexus_gitnexus_impact_analysis_skill",
       "community": 130,
       "community_name": "Impact Analysis with GitNexus",
-      "norm_label": ".agents/skills/gitnexus/gitnexus-impact-analysis/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Impact Analysis with GitNexus",
@@ -26980,7 +26980,7 @@
       "norm_label": "example: \"what breaks if i change validateuser?\""
     },
     {
-      "label": ".agents/skills/gitnexus/gitnexus-refactoring/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".agents/skills/gitnexus/gitnexus-refactoring/SKILL.md",
       "source_location": "L1",
@@ -26988,7 +26988,7 @@
       "id": "agents_skills_gitnexus_gitnexus_refactoring_skill",
       "community": 96,
       "community_name": "Refactoring with GitNexus",
-      "norm_label": ".agents/skills/gitnexus/gitnexus-refactoring/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Refactoring with GitNexus",
@@ -27123,7 +27123,7 @@
       "norm_label": "graphify"
     },
     {
-      "label": ".claude/skills/browser/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/browser/SKILL.md",
       "source_location": "L1",
@@ -27131,7 +27131,7 @@
       "id": "claude_skills_browser_skill",
       "community": 40,
       "community_name": "Browser Automation Skill",
-      "norm_label": ".claude/skills/browser/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Browser Automation Skill",
@@ -27387,7 +27387,7 @@
       "norm_label": "tips"
     },
     {
-      "label": "cluster-11/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-11/SKILL.md",
       "source_location": "L1",
@@ -27395,7 +27395,7 @@
       "id": "claude_skills_generated_cluster_11_skill",
       "community": 131,
       "community_name": "Cluster_11",
-      "norm_label": "cluster-11/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_11",
@@ -27475,7 +27475,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-12/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-12/SKILL.md",
       "source_location": "L1",
@@ -27483,7 +27483,7 @@
       "id": "claude_skills_generated_cluster_12_skill",
       "community": 97,
       "community_name": "Cluster_33",
-      "norm_label": "cluster-12/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_12",
@@ -27574,7 +27574,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-20/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-20/SKILL.md",
       "source_location": "L1",
@@ -27582,7 +27582,7 @@
       "id": "claude_skills_generated_cluster_20_skill",
       "community": 106,
       "community_name": "Prompt Validation Tooling",
-      "norm_label": "cluster-20/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_20",
@@ -27673,7 +27673,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-37/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-37/SKILL.md",
       "source_location": "L1",
@@ -27681,7 +27681,7 @@
       "id": "claude_skills_generated_cluster_37_skill",
       "community": 186,
       "community_name": "Cluster_49",
-      "norm_label": "cluster-37/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_37",
@@ -27761,7 +27761,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-38/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-38/SKILL.md",
       "source_location": "L1",
@@ -27769,7 +27769,7 @@
       "id": "claude_skills_generated_cluster_38_skill",
       "community": 189,
       "community_name": "REQIFZ Pipeline Stages",
-      "norm_label": "cluster-38/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_38",
@@ -27849,7 +27849,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": ".claude/skills/generated/cluster-44/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-44/SKILL.md",
       "source_location": "L1",
@@ -27857,7 +27857,7 @@
       "id": "claude_skills_generated_cluster_44_skill",
       "community": 210,
       "community_name": "TestConfigWiring",
-      "norm_label": ".claude/skills/generated/cluster-44/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_44",
@@ -27937,7 +27937,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-45/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-45/SKILL.md",
       "source_location": "L1",
@@ -27945,7 +27945,7 @@
       "id": "claude_skills_generated_cluster_45_skill",
       "community": 216,
       "community_name": "Best Practices",
-      "norm_label": "cluster-45/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_45",
@@ -28025,7 +28025,106 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-53/SKILL.md",
+      "label": "SKILL.md",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "skill.md"
+    },
+    {
+      "label": "Cluster_52",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "cluster_52"
+    },
+    {
+      "label": "When to Use",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_when_to_use",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "when to use"
+    },
+    {
+      "label": "Key Files",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L16",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_key_files",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "key files"
+    },
+    {
+      "label": "Entry Points",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_entry_points",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "entry points"
+    },
+    {
+      "label": "Key Symbols",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L33",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_key_symbols",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "key symbols"
+    },
+    {
+      "label": "Execution Flows",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L49",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_execution_flows",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "execution flows"
+    },
+    {
+      "label": "Connected Areas",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L56",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_connected_areas",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "connected areas"
+    },
+    {
+      "label": "How to Explore",
+      "file_type": "document",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L62",
+      "_origin": "ast",
+      "id": "claude_skills_generated_cluster_52_skill_how_to_explore",
+      "community": 132,
+      "community_name": "Cluster_40",
+      "norm_label": "how to explore"
+    },
+    {
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
       "source_location": "L1",
@@ -28033,7 +28132,7 @@
       "id": "claude_skills_generated_cluster_53_skill",
       "community": 164,
       "community_name": "._build_raft_example",
-      "norm_label": "cluster-53/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Cluster_53",
@@ -28094,7 +28193,7 @@
       "label": "Execution Flows",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
-      "source_location": "L49",
+      "source_location": "L47",
       "_origin": "ast",
       "id": "claude_skills_generated_cluster_53_skill_execution_flows",
       "community": 164,
@@ -28105,7 +28204,7 @@
       "label": "Connected Areas",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
-      "source_location": "L56",
+      "source_location": "L57",
       "_origin": "ast",
       "id": "claude_skills_generated_cluster_53_skill_connected_areas",
       "community": 164,
@@ -28116,7 +28215,7 @@
       "label": "How to Explore",
       "file_type": "document",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
-      "source_location": "L62",
+      "source_location": "L63",
       "_origin": "ast",
       "id": "claude_skills_generated_cluster_53_skill_how_to_explore",
       "community": 164,
@@ -28124,194 +28223,95 @@
       "norm_label": "how to explore"
     },
     {
-      "label": "cluster-54/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill",
-      "community": 80,
-      "community_name": "image_extractor.py",
-      "norm_label": "cluster-54/skill.md"
+      "id": "claude_skills_generated_cluster_89_skill",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
+      "norm_label": "skill.md"
     },
     {
-      "label": "Cluster_54",
+      "label": "Cluster_89",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L6",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "community": 80,
-      "community_name": "image_extractor.py",
-      "norm_label": "cluster_54"
+      "id": "claude_skills_generated_cluster_89_skill_cluster_89",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
+      "norm_label": "cluster_89"
     },
     {
       "label": "When to Use",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L10",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_when_to_use",
-      "community": 80,
-      "community_name": "image_extractor.py",
+      "id": "claude_skills_generated_cluster_89_skill_when_to_use",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
       "norm_label": "when to use"
     },
     {
       "label": "Key Files",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L16",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_key_files",
-      "community": 80,
-      "community_name": "image_extractor.py",
+      "id": "claude_skills_generated_cluster_89_skill_key_files",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
       "norm_label": "key files"
     },
     {
       "label": "Entry Points",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L23",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_entry_points",
-      "community": 80,
-      "community_name": "image_extractor.py",
+      "id": "claude_skills_generated_cluster_89_skill_entry_points",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
       "norm_label": "entry points"
     },
     {
       "label": "Key Symbols",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L33",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_key_symbols",
-      "community": 80,
-      "community_name": "image_extractor.py",
-      "norm_label": "key symbols"
-    },
-    {
-      "label": "Execution Flows",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L47",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_execution_flows",
-      "community": 80,
-      "community_name": "image_extractor.py",
-      "norm_label": "execution flows"
-    },
-    {
-      "label": "Connected Areas",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L57",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_connected_areas",
-      "community": 80,
-      "community_name": "image_extractor.py",
-      "norm_label": "connected areas"
-    },
-    {
-      "label": "How to Explore",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L63",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_54_skill_how_to_explore",
-      "community": 80,
-      "community_name": "image_extractor.py",
-      "norm_label": "how to explore"
-    },
-    {
-      "label": "cluster-90/SKILL.md",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
-      "norm_label": "cluster-90/skill.md"
-    },
-    {
-      "label": "Cluster_90",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
-      "norm_label": "cluster_90"
-    },
-    {
-      "label": "When to Use",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
-      "source_location": "L10",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill_when_to_use",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
-      "norm_label": "when to use"
-    },
-    {
-      "label": "Key Files",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
-      "source_location": "L16",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill_key_files",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
-      "norm_label": "key files"
-    },
-    {
-      "label": "Entry Points",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
-      "source_location": "L23",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill_entry_points",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
-      "norm_label": "entry points"
-    },
-    {
-      "label": "Key Symbols",
-      "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
-      "source_location": "L33",
-      "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill_key_symbols",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
+      "id": "claude_skills_generated_cluster_89_skill_key_symbols",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
       "norm_label": "key symbols"
     },
     {
       "label": "Connected Areas",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L46",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill_connected_areas",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
+      "id": "claude_skills_generated_cluster_89_skill_connected_areas",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
       "norm_label": "connected areas"
     },
     {
       "label": "How to Explore",
       "file_type": "document",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L52",
       "_origin": "ast",
-      "id": "claude_skills_generated_cluster_90_skill_how_to_explore",
-      "community": 83,
-      "community_name": "Async Client Init Tests",
+      "id": "claude_skills_generated_cluster_89_skill_how_to_explore",
+      "community": 234,
+      "community_name": "Installation Prerequisites",
       "norm_label": "how to explore"
     },
     {
-      "label": ".claude/skills/generated/tools/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/generated/tools/SKILL.md",
       "source_location": "L1",
@@ -28319,7 +28319,7 @@
       "id": "claude_skills_generated_tools_skill",
       "community": 133,
       "community_name": "Tools",
-      "norm_label": ".claude/skills/generated/tools/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Tools",
@@ -28410,7 +28410,7 @@
       "norm_label": "how to explore"
     },
     {
-      "label": ".claude/skills/gitnexus/gitnexus-cli/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/gitnexus/gitnexus-cli/SKILL.md",
       "source_location": "L1",
@@ -28418,7 +28418,7 @@
       "id": "claude_skills_gitnexus_gitnexus_cli_skill",
       "community": 111,
       "community_name": "Commands",
-      "norm_label": ".claude/skills/gitnexus/gitnexus-cli/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "GitNexus CLI Commands",
@@ -28520,7 +28520,7 @@
       "norm_label": "troubleshooting"
     },
     {
-      "label": ".claude/skills/gitnexus/gitnexus-debugging/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/gitnexus/gitnexus-debugging/SKILL.md",
       "source_location": "L1",
@@ -28528,7 +28528,7 @@
       "id": "claude_skills_gitnexus_gitnexus_debugging_skill",
       "community": 153,
       "community_name": "Debugging with GitNexus",
-      "norm_label": ".claude/skills/gitnexus/gitnexus-debugging/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Debugging with GitNexus",
@@ -28608,7 +28608,7 @@
       "norm_label": "example: \"payment endpoint returns 500 intermittently\""
     },
     {
-      "label": ".claude/skills/gitnexus/gitnexus-exploring/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/gitnexus/gitnexus-exploring/SKILL.md",
       "source_location": "L1",
@@ -28616,7 +28616,7 @@
       "id": "claude_skills_gitnexus_gitnexus_exploring_skill",
       "community": 154,
       "community_name": "Exploring Codebases with GitNexus",
-      "norm_label": ".claude/skills/gitnexus/gitnexus-exploring/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Exploring Codebases with GitNexus",
@@ -28696,7 +28696,7 @@
       "norm_label": "example: \"how does payment processing work?\""
     },
     {
-      "label": ".claude/skills/gitnexus/gitnexus-guide/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/gitnexus/gitnexus-guide/SKILL.md",
       "source_location": "L1",
@@ -28704,7 +28704,7 @@
       "id": "claude_skills_gitnexus_gitnexus_guide_skill",
       "community": 98,
       "community_name": "GitNexus Guide",
-      "norm_label": ".claude/skills/gitnexus/gitnexus-guide/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "GitNexus Guide",
@@ -28817,7 +28817,7 @@
       "norm_label": "graph schema"
     },
     {
-      "label": ".claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md",
       "source_location": "L1",
@@ -28825,7 +28825,7 @@
       "id": "claude_skills_gitnexus_gitnexus_impact_analysis_skill",
       "community": 134,
       "community_name": "Impact Analysis with GitNexus",
-      "norm_label": ".claude/skills/gitnexus/gitnexus-impact-analysis/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Impact Analysis with GitNexus",
@@ -28916,7 +28916,7 @@
       "norm_label": "example: \"what breaks if i change validateuser?\""
     },
     {
-      "label": ".claude/skills/gitnexus/gitnexus-refactoring/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".claude/skills/gitnexus/gitnexus-refactoring/SKILL.md",
       "source_location": "L1",
@@ -28924,7 +28924,7 @@
       "id": "claude_skills_gitnexus_gitnexus_refactoring_skill",
       "community": 99,
       "community_name": "Refactoring with GitNexus",
-      "norm_label": ".claude/skills/gitnexus/gitnexus-refactoring/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "Refactoring with GitNexus",
@@ -29037,7 +29037,7 @@
       "norm_label": "example: rename `validateuser` to `authenticateuser`"
     },
     {
-      "label": ".claude/skills/graphify/references/add-watch.md",
+      "label": "add-watch.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/add-watch.md",
       "source_location": "L1",
@@ -29045,7 +29045,7 @@
       "id": "claude_skills_graphify_references_add_watch",
       "community": 212,
       "community_name": "graphify reference: add a URL and watch a folder",
-      "norm_label": ".claude/skills/graphify/references/add-watch.md"
+      "norm_label": "add-watch.md"
     },
     {
       "label": "graphify reference: add a URL and watch a folder",
@@ -29081,7 +29081,7 @@
       "norm_label": "for --watch"
     },
     {
-      "label": ".claude/skills/graphify/references/exports.md",
+      "label": "exports.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/exports.md",
       "source_location": "L1",
@@ -29089,7 +29089,7 @@
       "id": "claude_skills_graphify_references_exports",
       "community": 135,
       "community_name": "graphify reference: extra exports and benchmark",
-      "norm_label": ".claude/skills/graphify/references/exports.md"
+      "norm_label": "exports.md"
     },
     {
       "label": "graphify reference: extra exports and benchmark",
@@ -29180,7 +29180,7 @@
       "norm_label": "step 8 - token reduction benchmark (only if total_words > 5000)"
     },
     {
-      "label": ".claude/skills/graphify/references/extraction-spec.md",
+      "label": "extraction-spec.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/extraction-spec.md",
       "source_location": "L1",
@@ -29188,7 +29188,7 @@
       "id": "claude_skills_graphify_references_extraction_spec",
       "community": 265,
       "community_name": "extraction-spec.md",
-      "norm_label": ".claude/skills/graphify/references/extraction-spec.md"
+      "norm_label": "extraction-spec.md"
     },
     {
       "label": "graphify reference: extraction subagent prompt",
@@ -29202,7 +29202,7 @@
       "norm_label": "graphify reference: extraction subagent prompt"
     },
     {
-      "label": ".claude/skills/graphify/references/github-and-merge.md",
+      "label": "github-and-merge.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/github-and-merge.md",
       "source_location": "L1",
@@ -29210,7 +29210,7 @@
       "id": "claude_skills_graphify_references_github_and_merge",
       "community": 243,
       "community_name": "graphify reference: GitHub clone and cross-repo merge",
-      "norm_label": ".claude/skills/graphify/references/github-and-merge.md"
+      "norm_label": "github-and-merge.md"
     },
     {
       "label": "graphify reference: GitHub clone and cross-repo merge",
@@ -29235,7 +29235,7 @@
       "norm_label": "step 0 - clone github repo(s) (only if a github url was given)"
     },
     {
-      "label": ".claude/skills/graphify/references/hooks.md",
+      "label": "hooks.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/hooks.md",
       "source_location": "L1",
@@ -29243,7 +29243,7 @@
       "id": "claude_skills_graphify_references_hooks",
       "community": 213,
       "community_name": "graphify reference: commit hook and native CLAUDE.md integration",
-      "norm_label": ".claude/skills/graphify/references/hooks.md"
+      "norm_label": "hooks.md"
     },
     {
       "label": "graphify reference: commit hook and native CLAUDE.md integration",
@@ -29279,7 +29279,7 @@
       "norm_label": "for native claude.md integration"
     },
     {
-      "label": ".claude/skills/graphify/references/query.md",
+      "label": "query.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/query.md",
       "source_location": "L1",
@@ -29287,7 +29287,7 @@
       "id": "claude_skills_graphify_references_query",
       "community": 177,
       "community_name": "graphify reference: query, path, explain",
-      "norm_label": ".claude/skills/graphify/references/query.md"
+      "norm_label": "query.md"
     },
     {
       "label": "graphify reference: query, path, explain",
@@ -29345,7 +29345,7 @@
       "norm_label": "for /graphify explain"
     },
     {
-      "label": ".claude/skills/graphify/references/transcribe.md",
+      "label": "transcribe.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/transcribe.md",
       "source_location": "L1",
@@ -29353,7 +29353,7 @@
       "id": "claude_skills_graphify_references_transcribe",
       "community": 244,
       "community_name": "graphify reference: transcribe video and audio",
-      "norm_label": ".claude/skills/graphify/references/transcribe.md"
+      "norm_label": "transcribe.md"
     },
     {
       "label": "graphify reference: transcribe video and audio",
@@ -29378,7 +29378,7 @@
       "norm_label": "step 2.5 - transcribe video / audio files (only if video files detected)"
     },
     {
-      "label": ".claude/skills/graphify/references/update.md",
+      "label": "update.md",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/update.md",
       "source_location": "L1",
@@ -29386,7 +29386,7 @@
       "id": "claude_skills_graphify_references_update",
       "community": 214,
       "community_name": "graphify reference: incremental update and cluster-only",
-      "norm_label": ".claude/skills/graphify/references/update.md"
+      "norm_label": "update.md"
     },
     {
       "label": "graphify reference: incremental update and cluster-only",
@@ -29414,7 +29414,7 @@
       "label": "For --cluster-only",
       "file_type": "document",
       "source_file": ".claude/skills/graphify/references/update.md",
-      "source_location": "L202",
+      "source_location": "L184",
       "_origin": "ast",
       "id": "claude_skills_graphify_references_update_for_cluster_only",
       "community": 214,
@@ -29422,7 +29422,7 @@
       "norm_label": "for --cluster-only"
     },
     {
-      "label": "graphify/SKILL.md",
+      "label": "SKILL.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/SKILL.md",
       "source_location": "L1",
@@ -29430,7 +29430,7 @@
       "id": "codex_skills_graphify_skill",
       "community": 47,
       "community_name": "Graphify Reference Sections",
-      "norm_label": "graphify/skill.md"
+      "norm_label": "skill.md"
     },
     {
       "label": "/graphify",
@@ -29634,7 +29634,7 @@
       "label": "Interpreter guard for subcommands",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L645",
+      "source_location": "L623",
       "_origin": "ast",
       "id": "codex_skills_graphify_skill_interpreter_guard_for_subcommands",
       "community": 47,
@@ -29645,7 +29645,7 @@
       "label": "For --update and --cluster-only",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L663",
+      "source_location": "L641",
       "_origin": "ast",
       "id": "codex_skills_graphify_skill_for_update_and_cluster_only",
       "community": 47,
@@ -29656,7 +29656,7 @@
       "label": "For /graphify query",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L669",
+      "source_location": "L647",
       "_origin": "ast",
       "id": "codex_skills_graphify_skill_for_graphify_query",
       "community": 47,
@@ -29667,7 +29667,7 @@
       "label": "For /graphify add and --watch",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L681",
+      "source_location": "L659",
       "_origin": "ast",
       "id": "codex_skills_graphify_skill_for_graphify_add_and_watch",
       "community": 47,
@@ -29678,7 +29678,7 @@
       "label": "For the commit hook and native CLAUDE.md integration",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L687",
+      "source_location": "L665",
       "_origin": "ast",
       "id": "codex_skills_graphify_skill_for_the_commit_hook_and_native_claude_md_integration",
       "community": 47,
@@ -29689,7 +29689,7 @@
       "label": "Honesty Rules",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L693",
+      "source_location": "L671",
       "_origin": "ast",
       "id": "codex_skills_graphify_skill_honesty_rules",
       "community": 47,
@@ -29697,7 +29697,7 @@
       "norm_label": "honesty rules"
     },
     {
-      "label": ".codex/skills/graphify/references/add-watch.md",
+      "label": "add-watch.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/add-watch.md",
       "source_location": "L1",
@@ -29705,7 +29705,7 @@
       "id": "codex_skills_graphify_references_add_watch",
       "community": 268,
       "community_name": "Annotation Statistics",
-      "norm_label": ".codex/skills/graphify/references/add-watch.md"
+      "norm_label": "add-watch.md"
     },
     {
       "label": "graphify reference: add a URL and watch a folder",
@@ -29741,7 +29741,7 @@
       "norm_label": "for --watch"
     },
     {
-      "label": ".codex/skills/graphify/references/exports.md",
+      "label": "exports.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/exports.md",
       "source_location": "L1",
@@ -29749,7 +29749,7 @@
       "id": "codex_skills_graphify_references_exports",
       "community": 176,
       "community_name": "._build_augmented_requirements",
-      "norm_label": ".codex/skills/graphify/references/exports.md"
+      "norm_label": "exports.md"
     },
     {
       "label": "graphify reference: extra exports and benchmark",
@@ -29840,7 +29840,7 @@
       "norm_label": "step 8 - token reduction benchmark (only if total_words > 5000)"
     },
     {
-      "label": ".codex/skills/graphify/references/extraction-spec.md",
+      "label": "extraction-spec.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/extraction-spec.md",
       "source_location": "L1",
@@ -29848,7 +29848,7 @@
       "id": "codex_skills_graphify_references_extraction_spec",
       "community": 274,
       "community_name": "test_calculate_hierarchy_level",
-      "norm_label": ".codex/skills/graphify/references/extraction-spec.md"
+      "norm_label": "extraction-spec.md"
     },
     {
       "label": "graphify reference: extraction subagent prompt (compact)",
@@ -29862,7 +29862,7 @@
       "norm_label": "graphify reference: extraction subagent prompt (compact)"
     },
     {
-      "label": ".codex/skills/graphify/references/github-and-merge.md",
+      "label": "github-and-merge.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/github-and-merge.md",
       "source_location": "L1",
@@ -29870,7 +29870,7 @@
       "id": "codex_skills_graphify_references_github_and_merge",
       "community": 272,
       "community_name": "Dedup Rate Calculation Test",
-      "norm_label": ".codex/skills/graphify/references/github-and-merge.md"
+      "norm_label": "github-and-merge.md"
     },
     {
       "label": "graphify reference: GitHub clone and cross-repo merge",
@@ -29895,7 +29895,7 @@
       "norm_label": "step 0 - clone github repo(s) (only if a github url was given)"
     },
     {
-      "label": ".codex/skills/graphify/references/hooks.md",
+      "label": "hooks.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/hooks.md",
       "source_location": "L1",
@@ -29903,7 +29903,7 @@
       "id": "codex_skills_graphify_references_hooks",
       "community": 270,
       "community_name": "test_similarity_threshold",
-      "norm_label": ".codex/skills/graphify/references/hooks.md"
+      "norm_label": "hooks.md"
     },
     {
       "label": "graphify reference: commit hook and native CLAUDE.md integration",
@@ -29939,7 +29939,7 @@
       "norm_label": "for native claude.md integration"
     },
     {
-      "label": ".codex/skills/graphify/references/query.md",
+      "label": "query.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/query.md",
       "source_location": "L1",
@@ -29947,7 +29947,7 @@
       "id": "codex_skills_graphify_references_query",
       "community": 260,
       "community_name": "\ud83c\udf93 Learning Resources",
-      "norm_label": ".codex/skills/graphify/references/query.md"
+      "norm_label": "query.md"
     },
     {
       "label": "graphify reference: query, path, explain",
@@ -30005,7 +30005,7 @@
       "norm_label": "for /graphify explain"
     },
     {
-      "label": ".codex/skills/graphify/references/transcribe.md",
+      "label": "transcribe.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/transcribe.md",
       "source_location": "L1",
@@ -30013,7 +30013,7 @@
       "id": "codex_skills_graphify_references_transcribe",
       "community": 273,
       "community_name": ".to_dict",
-      "norm_label": ".codex/skills/graphify/references/transcribe.md"
+      "norm_label": "transcribe.md"
     },
     {
       "label": "graphify reference: transcribe video and audio",
@@ -30038,7 +30038,7 @@
       "norm_label": "step 2.5 - transcribe video / audio files (only if video files detected)"
     },
     {
-      "label": ".codex/skills/graphify/references/update.md",
+      "label": "update.md",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/update.md",
       "source_location": "L1",
@@ -30046,7 +30046,7 @@
       "id": "codex_skills_graphify_references_update",
       "community": 271,
       "community_name": "Similar Pairs Test",
-      "norm_label": ".codex/skills/graphify/references/update.md"
+      "norm_label": "update.md"
     },
     {
       "label": "graphify reference: incremental update and cluster-only",
@@ -30074,7 +30074,7 @@
       "label": "For --cluster-only",
       "file_type": "document",
       "source_file": ".codex/skills/graphify/references/update.md",
-      "source_location": "L202",
+      "source_location": "L184",
       "_origin": "ast",
       "id": "codex_skills_graphify_references_update_for_cluster_only",
       "community": 271,
@@ -30918,7 +30918,7 @@
       "norm_label": "conflict management:"
     },
     {
-      "label": "TEMP/README.md",
+      "label": "README.md",
       "file_type": "document",
       "source_file": "TEMP/README.md",
       "source_location": "L1",
@@ -30926,7 +30926,7 @@
       "id": "temp_readme",
       "community": 165,
       "community_name": "TEMP Directory",
-      "norm_label": "temp/readme.md"
+      "norm_label": "readme.md"
     },
     {
       "label": "TEMP Directory",
@@ -32084,7 +32084,7 @@
       "norm_label": "support channels"
     },
     {
-      "label": "docs/README.md",
+      "label": "README.md",
       "file_type": "document",
       "source_file": "docs/README.md",
       "source_location": "L1",
@@ -32092,7 +32092,7 @@
       "id": "docs_readme",
       "community": 136,
       "community_name": "README.md",
-      "norm_label": "docs/readme.md"
+      "norm_label": "readme.md"
     },
     {
       "label": "Documentation Index",
@@ -38079,7 +38079,7 @@
       "norm_label": "rollback instructions"
     },
     {
-      "label": "reviews/README.md",
+      "label": "README.md",
       "file_type": "document",
       "source_file": "docs/reviews/README.md",
       "source_location": "L1",
@@ -38087,7 +38087,7 @@
       "id": "docs_reviews_readme",
       "community": 68,
       "community_name": "Code Review Reports Archive",
-      "norm_label": "reviews/readme.md"
+      "norm_label": "readme.md"
     },
     {
       "label": "Code Review Reports Archive",
@@ -42391,7 +42391,7 @@
       "norm_label": "migration guide"
     },
     {
-      "label": "training_data/README.md",
+      "label": "README.md",
       "file_type": "document",
       "source_file": "training_data/README.md",
       "source_location": "L1",
@@ -42399,7 +42399,7 @@
       "id": "training_data_readme",
       "community": 118,
       "community_name": "Training Data Directory",
-      "norm_label": "training_data/readme.md"
+      "norm_label": "readme.md"
     },
     {
       "label": "Training Data Directory",
@@ -42859,9 +42859,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 88,
+      "community": 89,
       "norm_label": "processors - when to use",
-      "community_name": "Cluster_81 & 82 Skill Docs",
+      "community_name": "HTMLTableParser",
       "id": "claude_skills_generated_processors_skill_when_to_use"
     },
     {
@@ -42873,9 +42873,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 88,
+      "community": 89,
       "norm_label": "processors - key files",
-      "community_name": "Cluster_81 & 82 Skill Docs",
+      "community_name": "HTMLTableParser",
       "id": "claude_skills_generated_processors_skill_key_files"
     },
     {
@@ -42887,9 +42887,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 88,
+      "community": 89,
       "norm_label": "processors - entry points",
-      "community_name": "Cluster_81 & 82 Skill Docs",
+      "community_name": "HTMLTableParser",
       "id": "claude_skills_generated_processors_skill_entry_points"
     },
     {
@@ -43293,9 +43293,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 88,
+      "community": 89,
       "norm_label": "utilities - connected areas",
-      "community_name": "Cluster_81 & 82 Skill Docs",
+      "community_name": "HTMLTableParser",
       "id": "claude_skills_generated_utilities_skill_connected_areas"
     },
     {
@@ -43307,9 +43307,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 88,
+      "community": 89,
       "norm_label": "utilities - how to explore",
-      "community_name": "Cluster_81 & 82 Skill Docs",
+      "community_name": "HTMLTableParser",
       "id": "claude_skills_generated_utilities_skill_how_to_explore"
     },
     {
@@ -46943,6 +46943,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app_logger.py",
+      "source_location": "L172",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_app_logger",
+      "target": "src_app_logger_jsonformatter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app_logger.py",
       "source_location": "L364",
       "weight": 1.0,
       "_origin": "ast",
@@ -47126,17 +47137,6 @@
       "_origin": "ast",
       "source": "src_app_logger_applogger",
       "target": "src_app_logger_applogger_warning",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/app_logger.py",
-      "source_location": "L172",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_app_logger_applogger",
-      "target": "src_app_logger_jsonformatter",
       "confidence_score": 1.0
     },
     {
@@ -97674,6 +97674,94 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill",
+      "target": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L56",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "target": "claude_skills_generated_cluster_52_skill_connected_areas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "target": "claude_skills_generated_cluster_52_skill_entry_points",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L49",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "target": "claude_skills_generated_cluster_52_skill_execution_flows",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "target": "claude_skills_generated_cluster_52_skill_how_to_explore",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "target": "claude_skills_generated_cluster_52_skill_key_files",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "target": "claude_skills_generated_cluster_52_skill_key_symbols",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/generated/cluster-52/SKILL.md",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_generated_cluster_52_skill_cluster_52",
+      "target": "claude_skills_generated_cluster_52_skill_when_to_use",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
       "source_location": "L6",
       "weight": 1.0,
@@ -97686,7 +97774,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_generated_cluster_53_skill_cluster_53",
@@ -97708,7 +97796,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
-      "source_location": "L49",
+      "source_location": "L47",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_generated_cluster_53_skill_cluster_53",
@@ -97719,7 +97807,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/generated/cluster-53/SKILL.md",
-      "source_location": "L62",
+      "source_location": "L63",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_generated_cluster_53_skill_cluster_53",
@@ -97762,166 +97850,78 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L6",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill",
-      "target": "claude_skills_generated_cluster_54_skill_cluster_54",
+      "source": "claude_skills_generated_cluster_89_skill",
+      "target": "claude_skills_generated_cluster_89_skill_cluster_89",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L57",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "target": "claude_skills_generated_cluster_54_skill_connected_areas",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L23",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "target": "claude_skills_generated_cluster_54_skill_entry_points",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L47",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "target": "claude_skills_generated_cluster_54_skill_execution_flows",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L63",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "target": "claude_skills_generated_cluster_54_skill_how_to_explore",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L16",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "target": "claude_skills_generated_cluster_54_skill_key_files",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L33",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "target": "claude_skills_generated_cluster_54_skill_key_symbols",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-54/SKILL.md",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_54_skill_cluster_54",
-      "target": "claude_skills_generated_cluster_54_skill_when_to_use",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
-      "source_location": "L6",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude_skills_generated_cluster_90_skill",
-      "target": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L46",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "target": "claude_skills_generated_cluster_90_skill_connected_areas",
+      "source": "claude_skills_generated_cluster_89_skill_cluster_89",
+      "target": "claude_skills_generated_cluster_89_skill_connected_areas",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "target": "claude_skills_generated_cluster_90_skill_entry_points",
+      "source": "claude_skills_generated_cluster_89_skill_cluster_89",
+      "target": "claude_skills_generated_cluster_89_skill_entry_points",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L52",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "target": "claude_skills_generated_cluster_90_skill_how_to_explore",
+      "source": "claude_skills_generated_cluster_89_skill_cluster_89",
+      "target": "claude_skills_generated_cluster_89_skill_how_to_explore",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "target": "claude_skills_generated_cluster_90_skill_key_files",
+      "source": "claude_skills_generated_cluster_89_skill_cluster_89",
+      "target": "claude_skills_generated_cluster_89_skill_key_files",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "target": "claude_skills_generated_cluster_90_skill_key_symbols",
+      "source": "claude_skills_generated_cluster_89_skill_cluster_89",
+      "target": "claude_skills_generated_cluster_89_skill_key_symbols",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": ".claude/skills/generated/cluster-90/SKILL.md",
+      "source_file": ".claude/skills/generated/cluster-89/SKILL.md",
       "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "claude_skills_generated_cluster_90_skill_cluster_90",
-      "target": "claude_skills_generated_cluster_90_skill_when_to_use",
+      "source": "claude_skills_generated_cluster_89_skill_cluster_89",
+      "target": "claude_skills_generated_cluster_89_skill_when_to_use",
       "confidence_score": 1.0
     },
     {
@@ -98852,7 +98852,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/graphify/references/update.md",
-      "source_location": "L202",
+      "source_location": "L184",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_graphify_references_update_graphify_reference_incremental_update_and_cluster_only",
@@ -98885,7 +98885,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L681",
+      "source_location": "L659",
       "weight": 1.0,
       "_origin": "ast",
       "source": "codex_skills_graphify_skill_graphify",
@@ -98896,7 +98896,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L669",
+      "source_location": "L647",
       "weight": 1.0,
       "_origin": "ast",
       "source": "codex_skills_graphify_skill_graphify",
@@ -98907,7 +98907,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L687",
+      "source_location": "L665",
       "weight": 1.0,
       "_origin": "ast",
       "source": "codex_skills_graphify_skill_graphify",
@@ -98918,7 +98918,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L663",
+      "source_location": "L641",
       "weight": 1.0,
       "_origin": "ast",
       "source": "codex_skills_graphify_skill_graphify",
@@ -98929,7 +98929,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L693",
+      "source_location": "L671",
       "weight": 1.0,
       "_origin": "ast",
       "source": "codex_skills_graphify_skill_graphify",
@@ -98940,7 +98940,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".codex/skills/graphify/SKILL.md",
-      "source_location": "L645",
+      "source_location": "L623",
       "weight": 1.0,
       "_origin": "ast",
       "source": "codex_skills_graphify_skill_graphify",
@@ -99663,7 +99663,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".codex/skills/graphify/references/update.md",
-      "source_location": "L202",
+      "source_location": "L184",
       "weight": 1.0,
       "_origin": "ast",
       "source": "codex_skills_graphify_references_update_graphify_reference_incremental_update_and_cluster_only",
@@ -114776,5 +114776,5 @@
       "source_file": "CLAUDE.md"
     }
   ],
-  "built_at_commit": "21acba2db51ca4a935627dbcacdc8fbf19ff33b0"
+  "built_at_commit": "760c5ffb50661913fe12657b80ee6e6b0affadd6"
 }

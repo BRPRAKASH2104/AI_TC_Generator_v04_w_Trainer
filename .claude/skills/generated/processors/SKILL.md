@@ -34,7 +34,7 @@ Start here when exploring this area:
 - **`HighPerformanceREQIFZFileProcessor`** (Class) — `src/processors/hp_processor.py:35`
 - **`REQIFZFileProcessor`** (Class) — `src/processors/standard_processor.py:32`
 - **`test_metrics_reset_between_files`** (Method) — `tests/integration/test_processors.py:219`
-- **`test_initialize_logger_creates_logger`** (Method) — `tests/core/test_base_processor.py:77`
+- **`test_initialize_logger_creates_logger`** (Method) — `tests/core/test_base_processor.py:78`
 
 ## Key Symbols
 
@@ -44,20 +44,20 @@ Start here when exploring this area:
 | `HighPerformanceREQIFZFileProcessor` | Class | `src/processors/hp_processor.py` | 35 |
 | `REQIFZFileProcessor` | Class | `src/processors/standard_processor.py` | 32 |
 | `test_metrics_reset_between_files` | Method | `tests/integration/test_processors.py` | 219 |
-| `test_initialize_logger_creates_logger` | Method | `tests/core/test_base_processor.py` | 77 |
-| `test_initialize_logger_updates_raft_collector` | Method | `tests/core/test_base_processor.py` | 90 |
+| `test_initialize_logger_creates_logger` | Method | `tests/core/test_base_processor.py` | 78 |
+| `test_initialize_logger_updates_raft_collector` | Method | `tests/core/test_base_processor.py` | 91 |
 | `test_initialize_logger` | Method | `tests/test_refactoring.py` | 30 |
 | `verify_augmentation` | Method | `utilities/verify_v03_compatibility.py` | 142 |
-| `test_extract_artifacts_success` | Method | `tests/core/test_base_processor.py` | 114 |
-| `test_extract_artifacts_returns_none_when_empty` | Method | `tests/core/test_base_processor.py` | 133 |
-| `test_extract_artifacts_returns_none_when_none` | Method | `tests/core/test_base_processor.py` | 146 |
+| `test_extract_artifacts_success` | Method | `tests/core/test_base_processor.py` | 115 |
+| `test_extract_artifacts_returns_none_when_empty` | Method | `tests/core/test_base_processor.py` | 134 |
+| `test_extract_artifacts_returns_none_when_none` | Method | `tests/core/test_base_processor.py` | 147 |
 | `test_base_processor_extract_artifacts_failure` | Method | `tests/test_refactoring.py` | 363 |
-| `test_create_success_result` | Method | `tests/core/test_base_processor.py` | 421 |
-| `test_create_success_result_auto_template` | Method | `tests/core/test_base_processor.py` | 446 |
+| `test_create_success_result` | Method | `tests/core/test_base_processor.py` | 455 |
+| `test_create_success_result_auto_template` | Method | `tests/core/test_base_processor.py` | 480 |
 | `test_create_success_result` | Method | `tests/test_refactoring.py` | 157 |
 | `test_raft_does_not_change_success_result` | Method | `tests/training/test_raft_integration.py` | 161 |
-| `test_create_error_result` | Method | `tests/core/test_base_processor.py` | 463 |
-| `test_create_error_result_default_time` | Method | `tests/core/test_base_processor.py` | 475 |
+| `test_create_error_result` | Method | `tests/core/test_base_processor.py` | 497 |
+| `test_create_error_result_default_time` | Method | `tests/core/test_base_processor.py` | 509 |
 | `test_create_error_result` | Method | `tests/test_refactoring.py` | 176 |
 | `test_raft_does_not_change_error_result` | Method | `tests/training/test_raft_integration.py` | 191 |
 

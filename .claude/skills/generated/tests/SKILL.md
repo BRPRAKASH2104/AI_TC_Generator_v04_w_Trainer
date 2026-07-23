@@ -1,11 +1,11 @@
 ---
 name: tests
-description: "Skill for the Tests area of AI_TC_Generator_v04_w_Trainer. 53 symbols across 9 files."
+description: "Skill for the Tests area of AI_TC_Generator_v04_w_Trainer. 56 symbols across 9 files."
 ---
 
 # Tests
 
-53 symbols | 9 files | Cohesion: 86%
+56 symbols | 9 files | Cohesion: 86%
 
 ## When to Use
 
@@ -18,8 +18,8 @@ description: "Skill for the Tests area of AI_TC_Generator_v04_w_Trainer. 53 symb
 | File | Symbols |
 |------|---------|
 | `tests/test_refactoring.py` | test_build_augmented_requirements_with_context, test_build_augmented_requirements_no_requirements, test_build_augmented_requirements_no_heading, test_build_prompt_default_no_yaml, test_build_prompt_with_yaml_template (+12) |
-| `tests/core/test_base_processor.py` | test_build_augmented_requirements_basic_flow, test_build_augmented_requirements_resets_info_after_requirement, test_build_augmented_requirements_new_heading_resets_info, test_build_augmented_requirements_skips_empty_requirements, test_build_augmented_requirements_no_heading_uses_default (+6) |
-| `tests/core/test_prompt_builder.py` | _requirement, test_image_context_rendered_for_requirement_with_images, test_image_context_default_for_requirement_without_images, test_json_example_in_rendered_prompt_is_valid_json, test_template_coverage_wording_scoped_to_displayed_rows (+3) |
+| `tests/core/test_base_processor.py` | test_build_augmented_requirements_basic_flow, test_build_augmented_requirements_includes_design_information_in_context, test_build_augmented_requirements_resets_info_after_requirement, test_build_augmented_requirements_new_heading_resets_info, test_build_augmented_requirements_skips_empty_requirements (+7) |
+| `tests/core/test_prompt_builder.py` | _requirement, test_image_context_rendered_for_requirement_with_images, test_image_context_default_for_requirement_without_images, test_relationships_rendered_for_requirement_with_parent_and_children, test_relationships_default_none_for_unrelated_requirement (+5) |
 | `src/core/prompt_builder.py` | build_prompt, format_table, _build_from_template, _build_default, format_info_list (+2) |
 | `src/processors/base_processor.py` | _clean_text_for_logging, _build_augmented_requirements, _generate_output_path |
 | `tests/test_critical_improvements.py` | test_base_processor_context_aware_logic_preserved, test_context_reset_after_each_requirement |
@@ -34,8 +34,8 @@ Start here when exploring this area:
 - **`run_context_augmentation`** (Function) — `tests/performance/test_regression_benchmarks.py:155`
 - **`test_taskgroup_available`** (Function) — `tests/test_python314_ollama0125.py:91`
 - **`dummy_task`** (Function) — `tests/test_python314_ollama0125.py:95`
-- **`test_build_augmented_requirements_basic_flow`** (Method) — `tests/core/test_base_processor.py:166`
-- **`test_build_augmented_requirements_resets_info_after_requirement`** (Method) — `tests/core/test_base_processor.py:201`
+- **`test_build_augmented_requirements_basic_flow`** (Method) — `tests/core/test_base_processor.py:167`
+- **`test_build_augmented_requirements_includes_design_information_in_context`** (Method) — `tests/core/test_base_processor.py:202`
 
 ## Key Symbols
 
@@ -44,13 +44,14 @@ Start here when exploring this area:
 | `run_context_augmentation` | Function | `tests/performance/test_regression_benchmarks.py` | 155 |
 | `test_taskgroup_available` | Function | `tests/test_python314_ollama0125.py` | 91 |
 | `dummy_task` | Function | `tests/test_python314_ollama0125.py` | 95 |
-| `test_build_augmented_requirements_basic_flow` | Method | `tests/core/test_base_processor.py` | 166 |
-| `test_build_augmented_requirements_resets_info_after_requirement` | Method | `tests/core/test_base_processor.py` | 201 |
-| `test_build_augmented_requirements_new_heading_resets_info` | Method | `tests/core/test_base_processor.py` | 228 |
-| `test_build_augmented_requirements_skips_empty_requirements` | Method | `tests/core/test_base_processor.py` | 249 |
-| `test_build_augmented_requirements_no_heading_uses_default` | Method | `tests/core/test_base_processor.py` | 270 |
-| `test_build_augmented_requirements_multiple_requirements_same_heading` | Method | `tests/core/test_base_processor.py` | 287 |
-| `test_build_augmented_requirements_no_system_requirements` | Method | `tests/core/test_base_processor.py` | 306 |
+| `test_build_augmented_requirements_basic_flow` | Method | `tests/core/test_base_processor.py` | 167 |
+| `test_build_augmented_requirements_includes_design_information_in_context` | Method | `tests/core/test_base_processor.py` | 202 |
+| `test_build_augmented_requirements_resets_info_after_requirement` | Method | `tests/core/test_base_processor.py` | 235 |
+| `test_build_augmented_requirements_new_heading_resets_info` | Method | `tests/core/test_base_processor.py` | 262 |
+| `test_build_augmented_requirements_skips_empty_requirements` | Method | `tests/core/test_base_processor.py` | 283 |
+| `test_build_augmented_requirements_no_heading_uses_default` | Method | `tests/core/test_base_processor.py` | 304 |
+| `test_build_augmented_requirements_multiple_requirements_same_heading` | Method | `tests/core/test_base_processor.py` | 321 |
+| `test_build_augmented_requirements_no_system_requirements` | Method | `tests/core/test_base_processor.py` | 340 |
 | `test_base_processor_context_aware_logic_preserved` | Method | `tests/test_critical_improvements.py` | 329 |
 | `test_context_reset_after_each_requirement` | Method | `tests/test_critical_improvements.py` | 391 |
 | `test_build_augmented_requirements_with_context` | Method | `tests/test_refactoring.py` | 41 |
@@ -60,7 +61,6 @@ Start here when exploring this area:
 | `test_context_reset_behavior_intact` | Method | `tests/training/test_raft_integration.py` | 128 |
 | `build_prompt` | Method | `src/core/prompt_builder.py` | 67 |
 | `test_image_context_rendered_for_requirement_with_images` | Method | `tests/core/test_prompt_builder.py` | 33 |
-| `test_image_context_default_for_requirement_without_images` | Method | `tests/core/test_prompt_builder.py` | 50 |
 
 ## Execution Flows
 
@@ -72,12 +72,14 @@ Start here when exploring this area:
 | `Verify_prompt_generation → Format_table` | cross_community | 4 |
 | `Verify_prompt_generation → Format_info_list` | cross_community | 4 |
 | `Verify_prompt_generation → Format_interfaces` | cross_community | 4 |
+| `Verify_prompt_generation → Format_relationships` | cross_community | 4 |
 | `Verify_prompt_generation → Format_image_context` | cross_community | 4 |
 
 ## Connected Areas
 
 | Area | Connections |
 |------|-------------|
+| Cluster_50 | 2 calls |
 | Cluster_36 | 1 calls |
 | Cluster_37 | 1 calls |
 

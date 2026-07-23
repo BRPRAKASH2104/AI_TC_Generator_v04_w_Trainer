@@ -29,7 +29,7 @@ Start here when exploring this area:
 - **`test_extractor_without_relationships`** (Function) — `tests/core/test_relationship_integration.py:181`
 - **`test_extractor_with_dependency_graph`** (Function) — `tests/core/test_relationship_integration.py:246`
 - **`test_extractor_without_augmentation`** (Function) — `tests/core/test_relationship_integration.py:268`
-- **`parse_and_augment_relationships`** (Method) — `src/core/extractors.py:490`
+- **`parse_and_augment_relationships`** (Method) — `src/core/extractors.py:499`
 
 ## Key Symbols
 
@@ -39,10 +39,10 @@ Start here when exploring this area:
 | `test_extractor_without_relationships` | Function | `tests/core/test_relationship_integration.py` | 181 |
 | `test_extractor_with_dependency_graph` | Function | `tests/core/test_relationship_integration.py` | 246 |
 | `test_extractor_without_augmentation` | Function | `tests/core/test_relationship_integration.py` | 268 |
-| `parse_and_augment_relationships` | Method | `src/core/extractors.py` | 490 |
+| `parse_and_augment_relationships` | Method | `src/core/extractors.py` | 499 |
 | `augment_requirements_with_relationships` | Method | `src/core/relationship_parser.py` | 203 |
 | `build_dependency_graph` | Method | `src/core/relationship_parser.py` | 270 |
-| `_augment_relationships_if_enabled` | Method | `src/core/extractors.py` | 96 |
+| `_augment_relationships_if_enabled` | Method | `src/core/extractors.py` | 101 |
 | `_calculate_hierarchy_level` | Method | `src/core/relationship_parser.py` | 246 |
 
 ## Execution Flows
@@ -60,7 +60,7 @@ Start here when exploring this area:
 | Area | Connections |
 |------|-------------|
 | Integration | 4 calls |
-| Cluster_50 | 1 calls |
+| Cluster_51 | 1 calls |
 
 ## How to Explore
 
