@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   annotator's oracle-selection input parser (all/none/skip/numeric/invalid). No
   Ollama or subprocess is exercised. Full suite: 522 passed, 3 skipped.
 
+- **Pinned the `VisionRAFTTrainer.evaluate_model` stub contract**
+  (`tests/training/test_vision_raft_evaluate.py`). `evaluate_model` is still a
+  `# TODO` stub returning hardcoded `0.0` scores; these characterization tests
+  lock its shape and all-zero "not implemented" behavior so it cannot silently
+  begin reporting fabricated non-zero metrics, and guard that it shells out to no
+  subprocess while stubbed. To be updated when real evaluation is implemented.
+
 ### Changed (style/CI)
 
 - **One-time repo-wide `ruff format` pass + whole-repo style gate** (review
