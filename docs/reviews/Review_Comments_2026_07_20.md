@@ -316,9 +316,14 @@ widened (2026-07-23):** the 17 mypy errors across 5 utility modules are resolved
 `list[tuple[str, str | None]]`, a dead post-early-return branch removed, and the
 `sys.path.insert`-resolved `ConfigManager` import scoped with
 `# type: ignore[attr-defined]`), and the CI `type-check` job now runs
-`mypy src/ main.py utilities/`. **Still open:** (b) direct trainer failure/
-dataset-influence coverage (low-covered `vision_raft_trainer.py`/
-`quality_scorer.py`/etc.); and (c) extracting the oversized `process_file()`
+`mypy src/ main.py utilities/`. **Trainer coverage added (2026-07-23):** direct
+unit suites for the three low-covered training modules —
+`quality_scorer.py` (12%→96%), `progressive_trainer.py` (21%→80%),
+`raft_annotator.py` (13%→80%) — asserting dataset-influence (rich examples
+score higher; the progressive readiness score is a real function of the dataset,
+confirming the honest no-fine-tune contract) plus failure paths; 56 new tests,
+full suite 522 passed/3 skipped. **Still open:** (c) extracting the oversized
+`process_file()`
 (313/249 lines) and `apply_cli_overrides()` (178) — a higher-risk refactor of
 protected processor files that warrants its own session with impact analysis and
 real-Ollama verification.

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (test coverage)
+
+- **Direct unit coverage for three under-tested training modules** (review
+  2026-07-20 Recommended finding 10(b)). Added `tests/training/test_quality_scorer.py`,
+  `test_raft_annotator.py`, and `test_progressive_trainer.py` (56 tests). Coverage:
+  `quality_scorer.py` 12% → 96%, `progressive_trainer.py` 21% → 80%,
+  `raft_annotator.py` 13% → 80%. The tests assert **dataset influence** — that a
+  content-rich RAFT example scores materially higher than a degenerate one and that
+  the progressive curriculum's heuristic readiness score is a genuine function of
+  the dataset (verifying the honest "does not fine-tune" contract from finding 3) —
+  plus failure paths (missing/empty/corrupt dirs, insufficient examples) and the
+  annotator's oracle-selection input parser (all/none/skip/numeric/invalid). No
+  Ollama or subprocess is exercised. Full suite: 522 passed, 3 skipped.
+
 ### Changed (style/CI)
 
 - **One-time repo-wide `ruff format` pass + whole-repo style gate** (review
