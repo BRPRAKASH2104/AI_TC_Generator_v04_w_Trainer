@@ -1,141 +1,165 @@
 # Code Review Reports Archive
 
-This directory contains historical code review reports that document the codebase's health, quality metrics, and evolution over time.
+This directory contains the historical code-review reports that document the
+codebase's health, quality metrics, and evolution over time. Reviews are listed
+newest-first. Each entry notes the reviewer, the state **at the time of that
+review**, and — where the finding has since been resolved — a pointer to the
+current disposition.
 
-## Available Reviews
-
-### 2025-10-11: Comprehensive Review Report (v2.1.0)
-**File:** `2025-10-11_comprehensive_review.md` (1,200+ lines)
-
-**Overall Health Score: 9.2/10** - Production Ready ⭐
-
-**Key Findings:**
-- Code Quality: 36 issues (88% improvement from 298)
-- Type Hints: ~77% coverage
-- Test Coverage: 84% (109/130 tests passing)
-- Memory Optimization: 75% classes with __slots__
-- Security: 0 vulnerabilities found
-- Performance: HP mode 7.5x faster (54,624 artifacts/sec)
-
-**Scope:**
-- 12-point comprehensive analysis following `Review_Instructions.md`
-- Python 3.14+ compliance verification
-- Ollama 0.12.5 integration assessment
-- Performance benchmarks and optimization analysis
-- Security audit and best practices review
-- Architecture and maintainability evaluation
-
-**Recommendations:**
-- P1: Update 21 legacy integration tests (non-critical)
-- P1: Add CI/CD pipeline
-- P2: Security enhancements (defusedxml, pre-commit hooks)
-- P3: Optional optimizations (prompt caching, dynamic context sizing)
+> **Source of truth for open work:** the most recent report
+> (`Review_Comments_2026_07_20.md`) tracks live findings with per-item status.
+> Older reports are historical; most of their findings have since been fixed
+> (see the "Recurring findings" table below).
 
 ---
 
-### 2025-10-07: Initial Codebase Review (v1.5.0 → v2.1.0 transition)
+## Available Reviews (newest first)
+
+### 2026-07-20 — Full-scope review *(current / live)*
+**File:** `Review_Comments_2026_07_20.md`
+
+The active tracking document. Nearly the entire backlog is closed. Findings are
+tagged `[Archived] / [Recommended] / [New Critical]` with per-item **Fixed /
+Open** status. As of 2026-07-23 only **one** finding remains open:
+**Recommended 10**, and only two of its sub-parts:
+- (b) direct trainer failure / dataset-influence test coverage (low-risk, additive);
+- (c) extraction of oversized `process_file()` / `apply_cli_overrides()`
+  (high-risk refactor of protected processor files — its own session).
+
+Style/lint + type gates (Recommended 10 a) were completed 2026-07-23 (`10c4d64`):
+whole-repo `ruff check .` / `ruff format --check .` and `mypy src/ main.py utilities/`.
+
+### 2026-07-17 — Business-logic audit
+**File:** `Review_Comments_2026_07_17.md`
+
+Four Critical findings, all now resolved in the 07-20 line:
+1. partial generation failures reported as a successful (exit-0) run;
+2. external `<object>` images overwrote saved metadata and disabled vision;
+3. the RAFT "training" path never trains on the dataset (system-prompt customization, not fine-tuning);
+4. malformed model output exported as plausible `N/A` Excel rows despite strict validation.
+
+### 2026-07-05 — Full codebase audit (correctness / efficiency / prompts)
+**File:** `Review_Comments_2026_07_05.md`
+
+- **Critical:** deduplicator compared `action`/`data` (fields the active template
+  never produces) → silently deleted legitimate row-coverage test cases. **Fixed**
+  and now guarded in CLAUDE.md (canonical schema = `summary_suffix`,
+  `preconditions`, `test_steps`, `expected_result`, `test_type`).
+- **High:** `--max-concurrent` ignored (HP hard-capped at 2). **Fixed.**
+- Schema split across prompt/dedup/validator/parser; `image_context` never reached
+  the model; large dead-code / config-drift inventory.
+
+### 2026-04-06 — 4-agent parallel swarm review
+**File:** `Review_Comments_2026_04_06.md`
+**Supporting inputs:** `parts/audit_arch.md`, `parts/audit_code.md`
+
+15 action items across four themes: silent exception swallowing, test-suite
+validity (fixtures using plain-text dicts instead of XHTML helpers), documentation
+drift (Python/Ollama versions, entry points), and config hygiene (unsupported model
+names, `mode:` strings, RAFT-on-by-default, committed internal hostnames). All
+CLAUDE.md critical invariants passed. Most items subsequently fixed.
+
+### 2026-03-02 — Comprehensive review (Opus 4.6)
+**File:** `Review_Comments_2026_03_02.md`
+
+10 Critical / 37 Recommended / 10 Optional. Headline Criticals — HP `TypeError` on
+`AsyncTestCaseGenerator` instantiation, validation-index mismatch after dedup, XML
+entity-expansion (Billion Laughs) vulnerability, `src/__init__` version mismatch,
+`assert True` false-positive tests. XXE **fixed 2026-07-22** via `defusedxml`
+(`3943f3b`); the dedup/validation and HP issues fixed in the 07-05/07-17 line.
+
+### 2025-12-31 — Re-review + codebase review (AntiGravity)
+**Files:** `Re_Review_Report_2025_12_31.md`, `Review_Comments_2025_12_31.md`
+
+Post-restoration re-review. Architecture praised; flagged a failing test suite and
+369 ruff issues to auto-clean, plus a recommendation to decompose the long
+`_generate_test_cases_for_requirement_async`. Test suite and lint since green.
+
+### 2025-12-06 — Post-AntiGravity comprehensive review
+**File:** `Review_Comments_2025_12_06.md`
+**Supporting:** `2025-12-06_Progress_Summary.md`,
+`2025-12-06_Test_Verification_Report.md`, `2025-12-06_Vision_Implementation_Fix_Plan.md`
+
+Confirmed the AntiGravity vision fixes (v2.3.0). Raised the two items that are
+**still the only open review work today**: **24 high-complexity functions**
+(complexity 16–19) and **32% overall test coverage** (0% for processors/training).
+These map to 07-20 Recommended 10 (b) and (c).
+
+### 2025-12-05 — Vision model implementation review (AntiGravity)
+**File:** `2025-12-05_Review_Comments_AntiGravity.md`
+
+Reviewed the hybrid vision path. Critical: in-memory Base64 OOM risk on large
+images; High: silent failure on image load (model told to "analyze the diagram"
+with no image); plus dimension validation, vision context sizing, and temp-image
+cleanup. Drove the v2.3.0 image-preprocessing + `--clean-temp` work.
+
+### 2025-10-24 — Comprehensive review (v2.1.0)
+**File:** `2025-10-24_code_review.md`
+
+Health 8.5/10. Two Criticals that broke HP mode: `hp_processor` calling a
+non-existent `generate_test_cases()`, and a broken installed-package entry point.
+Both since fixed (public async method added; packaging fixed `404dbfa`).
+
+### 2025-10-11 — Comprehensive review + findings (v2.1.0 → v2.3.0)
+**Files:** `2025-10-11_comprehensive_review.md` (1,200+ lines),
+`2025-10-11_codebase_review_findings.md`
+
+Health 9.2/10. Same HP-method and packaging Criticals as 10-24, plus streaming
+formatter schema mismatch ("Tests" vs "LinkTest"/"Feature Group") and lxml-only XML
+streaming APIs. Streaming formatter now unified on the 16-column schema
+(guarded in CLAUDE.md).
+
+### 2025-10-07 — Initial codebase review (v1.5.0 → v2.1.0)
 **File:** `2025-10-07_codebase_review.md` (909 lines)
 
-**Health Score: 8.2/10** (projected 9.5/10 with fixes)
-
-**Key Findings:**
-- Code Quality: 298 issues identified (119 auto-fixable)
-- 28 functions >50 lines identified
-- 37 classes missing __slots__
-- Overall architecture assessed as excellent
-
-**Impact:**
-This review led to the improvements documented in the 2025-10-11 report:
-- 88% reduction in code quality issues (298 → 36)
-- Addition of __slots__ to 24 classes
-- Implementation of Python 3.14 TaskGroup
-- Performance optimizations resulting in 3-7x speedup
+Health 8.2/10 (projected 9.5/10 with fixes). 298 quality issues (119 auto-fixable),
+28 functions >50 lines, 37 classes missing `__slots__`. Drove the 88% quality-issue
+reduction and `__slots__` rollout documented in the 10-11 report.
 
 ---
 
-## Review History Timeline
+## Recurring findings → current status
 
-```
-v1.4.0 (Initial State)
-  └─ 298 code quality issues
-  └─ 24% __slots__ coverage
-  └─ 79% type hint coverage
+The same core defects surfaced across multiple reviews until fixed. Current state:
 
-v1.5.0 (Post Initial Review - 2025-10-07)
-  ├─ Critical improvements implemented
-  ├─ Custom exception system added
-  ├─ Double semaphore removed
-  └─ Concurrent batch processing
+| Recurring finding | First raised | Status |
+|---|---|---|
+| HP mode broken (`generate_test_cases` / `TypeError`) | 2025-10-11 | ✅ Fixed |
+| Broken installed-package entry point / wheel | 2025-10-11 | ✅ Fixed (`404dbfa`) |
+| Deduplicator deletes valid test cases (wrong fields) | 2026-03-02 | ✅ Fixed (CLAUDE.md guard) |
+| Validation index mismatch after dedup | 2026-03-02 | ✅ Fixed (stamp-before-dedup) |
+| `--max-concurrent` ignored | 2026-07-05 | ✅ Fixed |
+| XML entity expansion (XXE / Billion Laughs) | 2026-03-02 | ✅ Fixed (`defusedxml`, `3943f3b`) |
+| Partial failure reported as success | 2026-07-17 | ✅ Fixed |
+| Invalid `{}` test cases exported as `N/A` rows | 2026-07-17 | ✅ Fixed (typed JSON schema) |
+| RAFT "training" doesn't fine-tune | 2026-07-17 | ✅ Honestly re-worded (`8d10a5f`) |
+| Silent image-load failure / vision OOM | 2025-12-05 | ✅ Fixed (v2.3.0 preprocessing) |
+| Doc drift / stale deps / CI `continue-on-error` / secrets in export | 2026-03-02 · 04-06 | ✅ Fixed |
+| Whole-repo ruff + mypy gates weaker than core | 2025-12-06 | ✅ Fixed (`10c4d64`, 2026-07-23) |
+| **High-complexity functions (process_file, etc.)** | 2025-12-06 | 🟡 **Open** — 07-20 Rec 10 (c) |
+| **Low trainer / processor test coverage** | 2025-12-06 | 🟡 **Open** — 07-20 Rec 10 (b) |
 
-v2.1.0 (Post Comprehensive Review - 2025-10-11)
-  ├─ Python 3.14 upgrade complete
-  ├─ Ollama 0.12.5 integration
-  ├─ 36 issues remaining (88% improvement)
-  ├─ 75% __slots__ coverage
-  └─ 9.2/10 health score
-```
+**Net:** the multi-review backlog has converged to just two consciously-deferred
+items, both tracked as sub-parts of 2026-07-20 Recommended 10.
 
-## Progress Metrics
-
-| Metric | 2025-10-07 | 2025-10-11 | Improvement |
-|--------|-----------|-----------|-------------|
-| Code Quality Issues | 298 | 36 | **88% ↓** |
-| Health Score | 8.2/10 | 9.2/10 | **+1.0** |
-| __slots__ Coverage | 24% | 75% | **+51%** |
-| Test Coverage | 84% | 84% | Maintained |
-| Performance (HP mode) | 54,624/sec | 54,624/sec | Maintained |
-| Memory per Artifact | 0.010 MB | 0.010 MB | Maintained |
-
-## Document Purpose
-
-These reviews serve multiple audiences:
-
-### For Developers
-- Understand historical code quality evolution
-- Learn from past issues and their resolutions
-- Reference detailed analysis for complex components
-
-### For Technical Leads
-- Track quality metrics over time
-- Justify technical decisions with data
-- Plan future improvements based on recommendations
-
-### For Stakeholders
-- Demonstrate continuous improvement
-- Show investment in code quality
-- Provide transparency on technical debt
-
-### For Compliance/Audit
-- ISO 26262 (automotive safety) documentation
-- ASPICE traceability requirements
-- Security audit trail
-- Technical debt tracking
+---
 
 ## Review Methodology
 
-All reviews follow the comprehensive framework defined in:
-- `Review_Instructions.md` - 12-point review criteria
-- `System_Intructions.md` - Agent behavior guidelines
-- `CLAUDE.md` - Development best practices
+All reviews follow the framework in:
+- `System_Intructions.md` — agent behaviour guidelines
+- `CLAUDE.md` — development best practices and critical invariants
 
 ## Adding New Reviews
 
-When conducting new reviews:
-
-1. **Create dated file:** `YYYY-MM-DD_description.md`
-2. **Update this README:** Add entry with key findings
-3. **Update CLAUDE.md:** Reference latest review in documentation section
-4. **Archive old reports:** Keep historical progression visible
-
-## Related Documentation
-
-- **`CLAUDE.md`** - Primary development guide (always current)
-- **`docs/REVIEWS_AND_REPORTS.md`** - Index of all assessment documents
-- **`VERIFICATION_REPORT.md`** - Line-by-line code verification (v1.5.0)
-- **`SELF_REVIEW_REPORT.md`** - Architecture verification
+1. **Create dated file:** `Review_Comments_YYYY_MM_DD.md` (or `YYYY-MM-DD_description.md`).
+2. **Update this README:** add a newest-first entry and, if the finding recurs,
+   a row in the "Recurring findings" table.
+3. **Reference from CLAUDE.md** where a finding becomes a durable invariant.
 
 ---
 
-**Archive Maintained By:** AI Test Case Generator Team
-**Last Updated:** 2025-10-11
-**Review Frequency:** As needed (major versions, quarterly, or on request)
+**Review Frequency:** as needed (major versions, or on request)
+**Last Updated:** 2026-07-23
+</content>
+</invoke>
