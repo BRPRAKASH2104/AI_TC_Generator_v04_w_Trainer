@@ -129,6 +129,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
 
+    parser.add_argument(
+        "--compare-base",
+        action="store_true",
+        help=(
+            "With --evaluate, also run the --base-model over the same set and "
+            "report the customized-minus-base delta (the 'did it help' lift). "
+            "Note: validity scores are grammar-saturated, so the coverage "
+            "(TCs/example) delta is usually the more meaningful signal."
+        ),
+    )
+
     return parser.parse_args()
 
 
@@ -264,8 +275,13 @@ def print_training_result(result: dict[str, Any]) -> None:
     logger.info("")
 
 
+def _format_delta(value: float | None) -> str:
+    """Format a signed delta, or ``n/a`` when it could not be computed."""
+    return "n/a" if value is None else f"{value:+.2f}"
+
+
 def print_evaluation_result(result: dict[str, Any]) -> None:
-    """Print an evaluation summary.
+    """Print an evaluation summary, including the A/B delta when present.
 
     Args:
         result: Result dictionary from ``VisionRAFTTrainer.evaluate_model()``.
@@ -297,16 +313,42 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
         for error in result["errors"]:
             logger.warning(f"  - {error}")
+
+    if "baseline" in result:
+        base_metrics = result["baseline"]["metrics"]
+        delta = result["delta"]
+        logger.info("-" * 60)
+        logger.info(f"Baseline model:   {result['baseline']['model']}")
+        logger.info(f"  Base overall:   {base_metrics.get('overall_score', 0.0):.2f}")
+        logger.info(
+            f"  Base coverage:  {base_metrics.get('avg_test_cases_per_example', 0.0):.2f} TCs/example"
+        )
+        logger.info("Delta (customized - base):")
+        logger.info(f"  Overall score:  {_format_delta(delta.get('overall_score'))}")
+        logger.info(
+            f"  Coverage:       {_format_delta(delta.get('avg_test_cases_per_example'))} "
+            "TCs/example  <- usually the meaningful signal (validity is grammar-saturated)"
+        )
+
     logger.info("=" * 60)
     logger.info("")
 
 
-def run_evaluation(test_dataset: str, output_model: str) -> int:
+def run_evaluation(
+    test_dataset: str,
+    output_model: str,
+    compare_base: bool = False,
+    base_model: str | None = None,
+) -> int:
     """Evaluate a customized model on a held-out RAFT dataset and print metrics.
 
     Args:
         test_dataset: Path to the held-out RAFT dataset (JSONL).
         output_model: Name of the customized Ollama model to evaluate.
+        compare_base: When True, also evaluate the base model and print the
+            customized-minus-base delta.
+        base_model: Base model used for the ``compare_base`` comparison. None
+            keeps ``VisionTrainingConfig``'s default.
 
     Returns:
         0 if at least one example was evaluated without a generation error,
@@ -317,12 +359,18 @@ def run_evaluation(test_dataset: str, output_model: str) -> int:
         logger.error(f"Evaluation dataset not found: {test_dataset}")
         return 1
 
+    # Only override base_model when provided, so the config default still applies.
+    if base_model is not None:
+        config = VisionTrainingConfig(output_model=output_model, base_model=base_model)
+    else:
+        config = VisionTrainingConfig(output_model=output_model)
+
     trainer = VisionRAFTTrainer(
         dataset_path=test_path,
-        config=VisionTrainingConfig(output_model=output_model),
+        config=config,
         logger=logger,
     )
-    result = trainer.evaluate_model(test_dataset=test_path)
+    result = trainer.evaluate_model(test_dataset=test_path, compare_base=compare_base)
     print_evaluation_result(result)
 
     total = result["metrics"].get("total_examples", 0)
@@ -356,7 +404,9 @@ def main() -> int:
                 logger.error("Please ensure Ollama is running: ollama serve")
                 return 1
             logger.info("✅ Ollama is running")
-            return run_evaluation(args.evaluate, args.output_model)
+            return run_evaluation(
+                args.evaluate, args.output_model, args.compare_base, args.base_model
+            )
 
         # Validate dataset
         logger.info("Validating dataset...")

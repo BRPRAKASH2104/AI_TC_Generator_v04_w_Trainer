@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (feature)
+
+- **Phase 2 A/B comparison for `VisionRAFTTrainer.evaluate_model`** — a
+  `compare_base=True` option (CLI `--compare-base`) that also runs the untouched
+  `config.base_model` over the same held-out set and adds `baseline` and `delta`
+  (customized-minus-base) blocks to the result, answering "did the prompt
+  customization help?". The per-example generation loop was refactored into a
+  model-parameterized `_score_over_dataset(client, examples, model_name)` reused
+  for both models; new `_compute_delta` returns per-metric deltas (None where a
+  metric is absent on either side). **Honest caveat, surfaced in the output and
+  docstring:** generation is grammar-constrained to the canonical schema, so the
+  *validity* scores are near-saturated for both models — the coverage delta
+  (`avg_test_cases_per_example`) is usually the more discriminating signal.
+  Real-Ollama A/B verified live via the CLI. This also caught (and fixed) a
+  wiring bug the mocked tests missed: `run_evaluation` was ignoring
+  `--base-model` and comparing against the default base — the live run's baseline
+  was the wrong model until `base_model` was threaded into `VisionTrainingConfig`
+  (guarded by a new test). Tests: +9 — 5 in `test_vision_raft_evaluate.py`
+  (baseline/delta shape, both models run, delta arithmetic, None-metric delta)
+  and 4 in `test_train_vision_cli.py` (`--compare-base` parsing, flag forwarding,
+  base-model threading).
+
 ### Changed (refactor — behavior-preserving)
 
 - **Extracted the three oversized functions flagged by review 2026-07-20

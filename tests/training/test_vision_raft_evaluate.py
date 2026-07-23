@@ -35,12 +35,22 @@ FAKE_IMAGE_BYTES = b"\x89PNG\r\n\x1a\n fake image payload"
 
 
 class FakeOllamaClient:
-    """Records calls and returns a canned raw response, no subprocess involved."""
+    """Records calls and returns a canned raw response, no subprocess involved.
 
-    def __init__(self, response: str = VALID_RESPONSE):
+    ``response`` may be a single string (returned for every model) or a
+    ``{model_name: response}`` dict, which lets A/B tests give the customized and
+    base models different outputs.
+    """
+
+    def __init__(self, response=VALID_RESPONSE):
         self.response = response
         self.text_calls: list[dict] = []
         self.vision_calls: list[dict] = []
+
+    def _resolve(self, model_name):
+        if isinstance(self.response, dict):
+            return self.response.get(model_name, UNPARSEABLE_RESPONSE)
+        return self.response
 
     def generate_completion(
         self,
@@ -53,7 +63,7 @@ class FakeOllamaClient:
         self.text_calls.append(
             {"model": model_name, "prompt": prompt, "format_schema": format_schema}
         )
-        return self.response
+        return self._resolve(model_name)
 
     def generate_response_with_vision(
         self,
@@ -68,7 +78,7 @@ class FakeOllamaClient:
         # existed during the call (temp files may be cleaned up afterwards).
         image_bytes = [p.read_bytes() for p in (image_paths or [])]
         self.vision_calls.append({"model": model_name, "image_bytes": image_bytes})
-        return self.response
+        return self._resolve(model_name)
 
 
 def _write_jsonl(path, examples):
@@ -225,3 +235,72 @@ def test_injected_client_never_shells_out(trainer, tmp_path, monkeypatch):
     metrics = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient())["metrics"]
 
     assert metrics["overall_score"] == 1.0
+
+
+# --- Phase 2: A/B comparison against the base model --------------------------
+
+
+def test_no_baseline_or_delta_by_default(trainer, tmp_path):
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient())
+
+    assert "baseline" not in result
+    assert "delta" not in result
+
+
+def test_compare_base_adds_baseline_and_delta(trainer, tmp_path):
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(), compare_base=True
+    )
+
+    # Default base_model on VisionTrainingConfig.
+    assert result["baseline"]["model"] == "llama3.2-vision:11b"
+    assert "metrics" in result["baseline"]
+    assert "delta" in result
+
+
+def test_compare_base_runs_both_models(trainer, tmp_path):
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+    client = FakeOllamaClient()
+
+    trainer.evaluate_model(test_dataset=test_set, client=client, compare_base=True)
+
+    models_called = {call["model"] for call in client.text_calls}
+    assert models_called == {"pinned-eval-model", "llama3.2-vision:11b"}
+
+
+def test_delta_reflects_customized_minus_base(trainer, tmp_path):
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+    # Customized model emits valid canonical cases; base emits unparseable junk.
+    client = FakeOllamaClient(
+        {
+            "pinned-eval-model": VALID_RESPONSE,
+            "llama3.2-vision:11b": UNPARSEABLE_RESPONSE,
+        }
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=client, compare_base=True)
+
+    assert result["metrics"]["overall_score"] == 1.0
+    assert result["baseline"]["metrics"]["overall_score"] == 0.0
+    assert result["delta"]["overall_score"] == 1.0
+
+
+def test_delta_is_none_when_metric_absent_on_a_side(trainer, tmp_path):
+    # No vision examples -> vision_examples_score is None on both sides, so the
+    # delta cannot be computed and is reported as None (not 0.0).
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(), compare_base=True
+    )
+
+    assert result["delta"]["vision_examples_score"] is None

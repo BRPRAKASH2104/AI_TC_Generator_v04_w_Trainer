@@ -442,7 +442,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 self.logger.warning(f"Failed to save training progress: {e}")
 
     def evaluate_model(
-        self, test_dataset: Path | None = None, client: Any = None
+        self, test_dataset: Path | None = None, client: Any = None, compare_base: bool = False
     ) -> dict[str, Any]:
         """Evaluate the prompt-customized model's output quality on held-out data.
 
@@ -452,6 +452,14 @@ Output test cases in structured JSON format as demonstrated in training examples
         measures whether the model emits valid, parseable canonical test cases;
         it does not compare against the reference answer (that is a later phase).
 
+        With ``compare_base=True``, the untouched base model is run over the same
+        examples and the result gains a ``baseline`` block and a ``delta``
+        (customized minus base) block - answering "did the prompt customization
+        help?". Note: because generation is grammar-constrained to the canonical
+        schema, the *validity* scores are near-saturated for both models, so the
+        ``delta`` on ``avg_test_cases_per_example`` (coverage) is usually the more
+        discriminating signal than the score deltas.
+
         Args:
             test_dataset: Path to a JSONL file of held-out RAFT examples. This
                 is required: no validation split is produced yet, so there is no
@@ -459,11 +467,17 @@ Output test cases in structured JSON format as demonstrated in training examples
             client: Ollama client used for generation. Defaults to a fresh
                 ``OllamaClient``; injectable so tests can supply a deterministic
                 fake instead of shelling out to a live model.
+            compare_base: When True, also evaluate ``config.base_model`` and add
+                ``baseline`` and ``delta`` blocks to the result.
 
         Returns:
             A metrics dict with keys ``model``, ``evaluation_date``,
             ``test_dataset``, ``metrics`` (aggregate scores and counts),
-            ``per_example`` (per-example detail) and ``errors``.
+            ``per_example`` (per-example detail) and ``errors``. When
+            ``compare_base`` is True it also carries ``baseline`` (the base
+            model's ``model``/``metrics``/``per_example``/``errors``) and
+            ``delta`` (per-metric customized-minus-base, None where a metric is
+            absent on either side).
 
         Raises:
             ValueError: If ``test_dataset`` is None.
@@ -491,11 +505,7 @@ Output test cases in structured JSON format as demonstrated in training examples
             client = OllamaClient()
 
         examples = self._load_jsonl_examples(test_dataset)
-        per_example = [
-            self._evaluate_example(client, example, index) for index, example in enumerate(examples)
-        ]
-        metrics = self._aggregate_eval_metrics(per_example)
-        errors = [f"example {r['index']}: {r['error']}" for r in per_example if r["error"]]
+        metrics, per_example = self._score_over_dataset(client, examples, self.config.output_model)
 
         if self.logger:
             self.logger.info(
@@ -503,14 +513,91 @@ Output test cases in structured JSON format as demonstrated in training examples
                 f"{metrics['overall_score']:.2f} over {metrics['total_examples']} example(s)"
             )
 
-        return {
+        result: dict[str, Any] = {
             "model": self.config.output_model,
             "evaluation_date": datetime.now().isoformat(),
             "test_dataset": str(test_dataset),
             "metrics": metrics,
             "per_example": per_example,
-            "errors": errors,
+            "errors": self._collect_errors(per_example),
         }
+
+        if compare_base:
+            if self.logger:
+                self.logger.info(
+                    f"📊 Evaluating base model for comparison: {self.config.base_model}"
+                )
+            base_metrics, base_per_example = self._score_over_dataset(
+                client, examples, self.config.base_model
+            )
+            result["baseline"] = {
+                "model": self.config.base_model,
+                "metrics": base_metrics,
+                "per_example": base_per_example,
+                "errors": self._collect_errors(base_per_example),
+            }
+            result["delta"] = self._compute_delta(metrics, base_metrics)
+
+        return result
+
+    def _score_over_dataset(
+        self, client: Any, examples: list[dict[str, Any]], model_name: str
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Run one model over every example and aggregate the scores.
+
+        Args:
+            client: Ollama client used for generation.
+            examples: Loaded RAFT examples.
+            model_name: The Ollama model to evaluate.
+
+        Returns:
+            A tuple of (aggregate metrics, per-example detail).
+        """
+        per_example = [
+            self._evaluate_example(client, example, index, model_name)
+            for index, example in enumerate(examples)
+        ]
+        return self._aggregate_eval_metrics(per_example), per_example
+
+    @staticmethod
+    def _collect_errors(per_example: list[dict[str, Any]]) -> list[str]:
+        """Collect per-example error strings into a flat list.
+
+        Args:
+            per_example: Per-example detail dicts.
+
+        Returns:
+            One ``"example {index}: {error}"`` string per errored example.
+        """
+        return [f"example {r['index']}: {r['error']}" for r in per_example if r["error"]]
+
+    @staticmethod
+    def _compute_delta(customized: dict[str, Any], base: dict[str, Any]) -> dict[str, float | None]:
+        """Compute customized-minus-base deltas for the comparable numeric metrics.
+
+        Args:
+            customized: Aggregate metrics for the customized model.
+            base: Aggregate metrics for the base model.
+
+        Returns:
+            Per-metric deltas; None where the metric is absent on either side
+            (e.g. a score with no examples of that kind).
+        """
+        comparable = (
+            "overall_score",
+            "text_examples_score",
+            "vision_examples_score",
+            "parse_success_rate",
+            "avg_test_cases_per_example",
+        )
+        delta: dict[str, float | None] = {}
+        for key in comparable:
+            new_value, base_value = customized.get(key), base.get(key)
+            if new_value is None or base_value is None:
+                delta[key] = None
+            else:
+                delta[key] = new_value - base_value
+        return delta
 
     @staticmethod
     def _load_jsonl_examples(path: Path) -> list[dict[str, Any]]:
@@ -530,13 +617,16 @@ Output test cases in structured JSON format as demonstrated in training examples
                     examples.append(json.loads(stripped))
         return examples
 
-    def _evaluate_example(self, client: Any, example: dict[str, Any], index: int) -> dict[str, Any]:
+    def _evaluate_example(
+        self, client: Any, example: dict[str, Any], index: int, model_name: str
+    ) -> dict[str, Any]:
         """Generate for one example and score the output.
 
         Args:
             client: Ollama client used for generation.
             example: A RAFT example with a ``messages`` list.
             index: Zero-based position of the example in the dataset.
+            model_name: The Ollama model to run for this example.
 
         Returns:
             Per-example detail: index, has_images, parsed, num_test_cases,
@@ -562,7 +652,9 @@ Output test cases in structured JSON format as demonstrated in training examples
         result["has_images"] = bool(images)
 
         try:
-            raw_output = self._generate_for_example(client, user_message.get("content", ""), images)
+            raw_output = self._generate_for_example(
+                client, user_message.get("content", ""), images, model_name
+            )
         except Exception as exc:
             # One bad example must not abort the whole run; record and score 0.
             # `except Exception` (not a bare except) mirrors the generation
@@ -573,13 +665,16 @@ Output test cases in structured JSON format as demonstrated in training examples
         result.update(self._score_generation(raw_output))
         return result
 
-    def _generate_for_example(self, client: Any, prompt: str, images: list[str]) -> Any:
-        """Run the customized model on one example, routing by image presence.
+    def _generate_for_example(
+        self, client: Any, prompt: str, images: list[str], model_name: str
+    ) -> Any:
+        """Run one model on one example, routing by image presence.
 
         Args:
             client: Ollama client used for generation.
             prompt: The example's user-message content.
             images: Base64-encoded image strings (empty for text-only examples).
+            model_name: The Ollama model to run.
 
         Returns:
             The raw model response text (typed ``Any`` because the client is
@@ -590,7 +685,7 @@ Output test cases in structured JSON format as demonstrated in training examples
         if images:
             with self._decoded_image_paths(images) as image_paths:
                 return client.generate_response_with_vision(
-                    self.config.output_model,
+                    model_name,
                     prompt,
                     image_paths,
                     is_json=True,
@@ -599,7 +694,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 )
 
         return client.generate_completion(
-            self.config.output_model,
+            model_name,
             prompt,
             is_json=True,
             return_full_response=False,

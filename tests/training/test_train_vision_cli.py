@@ -50,8 +50,75 @@ def test_parse_args_evaluate_defaults_none(monkeypatch):
     assert args.evaluate is None
 
 
+def test_parse_args_accepts_compare_base(monkeypatch):
+    monkeypatch.setattr("sys.argv", ["prog", "--evaluate", "held.jsonl", "--compare-base"])
+    args = tvm.parse_args()
+    assert args.compare_base is True
+
+
+def test_parse_args_compare_base_defaults_false(monkeypatch):
+    monkeypatch.setattr("sys.argv", ["prog"])
+    args = tvm.parse_args()
+    assert args.compare_base is False
+
+
 def test_run_evaluation_missing_file_returns_1(tmp_path):
     assert tvm.run_evaluation(str(tmp_path / "nope.jsonl"), "some-model") == 1
+
+
+def test_run_evaluation_forwards_compare_base(tmp_path, monkeypatch):
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    captured = {}
+
+    def fake_eval(self, test_dataset=None, compare_base=False):
+        captured["compare_base"] = compare_base
+        return {
+            "model": "m",
+            "test_dataset": str(test_set),
+            "metrics": {"total_examples": 1, "overall_score": 1.0},
+            "per_example": [],
+            "errors": [],
+        }
+
+    monkeypatch.setattr(tvm.VisionRAFTTrainer, "evaluate_model", fake_eval)
+
+    tvm.run_evaluation(str(test_set), "m", compare_base=True)
+
+    assert captured["compare_base"] is True
+
+
+def test_run_evaluation_threads_base_model_into_config(tmp_path, monkeypatch):
+    # Guards the wiring: --base-model must reach VisionTrainingConfig, or the
+    # A/B comparison silently runs against the default base model.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    captured = {}
+    real_config = tvm.VisionTrainingConfig
+
+    def spy_config(**kwargs):
+        captured.update(kwargs)
+        return real_config(**kwargs)
+
+    monkeypatch.setattr(tvm, "VisionTrainingConfig", spy_config)
+    monkeypatch.setattr(
+        tvm.VisionRAFTTrainer,
+        "evaluate_model",
+        lambda self, test_dataset=None, compare_base=False: {
+            "model": "out-model",
+            "test_dataset": str(test_set),
+            "metrics": {"total_examples": 1, "overall_score": 1.0},
+            "per_example": [],
+            "errors": [],
+        },
+    )
+
+    tvm.run_evaluation(
+        str(test_set), "out-model", compare_base=True, base_model="deepseek-coder-v2:16b"
+    )
+
+    assert captured.get("output_model") == "out-model"
+    assert captured.get("base_model") == "deepseek-coder-v2:16b"
 
 
 def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
@@ -76,7 +143,9 @@ def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
         "errors": [],
     }
     monkeypatch.setattr(
-        tvm.VisionRAFTTrainer, "evaluate_model", lambda self, test_dataset=None: canned
+        tvm.VisionRAFTTrainer,
+        "evaluate_model",
+        lambda self, test_dataset=None, compare_base=False: canned,
     )
 
     assert tvm.run_evaluation(str(test_set), "some-model") == 0
@@ -97,7 +166,9 @@ def test_run_evaluation_all_examples_failed_returns_1(tmp_path, monkeypatch):
         "errors": ["example 0: generation failed"],
     }
     monkeypatch.setattr(
-        tvm.VisionRAFTTrainer, "evaluate_model", lambda self, test_dataset=None: canned
+        tvm.VisionRAFTTrainer,
+        "evaluate_model",
+        lambda self, test_dataset=None, compare_base=False: canned,
     )
 
     # No examples actually scored -> the evaluation could not run meaningfully.
