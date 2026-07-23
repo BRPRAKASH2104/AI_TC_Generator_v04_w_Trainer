@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (refactor — behavior-preserving)
+
+- **Extracted the three oversized functions flagged by review 2026-07-20
+  Recommended finding 10(c)** via Extract Method, keeping every public signature
+  and return contract byte-identical (verified by GitNexus impact analysis first;
+  standard `process_file` is HIGH-risk as it sits on the `main` path):
+  - `REQIFZFileProcessor.process_file` 249 → 123 lines — sequential generation loop
+    → `_run_generation_loop()`, the 5-branch except-ladder → `_error_result_for_exception()`.
+  - `HighPerformanceREQIFZFileProcessor.process_file` 313 → 186 lines — async result
+    folding → `_collect_generation_results()`, except-ladder → `_error_result_for_exception_hp()`.
+  - `ConfigManager.apply_cli_overrides` 178 → 75 lines — env-var application →
+    `_apply_env_overrides()`, per-model defaults (with its nested closure) →
+    `_apply_model_specific_defaults()`.
+  - The RAFT test-case serialisation, previously duplicated verbatim in both
+    processors, is now a single `BaseProcessor._format_raft_test_cases()`
+    (also review 2026-03-02 R16).
+  Verified: full suite unchanged at 526 passed / 3 skipped; mypy `src/ main.py
+  utilities/` clean; whole-repo ruff clean; and **real-Ollama end-to-end runs on
+  both the standard and HP paths produced 4 test cases each (exit 0)** — the
+  mock suite alone cannot catch pipeline-wiring regressions.
+
 ### Added (test coverage)
 
 - **Direct unit coverage for three under-tested training modules** (review

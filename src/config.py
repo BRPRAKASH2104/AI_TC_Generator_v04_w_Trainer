@@ -665,6 +665,58 @@ class ConfigManager(BaseSettings):
             env_overrides.setdefault(section, set()).update(keys)
 
         # Apply environment variables (AI_TG_* prefix)
+        self._apply_env_overrides(config_dict, env_overrides)
+
+        # Apply direct kwargs (highest priority)
+        cli_overrides = {}
+        ollama_overrides = {}
+
+        # Map CLI arguments to configuration sections
+        if "model" in kwargs and kwargs["model"] is not None:
+            ollama_overrides["synthesizer_model"] = kwargs["model"]
+        if "template" in kwargs and kwargs["template"] is not None:
+            cli_overrides["template"] = kwargs["template"]
+        if "max_concurrent" in kwargs and kwargs["max_concurrent"] is not None:
+            ollama_overrides["concurrent_requests"] = kwargs["max_concurrent"]
+        if "num_ctx" in kwargs and kwargs["num_ctx"] is not None:
+            ollama_overrides["num_ctx"] = kwargs["num_ctx"]
+        if "verbose" in kwargs and kwargs["verbose"] is not None:
+            cli_overrides["verbose"] = kwargs["verbose"]
+        if "debug" in kwargs and kwargs["debug"] is not None:
+            cli_overrides["debug"] = kwargs["debug"]
+        if "performance" in kwargs and kwargs["performance"] is not None:
+            cli_overrides["performance"] = kwargs["performance"]
+        if "config" in kwargs and kwargs["config"] is not None:
+            # Load additional config file if specified
+            try:
+                additional_config = yaml.safe_load(Path(kwargs["config"]).read_text())
+                # Deep merge additional config
+                self._deep_merge_dict(config_dict, additional_config)
+            except Exception as e:
+                _logger.warning(f"Could not load config file {kwargs['config']}: {e}")
+
+        if cli_overrides:
+            self._deep_merge_dict(config_dict["cli"], cli_overrides)
+        if ollama_overrides:
+            self._deep_merge_dict(config_dict["ollama"], ollama_overrides)
+
+        # Auto-apply model-specific settings (timeout, temperature, concurrency,
+        # num_ctx) unless the user overrode them via CLI/env — CLI/env always win
+        # (review 2026-07-17 §5).
+        self._apply_model_specific_defaults(config_dict, ollama_overrides, env_overrides)
+
+        # Create new ConfigManager instance with updated configuration
+        return ConfigManager.model_validate(config_dict)
+
+    @staticmethod
+    def _apply_env_overrides(
+        config_dict: dict[str, Any], env_overrides: dict[str, set[str]]
+    ) -> None:
+        """Apply ``AI_TG_*`` environment variables onto ``config_dict`` in place.
+
+        Each key that an env var sets is recorded in ``env_overrides`` so a later
+        model-specific default cannot clobber an explicit env override.
+        """
         env_mapping = {
             "AI_TG_MODEL": ("ollama", "synthesizer_model"),
             "AI_TG_TEMPLATE": ("cli", "template"),
@@ -711,105 +763,43 @@ class ConfigManager(BaseSettings):
                     config_dict[section][key] = env_value
                     env_overrides[section].add(key)
 
-        # Apply direct kwargs (highest priority)
-        cli_overrides = {}
-        ollama_overrides = {}
+    def _apply_model_specific_defaults(
+        self,
+        config_dict: dict[str, Any],
+        ollama_overrides: dict[str, Any],
+        env_overrides: dict[str, set[str]],
+    ) -> None:
+        """Fill in per-model default settings for the effective model, in place.
 
-        # Map CLI arguments to configuration sections
-        if "model" in kwargs and kwargs["model"] is not None:
-            ollama_overrides["synthesizer_model"] = kwargs["model"]
-        if "template" in kwargs and kwargs["template"] is not None:
-            cli_overrides["template"] = kwargs["template"]
-        if "max_concurrent" in kwargs and kwargs["max_concurrent"] is not None:
-            ollama_overrides["concurrent_requests"] = kwargs["max_concurrent"]
-        if "num_ctx" in kwargs and kwargs["num_ctx"] is not None:
-            ollama_overrides["num_ctx"] = kwargs["num_ctx"]
-        if "verbose" in kwargs and kwargs["verbose"] is not None:
-            cli_overrides["verbose"] = kwargs["verbose"]
-        if "debug" in kwargs and kwargs["debug"] is not None:
-            cli_overrides["debug"] = kwargs["debug"]
-        if "performance" in kwargs and kwargs["performance"] is not None:
-            cli_overrides["performance"] = kwargs["performance"]
-        if "config" in kwargs and kwargs["config"] is not None:
-            # Load additional config file if specified
-            try:
-                additional_config = yaml.safe_load(Path(kwargs["config"]).read_text())
-                # Deep merge additional config
-                self._deep_merge_dict(config_dict, additional_config)
-            except Exception as e:
-                _logger.warning(f"Could not load config file {kwargs['config']}: {e}")
-
-        if cli_overrides:
-            self._deep_merge_dict(config_dict["cli"], cli_overrides)
-        if ollama_overrides:
-            self._deep_merge_dict(config_dict["ollama"], ollama_overrides)
-
-        # -------------------------------------------------------------------------
-        # Critical Fix: Auto-apply model-specific settings (timeout, temperature, etc.)
-        # -------------------------------------------------------------------------
-        # Determine the effective model to use for lookup
-        # Priority: 1. CLI Override -> 2. Environment Var -> 3. Current Config (Preset/Default)
+        Applies a model's recommended timeout/temperature/concurrency/num_ctx
+        from ``cli.model_configs`` only where the user has NOT already set that
+        key via a CLI arg (``ollama_overrides``) or an ``AI_TG_*`` env var
+        (``env_overrides``) — CLI/env always win (review 2026-07-17 §5).
+        """
+        # Effective model priority: CLI override -> env var -> current config.
         effective_model = ollama_overrides.get("synthesizer_model") or config_dict["ollama"].get(
             "synthesizer_model"
         )
-
-        # Check if we have specific config for this model
-        # Access model_configs from the current instance's CLI config
         model_configs = self.cli.model_configs
+        if not (effective_model and effective_model in model_configs):
+            return
 
-        if effective_model and effective_model in model_configs:
-            m_config = model_configs[effective_model]
+        m_config = model_configs[effective_model]
 
-            # Apply timeout if not explicitly overridden by CLI/Env
-            # (We check if 'timeout' was in the overrides dicts passed to this method or env vars)
-            # Actually, simplest safe way: apply defaults from model_config IF they are unset/default
-            # OR just overwrite, assuming model_config is the specific intent for that model.
-            # BUT CLI args should always win.
+        def update_if_not_overridden(section: str, key: str, value: Any) -> None:
+            if key not in ollama_overrides and key not in env_overrides.get(section, set()):
+                config_dict[section][key] = value
 
-            # Helper to update if NOT in overrides AND not in env_overrides
-            def update_if_not_overridden(
-                section: str,
-                key: str,
-                value: Any,
-                override_dict: dict[str, Any],
-                env_tracker: dict[str, set[str]],
-            ) -> None:
-                if key not in override_dict and key not in env_tracker.get(section, set()):
-                    config_dict[section][key] = value
-
-            if "timeout" in m_config:
-                update_if_not_overridden(
-                    "ollama", "timeout", m_config["timeout"], ollama_overrides, env_overrides
-                )
-
-            if "temperature" in m_config:
-                update_if_not_overridden(
-                    "ollama",
-                    "temperature",
-                    m_config["temperature"],
-                    ollama_overrides,
-                    env_overrides,
-                )
-
-            if "recommended_concurrent" in m_config:
-                update_if_not_overridden(
-                    "ollama",
-                    "concurrent_requests",
-                    m_config["recommended_concurrent"],
-                    ollama_overrides,
-                    env_overrides,
-                )
-
-            if "num_ctx" in m_config:
-                update_if_not_overridden(
-                    "ollama", "num_ctx", m_config["num_ctx"], ollama_overrides, env_overrides
-                )
-
-            # Log this internal application if debugging
-            # print(f"ℹ️  Applied specific settings for model: {effective_model}")
-
-        # Create new ConfigManager instance with updated configuration
-        return ConfigManager.model_validate(config_dict)
+        if "timeout" in m_config:
+            update_if_not_overridden("ollama", "timeout", m_config["timeout"])
+        if "temperature" in m_config:
+            update_if_not_overridden("ollama", "temperature", m_config["temperature"])
+        if "recommended_concurrent" in m_config:
+            update_if_not_overridden(
+                "ollama", "concurrent_requests", m_config["recommended_concurrent"]
+            )
+        if "num_ctx" in m_config:
+            update_if_not_overridden("ollama", "num_ctx", m_config["num_ctx"])
 
     @staticmethod
     def _deep_merge_dict(base_dict: dict[str, Any], update_dict: dict[str, Any]) -> None:

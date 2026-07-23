@@ -201,75 +201,9 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 batch_results = [task.result() for task in tasks]
 
                 # Process all results
-                all_test_cases = []
-                failed_requirements: list[dict[str, str]] = []
-                for j, result in enumerate(batch_results):
-                    self.metrics["ai_calls_made"] += 1
-
-                    if isinstance(result, dict) and result.get("error"):
-                        # Handle structured error information
-                        req_id = result.get("requirement_id", "UNKNOWN")
-                        error_type = result.get("error_type", "Unknown")
-                        error_msg = result.get("error_message", "No details")
-
-                        self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
-
-                        # Record failure with detailed information
-                        if hasattr(self.logger, "add_requirement_failure"):
-                            self.logger.add_requirement_failure(
-                                req_id, f"{error_type}: {error_msg}"
-                            )
-
-                        failed_requirements.append(
-                            {
-                                "requirement_id": req_id,
-                                "error_type": error_type,
-                                "error_message": error_msg,
-                            }
-                        )
-
-                    elif isinstance(result, list) and result:
-                        # Successful test cases
-                        all_test_cases.extend(result)
-                        self.metrics["successful_requirements"] += 1
-
-                        # Log success for specific requirement
-                        if result and isinstance(result[0], dict):
-                            req_id = result[0].get("requirement_id", "UNKNOWN")
-                            self.logger.info(f"✅ {req_id}: Generated {len(result)} test cases")
-
-                            # RAFT: Save training example if enabled (does NOT affect core logic)
-                            if self.raft_collector and j < len(augmented_requirements):
-                                augmented_req = augmented_requirements[j]
-                                # Format test cases to string for RAFT storage
-                                test_cases_str = "\n".join(
-                                    [
-                                        f"Test Case {i + 1}: {tc.get('summary', tc.get('summary_suffix', 'N/A'))}\n"
-                                        f"Action: {tc.get('action', tc.get('preconditions', 'N/A'))}\n"
-                                        f"Data: {tc.get('data', tc.get('test_steps', 'N/A'))}\n"
-                                        f"Expected: {tc.get('expected_result', 'N/A')}\n"
-                                        for i, tc in enumerate(result)
-                                    ]
-                                )
-                                self._save_raft_example(augmented_req, test_cases_str, model)
-
-                    else:
-                        # Empty result
-                        req_id = (
-                            augmented_requirements[j].get("id", "UNKNOWN")
-                            if j < len(augmented_requirements)
-                            else "UNKNOWN"
-                        )
-                        self.logger.warning(f"⚠️  {req_id}: No test cases generated")
-                        if hasattr(self.logger, "add_requirement_failure"):
-                            self.logger.add_requirement_failure(req_id, "Empty result returned")
-                        failed_requirements.append(
-                            {
-                                "requirement_id": req_id,
-                                "error_type": "EmptyResult",
-                                "error_message": "No test cases generated",
-                            }
-                        )
+                all_test_cases, failed_requirements = self._collect_generation_results(
+                    batch_results, augmented_requirements, model
+                )
 
                 processing_time = time.time() - processing_start
                 rate = len(augmented_requirements) / processing_time if processing_time > 0 else 0
@@ -349,26 +283,113 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
 
             return result
 
-        except OllamaConnectionError as e:
-            processing_time = time.time() - self.metrics["start_time"]
-            self.logger.error(
-                f"❌ Cannot connect to Ollama at {e.host}:{e.port}",
-            )
+        except Exception as e:
+            return self._error_result_for_exception_hp(e)
+
+        finally:
+            if self.logger and hasattr(self.logger, "close"):
+                self.logger.close()
+
+    def _collect_generation_results(
+        self,
+        batch_results: list[Any],
+        augmented_requirements: list[dict[str, Any]],
+        model: str,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+        """Fold the per-requirement async results into test cases + failures.
+
+        Preserves the exact per-result classification (structured error dict /
+        non-empty list / empty) and the metrics/logging/RAFT side effects that
+        were previously inline in ``process_file``. Returns
+        ``(all_test_cases, failed_requirements)``.
+        """
+        assert self.logger is not None, "_initialize_logger() must run first"
+        all_test_cases: list[dict[str, Any]] = []
+        failed_requirements: list[dict[str, str]] = []
+
+        for j, result in enumerate(batch_results):
+            self.metrics["ai_calls_made"] += 1
+
+            if isinstance(result, dict) and result.get("error"):
+                # Handle structured error information
+                req_id = result.get("requirement_id", "UNKNOWN")
+                error_type = result.get("error_type", "Unknown")
+                error_msg = result.get("error_message", "No details")
+
+                self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
+
+                # Record failure with detailed information
+                if hasattr(self.logger, "add_requirement_failure"):
+                    self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
+
+                failed_requirements.append(
+                    {
+                        "requirement_id": req_id,
+                        "error_type": error_type,
+                        "error_message": error_msg,
+                    }
+                )
+
+            elif isinstance(result, list) and result:
+                # Successful test cases
+                all_test_cases.extend(result)
+                self.metrics["successful_requirements"] += 1
+
+                # Log success for specific requirement
+                if result and isinstance(result[0], dict):
+                    req_id = result[0].get("requirement_id", "UNKNOWN")
+                    self.logger.info(f"✅ {req_id}: Generated {len(result)} test cases")
+
+                    # RAFT: Save training example if enabled (does NOT affect core logic)
+                    if self.raft_collector and j < len(augmented_requirements):
+                        augmented_req = augmented_requirements[j]
+                        test_cases_str = self._format_raft_test_cases(result)
+                        self._save_raft_example(augmented_req, test_cases_str, model)
+
+            else:
+                # Empty result
+                req_id = (
+                    augmented_requirements[j].get("id", "UNKNOWN")
+                    if j < len(augmented_requirements)
+                    else "UNKNOWN"
+                )
+                self.logger.warning(f"⚠️  {req_id}: No test cases generated")
+                if hasattr(self.logger, "add_requirement_failure"):
+                    self.logger.add_requirement_failure(req_id, "Empty result returned")
+                failed_requirements.append(
+                    {
+                        "requirement_id": req_id,
+                        "error_type": "EmptyResult",
+                        "error_message": "No test cases generated",
+                    }
+                )
+
+        return all_test_cases, failed_requirements
+
+    def _error_result_for_exception_hp(self, exc: Exception) -> ProcessingResult:
+        """Map a processing exception to an HP error result.
+
+        Same branch selection and messages as the previous inline except-ladder;
+        dispatched by ``isinstance`` so ``process_file`` keeps a single
+        ``except Exception``.
+        """
+        assert self.logger is not None, "_initialize_logger() must run first"
+        processing_time = time.time() - self.metrics["start_time"]
+
+        if isinstance(exc, OllamaConnectionError):
+            self.logger.error(f"❌ Cannot connect to Ollama at {exc.host}:{exc.port}")
             return self._create_error_result_hp(
                 f"Ollama connection failed. Please ensure Ollama is running:\n"
                 f"  1. Start Ollama: ollama serve\n"
-                f"  2. Verify: curl http://{e.host}:{e.port}/api/tags\n"
-                f"Error: {e}",
+                f"  2. Verify: curl http://{exc.host}:{exc.port}/api/tags\n"
+                f"Error: {exc}",
                 processing_time,
             )
 
-        except OllamaTimeoutError as e:
-            processing_time = time.time() - self.metrics["start_time"]
-            self.logger.error(
-                f"❌ Ollama timeout after {e.timeout}s",
-            )
+        if isinstance(exc, OllamaTimeoutError):
+            self.logger.error(f"❌ Ollama timeout after {exc.timeout}s")
             return self._create_error_result_hp(
-                f"Ollama request timed out after {e.timeout}s.\n"
+                f"Ollama request timed out after {exc.timeout}s.\n"
                 f"Try increasing timeout in config or using a faster model.\n"
                 f"Suggestions:\n"
                 f"  • Use faster model: llama3.1:8b instead of deepseek-coder-v2:16b\n"
@@ -377,45 +398,31 @@ class HighPerformanceREQIFZFileProcessor(BaseProcessor):
                 processing_time,
             )
 
-        except OllamaModelNotFoundError as e:
-            processing_time = time.time() - self.metrics["start_time"]
-            self.logger.error(
-                f"❌ Model '{e.model}' not found",
-            )
+        if isinstance(exc, OllamaModelNotFoundError):
+            self.logger.error(f"❌ Model '{exc.model}' not found")
             return self._create_error_result_hp(
-                f"Model '{e.model}' is not available.\n"
-                f"Install it with: ollama pull {e.model}\n"
+                f"Model '{exc.model}' is not available.\n"
+                f"Install it with: ollama pull {exc.model}\n"
                 f"Check available models: ollama list",
                 processing_time,
             )
 
-        except REQIFParsingError as e:
-            processing_time = time.time() - self.metrics["start_time"]
-            self.logger.error(
-                f"❌ REQIF parsing failed: {e.file_path}",
-            )
+        if isinstance(exc, REQIFParsingError):
+            self.logger.error(f"❌ REQIF parsing failed: {exc.file_path}")
             return self._create_error_result_hp(
-                f"Failed to parse REQIF file: {e.file_path}\n"
-                f"Error: {e}\n"
+                f"Failed to parse REQIF file: {exc.file_path}\n"
+                f"Error: {exc}\n"
                 f"Ensure the file is a valid REQIFZ archive.",
                 processing_time,
             )
 
-        except Exception as e:
-            processing_time = time.time() - self.metrics["start_time"]
-            self.logger.error(
-                f"❌ Unexpected HP processing error: {e}",
-            )
-            return self._create_error_result_hp(
-                f"Unexpected error: {e}\n"
-                f"Error type: {type(e).__name__}\n"
-                f"Please report this issue with the error details.",
-                processing_time,
-            )
-
-        finally:
-            if self.logger and hasattr(self.logger, "close"):
-                self.logger.close()
+        self.logger.error(f"❌ Unexpected HP processing error: {exc}")
+        return self._create_error_result_hp(
+            f"Unexpected error: {exc}\n"
+            f"Error type: {type(exc).__name__}\n"
+            f"Please report this issue with the error details.",
+            processing_time,
+        )
 
     def _create_error_result_hp(
         self,

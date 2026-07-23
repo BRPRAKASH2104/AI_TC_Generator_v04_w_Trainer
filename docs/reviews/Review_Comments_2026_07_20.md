@@ -322,11 +322,16 @@ unit suites for the three low-covered training modules —
 `raft_annotator.py` (13%→80%) — asserting dataset-influence (rich examples
 score higher; the progressive readiness score is a real function of the dataset,
 confirming the honest no-fine-tune contract) plus failure paths; 56 new tests,
-full suite 522 passed/3 skipped. **Still open:** (c) extracting the oversized
-`process_file()`
-(313/249 lines) and `apply_cli_overrides()` (178) — a higher-risk refactor of
-protected processor files that warrants its own session with impact analysis and
-real-Ollama verification.
+full suite 522 passed/3 skipped. **Oversized functions extracted (2026-07-23) —
+finding now FULLY fixed:** behavior-preserving Extract Method (GitNexus impact
+analysis run first; standard `process_file` confirmed HIGH-risk on the `main`
+path) reduced `REQIFZFileProcessor.process_file` 249→123, HP
+`process_file` 313→186, and `ConfigManager.apply_cli_overrides` 178→75 lines,
+and de-duplicated the RAFT serialisation into
+`BaseProcessor._format_raft_test_cases`. Verified: suite unchanged (526/3 after
+the added trainer tests), mypy/ruff clean, and real-Ollama e2e on both the
+standard and HP paths (4 test cases each, exit 0). With this, **all findings in
+the 2026-07-20 review are closed.**
 
 Original finding (for reference): the exact CI source scopes pass, but a whole-repository pass found:
 

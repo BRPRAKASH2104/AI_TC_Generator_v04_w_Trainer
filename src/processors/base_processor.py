@@ -349,6 +349,25 @@ class BaseProcessor:
             "failed_requirements": failed_requirements or [],
         }
 
+    @staticmethod
+    def _format_raft_test_cases(test_cases: list[dict[str, Any]]) -> str:
+        """Serialise generated test cases to the RAFT storage string.
+
+        Shared by both processors so the standard and HP paths cannot drift
+        (previously this block was duplicated verbatim; review 2026-03-02 R16).
+        Reads the canonical schema fields with a fallback to the retired
+        action/data names for older stored examples.
+        """
+        return "\n".join(
+            [
+                f"Test Case {i + 1}: {tc.get('summary', tc.get('summary_suffix', 'N/A'))}\n"
+                f"Action: {tc.get('action', tc.get('preconditions', 'N/A'))}\n"
+                f"Data: {tc.get('data', tc.get('test_steps', 'N/A'))}\n"
+                f"Expected: {tc.get('expected_result', 'N/A')}\n"
+                for i, tc in enumerate(test_cases)
+            ]
+        )
+
     def _save_raft_example(
         self, requirement: AugmentedRequirement, test_cases: str, model: str
     ) -> None:

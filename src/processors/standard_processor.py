@@ -120,75 +120,9 @@ class REQIFZFileProcessor(BaseProcessor):
             )
 
             # Step 3: Generate test cases sequentially
-            all_test_cases = []
-            successful_requirements = 0
-            failed_requirements: list[dict[str, str]] = []
-
-            for augmented_req in augmented_requirements:
-                req_id = augmented_req.get("id", "UNKNOWN")
-                heading = augmented_req.get("heading", "No Heading")
-
-                # Hybrid strategy: Use vision model for requirements with images, text model otherwise
-                selected_model = self.config.get_model_for_requirement(augmented_req)
-
-                if selected_model != model:
-                    # Log when switching to vision model
-                    self.logger.info(
-                        f"⚡ Processing requirement: {req_id} (heading: {heading}) "
-                        f"- Using {selected_model} (has {len(augmented_req.get('images', []))} images)"
-                    )
-                else:
-                    self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {heading})")
-
-                generation_result = self.generator.generate_test_cases_for_requirement(
-                    augmented_req, selected_model, template
-                )
-
-                if isinstance(generation_result, dict):
-                    # Structured error object from the generator
-                    error_type = generation_result.get("error_type", "Unknown")
-                    error_msg = generation_result.get("error_message", "No details")
-                    self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
-                    if hasattr(self.logger, "add_requirement_failure"):
-                        self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
-                    failed_requirements.append(
-                        {
-                            "requirement_id": req_id,
-                            "error_type": error_type,
-                            "error_message": error_msg,
-                        }
-                    )
-                    continue
-
-                test_cases = generation_result
-
-                if test_cases:
-                    all_test_cases.extend(test_cases)
-                    successful_requirements += 1
-                    self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
-
-                    # RAFT: Save training example if enabled (does NOT affect core logic)
-                    if self.raft_collector:
-                        # Format test cases to string for RAFT storage
-                        test_cases_str = "\n".join(
-                            [
-                                f"Test Case {i + 1}: {tc.get('summary', tc.get('summary_suffix', 'N/A'))}\n"
-                                f"Action: {tc.get('action', tc.get('preconditions', 'N/A'))}\n"
-                                f"Data: {tc.get('data', tc.get('test_steps', 'N/A'))}\n"
-                                f"Expected: {tc.get('expected_result', 'N/A')}\n"
-                                for i, tc in enumerate(test_cases)
-                            ]
-                        )
-                        self._save_raft_example(augmented_req, test_cases_str, model)
-                else:
-                    self.logger.warning(f"⚠️  No test cases generated for {req_id}")
-                    failed_requirements.append(
-                        {
-                            "requirement_id": req_id,
-                            "error_type": "EmptyResult",
-                            "error_message": "No test cases generated",
-                        }
-                    )
+            all_test_cases, successful_requirements, failed_requirements = (
+                self._run_generation_loop(augmented_requirements, model, template)
+            )
 
             if not all_test_cases:
                 return self._create_error_result(
@@ -247,26 +181,115 @@ class REQIFZFileProcessor(BaseProcessor):
 
             return result
 
-        except OllamaConnectionError as e:
-            processing_time = time.time() - start_time
-            self.logger.error(
-                f"❌ Cannot connect to Ollama at {e.host}:{e.port}",
+        except Exception as e:
+            return self._error_result_for_exception(e, time.time() - start_time)
+
+        finally:
+            if self.logger and hasattr(self.logger, "close"):
+                self.logger.close()
+
+    def _run_generation_loop(
+        self,
+        augmented_requirements: list[dict[str, Any]],
+        model: str,
+        template: str | None,
+    ) -> tuple[list[dict[str, Any]], int, list[dict[str, str]]]:
+        """Generate test cases for each requirement sequentially.
+
+        Returns ``(all_test_cases, successful_requirements, failed_requirements)``.
+        Preserves the per-requirement hybrid model selection, structured-error
+        handling, logging, and RAFT side effects previously inline in
+        ``process_file``.
+        """
+        assert self.logger is not None, "_initialize_logger() must run first"
+        all_test_cases: list[dict[str, Any]] = []
+        successful_requirements = 0
+        failed_requirements: list[dict[str, str]] = []
+
+        for augmented_req in augmented_requirements:
+            req_id = augmented_req.get("id", "UNKNOWN")
+            heading = augmented_req.get("heading", "No Heading")
+
+            # Hybrid strategy: Use vision model for requirements with images, text model otherwise
+            selected_model = self.config.get_model_for_requirement(augmented_req)
+
+            if selected_model != model:
+                # Log when switching to vision model
+                self.logger.info(
+                    f"⚡ Processing requirement: {req_id} (heading: {heading}) "
+                    f"- Using {selected_model} (has {len(augmented_req.get('images', []))} images)"
+                )
+            else:
+                self.logger.info(f"⚡ Processing requirement: {req_id} (heading: {heading})")
+
+            generation_result = self.generator.generate_test_cases_for_requirement(
+                augmented_req, selected_model, template
             )
+
+            if isinstance(generation_result, dict):
+                # Structured error object from the generator
+                error_type = generation_result.get("error_type", "Unknown")
+                error_msg = generation_result.get("error_message", "No details")
+                self.logger.error(f"❌ {req_id}: {error_type} - {error_msg}")
+                if hasattr(self.logger, "add_requirement_failure"):
+                    self.logger.add_requirement_failure(req_id, f"{error_type}: {error_msg}")
+                failed_requirements.append(
+                    {
+                        "requirement_id": req_id,
+                        "error_type": error_type,
+                        "error_message": error_msg,
+                    }
+                )
+                continue
+
+            test_cases = generation_result
+
+            if test_cases:
+                all_test_cases.extend(test_cases)
+                successful_requirements += 1
+                self.logger.info(f"✅ Generated {len(test_cases)} test cases for {req_id}")
+
+                # RAFT: Save training example if enabled (does NOT affect core logic)
+                if self.raft_collector:
+                    test_cases_str = self._format_raft_test_cases(test_cases)
+                    self._save_raft_example(augmented_req, test_cases_str, model)
+            else:
+                self.logger.warning(f"⚠️  No test cases generated for {req_id}")
+                failed_requirements.append(
+                    {
+                        "requirement_id": req_id,
+                        "error_type": "EmptyResult",
+                        "error_message": "No test cases generated",
+                    }
+                )
+
+        return all_test_cases, successful_requirements, failed_requirements
+
+    def _error_result_for_exception(
+        self, exc: Exception, processing_time: float
+    ) -> ProcessingResult:
+        """Map a processing exception to an error result.
+
+        Same branch selection and messages as the previous inline except-ladder;
+        dispatched by ``isinstance`` so ``process_file`` keeps a single
+        ``except Exception``.
+        """
+        assert self.logger is not None, "_initialize_logger() must run first"
+
+        if isinstance(exc, OllamaConnectionError):
+            self.logger.error(f"❌ Cannot connect to Ollama at {exc.host}:{exc.port}")
             return self._create_error_result(
                 f"Ollama connection failed. Please ensure Ollama is running:\n"
                 f"  1. Start Ollama: ollama serve\n"
-                f"  2. Verify: curl http://{e.host}:{e.port}/api/tags\n"
-                f"Error: {e}",
+                f"  2. Verify: curl http://{exc.host}:{exc.port}/api/tags\n"
+                f"Error: {exc}",
                 processing_time,
             )
 
-        except OllamaTimeoutError as e:
-            processing_time = time.time() - start_time
-            self.logger.error(
-                f"❌ Ollama timeout after {e.timeout}s",
-            )
+        if isinstance(exc, OllamaTimeoutError):
+            self.logger.error(f"❌ Ollama timeout after {exc.timeout}s")
             return self._create_error_result(
-                f"Ollama request timed out after {e.timeout}s.\n"
+                f"Ollama request timed out after {exc.timeout}s.\n"
                 f"Try increasing timeout in config or using a faster model.\n"
                 f"Suggestions:\n"
                 f"  • Use faster model: llama3.1:8b instead of deepseek-coder-v2:16b\n"
@@ -274,42 +297,28 @@ class REQIFZFileProcessor(BaseProcessor):
                 processing_time,
             )
 
-        except OllamaModelNotFoundError as e:
-            processing_time = time.time() - start_time
-            self.logger.error(
-                f"❌ Model '{e.model}' not found",
-            )
+        if isinstance(exc, OllamaModelNotFoundError):
+            self.logger.error(f"❌ Model '{exc.model}' not found")
             return self._create_error_result(
-                f"Model '{e.model}' is not available.\n"
-                f"Install it with: ollama pull {e.model}\n"
+                f"Model '{exc.model}' is not available.\n"
+                f"Install it with: ollama pull {exc.model}\n"
                 f"Check available models: ollama list",
                 processing_time,
             )
 
-        except REQIFParsingError as e:
-            processing_time = time.time() - start_time
-            self.logger.error(
-                f"❌ REQIF parsing failed: {e.file_path}",
-            )
+        if isinstance(exc, REQIFParsingError):
+            self.logger.error(f"❌ REQIF parsing failed: {exc.file_path}")
             return self._create_error_result(
-                f"Failed to parse REQIF file: {e.file_path}\n"
-                f"Error: {e}\n"
+                f"Failed to parse REQIF file: {exc.file_path}\n"
+                f"Error: {exc}\n"
                 f"Ensure the file is a valid REQIFZ archive.",
                 processing_time,
             )
 
-        except Exception as e:
-            processing_time = time.time() - start_time
-            self.logger.error(
-                f"❌ Unexpected error: {e}",
-            )
-            return self._create_error_result(
-                f"Unexpected error: {e}\n"
-                f"Error type: {type(e).__name__}\n"
-                f"Please report this issue with the error details.",
-                processing_time,
-            )
-
-        finally:
-            if self.logger and hasattr(self.logger, "close"):
-                self.logger.close()
+        self.logger.error(f"❌ Unexpected error: {exc}")
+        return self._create_error_result(
+            f"Unexpected error: {exc}\n"
+            f"Error type: {type(exc).__name__}\n"
+            f"Please report this issue with the error details.",
+            processing_time,
+        )
