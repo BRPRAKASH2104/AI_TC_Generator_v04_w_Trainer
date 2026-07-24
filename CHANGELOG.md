@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A/B evaluation no longer reports a failed baseline as positive lift**
+  (review 2026-07-24, Critical 1). A base model that failed to generate for
+  every example previously aggregated to all-zero metrics, so `_compute_delta`
+  returned pure positive lift and the CLI exited `0` — a false "customization
+  helped" verdict with no usable baseline observation behind it. The comparison
+  is now *paired*: a new `_compare_paired()` computes the delta only over
+  examples both models generated for without error, adds a `comparison` block
+  (`status` = `complete`/`partial`/`failed`, `paired_examples`,
+  `total_examples`, `custom_failures`, `baseline_failures`), and **withholds the
+  delta** (`None`) when no example paired. `print_evaluation_result` now surfaces
+  baseline errors and the paired-sample size, and `run_evaluation` returns `1`
+  when a requested comparison could not be established. Tests: total-baseline
+  failure, partial failure (paired-only delta), symmetric customized-side
+  failure, CLI exit `1`, and baseline-error reporting.
+- **"Coverage" metric no longer rewards duplicate or canonical-invalid output**
+  (review 2026-07-24, Critical 2). The reported coverage averaged the *raw*
+  object count, so five identical or five schema-invalid cases both read as
+  `+4.0` lift over a single valid case. `_score_generation` now also computes
+  `unique_valid` — canonical-valid cases run through the production
+  `TestCaseDeduplicator` (`DEFAULT_FIELDS_TO_COMPARE`) — plus explicit
+  `invalid_test_cases`/`duplicate_test_cases` counts. The raw metric is renamed
+  `raw_test_cases_per_example` (kept as output volume) and the decision metric is
+  now `unique_valid_test_cases_per_example`; the CLI's "meaningful signal" label
+  and the delta move to it. Tests: duplicate-heavy and invalid-bulk A/B
+  regressions and per-example invalid/duplicate accounting.
+
 ### Added (feature)
 
 - **Phase 2 A/B comparison for `VisionRAFTTrainer.evaluate_model`** — a
@@ -19,7 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metric is absent on either side). **Honest caveat, surfaced in the output and
   docstring:** generation is grammar-constrained to the canonical schema, so the
   *validity* scores are near-saturated for both models — the coverage delta
-  (`avg_test_cases_per_example`) is usually the more discriminating signal.
+  (`unique_valid_test_cases_per_example`) is usually the more discriminating
+  signal.
   Real-Ollama A/B verified live via the CLI. This also caught (and fixed) a
   wiring bug the mocked tests missed: `run_evaluation` was ignoring
   `--base-model` and comparing against the default base — the live run's baseline

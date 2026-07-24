@@ -308,7 +308,14 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
     logger.info(f"  Text score:     {text_str}")
     logger.info(f"  Vision score:   {vision_str}")
     logger.info(f"Parse success:    {metrics.get('parse_success_rate', 0.0):.2f}")
-    logger.info(f"Avg TCs/example:  {metrics.get('avg_test_cases_per_example', 0.0):.2f}")
+    logger.info(
+        f"Unique valid TCs: {metrics.get('unique_valid_test_cases_per_example', 0.0):.2f}"
+        "/example  (canonical-valid, deduplicated)"
+    )
+    logger.info(
+        f"Raw TCs/example:  {metrics.get('raw_test_cases_per_example', 0.0):.2f}  "
+        "(output volume, not coverage)"
+    )
     if result["errors"]:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
         for error in result["errors"]:
@@ -316,19 +323,45 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
 
     if "baseline" in result:
         base_metrics = result["baseline"]["metrics"]
-        delta = result["delta"]
+        delta = result.get("delta")
+        comparison = result.get("comparison") or {}
         logger.info("-" * 60)
         logger.info(f"Baseline model:   {result['baseline']['model']}")
         logger.info(f"  Base overall:   {base_metrics.get('overall_score', 0.0):.2f}")
         logger.info(
-            f"  Base coverage:  {base_metrics.get('avg_test_cases_per_example', 0.0):.2f} TCs/example"
+            f"  Base coverage:  "
+            f"{base_metrics.get('unique_valid_test_cases_per_example', 0.0):.2f} "
+            "unique-valid TCs/example"
         )
-        logger.info("Delta (customized - base):")
-        logger.info(f"  Overall score:  {_format_delta(delta.get('overall_score'))}")
-        logger.info(
-            f"  Coverage:       {_format_delta(delta.get('avg_test_cases_per_example'))} "
-            "TCs/example  <- usually the meaningful signal (validity is grammar-saturated)"
-        )
+        base_errors = result["baseline"]["errors"]
+        if base_errors:
+            logger.warning(f"{len(base_errors)} baseline example(s) failed to generate:")
+            for error in base_errors:
+                logger.warning(f"  - {error}")
+        if comparison:
+            logger.info(
+                f"Comparison:       {comparison.get('status', 'unknown')} "
+                f"({comparison.get('paired_examples', 0)}/{comparison.get('total_examples', 0)} "
+                "paired example(s))"
+            )
+        if delta is None:
+            logger.warning(
+                "Delta withheld: the baseline produced no usable observation, "
+                "so no customized-vs-base lift can be claimed."
+            )
+        else:
+            logger.info("Delta (customized - base, paired examples only):")
+            logger.info(f"  Overall score:  {_format_delta(delta.get('overall_score'))}")
+            logger.info(
+                f"  Coverage:       "
+                f"{_format_delta(delta.get('unique_valid_test_cases_per_example'))} "
+                "unique-valid TCs/example  <- the meaningful signal "
+                "(validity is grammar-saturated)"
+            )
+            logger.info(
+                f"  Raw volume:     {_format_delta(delta.get('raw_test_cases_per_example'))} "
+                "TCs/example  (includes duplicates and invalid output)"
+            )
 
     logger.info("=" * 60)
     logger.info("")
@@ -351,8 +384,10 @@ def run_evaluation(
             keeps ``VisionTrainingConfig``'s default.
 
     Returns:
-        0 if at least one example was evaluated without a generation error,
-        1 if the dataset is missing/empty or every example failed.
+        0 if at least one example was evaluated without a generation error
+        (and, when comparing, the baseline produced at least one usable paired
+        observation), 1 if the dataset is missing/empty, every example failed,
+        or the requested baseline comparison could not be established.
     """
     test_path = Path(test_dataset)
     if not test_path.exists():
@@ -375,8 +410,13 @@ def run_evaluation(
 
     total = result["metrics"].get("total_examples", 0)
     failed = len(result["errors"])
+    # A requested comparison whose baseline never produced a usable paired
+    # observation cannot support the A/B claim; fail instead of exiting 0
+    # alongside a withheld delta (2026-07-24 review, Critical 1).
+    comparison = result.get("comparison") or {}
+    baseline_unusable = comparison.get("status") == "failed"
     # Nothing scored (empty set or every example errored) is not a usable result.
-    return 1 if total == 0 or failed >= total else 0
+    return 1 if total == 0 or failed >= total or baseline_unusable else 0
 
 
 def main() -> int:

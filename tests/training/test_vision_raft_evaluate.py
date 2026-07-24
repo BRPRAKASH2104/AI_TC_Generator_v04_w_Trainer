@@ -39,7 +39,13 @@ class FakeOllamaClient:
 
     ``response`` may be a single string (returned for every model) or a
     ``{model_name: response}`` dict, which lets A/B tests give the customized and
-    base models different outputs.
+    base models different outputs. A per-model value may itself be:
+
+    - a string, returned on every call;
+    - an ``Exception`` instance, raised on every call (models the base model
+      being unavailable); or
+    - a list of the above, consumed one entry per call in order (models
+      per-example transient failures).
     """
 
     def __init__(self, response=VALID_RESPONSE):
@@ -48,9 +54,14 @@ class FakeOllamaClient:
         self.vision_calls: list[dict] = []
 
     def _resolve(self, model_name):
-        if isinstance(self.response, dict):
-            return self.response.get(model_name, UNPARSEABLE_RESPONSE)
-        return self.response
+        value = self.response
+        if isinstance(value, dict):
+            value = value.get(model_name, UNPARSEABLE_RESPONSE)
+        if isinstance(value, list):
+            value = value.pop(0)
+        if isinstance(value, Exception):
+            raise value
+        return value
 
     def generate_completion(
         self,
@@ -156,7 +167,12 @@ def test_valid_output_scores_one(trainer, tmp_path):
     assert metrics["text_examples_score"] == 1.0
     assert metrics["parse_success_rate"] == 1.0
     assert metrics["total_examples"] == 2
-    assert metrics["avg_test_cases_per_example"] == 1.0
+    # 07-24 review Critical 2: the raw object count is output volume, not
+    # coverage, so it is exposed under an honest name alongside the
+    # deduplicated canonical-valid count that is the actual decision metric.
+    assert metrics["raw_test_cases_per_example"] == 1.0
+    assert metrics["unique_valid_test_cases_per_example"] == 1.0
+    assert "avg_test_cases_per_example" not in metrics
 
 
 def test_invalid_schema_output_scores_zero(trainer, tmp_path):
@@ -304,3 +320,172 @@ def test_delta_is_none_when_metric_absent_on_a_side(trainer, tmp_path):
     )
 
     assert result["delta"]["vision_examples_score"] is None
+
+
+# --- P0 fixes (2026-07-24 review): baseline validity & paired comparison -----
+
+BASE_MODEL = "llama3.2-vision:11b"
+
+
+def test_total_baseline_failure_withholds_delta(trainer, tmp_path):
+    # 07-24 review Critical 1: a dead baseline previously aggregated to all-zero
+    # metrics, so the delta reported pure positive lift with no usable baseline
+    # observation behind it.
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+    client = FakeOllamaClient(
+        {
+            "pinned-eval-model": VALID_RESPONSE,
+            BASE_MODEL: RuntimeError("base model unavailable"),
+        }
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=client, compare_base=True)
+
+    assert result["delta"] is None
+    assert result["comparison"]["status"] == "failed"
+    assert result["comparison"]["paired_examples"] == 0
+    assert result["comparison"]["baseline_failures"] == 1
+    assert result["baseline"]["errors"]
+
+
+def test_partial_baseline_failure_compares_paired_rows_only(trainer, tmp_path):
+    # One baseline row fails, one succeeds. The delta must come from the paired
+    # row only: both sides scored 1.0 there, so lift is 0.0. An unpaired
+    # aggregate would report +0.5 purely from the baseline's zero-filled
+    # failed row.
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example(), _text_example()])
+    client = FakeOllamaClient(
+        {
+            "pinned-eval-model": VALID_RESPONSE,
+            BASE_MODEL: [RuntimeError("transient failure"), VALID_RESPONSE],
+        }
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=client, compare_base=True)
+
+    assert result["comparison"]["status"] == "partial"
+    assert result["comparison"]["paired_examples"] == 1
+    assert result["comparison"]["baseline_failures"] == 1
+    assert result["comparison"]["custom_failures"] == 0
+    assert result["delta"]["overall_score"] == 0.0
+
+
+def test_customized_failures_also_excluded_from_pairing(trainer, tmp_path):
+    # Pairing is symmetric: a row where the *customized* model failed must not
+    # count against (or for) the baseline either.
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example(), _text_example()])
+    client = FakeOllamaClient(
+        {
+            "pinned-eval-model": [RuntimeError("custom side died"), VALID_RESPONSE],
+            BASE_MODEL: VALID_RESPONSE,
+        }
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=client, compare_base=True)
+
+    assert result["comparison"]["status"] == "partial"
+    assert result["comparison"]["paired_examples"] == 1
+    assert result["comparison"]["custom_failures"] == 1
+    assert result["delta"]["overall_score"] == 0.0
+
+
+def test_full_success_comparison_is_complete(trainer, tmp_path):
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(), compare_base=True
+    )
+
+    assert result["comparison"]["status"] == "complete"
+    assert result["comparison"]["paired_examples"] == 1
+    assert result["comparison"]["custom_failures"] == 0
+    assert result["comparison"]["baseline_failures"] == 0
+    assert result["delta"] is not None
+
+
+# --- P0 fixes (2026-07-24 review): honest coverage metric ---------------------
+
+# A second, clearly distinct canonical case so dedup keeps both.
+VALID_TEST_CASE_B = {
+    "summary_suffix": "wiper speed follows rain intensity",
+    "preconditions": "vehicle running; rain sensor enabled",
+    "test_steps": "1. Simulate heavy rainfall on the windshield sensor.",
+    "expected_result": "Wipers switch to maximum speed within 500 ms.",
+    "test_type": "functional",
+}
+# Five byte-identical valid cases: high raw volume, zero added coverage.
+DUPLICATE_HEAVY_RESPONSE = json.dumps({"test_cases": [VALID_TEST_CASE] * 5})
+# Five canonical-invalid objects: high raw volume, zero usable output.
+INVALID_BULK_RESPONSE = json.dumps(
+    {"test_cases": [{"summary_suffix": f"junk {i}"} for i in range(5)]}
+)
+
+
+def test_duplicate_heavy_output_does_not_inflate_unique_valid(trainer, tmp_path):
+    # 07-24 review Critical 2, reproduction 1: five identical valid cases vs
+    # one copy of the same case previously reported +4.0 "coverage" lift.
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+    client = FakeOllamaClient(
+        {
+            "pinned-eval-model": DUPLICATE_HEAVY_RESPONSE,
+            BASE_MODEL: VALID_RESPONSE,
+        }
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=client, compare_base=True)
+
+    assert result["metrics"]["raw_test_cases_per_example"] == 5.0
+    assert result["metrics"]["unique_valid_test_cases_per_example"] == 1.0
+    # Raw volume still shows the difference, under its honest name...
+    assert result["delta"]["raw_test_cases_per_example"] == 4.0
+    # ...but the decision metric shows no added coverage.
+    assert result["delta"]["unique_valid_test_cases_per_example"] == 0.0
+
+
+def test_invalid_bulk_output_has_zero_unique_valid(trainer, tmp_path):
+    # 07-24 review Critical 2, reproduction 2: five canonical-invalid objects
+    # must contribute nothing to the decision metric.
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+    client = FakeOllamaClient(
+        {
+            "pinned-eval-model": INVALID_BULK_RESPONSE,
+            BASE_MODEL: VALID_RESPONSE,
+        }
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=client, compare_base=True)
+
+    assert result["metrics"]["overall_score"] == 0.0
+    assert result["metrics"]["unique_valid_test_cases_per_example"] == 0.0
+    assert result["delta"]["unique_valid_test_cases_per_example"] == -1.0
+
+
+def test_per_example_reports_invalid_and_duplicate_counts(trainer, tmp_path):
+    # Two identical valid + one distinct valid + one invalid object.
+    mixed = json.dumps(
+        {
+            "test_cases": [
+                VALID_TEST_CASE,
+                VALID_TEST_CASE,
+                VALID_TEST_CASE_B,
+                {"summary_suffix": "junk"},
+            ]
+        }
+    )
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient(mixed))
+
+    row = result["per_example"][0]
+    assert row["num_test_cases"] == 4
+    assert row["canonical_valid"] == 3
+    assert row["unique_valid"] == 2
+    assert row["invalid_test_cases"] == 1
+    assert row["duplicate_test_cases"] == 1

@@ -453,12 +453,11 @@ Output test cases in structured JSON format as demonstrated in training examples
         it does not compare against the reference answer (that is a later phase).
 
         With ``compare_base=True``, the untouched base model is run over the same
-        examples and the result gains a ``baseline`` block and a ``delta``
-        (customized minus base) block - answering "did the prompt customization
-        help?". Note: because generation is grammar-constrained to the canonical
-        schema, the *validity* scores are near-saturated for both models, so the
-        ``delta`` on ``avg_test_cases_per_example`` (coverage) is usually the more
-        discriminating signal than the score deltas.
+        examples and the result gains ``baseline``, ``comparison`` and ``delta``
+        (customized minus base) blocks. The delta is *paired*: it is computed
+        only over examples both models generated for without error, and it is
+        withheld (None, ``comparison.status == "failed"``) when no such example
+        exists - a failed baseline must not be reported as lift.
 
         Args:
             test_dataset: Path to a JSONL file of held-out RAFT examples. This
@@ -475,9 +474,11 @@ Output test cases in structured JSON format as demonstrated in training examples
             ``test_dataset``, ``metrics`` (aggregate scores and counts),
             ``per_example`` (per-example detail) and ``errors``. When
             ``compare_base`` is True it also carries ``baseline`` (the base
-            model's ``model``/``metrics``/``per_example``/``errors``) and
-            ``delta`` (per-metric customized-minus-base, None where a metric is
-            absent on either side).
+            model's ``model``/``metrics``/``per_example``/``errors``),
+            ``comparison`` (pairing status and both sides' failure counts, see
+            ``_compare_paired``) and ``delta`` (per-metric customized-minus-base
+            over paired examples; None when the comparison failed, per-metric
+            None where a metric is absent on either side).
 
         Raises:
             ValueError: If ``test_dataset`` is None.
@@ -536,9 +537,59 @@ Output test cases in structured JSON format as demonstrated in training examples
                 "per_example": base_per_example,
                 "errors": self._collect_errors(base_per_example),
             }
-            result["delta"] = self._compute_delta(metrics, base_metrics)
+            result["comparison"], result["delta"] = self._compare_paired(
+                per_example, base_per_example
+            )
 
         return result
+
+    def _compare_paired(
+        self, custom_rows: list[dict[str, Any]], base_rows: list[dict[str, Any]]
+    ) -> tuple[dict[str, Any], dict[str, float | None] | None]:
+        """Compare customized vs base metrics over rows both sides evaluated.
+
+        A row where either side failed to generate carries zero-filled scores,
+        so an unpaired aggregate delta would credit the surviving side with
+        artificial lift — a totally failed baseline previously reported pure
+        positive lift (2026-07-24 review, Critical 1). The delta is therefore
+        computed only over rows with no generation error on either side; when
+        no such row exists it is withheld entirely.
+
+        Args:
+            custom_rows: Per-example detail for the customized model.
+            base_rows: Per-example detail for the base model, same order.
+
+        Returns:
+            A ``(comparison, delta)`` tuple. ``comparison`` carries ``status``
+            (``complete`` when every row paired, ``partial`` when some did,
+            ``failed`` when none did), ``paired_examples``, ``total_examples``
+            and both sides' failure counts. ``delta`` is None when the status
+            is ``failed``.
+        """
+        paired = [
+            (custom, base)
+            for custom, base in zip(custom_rows, base_rows, strict=True)
+            if custom["error"] is None and base["error"] is None
+        ]
+
+        delta: dict[str, float | None] | None = None
+        if not paired:
+            status = "failed"
+        else:
+            status = "complete" if len(paired) == len(custom_rows) else "partial"
+            delta = self._compute_delta(
+                self._aggregate_eval_metrics([custom for custom, _ in paired]),
+                self._aggregate_eval_metrics([base for _, base in paired]),
+            )
+
+        comparison = {
+            "status": status,
+            "paired_examples": len(paired),
+            "total_examples": len(custom_rows),
+            "custom_failures": sum(1 for row in custom_rows if row["error"]),
+            "baseline_failures": sum(1 for row in base_rows if row["error"]),
+        }
+        return comparison, delta
 
     def _score_over_dataset(
         self, client: Any, examples: list[dict[str, Any]], model_name: str
@@ -588,7 +639,8 @@ Output test cases in structured JSON format as demonstrated in training examples
             "text_examples_score",
             "vision_examples_score",
             "parse_success_rate",
-            "avg_test_cases_per_example",
+            "raw_test_cases_per_example",
+            "unique_valid_test_cases_per_example",
         )
         delta: dict[str, float | None] = {}
         for key in comparable:
@@ -630,7 +682,8 @@ Output test cases in structured JSON format as demonstrated in training examples
 
         Returns:
             Per-example detail: index, has_images, parsed, num_test_cases,
-            canonical_valid, score, and error (None on success).
+            canonical_valid, unique_valid, invalid_test_cases,
+            duplicate_test_cases, score, and error (None on success).
         """
         result: dict[str, Any] = {
             "index": index,
@@ -638,6 +691,9 @@ Output test cases in structured JSON format as demonstrated in training examples
             "parsed": False,
             "num_test_cases": 0,
             "canonical_valid": 0,
+            "unique_valid": 0,
+            "invalid_test_cases": 0,
+            "duplicate_test_cases": 0,
             "score": 0.0,
             "error": None,
         }
@@ -731,32 +787,66 @@ Output test cases in structured JSON format as demonstrated in training examples
     def _score_generation(raw_output: str | dict[str, Any]) -> dict[str, Any]:
         """Parse a raw model response and score it by canonical-schema pass rate.
 
+        Beyond the raw object count, this also computes ``unique_valid`` - the
+        number of canonical-valid cases that survive the *production*
+        deduplicator (``TestCaseDeduplicator``, ``DEFAULT_FIELDS_TO_COMPARE``).
+        Raw count is output volume and rewards duplicate or invalid bulk output
+        (2026-07-24 review, Critical 2); ``unique_valid`` is the count that
+        actually reflects distinct, usable coverage.
+
         Args:
             raw_output: The raw model response (text, or a dict coerced to text).
 
         Returns:
-            parsed (did valid ``test_cases`` JSON come back), num_test_cases,
-            canonical_valid (count passing the canonical gate), and score
+            parsed (did valid ``test_cases`` JSON come back), num_test_cases
+            (raw object count), canonical_valid (count passing the canonical
+            gate), unique_valid (canonical-valid cases after deduplication),
+            invalid_test_cases and duplicate_test_cases counts, and score
             (canonical_valid / num_test_cases, 0.0 when nothing parsed).
         """
+        from src.core.deduplicator import TestCaseDeduplicator
         from src.core.parsers import JSONResponseParser
         from src.core.validators import is_canonical_test_case
+
+        empty = {
+            "parsed": False,
+            "num_test_cases": 0,
+            "canonical_valid": 0,
+            "unique_valid": 0,
+            "invalid_test_cases": 0,
+            "duplicate_test_cases": 0,
+            "score": 0.0,
+        }
 
         text = raw_output if isinstance(raw_output, str) else json.dumps(raw_output)
         parsed = JSONResponseParser.extract_json_from_response(text)
 
         if not parsed or not isinstance(parsed.get("test_cases"), list):
-            return {"parsed": False, "num_test_cases": 0, "canonical_valid": 0, "score": 0.0}
+            return empty
 
         test_cases = parsed["test_cases"]
         num_test_cases = len(test_cases)
-        canonical_valid = sum(1 for tc in test_cases if is_canonical_test_case(tc))
+        valid_cases = [tc for tc in test_cases if is_canonical_test_case(tc)]
+        canonical_valid = len(valid_cases)
+
+        # Deduplicate only the canonical-valid cases, using the same fields and
+        # threshold the production pipeline applies, so "coverage" counts
+        # distinct usable scenarios rather than repeated or malformed output.
+        if valid_cases:
+            deduped, _ = TestCaseDeduplicator().deduplicate(valid_cases)
+            unique_valid = len(deduped)
+        else:
+            unique_valid = 0
+
         score = canonical_valid / num_test_cases if num_test_cases else 0.0
 
         return {
             "parsed": True,
             "num_test_cases": num_test_cases,
             "canonical_valid": canonical_valid,
+            "unique_valid": unique_valid,
+            "invalid_test_cases": num_test_cases - canonical_valid,
+            "duplicate_test_cases": canonical_valid - unique_valid,
             "score": score,
         }
 
@@ -781,7 +871,8 @@ Output test cases in structured JSON format as demonstrated in training examples
 
         overall = mean_score(per_example)
         parse_ok = sum(1 for r in per_example if r["parsed"])
-        total_test_cases = sum(r["num_test_cases"] for r in per_example)
+        total_raw_cases = sum(r["num_test_cases"] for r in per_example)
+        total_unique_valid = sum(r["unique_valid"] for r in per_example)
 
         return {
             "text_examples_score": mean_score(text_rows),
@@ -791,7 +882,11 @@ Output test cases in structured JSON format as demonstrated in training examples
             "text_examples": len(text_rows),
             "vision_examples": len(vision_rows),
             "parse_success_rate": parse_ok / total if total else 0.0,
-            "avg_test_cases_per_example": total_test_cases / total if total else 0.0,
+            # Raw object count is output volume, not coverage. The decision
+            # metric is unique_valid_test_cases_per_example, which counts only
+            # canonical-valid, deduplicated cases (2026-07-24 review, Critical 2).
+            "raw_test_cases_per_example": total_raw_cases / total if total else 0.0,
+            "unique_valid_test_cases_per_example": (total_unique_valid / total if total else 0.0),
         }
 
 

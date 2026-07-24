@@ -137,7 +137,8 @@ def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
             "text_examples": 1,
             "vision_examples": 0,
             "parse_success_rate": 1.0,
-            "avg_test_cases_per_example": 2.0,
+            "raw_test_cases_per_example": 2.0,
+            "unique_valid_test_cases_per_example": 2.0,
         },
         "per_example": [],
         "errors": [],
@@ -149,6 +150,100 @@ def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
     )
 
     assert tvm.run_evaluation(str(test_set), "some-model") == 0
+
+
+class _RecordingLogger:
+    """Captures log lines so tests can assert on the printed summary."""
+
+    def __init__(self):
+        self.infos: list[str] = []
+        self.warnings: list[str] = []
+        self.errors: list[str] = []
+
+    def info(self, msg):
+        self.infos.append(str(msg))
+
+    def warning(self, msg):
+        self.warnings.append(str(msg))
+
+    def error(self, msg):
+        self.errors.append(str(msg))
+
+
+def _failed_comparison_result(test_set):
+    """Result shape for a run whose baseline produced no usable observation."""
+    return {
+        "model": "some-model",
+        "evaluation_date": "now",
+        "test_dataset": str(test_set),
+        "metrics": {"overall_score": 1.0, "total_examples": 1, "parse_success_rate": 1.0},
+        "per_example": [],
+        "errors": [],
+        "baseline": {
+            "model": "base-model",
+            "metrics": {"overall_score": 0.0, "total_examples": 1},
+            "per_example": [],
+            "errors": ["example 0: generation failed: base model unavailable"],
+        },
+        "delta": None,
+        "comparison": {
+            "status": "failed",
+            "paired_examples": 0,
+            "total_examples": 1,
+            "custom_failures": 0,
+            "baseline_failures": 1,
+        },
+    }
+
+
+def test_run_evaluation_failed_baseline_comparison_returns_1(tmp_path, monkeypatch):
+    # 07-24 review Critical 1: a totally failed baseline must fail the run, not
+    # exit 0 with a fabricated positive delta.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    monkeypatch.setattr(
+        tvm.VisionRAFTTrainer,
+        "evaluate_model",
+        lambda self, test_dataset=None, compare_base=False: _failed_comparison_result(test_set),
+    )
+
+    assert tvm.run_evaluation(str(test_set), "some-model", compare_base=True) == 1
+
+
+def test_print_evaluation_result_reports_baseline_errors(tmp_path, monkeypatch):
+    # Baseline errors were previously stored but never surfaced to the user.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(_failed_comparison_result(test_set))
+
+    all_lines = rec.infos + rec.warnings + rec.errors
+    assert any("base model unavailable" in line for line in all_lines)
+    # The summary must say the delta was withheld rather than print a number.
+    assert any("withheld" in line.lower() for line in all_lines)
+
+
+def test_print_evaluation_result_reports_paired_sample_size(tmp_path, monkeypatch):
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    result = _failed_comparison_result(test_set)
+    result["comparison"] = {
+        "status": "partial",
+        "paired_examples": 3,
+        "total_examples": 4,
+        "custom_failures": 0,
+        "baseline_failures": 1,
+    }
+    result["delta"] = {"overall_score": 0.0}
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(result)
+
+    all_lines = rec.infos + rec.warnings + rec.errors
+    assert any("3" in line and "paired" in line.lower() for line in all_lines)
 
 
 def test_run_evaluation_all_examples_failed_returns_1(tmp_path, monkeypatch):
