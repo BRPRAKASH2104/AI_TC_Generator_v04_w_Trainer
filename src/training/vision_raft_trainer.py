@@ -29,7 +29,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -63,6 +63,10 @@ class VisionTrainingConfig:
     max_eval_examples: int = 5000  # Reject held-out sets larger than this
     max_images_per_example: int = 16  # Reject examples carrying more images
     max_image_bytes: int = 10 * 1024 * 1024  # Reject a single decoded image above 10 MB
+
+    # Phase 3 content metric: minimum field similarity for a generated case to
+    # count as covering a reference case (reuses the deduplicator's 0.85).
+    content_match_threshold: float = 0.85
 
     # RAFT parameters
     oracle_probability: float = 0.8  # Probability of including oracle docs
@@ -469,7 +473,11 @@ Output test cases in structured JSON format as demonstrated in training examples
                 self.logger.warning(f"Failed to save training progress: {e}")
 
     def evaluate_model(
-        self, test_dataset: Path | None = None, client: Any = None, compare_base: bool = False
+        self,
+        test_dataset: Path | None = None,
+        client: Any = None,
+        compare_base: bool = False,
+        content_scorer: Any = None,
     ) -> dict[str, Any]:
         """Evaluate the prompt-customized model's output quality on held-out data.
 
@@ -495,6 +503,11 @@ Output test cases in structured JSON format as demonstrated in training examples
                 fake instead of shelling out to a live model.
             compare_base: When True, also evaluate ``config.base_model`` and add
                 ``baseline`` and ``delta`` blocks to the result.
+            content_scorer: A ``ContentScorer`` used to score each generation
+                against its example's reference answer. Defaults to a
+                ``ReferenceOverlapScorer`` built from
+                ``config.content_match_threshold``; injectable so tests can
+                supply a deterministic fake.
 
         Returns:
             A metrics dict with keys ``model``, ``evaluation_date``,
@@ -532,8 +545,15 @@ Output test cases in structured JSON format as demonstrated in training examples
 
             client = OllamaClient()
 
+        if content_scorer is None:
+            from src.training.content_scorer import ReferenceOverlapScorer
+
+            content_scorer = ReferenceOverlapScorer(self.config.content_match_threshold)
+
         examples = self._load_and_validate_examples(test_dataset)
-        metrics, per_example = self._score_over_dataset(client, examples, self.config.output_model)
+        metrics, per_example = self._score_over_dataset(
+            client, examples, self.config.output_model, content_scorer
+        )
 
         if self.logger:
             self.logger.info(
@@ -556,7 +576,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                     f"📊 Evaluating base model for comparison: {self.config.base_model}"
                 )
             base_metrics, base_per_example = self._score_over_dataset(
-                client, examples, self.config.base_model
+                client, examples, self.config.base_model, content_scorer
             )
             result["baseline"] = {
                 "model": self.config.base_model,
@@ -652,7 +672,11 @@ Output test cases in structured JSON format as demonstrated in training examples
         return comparison, delta
 
     def _score_over_dataset(
-        self, client: Any, examples: list[dict[str, Any]], model_name: str
+        self,
+        client: Any,
+        examples: list[dict[str, Any]],
+        model_name: str,
+        content_scorer: Any,
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         """Run one model over every example and aggregate the scores.
 
@@ -660,12 +684,14 @@ Output test cases in structured JSON format as demonstrated in training examples
             client: Ollama client used for generation.
             examples: Loaded RAFT examples.
             model_name: The Ollama model to evaluate.
+            content_scorer: A ``ContentScorer`` used to score each generation
+                against its example's reference answer.
 
         Returns:
             A tuple of (aggregate metrics, per-example detail).
         """
         per_example = [
-            self._evaluate_example(client, example, index, model_name)
+            self._evaluate_example(client, example, index, model_name, content_scorer)
             for index, example in enumerate(examples)
         ]
         return self._aggregate_eval_metrics(per_example), per_example
@@ -843,7 +869,12 @@ Output test cases in structured JSON format as demonstrated in training examples
                 ) from exc
 
     def _evaluate_example(
-        self, client: Any, example: dict[str, Any], index: int, model_name: str
+        self,
+        client: Any,
+        example: dict[str, Any],
+        index: int,
+        model_name: str,
+        content_scorer: Any,
     ) -> dict[str, Any]:
         """Generate for one example and score the output.
 
@@ -852,11 +883,13 @@ Output test cases in structured JSON format as demonstrated in training examples
             example: A RAFT example with a ``messages`` list.
             index: Zero-based position of the example in the dataset.
             model_name: The Ollama model to run for this example.
+            content_scorer: A ``ContentScorer`` used to score the generation
+                against the example's reference answer.
 
         Returns:
             Per-example detail: index, has_images, parsed, num_test_cases,
             canonical_valid, unique_valid, invalid_test_cases,
-            duplicate_test_cases, score, and error (None on success).
+            duplicate_test_cases, score, content, and error (None on success).
         """
         result: dict[str, Any] = {
             "index": index,
@@ -867,6 +900,7 @@ Output test cases in structured JSON format as demonstrated in training examples
             "unique_valid": 0,
             "invalid_test_cases": 0,
             "duplicate_test_cases": 0,
+            "content": None,
             "score": 0.0,
             "error": None,
         }
@@ -892,6 +926,7 @@ Output test cases in structured JSON format as demonstrated in training examples
             return result
 
         result.update(self._score_generation(raw_output))
+        result["content"] = self._score_content(raw_output, example, content_scorer)
         return result
 
     def _generate_for_example(
@@ -1022,6 +1057,77 @@ Output test cases in structured JSON format as demonstrated in training examples
             "duplicate_test_cases": canonical_valid - unique_valid,
             "score": score,
         }
+
+    @staticmethod
+    def _canonical_unique_cases(raw_output: str | dict[str, Any]) -> list[dict[str, Any]]:
+        """Parse a raw response into canonical, deduplicated test cases.
+
+        Shared by generated-output and reference-answer parsing for the content
+        metric, so both sides are normalized identically to the production
+        pipeline.
+
+        Args:
+            raw_output: Raw model response or reference answer (text or dict).
+
+        Returns:
+            Canonical-valid, deduplicated test-case dicts (possibly empty).
+        """
+        from src.core.deduplicator import TestCaseDeduplicator
+        from src.core.parsers import JSONResponseParser
+        from src.core.validators import is_canonical_test_case
+
+        text = raw_output if isinstance(raw_output, str) else json.dumps(raw_output)
+        parsed = JSONResponseParser.extract_json_from_response(text)
+        if not parsed or not isinstance(parsed.get("test_cases"), list):
+            return []
+        valid = [tc for tc in parsed["test_cases"] if is_canonical_test_case(tc)]
+        if not valid:
+            return []
+        deduped, _ = TestCaseDeduplicator().deduplicate(valid)
+        return deduped
+
+    @staticmethod
+    def _reference_answer(example: dict[str, Any]) -> str | None:
+        """Return the example's reference assistant answer, or None if absent.
+
+        Args:
+            example: A RAFT example dict.
+
+        Returns:
+            The assistant message content if present and non-blank, else None.
+        """
+        for message in example.get("messages", []):
+            if isinstance(message, dict) and message.get("role") == "assistant":
+                content = message.get("content")
+                if isinstance(content, str) and content.strip():
+                    return content
+        return None
+
+    def _score_content(
+        self, raw_output: str | dict[str, Any], example: dict[str, Any], content_scorer: Any
+    ) -> dict[str, float | None] | None:
+        """Score one generation against the example's reference answer.
+
+        Args:
+            raw_output: The raw model response.
+            example: The RAFT example (source of the reference answer).
+            content_scorer: A ContentScorer implementation.
+
+        Returns:
+            A ContentScore dict, or None when there is no usable reference or the
+            scorer raises (isolated like per-example generation errors).
+        """
+        reference_raw = self._reference_answer(example)
+        if reference_raw is None:
+            return None
+        try:
+            generated = self._canonical_unique_cases(raw_output)
+            reference = self._canonical_unique_cases(reference_raw)
+            return cast(
+                "dict[str, float | None] | None", content_scorer.score(generated, reference)
+            )
+        except Exception:  # noqa: BLE001 - a scorer fault must not abort the run
+            return None
 
     @staticmethod
     def _aggregate_eval_metrics(per_example: list[dict[str, Any]]) -> dict[str, Any]:

@@ -704,3 +704,35 @@ def test_modelfile_parameters_come_from_shared_source(trainer):
 
     for name, value in params.items():
         assert f"PARAMETER {name} {value}" in modelfile_text
+
+
+# --- Phase 3: per-example content scoring -----------------------------------
+
+
+def _example_with_reference(reference_cases):
+    ex = _text_example()
+    ex["messages"][2]["content"] = json.dumps({"test_cases": reference_cases})
+    return ex
+
+
+def test_per_example_content_matches_reference(trainer, tmp_path):
+    # Customized model emits VALID_TEST_CASE; reference is the same case ->
+    # perfect precision/recall/f1.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE))
+
+    content = result["per_example"][0]["content"]
+    assert content == {"precision": 1.0, "recall": 1.0, "f1": 1.0}
+
+
+def test_per_example_content_none_without_reference(trainer, tmp_path):
+    ex = _text_example()
+    ex["messages"][2]["content"] = ""  # no usable reference answer
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [ex])
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient())
+
+    assert result["per_example"][0]["content"] is None
