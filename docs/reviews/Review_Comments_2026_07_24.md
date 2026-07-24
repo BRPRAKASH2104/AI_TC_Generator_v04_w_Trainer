@@ -17,7 +17,16 @@ documentation
 > `unique_valid_test_cases_per_example` (canonical-valid cases deduplicated via
 > the production `TestCaseDeduplicator`); the raw count is retained as
 > `raw_test_cases_per_example` (output volume). The findings below are preserved
-> as the point-in-time record. The Recommended/Optional items remain open.
+> as the point-in-time record.
+>
+> **Follow-up update (2026-07-24):** the Recommended and Optional items were also
+> resolved on the branch in `e2f43ad` — Rec 3 (input validation & bounds via
+> `_load_and_validate_examples` + configurable limits), Rec 4 (honest
+> bundle-vs-base labeling + `provenance` block), Rec 5 (committed opt-in
+> real-Ollama integration test, verified live), Rec 6 (`docs/training/README.md`
+> corrected and expanded; stale links fixed), and Opt 7 (`--compare-base` now
+> requires `--evaluate`). All 2026-07-24 findings are now addressed on the
+> branch.
 
 ## Recommendation
 

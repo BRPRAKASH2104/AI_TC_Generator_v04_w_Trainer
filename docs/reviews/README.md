@@ -22,9 +22,10 @@ Reviews `feat/vision-raft-evaluate-model` against `main` and the 2026-07-20
 baseline. The evaluator is a material improvement over the TODO stub. It raised
 two Critical correctness blockers — failed baselines reporting positive lift,
 and a "coverage" metric that rewards duplicate or canonical-invalid raw output —
-**both now fixed on the branch (`bc26473`)**; the recommended validation,
-experiment-design, live-test, and documentation follow-ups remain open.
-Original recommendation: **request changes**.
+**both fixed on the branch (`bc26473`)**. The recommended validation,
+experiment-design, live-test, and documentation follow-ups plus the optional
+CLI-guard item were **also fixed on the branch (`e2f43ad`)**, so all 2026-07-24
+findings are now addressed. Original recommendation: **request changes**.
 
 ### 2026-07-20 — Full-scope review *(historical baseline)*
 **File:** `Review_Comments_2026_07_20.md`
@@ -148,9 +149,11 @@ The same core defects surfaced across multiple reviews until fixed. Current stat
 | **Raw output count is mislabeled as model coverage** | 2026-07-24 | ✅ Fixed on branch (`bc26473`) — dedup'd `unique_valid` decision metric |
 
 **Net:** the older multi-review backlog is closed. Both 2026-07-24 merge-blocking
-evaluator Criticals were fixed on `feat/vision-raft-evaluate-model` (`bc26473`);
-the review's recommended validation, experiment-design, live-test, and
-documentation follow-ups remain open.
+evaluator Criticals were fixed on `feat/vision-raft-evaluate-model` (`bc26473`),
+and the review's recommended validation, experiment-design, live-test, and
+documentation follow-ups plus the optional CLI-guard item were fixed on the same
+branch (`e2f43ad`). All 2026-07-24 findings are addressed; the branch remains
+unmerged pending re-review.
 
 ---
 
