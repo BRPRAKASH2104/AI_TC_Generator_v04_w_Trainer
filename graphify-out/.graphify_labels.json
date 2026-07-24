@@ -302,6 +302,5 @@
   "300": "Environment Configuration",
   "301": ".to_dict",
   "302": "TestTriStateBooleanFlags",
-  "303": ".test_build_dataset_nonexistent_directory",
-  "304": ".test_build_dataset_success"
+  "303": ".test_build_dataset_nonexistent_directory"
 }
