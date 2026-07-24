@@ -325,6 +325,16 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
         f"Raw TCs/example:  {metrics.get('raw_test_cases_per_example', 0.0):.2f}  "
         "(output volume, not coverage)"
     )
+    content_f1 = metrics.get("content_f1")
+    if content_f1 is not None:
+        logger.info(
+            f"Content F1:       {content_f1:.2f}  <- reference-aware quality "
+            "(the meaningful signal when references exist)"
+        )
+        logger.info(
+            f"  Precision:      {metrics.get('content_precision', 0.0):.2f}   "
+            f"Recall: {metrics.get('content_recall', 0.0):.2f}"
+        )
     if result["errors"]:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
         for error in result["errors"]:
@@ -371,6 +381,11 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
                 f"  Raw volume:     {_format_delta(delta.get('raw_test_cases_per_example'))} "
                 "TCs/example  (includes duplicates and invalid output)"
             )
+            if delta.get("content_f1") is not None:
+                logger.info(
+                    f"  Content F1:     {_format_delta(delta.get('content_f1'))}  "
+                    "<- reference-aware quality delta (the meaningful signal)"
+                )
             provenance = result.get("provenance")
             if provenance:
                 logger.info(

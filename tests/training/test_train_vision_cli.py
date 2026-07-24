@@ -307,3 +307,35 @@ def test_run_evaluation_all_examples_failed_returns_1(tmp_path, monkeypatch):
 
     # No examples actually scored -> the evaluation could not run meaningfully.
     assert tvm.run_evaluation(str(test_set), "some-model") == 1
+
+
+def test_print_shows_content_f1_when_present(tmp_path, monkeypatch):
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    result = _failed_comparison_result(test_set)
+    result["metrics"]["content_f1"] = 0.75
+    result["metrics"]["content_precision"] = 0.8
+    result["metrics"]["content_recall"] = 0.7
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(result)
+
+    lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
+    assert "content" in lines and "0.75" in lines
+    # The "meaningful signal" label moves to content F1 when it is present.
+    assert "meaningful signal" in lines
+
+
+def test_print_omits_content_when_absent(tmp_path, monkeypatch):
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    result = _failed_comparison_result(test_set)
+    result["metrics"]["content_f1"] = None
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(result)
+
+    lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
+    assert "content f1" not in lines
