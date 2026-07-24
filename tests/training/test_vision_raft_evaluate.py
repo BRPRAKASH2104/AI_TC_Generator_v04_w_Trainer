@@ -5,9 +5,9 @@ dataset and scores each generation by the canonical-schema pass rate
 (``is_canonical_test_case``) — the same gate the production pipeline applies.
 
 These tests inject a fake Ollama client so they stay deterministic and never
-shell out to ``ollama``. A separate real-Ollama check (marked ``integration``)
-covers the live path, per the project's "mocks cannot catch schema/grammar
-regressions" lesson.
+shell out to ``ollama``. The live path is covered by a separate real-Ollama
+check, ``test_vision_raft_evaluate_integration.py`` (marked ``integration``),
+per the project's "mocks cannot catch schema/grammar regressions" lesson.
 """
 
 import base64
@@ -489,3 +489,218 @@ def test_per_example_reports_invalid_and_duplicate_counts(trainer, tmp_path):
     assert row["unique_valid"] == 2
     assert row["invalid_test_cases"] == 1
     assert row["duplicate_test_cases"] == 1
+
+
+# --- Rec 3 (2026-07-24 review): validate & bound inputs before model calls ---
+
+
+def _make_trainer(tmp_path, **config_kwargs):
+    """Build a trainer whose dataset_path is a throwaway (eval uses test_dataset)."""
+    seed = tmp_path / "seed.jsonl"
+    _write_jsonl(seed, [_text_example()])
+    config = VisionTrainingConfig(output_model="pinned-eval-model", **config_kwargs)
+    return VisionRAFTTrainer(
+        dataset_path=seed,
+        config=config,
+        output_dir=tmp_path / "models",
+    )
+
+
+def _client_that_must_not_be_called():
+    class _Boom:
+        def generate_completion(self, *a, **k):
+            raise AssertionError("validation must reject the dataset before any model call")
+
+        generate_response_with_vision = generate_completion
+
+    return _Boom()
+
+
+def test_empty_dataset_is_rejected(trainer, tmp_path):
+    test_set = tmp_path / "empty.jsonl"
+    test_set.write_text("\n  \n", encoding="utf-8")  # only blank lines
+
+    with pytest.raises(ValueError, match="empty|no examples"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_non_object_line_is_rejected_before_generation(trainer, tmp_path):
+    # The exact review repro: a line containing `[]` previously aborted mid-run
+    # with `AttributeError: 'list' object has no attribute 'get'`.
+    test_set = tmp_path / "bad.jsonl"
+    test_set.write_text("[]\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="line 1|object"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_missing_user_message_is_rejected(trainer, tmp_path):
+    test_set = tmp_path / "bad.jsonl"
+    _write_jsonl(test_set, [{"messages": [{"role": "system", "content": "s"}]}])
+
+    with pytest.raises(ValueError, match="messages|user"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_non_string_user_content_is_rejected(trainer, tmp_path):
+    test_set = tmp_path / "bad.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": {"not": "a string"}},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="content"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_images_field_must_be_a_list(trainer, tmp_path):
+    test_set = tmp_path / "bad.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": "not-a-list"},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="images"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_invalid_base64_image_is_rejected(trainer, tmp_path):
+    test_set = tmp_path / "bad.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": ["!!!not base64!!!"]},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="base64|image"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_oversized_image_is_rejected(tmp_path):
+    trainer = _make_trainer(tmp_path, max_image_bytes=16)
+    big = base64.b64encode(b"x" * 64).decode("ascii")  # 64 decoded bytes > 16 cap
+    test_set = tmp_path / "big.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": [big]},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="too large|bytes|image"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_too_many_images_per_example_is_rejected(tmp_path):
+    trainer = _make_trainer(tmp_path, max_images_per_example=1)
+    img = base64.b64encode(FAKE_IMAGE_BYTES).decode("ascii")
+    test_set = tmp_path / "many.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": [img, img]},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="images"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_too_many_examples_is_rejected(tmp_path):
+    trainer = _make_trainer(tmp_path, max_eval_examples=1)
+    test_set = tmp_path / "many.jsonl"
+    _write_jsonl(test_set, [_text_example(), _text_example()])
+
+    with pytest.raises(ValueError, match="examples|limit"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_valid_dataset_still_passes_validation(trainer, tmp_path):
+    # Regression: a well-formed text+vision dataset must not trip the new checks.
+    test_set = tmp_path / "ok.jsonl"
+    _write_jsonl(test_set, [_text_example(), _vision_example()])
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient())
+
+    assert result["metrics"]["total_examples"] == 2
+
+
+# --- Rec 4 (2026-07-24 review): honest bundle-vs-base labeling + provenance ---
+
+
+def test_compare_base_records_provenance(trainer, tmp_path):
+    # The A/B compares the whole customized bundle (custom SYSTEM + PARAMETER
+    # overrides) against the base model's own defaults; the result must record
+    # that so no one reads the delta as an isolated prompt-only effect.
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(), compare_base=True
+    )
+
+    prov = result["provenance"]
+    assert prov["customized_model"]["name"] == "pinned-eval-model"
+    assert prov["base_model"]["name"] == "llama3.2-vision:11b"
+    # Customized generation parameters are recorded explicitly...
+    assert prov["customized_model"]["parameters"]["temperature"] == 0.0
+    assert prov["customized_model"]["parameters"]["top_p"] == 0.9
+    assert prov["customized_model"]["parameters"]["repeat_penalty"] == 1.1
+    # ...and the base side is flagged as NOT parameter-matched.
+    assert "not matched" in prov["base_model"]["parameters"].lower()
+    # The note must not claim an isolated prompt-only effect.
+    assert "system prompt" in prov["note"].lower()
+
+
+def test_no_provenance_without_compare_base(trainer, tmp_path):
+    test_set = tmp_path / "held_out.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient())
+
+    assert "provenance" not in result
+
+
+def test_modelfile_parameters_come_from_shared_source(trainer):
+    # Guards drift: the provenance parameters and the actual Modelfile PARAMETER
+    # lines must be generated from one source, or the recorded provenance lies.
+    params = trainer._customized_model_parameters()
+    modelfile_text = trainer._prepare_modelfile().read_text(encoding="utf-8")
+
+    for name, value in params.items():
+        assert f"PARAMETER {name} {value}" in modelfile_text

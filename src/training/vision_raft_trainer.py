@@ -19,6 +19,7 @@ closeness to the reference answer.
 """
 
 import base64
+import binascii
 import json
 import shutil
 import subprocess
@@ -55,6 +56,13 @@ class VisionTrainingConfig:
     max_image_size: int = 768  # Max dimension for images
     context_window: int = 32768  # 32K context for vision models
     num_predict: int = 4096  # Response length
+
+    # Evaluation input bounds (evaluate_model). Malformed or oversized held-out
+    # data must be rejected before any model call, not spike memory mid-run
+    # (2026-07-24 review, Recommended 3).
+    max_eval_examples: int = 5000  # Reject held-out sets larger than this
+    max_images_per_example: int = 16  # Reject examples carrying more images
+    max_image_bytes: int = 10 * 1024 * 1024  # Reject a single decoded image above 10 MB
 
     # RAFT parameters
     oracle_probability: float = 0.8  # Probability of including oracle docs
@@ -287,6 +295,25 @@ class VisionRAFTTrainer:
 
         return stats
 
+    def _customized_model_parameters(self) -> dict[str, float | int]:
+        """The generation-control PARAMETERs baked into the customized Modelfile.
+
+        Single source of truth shared by ``_prepare_modelfile`` (which writes
+        these into the Modelfile) and the evaluation ``provenance`` block (which
+        reports them), so the recorded provenance can never drift from the
+        model actually created (2026-07-24 review, Recommended 4).
+
+        Returns:
+            An ordered mapping of Ollama generation parameter -> value.
+        """
+        return {
+            "temperature": 0.0,
+            "num_ctx": self.config.context_window,
+            "num_predict": self.config.num_predict,
+            "top_p": 0.9,
+            "repeat_penalty": 1.1,
+        }
+
     def _prepare_modelfile(self) -> Path:
         """Build a static Ollama Modelfile for prompt customization.
 
@@ -294,17 +321,17 @@ class VisionRAFTTrainer:
         `_analyze_dataset` statistics are for reporting only (review
         2026-07-20 finding 6).
         """
+        parameter_lines = "\n".join(
+            f"PARAMETER {name} {value}"
+            for name, value in self._customized_model_parameters().items()
+        )
         modelfile_content = f"""# Vision RAFT Model
 # Generated: {datetime.now().isoformat()}
 
 FROM {self.config.base_model}
 
 # RAFT Training Configuration
-PARAMETER temperature 0.0
-PARAMETER num_ctx {self.config.context_window}
-PARAMETER num_predict {self.config.num_predict}
-PARAMETER top_p 0.9
-PARAMETER repeat_penalty 1.1
+{parameter_lines}
 
 # Vision-specific parameters
 PARAMETER num_gpu 1
@@ -505,7 +532,7 @@ Output test cases in structured JSON format as demonstrated in training examples
 
             client = OllamaClient()
 
-        examples = self._load_jsonl_examples(test_dataset)
+        examples = self._load_and_validate_examples(test_dataset)
         metrics, per_example = self._score_over_dataset(client, examples, self.config.output_model)
 
         if self.logger:
@@ -540,8 +567,41 @@ Output test cases in structured JSON format as demonstrated in training examples
             result["comparison"], result["delta"] = self._compare_paired(
                 per_example, base_per_example
             )
+            result["provenance"] = self._comparison_provenance()
 
         return result
+
+    def _comparison_provenance(self) -> dict[str, Any]:
+        """Describe what the A/B delta actually compares.
+
+        The customized Modelfile changes both the ``SYSTEM`` prompt and the
+        generation ``PARAMETER``s, while the base model runs with its own
+        defaults and no seed is set. The delta therefore measures the whole
+        customized *bundle* against the base model, not the isolated effect of
+        the system prompt (2026-07-24 review, Recommended 4). This block records
+        that so the delta is not read as a causal prompt-only result.
+
+        Returns:
+            A provenance dict naming both models, the customized generation
+            parameters, and a caveat about what the comparison does not isolate.
+        """
+        return {
+            "customized_model": {
+                "name": self.config.output_model,
+                "kind": "prompt-customized bundle (custom SYSTEM prompt + PARAMETER overrides)",
+                "parameters": self._customized_model_parameters(),
+            },
+            "base_model": {
+                "name": self.config.base_model,
+                "kind": "unmodified base model",
+                "parameters": "model defaults (NOT matched to the customized parameters)",
+            },
+            "note": (
+                "The delta reflects the full customized model bundle (its system prompt AND "
+                "generation parameters) versus the base model's own defaults; it does not "
+                "isolate the effect of the system prompt alone, and no fixed seed is set."
+            ),
+        }
 
     def _compare_paired(
         self, custom_rows: list[dict[str, Any]], base_rows: list[dict[str, Any]]
@@ -651,23 +711,136 @@ Output test cases in structured JSON format as demonstrated in training examples
                 delta[key] = new_value - base_value
         return delta
 
-    @staticmethod
-    def _load_jsonl_examples(path: Path) -> list[dict[str, Any]]:
-        """Load a JSONL RAFT dataset into a list of example dicts.
+    def _load_and_validate_examples(self, path: Path) -> list[dict[str, Any]]:
+        """Load a JSONL RAFT dataset and validate its contract before any model call.
+
+        Malformed or oversized held-out data must fail fast with a clear error
+        rather than abort mid-run with an opaque ``AttributeError`` or spike
+        memory decoding an unbounded image (2026-07-24 review, Recommended 3).
+        Each non-blank line must be a JSON object carrying a ``messages`` list
+        with a user message (role ``user`` or index 1) whose ``content`` is a
+        string; any ``images`` must be a list of valid base64 strings, each
+        within ``config.max_image_bytes`` and no more than
+        ``config.max_images_per_example`` per example. The dataset must be
+        non-empty and hold at most ``config.max_eval_examples`` examples.
 
         Args:
             path: Path to the JSONL file.
 
         Returns:
-            One dict per non-blank line.
+            One validated example dict per non-blank line.
+
+        Raises:
+            ValueError: On an empty dataset, an over-limit dataset, or any line
+                that violates the contract (the message names the 1-based line).
         """
         examples: list[dict[str, Any]] = []
         with open(path, encoding="utf-8") as handle:
-            for line in handle:
+            for line_number, line in enumerate(handle, start=1):
                 stripped = line.strip()
-                if stripped:
-                    examples.append(json.loads(stripped))
+                if not stripped:
+                    continue
+                if len(examples) >= self.config.max_eval_examples:
+                    raise ValueError(
+                        f"Evaluation dataset exceeds the {self.config.max_eval_examples}-example "
+                        "limit (config.max_eval_examples); split it or raise the limit."
+                    )
+                try:
+                    parsed = json.loads(stripped)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(f"line {line_number}: invalid JSON ({exc})") from exc
+                self._validate_example_contract(parsed, line_number)
+                examples.append(parsed)
+
+        if not examples:
+            raise ValueError(f"Evaluation dataset is empty (no examples): {path}")
         return examples
+
+    def _validate_example_contract(self, example: Any, line_number: int) -> None:
+        """Validate one loaded example against the RAFT evaluation contract.
+
+        Args:
+            example: The parsed JSON value for a single dataset line.
+            line_number: 1-based line number, used in error messages.
+
+        Raises:
+            ValueError: If the example is not a well-formed, size-bounded RAFT
+                message object.
+        """
+        if not isinstance(example, dict):
+            raise ValueError(
+                f"line {line_number}: each example must be a JSON object, got "
+                f"{type(example).__name__}"
+            )
+
+        messages = example.get("messages")
+        if not isinstance(messages, list) or len(messages) < 2:
+            raise ValueError(
+                f"line {line_number}: 'messages' must be a list with at least a "
+                "system and a user message"
+            )
+
+        # The RAFT builder emits [system, user, assistant]; the user turn is at
+        # index 1. Accept an explicit role match too, in case of reordering.
+        user_message = next(
+            (m for m in messages if isinstance(m, dict) and m.get("role") == "user"),
+            messages[1] if isinstance(messages[1], dict) else None,
+        )
+        if user_message is None:
+            raise ValueError(f"line {line_number}: no user message found in 'messages'")
+
+        content = user_message.get("content")
+        if not isinstance(content, str):
+            raise ValueError(
+                f"line {line_number}: user message 'content' must be a string, got "
+                f"{type(content).__name__}"
+            )
+
+        images = user_message.get("images")
+        if images is not None:
+            self._validate_images(images, line_number)
+
+    def _validate_images(self, images: Any, line_number: int) -> None:
+        """Validate the user message's ``images`` field.
+
+        Args:
+            images: The raw ``images`` value from the user message.
+            line_number: 1-based line number, used in error messages.
+
+        Raises:
+            ValueError: If ``images`` is not a list of valid, size-bounded
+                base64 strings within the per-example count limit.
+        """
+        if not isinstance(images, list):
+            raise ValueError(
+                f"line {line_number}: 'images' must be a list, got {type(images).__name__}"
+            )
+        if len(images) > self.config.max_images_per_example:
+            raise ValueError(
+                f"line {line_number}: {len(images)} images exceeds the per-example limit of "
+                f"{self.config.max_images_per_example} (config.max_images_per_example)"
+            )
+        for position, encoded in enumerate(images):
+            if not isinstance(encoded, str):
+                raise ValueError(
+                    f"line {line_number}: image {position} must be a base64 string, got "
+                    f"{type(encoded).__name__}"
+                )
+            # Reject oversized images by their encoded length (~4/3 of the decoded
+            # size) BEFORE decoding, so an unbounded string never hits memory.
+            approx_decoded_bytes = len(encoded) * 3 // 4
+            if approx_decoded_bytes > self.config.max_image_bytes:
+                raise ValueError(
+                    f"line {line_number}: image {position} is too large "
+                    f"(~{approx_decoded_bytes} bytes > {self.config.max_image_bytes}-byte limit, "
+                    "config.max_image_bytes)"
+                )
+            try:
+                base64.b64decode(encoded, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise ValueError(
+                    f"line {line_number}: image {position} is not valid base64 ({exc})"
+                ) from exc
 
     def _evaluate_example(
         self, client: Any, example: dict[str, Any], index: int, model_name: str

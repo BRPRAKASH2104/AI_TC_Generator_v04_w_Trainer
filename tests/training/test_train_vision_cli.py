@@ -9,6 +9,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 _MODULE_PATH = Path(__file__).resolve().parents[2] / "utilities" / "train_vision_model.py"
 
 
@@ -60,6 +62,14 @@ def test_parse_args_compare_base_defaults_false(monkeypatch):
     monkeypatch.setattr("sys.argv", ["prog"])
     args = tvm.parse_args()
     assert args.compare_base is False
+
+
+def test_parse_args_compare_base_without_evaluate_errors(monkeypatch):
+    # Opt 7: --compare-base only means something in evaluation mode; accepting it
+    # in model-creation mode silently ignores it. Reject it with a clear error.
+    monkeypatch.setattr("sys.argv", ["prog", "--compare-base"])
+    with pytest.raises(SystemExit):
+        tvm.parse_args()
 
 
 def test_run_evaluation_missing_file_returns_1(tmp_path):
@@ -244,6 +254,35 @@ def test_print_evaluation_result_reports_paired_sample_size(tmp_path, monkeypatc
 
     all_lines = rec.infos + rec.warnings + rec.errors
     assert any("3" in line and "paired" in line.lower() for line in all_lines)
+
+
+def test_print_evaluation_result_surfaces_bundle_vs_base_caveat(tmp_path, monkeypatch):
+    # Rec 4: when a delta is shown, the output must warn it compares the whole
+    # customized bundle against the base model's defaults, not the prompt alone.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    result = _failed_comparison_result(test_set)
+    result["comparison"] = {
+        "status": "complete",
+        "paired_examples": 1,
+        "total_examples": 1,
+        "custom_failures": 0,
+        "baseline_failures": 0,
+    }
+    result["baseline"]["errors"] = []
+    result["delta"] = {"overall_score": 0.1, "unique_valid_test_cases_per_example": 1.0}
+    result["provenance"] = {
+        "customized_model": {"name": "c", "kind": "bundle", "parameters": {"temperature": 0.0}},
+        "base_model": {"name": "b", "kind": "base", "parameters": "defaults (NOT matched)"},
+        "note": "The delta reflects the full customized model bundle ... not the system prompt alone.",
+    }
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(result)
+
+    all_lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
+    assert "bundle" in all_lines or "not isolate" in all_lines or "not matched" in all_lines
 
 
 def test_run_evaluation_all_examples_failed_returns_1(tmp_path, monkeypatch):

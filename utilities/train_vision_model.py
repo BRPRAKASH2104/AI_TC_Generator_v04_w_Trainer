@@ -38,7 +38,7 @@ Hardware Requirements:
     - Recommended: 24 GB VRAM (for concurrent usage)
     - Note: Modelfile creation doesn't require GPU training
 
-See docs/training/training_guideline.md for complete guide.
+See docs/training/README.md for the complete guide.
 """
 
 import argparse
@@ -134,13 +134,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help=(
             "With --evaluate, also run the --base-model over the same set and "
-            "report the customized-minus-base delta (the 'did it help' lift). "
-            "Note: validity scores are grammar-saturated, so the coverage "
-            "(TCs/example) delta is usually the more meaningful signal."
+            "report the customized-minus-base delta. This compares the whole "
+            "customized bundle (system prompt + parameters) against the base "
+            "model's own defaults, not the prompt in isolation. Note: validity "
+            "scores are grammar-saturated, so the unique-valid coverage delta is "
+            "usually the more meaningful signal."
         ),
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # --compare-base only has meaning in evaluation mode; accepting it during
+    # model creation would silently ignore it (2026-07-24 review, Optional 7).
+    if args.compare_base and not args.evaluate:
+        parser.error("--compare-base requires --evaluate")
+
+    return args
 
 
 def validate_dataset(dataset_path: str) -> None:
@@ -158,7 +167,7 @@ def validate_dataset(dataset_path: str) -> None:
         raise FileNotFoundError(
             f"Dataset file not found: {dataset_path}\n"
             "Please build the dataset first using utilities/build_vision_dataset.py\n"
-            "See docs/training/training_guideline.md for dataset preparation guide."
+            "See docs/training/README.md for the dataset preparation guide."
         )
 
     if dataset_file.suffix != ".jsonl":
@@ -257,7 +266,7 @@ def print_training_result(result: dict[str, Any]) -> None:
         )
         logger.info("  2. Compare with base model output")
         logger.info("  3. Deploy: export OLLAMA__VISION_MODEL=" + result["model_name"])
-        logger.info("  4. See docs/training/training_guideline.md for evaluation guide")
+        logger.info("  4. See docs/training/README.md for the evaluation guide")
     else:
         logger.error("❌ Model Creation Failed")
         logger.error("=" * 60)
@@ -269,7 +278,7 @@ def print_training_result(result: dict[str, Any]) -> None:
         logger.error("  1. Check Ollama is running: ollama serve")
         logger.error("  2. Verify base model: ollama list | grep " + result.get("base_model", ""))
         logger.error("  3. Check Modelfile syntax in training_data/models/")
-        logger.error("  4. See docs/training/training_guideline.md for troubleshooting")
+        logger.error("  4. See docs/training/README.md for troubleshooting")
 
     logger.info("=" * 60)
     logger.info("")
@@ -362,6 +371,13 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
                 f"  Raw volume:     {_format_delta(delta.get('raw_test_cases_per_example'))} "
                 "TCs/example  (includes duplicates and invalid output)"
             )
+            provenance = result.get("provenance")
+            if provenance:
+                logger.info(
+                    "  NB: compares the customized BUNDLE (system prompt + parameters) "
+                    "vs the base model's own defaults (NOT parameter-matched); "
+                    "it does not isolate the prompt's effect."
+                )
 
     logger.info("=" * 60)
     logger.info("")

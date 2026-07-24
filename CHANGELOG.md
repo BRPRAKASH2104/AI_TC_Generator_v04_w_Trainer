@@ -34,14 +34,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now `unique_valid_test_cases_per_example`; the CLI's "meaningful signal" label
   and the delta move to it. Tests: duplicate-heavy and invalid-bulk A/B
   regressions and per-example invalid/duplicate accounting.
+- **Evaluator validates and bounds its JSONL/image inputs before any model call**
+  (review 2026-07-24, Recommended 3). A dataset line of `[]` previously aborted
+  the whole run with `AttributeError: 'list' object has no attribute 'get'`, and
+  unbounded base64 images were decoded into memory. `_load_and_validate_examples`
+  now rejects — with a clear, line-numbered `ValueError` before generation — an
+  empty/over-limit dataset, non-object lines, missing/non-string user content,
+  and images that are not a size-bounded list of valid base64 strings. New
+  `VisionTrainingConfig` limits `max_eval_examples` / `max_images_per_example` /
+  `max_image_bytes` make the bounds configurable; oversized images are rejected
+  by encoded length before decoding. Tests cover each violation.
+- **`--compare-base` now requires `--evaluate`** (review 2026-07-24, Optional 7).
+  It was silently ignored in model-creation mode; `parse_args` now errors out.
+
+### Changed
+
+- **A/B comparison is labeled honestly as a bundle-vs-base comparison, with
+  recorded provenance** (review 2026-07-24, Recommended 4). The customized
+  Modelfile changes both the system prompt and generation parameters, and the
+  base model runs with its own unmatched defaults (no fixed seed), so the delta
+  measures the whole customized *bundle*, not the isolated effect of the prompt.
+  The result gains a `provenance` block recording both models' effective
+  parameters (sourced from a shared `_customized_model_parameters()` so it cannot
+  drift from the created Modelfile), the CLI and docstrings drop causal
+  prompt-only language, and the output prints the bundle-vs-base caveat.
+- **`docs/training/README.md` corrected and expanded** (review 2026-07-24,
+  Recommended 6). Removed the contradictory "the dataset shapes/informs the
+  system prompt" wording (the prompt is a fixed template, dataset-independent),
+  added an evaluation section documenting `--evaluate` / `--compare-base` with
+  the metric definitions, limitations, and bundle-vs-base honesty notes, and
+  fixed the stale `docs/training/training_guideline.md` links in
+  `train_vision_model.py` to point at `docs/training/README.md`.
+
+### Added (test coverage)
+
+- **Committed real-Ollama evaluator integration test** (review 2026-07-24,
+  Recommended 5), `tests/training/test_vision_raft_evaluate_integration.py`:
+  opt-in (`integration`/`slow`, self-skipping) coverage that drives
+  `evaluate_model` through a live `OllamaClient` — asserting result shape,
+  text-example routing, canonical scoring, a complete paired comparison, and the
+  failed-baseline CLI exit-1 contract — replacing the module docstring's claim of
+  a live test that did not previously exist. Verified against local `llama3.1:8b`.
 
 ### Added (feature)
 
 - **Phase 2 A/B comparison for `VisionRAFTTrainer.evaluate_model`** — a
   `compare_base=True` option (CLI `--compare-base`) that also runs the untouched
   `config.base_model` over the same held-out set and adds `baseline` and `delta`
-  (customized-minus-base) blocks to the result, answering "did the prompt
-  customization help?". The per-example generation loop was refactored into a
+  (customized-minus-base) blocks to the result — a bundle-vs-base comparison (see
+  the Recommended 4 note above). The per-example generation loop was refactored into a
   model-parameterized `_score_over_dataset(client, examples, model_name)` reused
   for both models; new `_compute_delta` returns per-metric deltas (None where a
   metric is absent on either side). **Honest caveat, surfaced in the output and
