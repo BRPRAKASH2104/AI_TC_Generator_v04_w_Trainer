@@ -108,6 +108,24 @@ def parse_args() -> argparse.Namespace:
         help="Enable verbose logging",
     )
 
+    parser.add_argument(
+        "--val-split-ratio",
+        type=float,
+        default=None,
+        help="If set (0-1), also write val.jsonl with this fraction held out.",
+    )
+    parser.add_argument(
+        "--split-seed",
+        type=int,
+        default=42,
+        help="Seed for the train/val split (default: 42).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite an existing train.jsonl/val.jsonl split.",
+    )
+
     return parser.parse_args()
 
 
@@ -233,6 +251,17 @@ def main() -> int:
         # Save dataset
         logger.info(f"Saving dataset as '{args.filename}'...")
         jsonl_path, json_path = builder.save_dataset(raft_examples, filename=args.filename)
+
+        # Optional seeded train/val split
+        if args.val_split_ratio is not None:
+            train_path, val_path = builder.save_split(
+                raft_examples,
+                out_dir=Path(args.output_dir),
+                val_ratio=args.val_split_ratio,
+                seed=args.split_seed,
+                force=args.force,
+            )
+            logger.info(f"Wrote split: {train_path} + {val_path}")
 
         # Success summary
         logger.info("")

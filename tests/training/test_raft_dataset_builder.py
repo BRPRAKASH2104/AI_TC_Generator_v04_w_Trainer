@@ -331,3 +331,44 @@ class TestRAFTDatasetBuilder:
         assert stats["json_files"] == 1
         assert stats["total_examples"] == 1
         assert stats["latest_dataset"] is not None
+
+
+def _examples(n):
+    return [{"messages": [{"role": "user", "content": f"ex {i}"}]} for i in range(n)]
+
+
+def test_split_is_deterministic_for_a_seed():
+    builder = RAFTDatasetBuilder.__new__(RAFTDatasetBuilder)  # no __init__ side effects
+    train_a, val_a = builder.split_dataset(_examples(10), val_ratio=0.2, seed=7)
+    train_b, val_b = builder.split_dataset(_examples(10), val_ratio=0.2, seed=7)
+    assert (train_a, val_a) == (train_b, val_b)
+    assert len(val_a) == 2 and len(train_a) == 8
+
+
+def test_split_keeps_at_least_one_val_and_one_train():
+    builder = RAFTDatasetBuilder.__new__(RAFTDatasetBuilder)
+    train, val = builder.split_dataset(_examples(2), val_ratio=0.01, seed=1)
+    assert len(val) == 1 and len(train) == 1
+
+
+def test_split_rejects_too_few_examples():
+    builder = RAFTDatasetBuilder.__new__(RAFTDatasetBuilder)
+    with pytest.raises(ValueError, match="at least 2"):
+        builder.split_dataset(_examples(1))
+
+
+def test_save_split_writes_two_jsonl_files(tmp_path):
+    builder = RAFTDatasetBuilder.__new__(RAFTDatasetBuilder)
+    train_path, val_path = builder.save_split(_examples(10), tmp_path, val_ratio=0.2, seed=7)
+    assert train_path.name == "train.jsonl" and val_path.name == "val.jsonl"
+    assert len(val_path.read_text().strip().splitlines()) == 2
+    assert len(train_path.read_text().strip().splitlines()) == 8
+
+
+def test_save_split_refuses_overwrite_without_force(tmp_path):
+    builder = RAFTDatasetBuilder.__new__(RAFTDatasetBuilder)
+    builder.save_split(_examples(10), tmp_path)
+    with pytest.raises(FileExistsError):
+        builder.save_split(_examples(10), tmp_path)
+    # force overwrites cleanly
+    builder.save_split(_examples(10), tmp_path, force=True)
