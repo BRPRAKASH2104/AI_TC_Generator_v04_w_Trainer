@@ -7,7 +7,7 @@ review**, and — where the finding has since been resolved — a pointer to the
 current disposition.
 
 > **Source of truth for open work:** the most recent report
-> (`Review_Comments_2026_07_20.md`) tracks live findings with per-item status.
+> (`Review_Comments_2026_07_24.md`) tracks the current branch-review findings.
 > Older reports are historical; most of their findings have since been fixed
 > (see the "Recurring findings" table below).
 
@@ -15,19 +15,25 @@ current disposition.
 
 ## Available Reviews (newest first)
 
-### 2026-07-20 — Full-scope review *(current / live)*
+### 2026-07-24 — Vision RAFT evaluation branch review *(current / live)*
+**File:** `Review_Comments_2026_07_24.md`
+
+Reviews `feat/vision-raft-evaluate-model` against `main` and the 2026-07-20
+baseline. The evaluator is a material improvement over the TODO stub. It raised
+two Critical correctness blockers — failed baselines reporting positive lift,
+and a "coverage" metric that rewards duplicate or canonical-invalid raw output —
+**both now fixed on the branch (`bc26473`)**; the recommended validation,
+experiment-design, live-test, and documentation follow-ups remain open.
+Original recommendation: **request changes**.
+
+### 2026-07-20 — Full-scope review *(historical baseline)*
 **File:** `Review_Comments_2026_07_20.md`
 
-The active tracking document. Nearly the entire backlog is closed. Findings are
-tagged `[Archived] / [Recommended] / [New Critical]` with per-item **Fixed /
-Open** status. As of 2026-07-23 only **one** finding remains open:
-**Recommended 10**, and only two of its sub-parts:
-- (b) direct trainer failure / dataset-influence test coverage (low-risk, additive);
-- (c) extraction of oversized `process_file()` / `apply_cli_overrides()`
-  (high-risk refactor of protected processor files — its own session).
-
-Style/lint + type gates (Recommended 10 a) were completed 2026-07-23 (`10c4d64`):
-whole-repo `ruff check .` / `ruff format --check .` and `mypy src/ main.py utilities/`.
+Historical baseline for the current branch review. Findings are tagged
+`[Archived] / [Recommended] / [New Critical]` with per-item **Fixed / Open**
+status. Its remaining Recommended 10 work closed on 2026-07-23: quality gates
+(`10c4d64`), trainer/processor coverage (`68de923`), and high-complexity
+function extraction (`edcc61f`).
 
 ### 2026-07-17 — Business-logic audit
 **File:** `Review_Comments_2026_07_17.md`
@@ -80,10 +86,10 @@ Post-restoration re-review. Architecture praised; flagged a failing test suite a
 **Supporting:** `2025-12-06_Progress_Summary.md`,
 `2025-12-06_Test_Verification_Report.md`, `2025-12-06_Vision_Implementation_Fix_Plan.md`
 
-Confirmed the AntiGravity vision fixes (v2.3.0). Raised the two items that are
-**still the only open review work today**: **24 high-complexity functions**
-(complexity 16–19) and **32% overall test coverage** (0% for processors/training).
-These map to 07-20 Recommended 10 (b) and (c).
+Confirmed the AntiGravity vision fixes (v2.3.0). Raised two long-running items:
+**24 high-complexity functions** (complexity 16–19) and **32% overall test
+coverage** (0% for processors/training). These mapped to 07-20 Recommended 10
+(b) and (c) and closed on 2026-07-23.
 
 ### 2025-12-05 — Vision model implementation review (AntiGravity)
 **File:** `2025-12-05_Review_Comments_AntiGravity.md`
@@ -136,11 +142,15 @@ The same core defects surfaced across multiple reviews until fixed. Current stat
 | Silent image-load failure / vision OOM | 2025-12-05 | ✅ Fixed (v2.3.0 preprocessing) |
 | Doc drift / stale deps / CI `continue-on-error` / secrets in export | 2026-03-02 · 04-06 | ✅ Fixed |
 | Whole-repo ruff + mypy gates weaker than core | 2025-12-06 | ✅ Fixed (`10c4d64`, 2026-07-23) |
-| **High-complexity functions (process_file, etc.)** | 2025-12-06 | 🟡 **Open** — 07-20 Rec 10 (c) |
-| **Low trainer / processor test coverage** | 2025-12-06 | 🟡 **Open** — 07-20 Rec 10 (b) |
+| High-complexity functions (`process_file`, etc.) | 2025-12-06 | ✅ Fixed (`edcc61f`, 2026-07-23) |
+| Low trainer / processor test coverage | 2025-12-06 | ✅ Fixed (`68de923`, 2026-07-23) |
+| **A/B evaluator accepts a failed baseline as positive lift** | 2026-07-24 | ✅ Fixed on branch (`bc26473`) — paired, validity-aware comparison |
+| **Raw output count is mislabeled as model coverage** | 2026-07-24 | ✅ Fixed on branch (`bc26473`) — dedup'd `unique_valid` decision metric |
 
-**Net:** the multi-review backlog has converged to just two consciously-deferred
-items, both tracked as sub-parts of 2026-07-20 Recommended 10.
+**Net:** the older multi-review backlog is closed. Both 2026-07-24 merge-blocking
+evaluator Criticals were fixed on `feat/vision-raft-evaluate-model` (`bc26473`);
+the review's recommended validation, experiment-design, live-test, and
+documentation follow-ups remain open.
 
 ---
 
@@ -160,6 +170,4 @@ All reviews follow the framework in:
 ---
 
 **Review Frequency:** as needed (major versions, or on request)
-**Last Updated:** 2026-07-23
-</content>
-</invoke>
+**Last Updated:** 2026-07-24
