@@ -736,3 +736,41 @@ def test_per_example_content_none_without_reference(trainer, tmp_path):
     result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient())
 
     assert result["per_example"][0]["content"] is None
+
+
+def test_aggregate_reports_content_metrics(trainer, tmp_path):
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(
+        test_set,
+        [_example_with_reference([VALID_TEST_CASE]), _example_with_reference([VALID_TEST_CASE])],
+    )
+
+    metrics = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE)
+    )["metrics"]
+
+    assert metrics["content_f1"] == 1.0
+    assert metrics["content_precision"] == 1.0
+    assert metrics["content_recall"] == 1.0
+
+
+def test_content_metrics_none_when_no_references(trainer, tmp_path):
+    # _text_example() carries a non-JSON reference ("reference answer") -> no
+    # canonical reference cases -> content is None -> aggregate is None.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    metrics = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient())["metrics"]
+
+    assert metrics["content_f1"] is None
+
+
+def test_content_f1_is_in_the_delta(trainer, tmp_path):
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE), compare_base=True
+    )
+
+    assert "content_f1" in result["delta"]

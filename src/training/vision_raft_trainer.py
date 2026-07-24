@@ -727,6 +727,9 @@ Output test cases in structured JSON format as demonstrated in training examples
             "parse_success_rate",
             "raw_test_cases_per_example",
             "unique_valid_test_cases_per_example",
+            "content_precision",
+            "content_recall",
+            "content_f1",
         )
         delta: dict[str, float | None] = {}
         for key in comparable:
@@ -1153,6 +1156,14 @@ Output test cases in structured JSON format as demonstrated in training examples
         total_raw_cases = sum(r["num_test_cases"] for r in per_example)
         total_unique_valid = sum(r["unique_valid"] for r in per_example)
 
+        content_rows = [r for r in per_example if r.get("content") is not None]
+
+        def mean_content(field: str) -> float | None:
+            values = [
+                r["content"][field] for r in content_rows if r["content"].get(field) is not None
+            ]
+            return sum(values) / len(values) if values else None
+
         return {
             "text_examples_score": mean_score(text_rows),
             "vision_examples_score": mean_score(vision_rows),
@@ -1166,6 +1177,11 @@ Output test cases in structured JSON format as demonstrated in training examples
             # canonical-valid, deduplicated cases (2026-07-24 review, Critical 2).
             "raw_test_cases_per_example": total_raw_cases / total if total else 0.0,
             "unique_valid_test_cases_per_example": (total_unique_valid / total if total else 0.0),
+            # Phase 3 content metric (reference-aware); None when no example
+            # carried a usable reference answer.
+            "content_precision": mean_content("precision"),
+            "content_recall": mean_content("recall"),
+            "content_f1": mean_content("f1"),
         }
 
 
