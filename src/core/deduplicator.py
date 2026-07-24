@@ -165,6 +165,22 @@ class TestCaseDeduplicator:
         # Return average similarity across the fields that carried content
         return sum(similarities) / len(similarities) if similarities else 0.0
 
+    def similarity(self, tc1: TestCase, tc2: TestCase) -> SimilarityScore:
+        """Public field-similarity (0.0–1.0) between two test cases.
+
+        Single source of truth for "how similar are two test cases", reused by
+        Phase 3 content scoring so the content metric can never drift from
+        deduplication.
+
+        Args:
+            tc1: First test case.
+            tc2: Second test case.
+
+        Returns:
+            Similarity across ``fields_to_compare`` in the range 0.0–1.0.
+        """
+        return self._calculate_similarity(tc1, tc2)
+
     @staticmethod
     def _field_value(test_case: TestCase, field: str) -> str:
         """
