@@ -173,3 +173,33 @@ def test_real_ollama_populates_content_metrics(tmp_path) -> None:
     assert content is not None
     assert 0.0 <= content["recall"] <= 1.0
     assert result["metrics"]["content_f1"] is not None
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_real_ollama_llm_judge_populates_quality(tmp_path) -> None:
+    """A live LLM-judge run must populate content quality and P/R/F1 in [0,1]."""
+    reason = _ollama_reason()
+    if reason:
+        pytest.skip(reason)
+    from src.training.llm_judge_scorer import LLMJudgeScorer
+
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_text_example_with_reference()])
+    trainer = VisionRAFTTrainer(
+        dataset_path=test_set,
+        config=VisionTrainingConfig(output_model=TEXT_MODEL, judge_model=TEXT_MODEL),
+        output_dir=tmp_path / "models",
+    )
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, content_scorer=LLMJudgeScorer(judge_model=TEXT_MODEL)
+    )
+
+    content = result["per_example"][0]["content"]
+    assert content is not None
+    for key in ("precision", "recall", "f1", "quality"):
+        if content[key] is not None:
+            assert 0.0 <= content[key] <= 1.0
+    # At least one of the judge's two calls should have produced a number.
+    assert any(content[k] is not None for k in ("f1", "quality"))
