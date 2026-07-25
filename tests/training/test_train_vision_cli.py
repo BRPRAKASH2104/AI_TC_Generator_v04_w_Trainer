@@ -132,6 +132,44 @@ def test_run_evaluation_threads_base_model_into_config(tmp_path, monkeypatch):
     assert captured.get("base_model") == "deepseek-coder-v2:16b"
 
 
+def test_run_evaluation_threads_judge_model_into_config(tmp_path, monkeypatch):
+    # Guards the fix: --judge-model must land in VisionTrainingConfig (the
+    # authoritative source _score_content reads), not just the LLMJudgeScorer
+    # instance - otherwise the per-call config.judge_model (always truthy)
+    # silently wins and --judge-model is a no-op.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    captured_config = {}
+    real_config = tvm.VisionTrainingConfig
+
+    def spy_config(**kwargs):
+        config = real_config(**kwargs)
+        captured_config["config"] = config
+        return config
+
+    monkeypatch.setattr(tvm, "VisionTrainingConfig", spy_config)
+    monkeypatch.setattr(
+        tvm.VisionRAFTTrainer,
+        "evaluate_model",
+        lambda self, test_dataset=None, compare_base=False, content_scorer=None: {
+            "model": "out-model",
+            "test_dataset": str(test_set),
+            "metrics": {"total_examples": 1, "overall_score": 1.0},
+            "per_example": [],
+            "errors": [],
+        },
+    )
+
+    tvm.run_evaluation(
+        str(test_set),
+        "out-model",
+        content_scorer_kind="llm",
+        judge_model="my-judge:9b",
+    )
+
+    assert captured_config["config"].judge_model == "my-judge:9b"
+
+
 def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
     test_set = tmp_path / "held.jsonl"
     _write_example(test_set)

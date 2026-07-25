@@ -832,3 +832,24 @@ def test_content_quality_in_delta(trainer, tmp_path):
     )
 
     assert "content_quality" in result["delta"]
+
+
+def test_configured_judge_model_threads_to_scorer(tmp_path):
+    # A non-default config.judge_model must reach the scorer's score() call -
+    # this is what run_evaluation() in utilities/train_vision_model.py relies
+    # on when threading --judge-model through VisionTrainingConfig instead of
+    # only into the scorer instance.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+    scorer = _RecordingScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": 0.5})
+    trainer = VisionRAFTTrainer(
+        dataset_path=test_set,
+        config=VisionTrainingConfig(output_model="out", judge_model="my-judge:9b"),
+        output_dir=tmp_path / "models",
+    )
+
+    trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE), content_scorer=scorer
+    )
+
+    assert scorer.calls[0]["judge_model"] == "my-judge:9b"

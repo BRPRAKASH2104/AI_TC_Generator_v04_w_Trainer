@@ -459,11 +459,18 @@ def run_evaluation(
         logger.error(f"Evaluation dataset not found: {test_dataset}")
         return 1
 
-    # Only override base_model when provided, so the config default still applies.
+    # Only override base_model/judge_model when provided, so the config
+    # defaults still apply. The config is the authoritative source the
+    # trainer reads from (see _score_content), so CLI overrides must be
+    # threaded through it rather than only into the scorer instance -
+    # otherwise the per-call judge_model (always the config default,
+    # since it's never None) silently wins over --judge-model.
+    config_kwargs: dict[str, Any] = {"output_model": output_model}
     if base_model is not None:
-        config = VisionTrainingConfig(output_model=output_model, base_model=base_model)
-    else:
-        config = VisionTrainingConfig(output_model=output_model)
+        config_kwargs["base_model"] = base_model
+    if judge_model is not None:
+        config_kwargs["judge_model"] = judge_model
+    config = VisionTrainingConfig(**config_kwargs)
 
     trainer = VisionRAFTTrainer(
         dataset_path=test_path,
@@ -474,7 +481,7 @@ def run_evaluation(
     if content_scorer_kind == "llm":
         from src.training.llm_judge_scorer import LLMJudgeScorer
 
-        content_scorer = LLMJudgeScorer(judge_model=judge_model or config.judge_model)
+        content_scorer = LLMJudgeScorer(judge_model=config.judge_model)
     result = trainer.evaluate_model(
         test_dataset=test_path, compare_base=compare_base, content_scorer=content_scorer
     )
