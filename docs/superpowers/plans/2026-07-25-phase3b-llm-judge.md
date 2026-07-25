@@ -19,6 +19,19 @@ CLI builds the chosen scorer and injects it via the existing
 **Tech Stack:** Python 3.14+, pytest, ruff, mypy, local Ollama (`llama3.1:8b`).
 No new third-party dependencies.
 
+## Execution Decision (2026-07-25)
+
+**Approved approach: Subagent-Driven Development** (superpowers:subagent-driven-development).
+Dispatch a fresh implementer subagent per task, run a task-review gate (spec +
+quality) after each, and a final whole-branch review before pushing — the same
+workflow used for Phase 3.
+
+**Status at close of 2026-07-25 session: NOT STARTED.** Design (`d99f084`) and
+this plan (`e0021d1`) are committed on branch `feat/phase3b-llm-judge` (off
+`main`). None of Tasks 1–7 have been implemented. Next session: resume with the
+subagent-driven skill, check `.superpowers/sdd/progress.md` for the Phase 3b
+ledger, and begin at Task 1.
+
 ## Global Constraints
 
 - Python 3.14+, no backward compatibility. Google-style docstrings on every
