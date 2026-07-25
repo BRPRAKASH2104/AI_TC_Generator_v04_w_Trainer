@@ -98,6 +98,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (baseline/delta shape, both models run, delta arithmetic, None-metric delta)
   and 4 in `test_train_vision_cli.py` (`--compare-base` parsing, flag forwarding,
   base-model threading).
+- **Phase 3 reference-aware content metric for `evaluate_model`.** A
+  deterministic `ReferenceOverlapScorer` (new `src/training/content_scorer.py`,
+  behind a `ContentScorer` protocol seam for a future LLM-judge) scores generated
+  test cases against the held-out example's reference answer by scenario
+  precision/recall/F1, matching cases with the production deduplicator's
+  similarity (new public `TestCaseDeduplicator.similarity`). Metrics thread
+  through per-example detail, aggregates (`content_precision`/`content_recall`/
+  `content_f1`, macro means, `None` without references), the paired A/B delta,
+  and the CLI, where content F1 becomes the "meaningful signal" when references
+  exist. New `VisionTrainingConfig.content_match_threshold` (default 0.85).
+- **Seeded train/val split producer** — `RAFTDatasetBuilder.split_dataset` /
+  `save_split` write `train.jsonl` + `val.jsonl` deterministically, exposed via
+  `build_vision_dataset.py --val-split-ratio` (`--split-seed`, `--force`).
 
 ### Changed (refactor — behavior-preserving)
 

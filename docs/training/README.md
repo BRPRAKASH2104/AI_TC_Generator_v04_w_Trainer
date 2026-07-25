@@ -69,6 +69,13 @@ Loads `training_data/validated/`, filters by quality threshold
 with base64-encoded images. Implemented by `RAFTDatasetBuilder`
 (`src/training/raft_dataset_builder.py`).
 
+To also produce a held-out validation set for `--evaluate`, add a split ratio:
+
+```bash
+python3 utilities/build_vision_dataset.py --val-split-ratio 0.2
+# writes train.jsonl + val.jsonl (deterministic; --split-seed to change, --force to overwrite)
+```
+
 ### 4. Create the prompt-customized Ollama model
 
 ```bash
@@ -111,6 +118,7 @@ Implemented by `VisionRAFTTrainer.evaluate_model`
 | `overall_score` | Canonical-schema **pass rate** (`is_canonical_test_case`) | Measures output *validity*, **not** closeness to the reference answer. Generation is grammar-constrained to the schema, so this is near-saturated (≈1.0) for most models. |
 | `unique_valid_test_cases_per_example` | Canonical-valid cases after production **deduplication** | The meaningful coverage signal. Distinct usable scenarios per example. |
 | `raw_test_cases_per_example` | Raw object count returned | **Output volume, not coverage** — includes duplicates and invalid objects. Do not use it for model selection. |
+| `content_f1` (+ `content_precision`, `content_recall`) | Reference-aware scenario overlap between the generated cases and the held-out reference answer | **The meaningful quality signal when references exist.** Deterministic (deduplicator similarity ≥ 0.85); `None` when an example has no parseable reference. |
 
 **A/B (`--compare-base`) honesty notes:**
 
@@ -122,6 +130,9 @@ Implemented by `VisionRAFTTrainer.evaluate_model`
   own defaults (not parameter-matched, no fixed seed). The delta reflects the
   whole customized bundle, **not** the isolated effect of the system prompt. The
   result's `provenance` block records both models' effective parameters.
+- When examples carry a reference answer, the **content F1 delta** is the
+  headline signal (quality), above the count-based coverage delta. It is paired
+  and withheld with the baseline exactly like the other deltas.
 
 ## Key configuration (`config/cli_config.yaml`, `training:` section)
 
