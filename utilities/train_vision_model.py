@@ -142,6 +142,23 @@ def parse_args() -> argparse.Namespace:
         ),
     )
 
+    parser.add_argument(
+        "--content-scorer",
+        choices=("overlap", "llm"),
+        default="overlap",
+        help=(
+            "Content scorer for --evaluate: 'overlap' (deterministic string "
+            "similarity, default) or 'llm' (LLM-as-judge semantic matching + "
+            "quality; non-deterministic, needs a local judge model)."
+        ),
+    )
+    parser.add_argument(
+        "--judge-model",
+        type=str,
+        default=None,
+        help="Judge model for --content-scorer llm (default: config judge_model, llama3.1:8b).",
+    )
+
     args = parser.parse_args()
 
     # --compare-base only has meaning in evaluation mode; accepting it during
@@ -335,6 +352,12 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
             f"  Precision:      {metrics.get('content_precision', 0.0):.2f}   "
             f"Recall: {metrics.get('content_recall', 0.0):.2f}"
         )
+    content_quality = metrics.get("content_quality")
+    if content_quality is not None:
+        logger.info(
+            f"Content Quality:  {content_quality:.2f}  <- LLM-judge holistic "
+            "rubric (complementary to F1)"
+        )
     if result["errors"]:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
         for error in result["errors"]:
@@ -386,6 +409,11 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
                     f"  Content F1:     {_format_delta(delta.get('content_f1'))}  "
                     "<- reference-aware quality delta (the meaningful signal)"
                 )
+            if delta.get("content_quality") is not None:
+                logger.info(
+                    f"  Content Qual.:  {_format_delta(delta.get('content_quality'))}  "
+                    "<- LLM-judge quality delta (complementary)"
+                )
             provenance = result.get("provenance")
             if provenance:
                 logger.info(
@@ -403,6 +431,8 @@ def run_evaluation(
     output_model: str,
     compare_base: bool = False,
     base_model: str | None = None,
+    content_scorer_kind: str = "overlap",
+    judge_model: str | None = None,
 ) -> int:
     """Evaluate a customized model on a held-out RAFT dataset and print metrics.
 
@@ -413,6 +443,10 @@ def run_evaluation(
             customized-minus-base delta.
         base_model: Base model used for the ``compare_base`` comparison. None
             keeps ``VisionTrainingConfig``'s default.
+        content_scorer_kind: "overlap" (deterministic, default) or "llm"
+            (LLM-as-judge). Selects the content scorer.
+        judge_model: Judge model for the "llm" scorer; None uses the config
+            default.
 
     Returns:
         0 if at least one example was evaluated without a generation error
@@ -436,7 +470,14 @@ def run_evaluation(
         config=config,
         logger=logger,
     )
-    result = trainer.evaluate_model(test_dataset=test_path, compare_base=compare_base)
+    content_scorer = None
+    if content_scorer_kind == "llm":
+        from src.training.llm_judge_scorer import LLMJudgeScorer
+
+        content_scorer = LLMJudgeScorer(judge_model=judge_model or config.judge_model)
+    result = trainer.evaluate_model(
+        test_dataset=test_path, compare_base=compare_base, content_scorer=content_scorer
+    )
     print_evaluation_result(result)
 
     total = result["metrics"].get("total_examples", 0)
@@ -476,7 +517,12 @@ def main() -> int:
                 return 1
             logger.info("✅ Ollama is running")
             return run_evaluation(
-                args.evaluate, args.output_model, args.compare_base, args.base_model
+                args.evaluate,
+                args.output_model,
+                args.compare_base,
+                args.base_model,
+                content_scorer_kind=args.content_scorer,
+                judge_model=args.judge_model,
             )
 
         # Validate dataset
