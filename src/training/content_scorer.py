@@ -6,7 +6,7 @@ deterministic first scorer; the ``ContentScorer`` protocol is the seam for a
 future LLM-as-judge (Phase 3b).
 """
 
-from typing import Protocol, TypedDict
+from typing import Any, Protocol, TypedDict
 
 from src.core.deduplicator import TestCaseDeduplicator
 
@@ -17,6 +17,26 @@ class ContentScore(TypedDict):
     precision: float | None
     recall: float | None
     f1: float | None
+    quality: float | None
+
+
+def _prf(matched: int, n_generated: int, n_reference: int) -> tuple[float | None, float, float]:
+    """Precision/recall/F1 from a match count (shared by both scorers).
+
+    Args:
+        matched: Generated cases matched to a distinct reference case.
+        n_generated: Total generated cases.
+        n_reference: Total reference cases (caller guarantees > 0).
+
+    Returns:
+        ``(precision, recall, f1)``; precision is None when ``n_generated`` is 0
+        (0/0 undefined); recall/f1 are defined against the non-empty reference.
+    """
+    precision = None if n_generated == 0 else matched / n_generated
+    recall = matched / n_reference
+    p = 0.0 if precision is None else precision
+    f1 = 0.0 if (p + recall) == 0 else 2 * p * recall / (p + recall)
+    return precision, recall, f1
 
 
 class ContentScorer(Protocol):
@@ -26,9 +46,23 @@ class ContentScorer(Protocol):
     """
 
     def score(
-        self, generated_cases: list[dict], reference_cases: list[dict]
+        self,
+        generated_cases: list[dict],
+        reference_cases: list[dict],
+        *,
+        client: Any = None,
+        judge_model: str | None = None,
     ) -> ContentScore | None:
-        """Return precision/recall/F1 for the generation, or None."""
+        """Return precision/recall/F1/quality for the generation, or None.
+
+        Args:
+            generated_cases: Canonical, deduplicated generated test cases.
+            reference_cases: Canonical, deduplicated reference test cases.
+            client: Optional model client for scorers that call an LLM
+                (ignored by deterministic scorers).
+            judge_model: Optional judge model name (ignored by deterministic
+                scorers).
+        """
         ...
 
 
@@ -56,27 +90,37 @@ class ReferenceOverlapScorer:
         self._dedup = TestCaseDeduplicator(similarity_threshold=match_threshold)
 
     def score(
-        self, generated_cases: list[dict], reference_cases: list[dict]
+        self,
+        generated_cases: list[dict],
+        reference_cases: list[dict],
+        *,
+        client: Any = None,  # noqa: ARG002
+        judge_model: str | None = None,  # noqa: ARG002
     ) -> ContentScore | None:
-        """Score generated cases against reference cases.
+        """Score generated cases against reference cases by string overlap.
+
+        The ``client`` and ``judge_model`` arguments are part of the widened
+        ``ContentScorer`` protocol and are ignored here — this scorer is
+        deterministic and makes no model calls.
 
         Args:
             generated_cases: Canonical, deduplicated generated test cases.
             reference_cases: Canonical, deduplicated reference test cases.
+            client: Ignored.
+            judge_model: Ignored.
 
         Returns:
-            A ``ContentScore``, or None when there are no reference cases.
+            A ``ContentScore`` (``quality`` always None), or None when there are
+            no reference cases.
         """
         if not reference_cases:
             return None
         if not generated_cases:
-            return {"precision": None, "recall": 0.0, "f1": 0.0}
+            return {"precision": None, "recall": 0.0, "f1": 0.0, "quality": None}
 
         matched = self._count_matches(generated_cases, reference_cases)
-        precision = matched / len(generated_cases)
-        recall = matched / len(reference_cases)
-        f1 = 0.0 if (precision + recall) == 0 else 2 * precision * recall / (precision + recall)
-        return {"precision": precision, "recall": recall, "f1": f1}
+        precision, recall, f1 = _prf(matched, len(generated_cases), len(reference_cases))
+        return {"precision": precision, "recall": recall, "f1": f1, "quality": None}
 
     def _count_matches(self, generated_cases: list[dict], reference_cases: list[dict]) -> int:
         """Count greedy one-to-one matches between generated and reference."""
