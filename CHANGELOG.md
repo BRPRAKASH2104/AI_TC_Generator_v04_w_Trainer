@@ -7,6 +7,111 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A/B evaluation no longer reports a failed baseline as positive lift**
+  (review 2026-07-24, Critical 1). A base model that failed to generate for
+  every example previously aggregated to all-zero metrics, so `_compute_delta`
+  returned pure positive lift and the CLI exited `0` — a false "customization
+  helped" verdict with no usable baseline observation behind it. The comparison
+  is now *paired*: a new `_compare_paired()` computes the delta only over
+  examples both models generated for without error, adds a `comparison` block
+  (`status` = `complete`/`partial`/`failed`, `paired_examples`,
+  `total_examples`, `custom_failures`, `baseline_failures`), and **withholds the
+  delta** (`None`) when no example paired. `print_evaluation_result` now surfaces
+  baseline errors and the paired-sample size, and `run_evaluation` returns `1`
+  when a requested comparison could not be established. Tests: total-baseline
+  failure, partial failure (paired-only delta), symmetric customized-side
+  failure, CLI exit `1`, and baseline-error reporting.
+- **"Coverage" metric no longer rewards duplicate or canonical-invalid output**
+  (review 2026-07-24, Critical 2). The reported coverage averaged the *raw*
+  object count, so five identical or five schema-invalid cases both read as
+  `+4.0` lift over a single valid case. `_score_generation` now also computes
+  `unique_valid` — canonical-valid cases run through the production
+  `TestCaseDeduplicator` (`DEFAULT_FIELDS_TO_COMPARE`) — plus explicit
+  `invalid_test_cases`/`duplicate_test_cases` counts. The raw metric is renamed
+  `raw_test_cases_per_example` (kept as output volume) and the decision metric is
+  now `unique_valid_test_cases_per_example`; the CLI's "meaningful signal" label
+  and the delta move to it. Tests: duplicate-heavy and invalid-bulk A/B
+  regressions and per-example invalid/duplicate accounting.
+- **Evaluator validates and bounds its JSONL/image inputs before any model call**
+  (review 2026-07-24, Recommended 3). A dataset line of `[]` previously aborted
+  the whole run with `AttributeError: 'list' object has no attribute 'get'`, and
+  unbounded base64 images were decoded into memory. `_load_and_validate_examples`
+  now rejects — with a clear, line-numbered `ValueError` before generation — an
+  empty/over-limit dataset, non-object lines, missing/non-string user content,
+  and images that are not a size-bounded list of valid base64 strings. New
+  `VisionTrainingConfig` limits `max_eval_examples` / `max_images_per_example` /
+  `max_image_bytes` make the bounds configurable; oversized images are rejected
+  by encoded length before decoding. Tests cover each violation.
+- **`--compare-base` now requires `--evaluate`** (review 2026-07-24, Optional 7).
+  It was silently ignored in model-creation mode; `parse_args` now errors out.
+
+### Changed
+
+- **A/B comparison is labeled honestly as a bundle-vs-base comparison, with
+  recorded provenance** (review 2026-07-24, Recommended 4). The customized
+  Modelfile changes both the system prompt and generation parameters, and the
+  base model runs with its own unmatched defaults (no fixed seed), so the delta
+  measures the whole customized *bundle*, not the isolated effect of the prompt.
+  The result gains a `provenance` block recording both models' effective
+  parameters (sourced from a shared `_customized_model_parameters()` so it cannot
+  drift from the created Modelfile), the CLI and docstrings drop causal
+  prompt-only language, and the output prints the bundle-vs-base caveat.
+- **`docs/training/README.md` corrected and expanded** (review 2026-07-24,
+  Recommended 6). Removed the contradictory "the dataset shapes/informs the
+  system prompt" wording (the prompt is a fixed template, dataset-independent),
+  added an evaluation section documenting `--evaluate` / `--compare-base` with
+  the metric definitions, limitations, and bundle-vs-base honesty notes, and
+  fixed the stale `docs/training/training_guideline.md` links in
+  `train_vision_model.py` to point at `docs/training/README.md`.
+
+### Added (test coverage)
+
+- **Committed real-Ollama evaluator integration test** (review 2026-07-24,
+  Recommended 5), `tests/training/test_vision_raft_evaluate_integration.py`:
+  opt-in (`integration`/`slow`, self-skipping) coverage that drives
+  `evaluate_model` through a live `OllamaClient` — asserting result shape,
+  text-example routing, canonical scoring, a complete paired comparison, and the
+  failed-baseline CLI exit-1 contract — replacing the module docstring's claim of
+  a live test that did not previously exist. Verified against local `llama3.1:8b`.
+
+### Added (feature)
+
+- **Phase 2 A/B comparison for `VisionRAFTTrainer.evaluate_model`** — a
+  `compare_base=True` option (CLI `--compare-base`) that also runs the untouched
+  `config.base_model` over the same held-out set and adds `baseline` and `delta`
+  (customized-minus-base) blocks to the result — a bundle-vs-base comparison (see
+  the Recommended 4 note above). The per-example generation loop was refactored into a
+  model-parameterized `_score_over_dataset(client, examples, model_name)` reused
+  for both models; new `_compute_delta` returns per-metric deltas (None where a
+  metric is absent on either side). **Honest caveat, surfaced in the output and
+  docstring:** generation is grammar-constrained to the canonical schema, so the
+  *validity* scores are near-saturated for both models — the coverage delta
+  (`unique_valid_test_cases_per_example`) is usually the more discriminating
+  signal.
+  Real-Ollama A/B verified live via the CLI. This also caught (and fixed) a
+  wiring bug the mocked tests missed: `run_evaluation` was ignoring
+  `--base-model` and comparing against the default base — the live run's baseline
+  was the wrong model until `base_model` was threaded into `VisionTrainingConfig`
+  (guarded by a new test). Tests: +9 — 5 in `test_vision_raft_evaluate.py`
+  (baseline/delta shape, both models run, delta arithmetic, None-metric delta)
+  and 4 in `test_train_vision_cli.py` (`--compare-base` parsing, flag forwarding,
+  base-model threading).
+- **Phase 3 reference-aware content metric for `evaluate_model`.** A
+  deterministic `ReferenceOverlapScorer` (new `src/training/content_scorer.py`,
+  behind a `ContentScorer` protocol seam for a future LLM-judge) scores generated
+  test cases against the held-out example's reference answer by scenario
+  precision/recall/F1, matching cases with the production deduplicator's
+  similarity (new public `TestCaseDeduplicator.similarity`). Metrics thread
+  through per-example detail, aggregates (`content_precision`/`content_recall`/
+  `content_f1`, macro means, `None` without references), the paired A/B delta,
+  and the CLI, where content F1 becomes the "meaningful signal" when references
+  exist. New `VisionTrainingConfig.content_match_threshold` (default 0.85).
+- **Seeded train/val split producer** — `RAFTDatasetBuilder.split_dataset` /
+  `save_split` write `train.jsonl` + `val.jsonl` deterministically, exposed via
+  `build_vision_dataset.py --val-split-ratio` (`--split-seed`, `--force`).
+
 ### Changed (refactor — behavior-preserving)
 
 - **Extracted the three oversized functions flagged by review 2026-07-20
@@ -42,12 +147,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   annotator's oracle-selection input parser (all/none/skip/numeric/invalid). No
   Ollama or subprocess is exercised. Full suite: 522 passed, 3 skipped.
 
-- **Pinned the `VisionRAFTTrainer.evaluate_model` stub contract**
-  (`tests/training/test_vision_raft_evaluate.py`). `evaluate_model` is still a
-  `# TODO` stub returning hardcoded `0.0` scores; these characterization tests
-  lock its shape and all-zero "not implemented" behavior so it cannot silently
-  begin reporting fabricated non-zero metrics, and guard that it shells out to no
-  subprocess while stubbed. To be updated when real evaluation is implemented.
+- **Implemented `VisionRAFTTrainer.evaluate_model` (Phase 1: output-quality
+  evaluation)**, replacing the `# TODO` stub that returned hardcoded `0.0`
+  scores. It now runs the prompt-customized model over an explicit held-out RAFT
+  dataset and scores each generation by the **canonical-schema pass rate**
+  (`is_canonical_test_case` — the same gate the production pipeline applies),
+  aggregating text / vision / overall scores plus parse-success rate and
+  per-example detail. Design decisions: an explicit `test_dataset` is **required**
+  (no held-out split is produced yet, so there is no honest default — passing
+  `None` raises `ValueError`); a metric with no examples behind it is reported as
+  `None`, never a fabricated `0.0`; and the Ollama client is injectable so tests
+  stay deterministic. Vision examples (base64 in the dataset) are decoded to temp
+  files and routed through the vision method. Reachable via a new
+  `train_vision_model.py --evaluate <TEST_DATASET>` evaluation-only mode.
+  Tests: rewrote `tests/training/test_vision_raft_evaluate.py` (9 tests, fake
+  client) and added `tests/training/test_train_vision_cli.py` (5 tests). Verified
+  with **real Ollama** — `llama3.1:8b` scored 1.00 (5 canonical test cases) via
+  both the direct API and the `--evaluate` CLI; a live `llama3.2-vision:11b` run
+  confirmed the vision path routes correctly and degrades gracefully (this
+  environment's Ollama cannot load the `mllama` architecture, surfaced as a
+  per-example error rather than a crash). Phase 1 measures output validity, not
+  closeness to the reference answer (a later phase).
 
 ### Changed (style/CI)
 

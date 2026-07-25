@@ -38,7 +38,7 @@ Hardware Requirements:
     - Recommended: 24 GB VRAM (for concurrent usage)
     - Note: Modelfile creation doesn't require GPU training
 
-See docs/training/training_guideline.md for complete guide.
+See docs/training/README.md for the complete guide.
 """
 
 import argparse
@@ -52,7 +52,11 @@ from typing import Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.training.vision_raft_trainer import create_vision_training_pipeline  # noqa: E402
+from src.training.vision_raft_trainer import (  # noqa: E402
+    VisionRAFTTrainer,
+    VisionTrainingConfig,
+    create_vision_training_pipeline,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -113,7 +117,39 @@ def parse_args() -> argparse.Namespace:
         help="Force model creation even if model already exists",
     )
 
-    return parser.parse_args()
+    parser.add_argument(
+        "--evaluate",
+        type=str,
+        default=None,
+        metavar="TEST_DATASET",
+        help=(
+            "Evaluation-only mode: score the --output-model on this held-out "
+            "RAFT dataset (JSONL) instead of creating a model. Reports the "
+            "canonical-schema pass rate."
+        ),
+    )
+
+    parser.add_argument(
+        "--compare-base",
+        action="store_true",
+        help=(
+            "With --evaluate, also run the --base-model over the same set and "
+            "report the customized-minus-base delta. This compares the whole "
+            "customized bundle (system prompt + parameters) against the base "
+            "model's own defaults, not the prompt in isolation. Note: validity "
+            "scores are grammar-saturated, so the unique-valid coverage delta is "
+            "usually the more meaningful signal."
+        ),
+    )
+
+    args = parser.parse_args()
+
+    # --compare-base only has meaning in evaluation mode; accepting it during
+    # model creation would silently ignore it (2026-07-24 review, Optional 7).
+    if args.compare_base and not args.evaluate:
+        parser.error("--compare-base requires --evaluate")
+
+    return args
 
 
 def validate_dataset(dataset_path: str) -> None:
@@ -131,7 +167,7 @@ def validate_dataset(dataset_path: str) -> None:
         raise FileNotFoundError(
             f"Dataset file not found: {dataset_path}\n"
             "Please build the dataset first using utilities/build_vision_dataset.py\n"
-            "See docs/training/training_guideline.md for dataset preparation guide."
+            "See docs/training/README.md for the dataset preparation guide."
         )
 
     if dataset_file.suffix != ".jsonl":
@@ -230,7 +266,7 @@ def print_training_result(result: dict[str, Any]) -> None:
         )
         logger.info("  2. Compare with base model output")
         logger.info("  3. Deploy: export OLLAMA__VISION_MODEL=" + result["model_name"])
-        logger.info("  4. See docs/training/training_guideline.md for evaluation guide")
+        logger.info("  4. See docs/training/README.md for the evaluation guide")
     else:
         logger.error("❌ Model Creation Failed")
         logger.error("=" * 60)
@@ -242,10 +278,176 @@ def print_training_result(result: dict[str, Any]) -> None:
         logger.error("  1. Check Ollama is running: ollama serve")
         logger.error("  2. Verify base model: ollama list | grep " + result.get("base_model", ""))
         logger.error("  3. Check Modelfile syntax in training_data/models/")
-        logger.error("  4. See docs/training/training_guideline.md for troubleshooting")
+        logger.error("  4. See docs/training/README.md for troubleshooting")
 
     logger.info("=" * 60)
     logger.info("")
+
+
+def _format_delta(value: float | None) -> str:
+    """Format a signed delta, or ``n/a`` when it could not be computed."""
+    return "n/a" if value is None else f"{value:+.2f}"
+
+
+def print_evaluation_result(result: dict[str, Any]) -> None:
+    """Print an evaluation summary, including the A/B delta when present.
+
+    Args:
+        result: Result dictionary from ``VisionRAFTTrainer.evaluate_model()``.
+    """
+    metrics = result["metrics"]
+    text_score = metrics.get("text_examples_score")
+    vision_score = metrics.get("vision_examples_score")
+    text_str = "n/a" if text_score is None else f"{text_score:.2f}"
+    vision_str = "n/a" if vision_score is None else f"{vision_score:.2f}"
+
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("Vision RAFT Model Evaluation")
+    logger.info("=" * 60)
+    logger.info(f"Model:            {result['model']}")
+    logger.info(f"Test dataset:     {result['test_dataset']}")
+    logger.info(
+        f"Examples:         {metrics.get('total_examples', 0)} "
+        f"(text: {metrics.get('text_examples', 0)}, vision: {metrics.get('vision_examples', 0)})"
+    )
+    logger.info(
+        f"Overall score:    {metrics.get('overall_score', 0.0):.2f}  (canonical-schema pass rate)"
+    )
+    logger.info(f"  Text score:     {text_str}")
+    logger.info(f"  Vision score:   {vision_str}")
+    logger.info(f"Parse success:    {metrics.get('parse_success_rate', 0.0):.2f}")
+    logger.info(
+        f"Unique valid TCs: {metrics.get('unique_valid_test_cases_per_example', 0.0):.2f}"
+        "/example  (canonical-valid, deduplicated)"
+    )
+    logger.info(
+        f"Raw TCs/example:  {metrics.get('raw_test_cases_per_example', 0.0):.2f}  "
+        "(output volume, not coverage)"
+    )
+    content_f1 = metrics.get("content_f1")
+    if content_f1 is not None:
+        logger.info(
+            f"Content F1:       {content_f1:.2f}  <- reference-aware quality "
+            "(the meaningful signal when references exist)"
+        )
+        logger.info(
+            f"  Precision:      {metrics.get('content_precision', 0.0):.2f}   "
+            f"Recall: {metrics.get('content_recall', 0.0):.2f}"
+        )
+    if result["errors"]:
+        logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
+        for error in result["errors"]:
+            logger.warning(f"  - {error}")
+
+    if "baseline" in result:
+        base_metrics = result["baseline"]["metrics"]
+        delta = result.get("delta")
+        comparison = result.get("comparison") or {}
+        logger.info("-" * 60)
+        logger.info(f"Baseline model:   {result['baseline']['model']}")
+        logger.info(f"  Base overall:   {base_metrics.get('overall_score', 0.0):.2f}")
+        logger.info(
+            f"  Base coverage:  "
+            f"{base_metrics.get('unique_valid_test_cases_per_example', 0.0):.2f} "
+            "unique-valid TCs/example"
+        )
+        base_errors = result["baseline"]["errors"]
+        if base_errors:
+            logger.warning(f"{len(base_errors)} baseline example(s) failed to generate:")
+            for error in base_errors:
+                logger.warning(f"  - {error}")
+        if comparison:
+            logger.info(
+                f"Comparison:       {comparison.get('status', 'unknown')} "
+                f"({comparison.get('paired_examples', 0)}/{comparison.get('total_examples', 0)} "
+                "paired example(s))"
+            )
+        if delta is None:
+            logger.warning(
+                "Delta withheld: the baseline produced no usable observation, "
+                "so no customized-vs-base lift can be claimed."
+            )
+        else:
+            logger.info("Delta (customized - base, paired examples only):")
+            logger.info(f"  Overall score:  {_format_delta(delta.get('overall_score'))}")
+            logger.info(
+                f"  Coverage:       "
+                f"{_format_delta(delta.get('unique_valid_test_cases_per_example'))} "
+                "unique-valid TCs/example  <- the meaningful signal "
+                "(validity is grammar-saturated)"
+            )
+            logger.info(
+                f"  Raw volume:     {_format_delta(delta.get('raw_test_cases_per_example'))} "
+                "TCs/example  (includes duplicates and invalid output)"
+            )
+            if delta.get("content_f1") is not None:
+                logger.info(
+                    f"  Content F1:     {_format_delta(delta.get('content_f1'))}  "
+                    "<- reference-aware quality delta (the meaningful signal)"
+                )
+            provenance = result.get("provenance")
+            if provenance:
+                logger.info(
+                    "  NB: compares the customized BUNDLE (system prompt + parameters) "
+                    "vs the base model's own defaults (NOT parameter-matched); "
+                    "it does not isolate the prompt's effect."
+                )
+
+    logger.info("=" * 60)
+    logger.info("")
+
+
+def run_evaluation(
+    test_dataset: str,
+    output_model: str,
+    compare_base: bool = False,
+    base_model: str | None = None,
+) -> int:
+    """Evaluate a customized model on a held-out RAFT dataset and print metrics.
+
+    Args:
+        test_dataset: Path to the held-out RAFT dataset (JSONL).
+        output_model: Name of the customized Ollama model to evaluate.
+        compare_base: When True, also evaluate the base model and print the
+            customized-minus-base delta.
+        base_model: Base model used for the ``compare_base`` comparison. None
+            keeps ``VisionTrainingConfig``'s default.
+
+    Returns:
+        0 if at least one example was evaluated without a generation error
+        (and, when comparing, the baseline produced at least one usable paired
+        observation), 1 if the dataset is missing/empty, every example failed,
+        or the requested baseline comparison could not be established.
+    """
+    test_path = Path(test_dataset)
+    if not test_path.exists():
+        logger.error(f"Evaluation dataset not found: {test_dataset}")
+        return 1
+
+    # Only override base_model when provided, so the config default still applies.
+    if base_model is not None:
+        config = VisionTrainingConfig(output_model=output_model, base_model=base_model)
+    else:
+        config = VisionTrainingConfig(output_model=output_model)
+
+    trainer = VisionRAFTTrainer(
+        dataset_path=test_path,
+        config=config,
+        logger=logger,
+    )
+    result = trainer.evaluate_model(test_dataset=test_path, compare_base=compare_base)
+    print_evaluation_result(result)
+
+    total = result["metrics"].get("total_examples", 0)
+    failed = len(result["errors"])
+    # A requested comparison whose baseline never produced a usable paired
+    # observation cannot support the A/B claim; fail instead of exiting 0
+    # alongside a withheld delta (2026-07-24 review, Critical 1).
+    comparison = result.get("comparison") or {}
+    baseline_unusable = comparison.get("status") == "failed"
+    # Nothing scored (empty set or every example errored) is not a usable result.
+    return 1 if total == 0 or failed >= total or baseline_unusable else 0
 
 
 def main() -> int:
@@ -262,6 +464,20 @@ def main() -> int:
         if args.verbose:
             logging.getLogger().setLevel(logging.DEBUG)
             logger.debug("Verbose logging enabled")
+
+        # Evaluation-only mode: score an existing customized model on a held-out
+        # dataset. This is a separate path - the training dataset and the base /
+        # output-model existence guards below are irrelevant here.
+        if args.evaluate:
+            logger.info("Checking Ollama connection...")
+            if not check_ollama_connection():
+                logger.error("Cannot connect to Ollama at http://localhost:11434")
+                logger.error("Please ensure Ollama is running: ollama serve")
+                return 1
+            logger.info("✅ Ollama is running")
+            return run_evaluation(
+                args.evaluate, args.output_model, args.compare_base, args.base_model
+            )
 
         # Validate dataset
         logger.info("Validating dataset...")

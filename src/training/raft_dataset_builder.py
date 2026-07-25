@@ -8,6 +8,7 @@ Vision Support (v2.2.0+): Builds datasets for vision model training with images.
 """
 
 import json
+import random
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -370,3 +371,68 @@ class RAFTDatasetBuilder:
             issues.append(f"Critical error: {e}")
 
         return {"valid": len(issues) == 0, "issues": issues, "stats": stats}
+
+    def split_dataset(
+        self, examples: list[dict[str, Any]], val_ratio: float = 0.2, seed: int = 42
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Split examples into (train, val) deterministically.
+
+        Args:
+            examples: The full example list.
+            val_ratio: Fraction held out for validation (0 < ratio < 1).
+            seed: RNG seed; the same seed yields the same split.
+
+        Returns:
+            A (train, val) tuple; both are non-empty.
+
+        Raises:
+            ValueError: If ``val_ratio`` is out of range or there are fewer than
+                2 examples to split.
+        """
+        if not 0.0 < val_ratio < 1.0:
+            raise ValueError(f"val_ratio must be in (0, 1), got {val_ratio}")
+        if len(examples) < 2:
+            raise ValueError("need at least 2 examples to split")
+
+        shuffled = list(examples)
+        random.Random(seed).shuffle(shuffled)
+        n_val = max(1, round(len(shuffled) * val_ratio))
+        n_val = min(n_val, len(shuffled) - 1)  # keep >= 1 in train
+        return shuffled[n_val:], shuffled[:n_val]
+
+    def save_split(
+        self,
+        examples: list[dict[str, Any]],
+        out_dir: Path,
+        val_ratio: float = 0.2,
+        seed: int = 42,
+        force: bool = False,
+    ) -> tuple[Path, Path]:
+        """Write ``train.jsonl`` and ``val.jsonl`` to ``out_dir``.
+
+        Args:
+            examples: The full example list.
+            out_dir: Directory to write the two files into.
+            val_ratio: Validation fraction (see ``split_dataset``).
+            seed: RNG seed (see ``split_dataset``).
+            force: Overwrite existing files instead of raising.
+
+        Returns:
+            A (train_path, val_path) tuple.
+
+        Raises:
+            FileExistsError: If a target file exists and ``force`` is False.
+        """
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        train_path = out_dir / "train.jsonl"
+        val_path = out_dir / "val.jsonl"
+        if not force:
+            for path in (train_path, val_path):
+                if path.exists():
+                    raise FileExistsError(f"{path} exists; pass force=True to overwrite")
+
+        train, val = self.split_dataset(examples, val_ratio=val_ratio, seed=seed)
+        for path, rows in ((train_path, train), (val_path, val)):
+            path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+        return train_path, val_path

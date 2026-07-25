@@ -7,11 +7,13 @@ fine-tuning path that is **not implemented** here.
 
 > **What "training" means in this tool.** This project does **not** fine-tune
 > model weights. It runs a *prompt-customization* pipeline: it collects and
-> annotates good generations (RAFT — Retrieval-Augmented Fine-Tuning data),
-> builds a dataset, and uses that to create a **named Ollama model with a
-> RAFT-informed system prompt** via an Ollama `Modelfile` + `ollama create`.
-> The requirement dataset shapes the *system prompt*, not the model weights
-> (see review finding 6 / Archived finding 3).
+> annotates good generations (RAFT — Retrieval-Augmented Fine-Tuning data) and
+> builds a dataset, then creates a **named Ollama model** via an Ollama
+> `Modelfile` + `ollama create`. **The system prompt is a fixed template — it is
+> not derived from the RAFT dataset.** The dataset is analyzed for *reporting
+> statistics only*; it changes neither the model weights nor the system prompt
+> (`VisionRAFTTrainer._prepare_modelfile`; review 2026-07-24 finding 6 /
+> 2026-07-20 finding 6 / Archived finding 3).
 
 ## Requirements
 
@@ -67,16 +69,70 @@ Loads `training_data/validated/`, filters by quality threshold
 with base64-encoded images. Implemented by `RAFTDatasetBuilder`
 (`src/training/raft_dataset_builder.py`).
 
+To also produce a held-out validation set for `--evaluate`, add a split ratio:
+
+```bash
+python3 utilities/build_vision_dataset.py --val-split-ratio 0.2
+# writes train.jsonl + val.jsonl (deterministic; --split-seed to change, --force to overwrite)
+```
+
 ### 4. Create the prompt-customized Ollama model
 
 ```bash
 python3 utilities/train_vision_model.py
 ```
 
-Builds an Ollama `Modelfile` with a RAFT-informed system prompt and runs
-`ollama create` to register a named custom model. **This does not change model
-weights.** Implemented by `VisionRAFTTrainer`
+Builds an Ollama `Modelfile` with a **fixed** system prompt (not derived from
+the dataset) plus generation `PARAMETER`s, and runs `ollama create` to register
+a named custom model. **This does not change model weights, and the RAFT dataset
+does not alter the prompt.** Implemented by `VisionRAFTTrainer`
 (`src/training/vision_raft_trainer.py`).
+
+### 5. Evaluate a customized model on held-out data (optional)
+
+Score an existing customized model on a held-out RAFT dataset (JSONL) instead of
+creating one. Requires an **explicit** held-out file — no train/val split is
+produced, so there is no honest default:
+
+```bash
+# Score the customized model's output quality on a held-out set
+python3 utilities/train_vision_model.py \
+    --evaluate training_data/raft_dataset/held_out.jsonl \
+    --output-model automotive-tc-vision-raft-v1
+
+# A/B it against the base model (add --base-model to pick the baseline)
+python3 utilities/train_vision_model.py \
+    --evaluate training_data/raft_dataset/held_out.jsonl \
+    --output-model automotive-tc-vision-raft-v1 \
+    --base-model llama3.2-vision:11b \
+    --compare-base
+```
+
+Implemented by `VisionRAFTTrainer.evaluate_model`
+(`src/training/vision_raft_trainer.py`).
+
+**What the metrics mean — and their limits:**
+
+| Metric | Meaning | Caveat |
+|---|---|---|
+| `overall_score` | Canonical-schema **pass rate** (`is_canonical_test_case`) | Measures output *validity*, **not** closeness to the reference answer. Generation is grammar-constrained to the schema, so this is near-saturated (≈1.0) for most models. |
+| `unique_valid_test_cases_per_example` | Canonical-valid cases after production **deduplication** | The meaningful coverage signal. Distinct usable scenarios per example. |
+| `raw_test_cases_per_example` | Raw object count returned | **Output volume, not coverage** — includes duplicates and invalid objects. Do not use it for model selection. |
+| `content_f1` (+ `content_precision`, `content_recall`) | Reference-aware scenario overlap between the generated cases and the held-out reference answer | **The meaningful quality signal when references exist.** Deterministic (deduplicator similarity ≥ 0.85); `None` when an example has no parseable reference. |
+
+**A/B (`--compare-base`) honesty notes:**
+
+- The delta is **paired**: computed only over examples both models generated for
+  without error. If the baseline fails on every example the delta is **withheld**
+  and the command exits non-zero — a failed baseline is never reported as lift.
+- The comparison is **bundle-vs-base**: the customized model changes both the
+  system prompt *and* generation parameters, while the base model runs with its
+  own defaults (not parameter-matched, no fixed seed). The delta reflects the
+  whole customized bundle, **not** the isolated effect of the system prompt. The
+  result's `provenance` block records both models' effective parameters.
+- When examples carry a reference answer, the **content F1 delta** is the
+  headline signal (quality), above the count-based coverage delta. It is paired
+  and withheld with the baseline exactly like the other deltas.
 
 ## Key configuration (`config/cli_config.yaml`, `training:` section)
 
@@ -97,10 +153,11 @@ weights.** Implemented by `VisionRAFTTrainer`
 - **LoRA / adapter weight fine-tuning.** The `[training]` extra and the
   archived `MODEL_TRAINING_GUIDE.md` describe `lora_trainer.py` / `train_lora.py`
   scripts that **do not exist** in this repository.
-- **Genuine dataset-derived model weights.** The dataset informs the Modelfile
-  system prompt and reporting statistics only, not the underlying model (review
-  finding 6 / Archived finding 3). Real weight fine-tuning would need an
-  HF-format + GPU pipeline this local-Ollama tool does not target.
+- **Genuine dataset-derived model weights or prompt.** The dataset informs
+  reporting statistics only — neither the underlying weights nor the fixed
+  system prompt (review 2026-07-24 finding 6 / 2026-07-20 finding 6 / Archived
+  finding 3). Real weight fine-tuning would need an HF-format + GPU pipeline this
+  local-Ollama tool does not target.
 
 ## Related source modules
 
