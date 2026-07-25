@@ -131,3 +131,45 @@ def test_real_ollama_failed_baseline_makes_cli_exit_nonzero(tmp_path) -> None:
     # The customized side generated fine, but the baseline could not, so the
     # A/B claim is unusable and the CLI must not exit 0.
     assert exit_code == 1
+
+
+def _text_example_with_reference() -> dict:
+    ex = _text_example()
+    ex["messages"][2]["content"] = json.dumps(
+        {
+            "test_cases": [
+                {
+                    "summary_suffix": "doors unlock at standstill",
+                    "preconditions": "vehicle speed 0 km/h",
+                    "test_steps": "1. Press the central unlock button.",
+                    "expected_result": "All doors unlock.",
+                    "test_type": "functional",
+                }
+            ]
+        }
+    )
+    return ex
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_real_ollama_populates_content_metrics(tmp_path) -> None:
+    """A live run with a reference answer must populate content metrics."""
+    reason = _ollama_reason()
+    if reason:
+        pytest.skip(reason)
+
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_text_example_with_reference()])
+    trainer = VisionRAFTTrainer(
+        dataset_path=test_set,
+        config=VisionTrainingConfig(output_model=TEXT_MODEL),
+        output_dir=tmp_path / "models",
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set)
+
+    content = result["per_example"][0]["content"]
+    assert content is not None
+    assert 0.0 <= content["recall"] <= 1.0
+    assert result["metrics"]["content_f1"] is not None
