@@ -29,11 +29,13 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from logging import Logger
+
+    from src.training.content_scorer import ContentScore, ContentScorer
 
 type TrainingResult = dict[str, Any]
 
@@ -477,7 +479,7 @@ Output test cases in structured JSON format as demonstrated in training examples
         test_dataset: Path | None = None,
         client: Any = None,
         compare_base: bool = False,
-        content_scorer: Any = None,
+        content_scorer: ContentScorer | None = None,
     ) -> dict[str, Any]:
         """Evaluate the prompt-customized model's output quality on held-out data.
 
@@ -676,7 +678,7 @@ Output test cases in structured JSON format as demonstrated in training examples
         client: Any,
         examples: list[dict[str, Any]],
         model_name: str,
-        content_scorer: Any,
+        content_scorer: ContentScorer,
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         """Run one model over every example and aggregate the scores.
 
@@ -877,7 +879,7 @@ Output test cases in structured JSON format as demonstrated in training examples
         example: dict[str, Any],
         index: int,
         model_name: str,
-        content_scorer: Any,
+        content_scorer: ContentScorer,
     ) -> dict[str, Any]:
         """Generate for one example and score the output.
 
@@ -1107,8 +1109,11 @@ Output test cases in structured JSON format as demonstrated in training examples
         return None
 
     def _score_content(
-        self, raw_output: str | dict[str, Any], example: dict[str, Any], content_scorer: Any
-    ) -> dict[str, float | None] | None:
+        self,
+        raw_output: str | dict[str, Any],
+        example: dict[str, Any],
+        content_scorer: ContentScorer,
+    ) -> ContentScore | None:
         """Score one generation against the example's reference answer.
 
         Args:
@@ -1126,9 +1131,7 @@ Output test cases in structured JSON format as demonstrated in training examples
         try:
             generated = self._canonical_unique_cases(raw_output)
             reference = self._canonical_unique_cases(reference_raw)
-            return cast(
-                "dict[str, float | None] | None", content_scorer.score(generated, reference)
-            )
+            return content_scorer.score(generated, reference)
         except Exception:  # noqa: BLE001 - a scorer fault must not abort the run
             return None
 
@@ -1158,6 +1161,14 @@ Output test cases in structured JSON format as demonstrated in training examples
 
         content_rows = [r for r in per_example if r.get("content") is not None]
 
+        # Each aggregate below is a per-field macro-mean over only the examples
+        # where that field is defined (`is not None`), not over `content_rows`
+        # as a whole. By design (see `ReferenceOverlapScorer.score`), a
+        # zero-case generation yields precision=None (0/0 is undefined) but
+        # recall=0.0/f1=0.0 (defined against a non-empty reference). So
+        # `content_precision` may be averaged over fewer examples than
+        # `content_recall`/`content_f1` — this asymmetry is intentional, not a
+        # bug.
         def mean_content(field: str) -> float | None:
             values = [
                 r["content"][field] for r in content_rows if r["content"].get(field) is not None
