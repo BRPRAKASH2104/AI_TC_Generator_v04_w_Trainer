@@ -108,6 +108,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `content_f1`, macro means, `None` without references), the paired A/B delta,
   and the CLI, where content F1 becomes the "meaningful signal" when references
   exist. New `VisionTrainingConfig.content_match_threshold` (default 0.85).
+- **Phase 3b LLM-as-judge content scorer.** New opt-in `LLMJudgeScorer`
+  (`src/training/llm_judge_scorer.py`) scores generated test cases against the
+  reference answer by *semantic* matching (precision/recall/F1) plus a holistic
+  0–1 `content_quality` rubric, using a local Ollama judge model. Selected via
+  `train_vision_model.py --content-scorer llm` (`--judge-model`, default
+  `llama3.1:8b`); the deterministic `overlap` scorer stays the default. The
+  `ContentScorer` protocol's `score()` is widened with keyword-only `client` /
+  `judge_model`; `content_quality` threads through the aggregate, the paired A/B
+  delta, and the CLI as a complementary signal (F1 stays the headline). New
+  `VisionTrainingConfig.judge_model`.
 - **Seeded train/val split producer** — `RAFTDatasetBuilder.split_dataset` /
   `save_split` write `train.jsonl` + `val.jsonl` deterministically, exposed via
   `build_vision_dataset.py --val-split-ratio` (`--split-seed`, `--force`).

@@ -119,6 +119,7 @@ Implemented by `VisionRAFTTrainer.evaluate_model`
 | `unique_valid_test_cases_per_example` | Canonical-valid cases after production **deduplication** | The meaningful coverage signal. Distinct usable scenarios per example. |
 | `raw_test_cases_per_example` | Raw object count returned | **Output volume, not coverage** — includes duplicates and invalid objects. Do not use it for model selection. |
 | `content_f1` (+ `content_precision`, `content_recall`) | Reference-aware scenario overlap between the generated cases and the held-out reference answer | **The meaningful quality signal when references exist.** Deterministic (deduplicator similarity ≥ 0.85); `None` when an example has no parseable reference. |
+| `content_quality` | LLM-judge holistic quality (0–1) of the generation vs the reference, from `--content-scorer llm` | **Complementary** to `content_f1` (not the headline). Non-deterministic; `None` under the default `overlap` scorer. |
 
 **A/B (`--compare-base`) honesty notes:**
 
@@ -133,6 +134,19 @@ Implemented by `VisionRAFTTrainer.evaluate_model`
 - When examples carry a reference answer, the **content F1 delta** is the
   headline signal (quality), above the count-based coverage delta. It is paired
   and withheld with the baseline exactly like the other deltas.
+
+By default `--evaluate` uses the deterministic `overlap` content scorer. To score
+by *meaning* instead, add an LLM-as-judge:
+
+```bash
+python3 utilities/train_vision_model.py --evaluate val.jsonl --output-model my-model \
+  --content-scorer llm --judge-model llama3.1:8b
+```
+
+The judge matches generated↔reference cases semantically (precision/recall/F1) and
+adds a holistic `content_quality` score. It is non-deterministic (a local model
+call per example, temperature from the client config, default 0.0), so treat small
+run-to-run differences as noise. `content_f1` remains the headline signal.
 
 ## Key configuration (`config/cli_config.yaml`, `training:` section)
 
