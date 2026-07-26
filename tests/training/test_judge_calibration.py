@@ -8,9 +8,14 @@ from typing import Any
 
 import pytest
 
-from src.training.content_scorer import ContentScore, ReferenceOverlapScorer  # noqa: TC001
+from src.training.content_scorer import (  # noqa: TC001
+    ContentScore,
+    ReferenceOverlapScorer,
+    _prf,
+)
 from src.training.judge_calibration import CalibrationCase, format_report, run_calibration
 from src.training.judge_calibration_cases import DEFAULT_CALIBRATION_CASES
+from src.training.llm_judge_scorer import LLMJudgeScorer
 
 
 class _FixedScorer:
@@ -179,9 +184,9 @@ def _overlap_report():
     return run_calibration(ReferenceOverlapScorer(0.85), "overlap", DEFAULT_CALIBRATION_CASES)
 
 
-def test_default_cases_have_the_five_expected_names():
+def test_default_cases_have_the_six_expected_names():
     names = [case["name"] for case in DEFAULT_CALIBRATION_CASES]
-    assert names == ["identity", "disjoint", "subset", "paraphrase", "noise"]
+    assert names == ["identity", "disjoint", "subset", "paraphrase", "noise", "mixed"]
 
 
 def test_every_default_case_declares_bands_for_both_scorer_kinds():
@@ -286,3 +291,85 @@ def test_format_report_notes_unchecked_cases():
     )
 
     assert "not checked" in format_report([report])
+
+
+def _pairing_score(pairs: list, generated: list[dict], reference: list[dict]):
+    """Score an explicit index pairing the way ``LLMJudgeScorer`` would.
+
+    Simulates a judge that emitted ``pairs``, so a fixture's power to catch a
+    specific judge failure can be asserted without calling a model.
+
+    Args:
+        pairs: ``[generated_index, reference_index]`` pairs the judge returned.
+        generated: The generated cases.
+        reference: The reference cases.
+
+    Returns:
+        The ``(precision, recall, f1)`` that judge would have scored.
+    """
+    matched = LLMJudgeScorer._count_valid_pairs(pairs, len(generated), len(reference))
+    return _prf(matched, len(generated), len(reference))
+
+
+def _mixed_case() -> CalibrationCase:
+    return next(case for case in DEFAULT_CALIBRATION_CASES if case["name"] == "mixed")
+
+
+def test_overlap_scores_mixed_by_true_matches_only():
+    """One of three generated cases is a real reference; overlap must find just it."""
+    result = next(r for r in _overlap_report()["results"] if r["name"] == "mixed")
+
+    assert result["score"]["precision"] == pytest.approx(1 / 3)
+    assert result["score"]["recall"] == pytest.approx(1 / 3)
+
+
+def test_mixed_case_catches_an_over_pairing_judge():
+    """The reason this fixture exists.
+
+    The metric counts matched *pairs* and never checks which pairs, so a judge
+    that pairs everything 1:1 scores perfectly on most constructions. Here the
+    true match count (1) is far below ``min(len(generated), len(reference))``,
+    so over-pairing is forced outside the declared band.
+    """
+    case = _mixed_case()
+    generated, reference = case["generated"], case["reference"]
+    low, high = case["expected"]["llm"]["f1"]
+
+    correct = _pairing_score([[0, 0]], generated, reference)[2]
+    over_pairing = _pairing_score([[0, 0], [1, 1], [2, 2]], generated, reference)[2]
+
+    assert low <= correct <= high, "the correct pairing must land inside the band"
+    assert over_pairing > high, "an over-pairing judge must breach the band"
+
+
+def test_permutation_construction_would_not_catch_an_over_pairing_judge():
+    """Why there is no ``permutation`` fixture, pinned so nobody re-adds one.
+
+    Shuffling the reference cases into the generated slot looks like it should
+    expose a judge that pairs by position rather than by meaning. It does not:
+    a permutation has as many true matches as ``min(len(generated),
+    len(reference))``, so pairing everything 1:1 reaches the correct score by
+    the wrong route and stays indistinguishable from real matching.
+    """
+    reference = _mixed_case()["reference"]
+    permuted = [reference[2], reference[0], reference[1]]
+    all_pairs = [[0, 0], [1, 1], [2, 2]]
+
+    assert _pairing_score(all_pairs, permuted, reference)[2] == pytest.approx(1.0)
+    assert _pairing_score([[0, 1], [1, 2], [2, 0]], permuted, reference)[2] == pytest.approx(1.0)
+
+
+def test_right_count_wrong_item_remains_undetectable():
+    """The residual hole, pinned honestly rather than claimed closed.
+
+    ``mixed`` catches a judge that claims *too many* matches. It cannot catch
+    one that claims the right number of matches between the wrong items, because
+    ``ContentScore`` exposes only counts, never the pairing itself.
+    """
+    case = _mixed_case()
+    generated, reference = case["generated"], case["reference"]
+
+    correct = _pairing_score([[0, 0]], generated, reference)[2]
+    wrong_item = _pairing_score([[1, 2]], generated, reference)[2]
+
+    assert wrong_item == pytest.approx(correct)

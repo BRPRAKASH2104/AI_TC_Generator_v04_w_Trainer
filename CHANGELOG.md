@@ -133,13 +133,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `paraphrase`, `noise`, and even a reordered fixture — so the harness got zero
   paraphrase-specific signal; the judge's paraphrase competence is
   **unmeasured, not failed**. The judge also missed `identity`/`disjoint`/
-  `noise`, and its one `subset` PASS is a false positive (its count-only
-  `_count_valid_pairs` check happens to land on the right number). See
-  `docs/training/README.md#judge-calibration` for the full scorecard and probe
-  table. `--content-scorer llm` is **not currently justified** over the
+  `noise`, and both its PASSes (`subset`, `mixed`) are false positives (its
+  count-only `_count_valid_pairs` check happens to land on the right number).
+  See `docs/training/README.md#judge-calibration` for the full scorecard and
+  probe table. `--content-scorer llm` is **not currently justified** over the
   deterministic `overlap` default on this evidence; the new opt-in
   `tests/training/test_judge_calibration_integration.py` records the live
   result reproducibly (`-m integration`).
+- **`mixed` calibration fixture**: a sixth gold-by-construction case (one
+  reference case verbatim plus two unrelated) whose true match count sits well
+  below `min(len(generated), len(reference))`, so a scorer that pairs
+  everything 1:1 breaches its band instead of scoring perfectly. This narrows
+  the harness's inherited pair-*count*-not-*correctness* limitation: previously
+  only `disjoint` caught an over-pairing judge, and only because nothing there
+  should match. The originally-proposed `permutation` fixture (same cases,
+  shuffled order) was **tested and rejected** — a permutation has as many true
+  matches as `min(len(generated), len(reference))`, so pairing everything
+  reaches the right score by the wrong route and discriminates nothing; a
+  regression test pins this so it is not re-proposed. The residual hole (right
+  match *count* between the *wrong* items) stays open and documented — closing
+  it needs `ContentScore` to expose the pairing, not just counts.
 
 ### Changed (refactor — behavior-preserving)
 
