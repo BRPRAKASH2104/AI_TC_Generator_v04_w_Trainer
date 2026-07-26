@@ -724,7 +724,7 @@ def test_per_example_content_matches_reference(trainer, tmp_path):
     result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE))
 
     content = result["per_example"][0]["content"]
-    assert content == {"precision": 1.0, "recall": 1.0, "f1": 1.0}
+    assert content == {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}
 
 
 def test_per_example_content_none_without_reference(trainer, tmp_path):
@@ -774,3 +774,82 @@ def test_content_f1_is_in_the_delta(trainer, tmp_path):
     )
 
     assert "content_f1" in result["delta"]
+
+
+# --- Phase 3b: LLM-judge quality threading -----------------------------------
+
+
+class _RecordingScorer:
+    """A ContentScorer stub that returns a fixed score and records kwargs."""
+
+    def __init__(self, score_value):
+        self.score_value = score_value
+        self.calls = []
+
+    def score(self, generated_cases, reference_cases, *, client=None, judge_model=None):
+        self.calls.append({"client": client, "judge_model": judge_model})
+        return self.score_value
+
+
+_QUALITY_SCORE = {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": 0.8}
+
+
+def test_quality_threads_to_per_example_and_aggregate(trainer, tmp_path):
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+    scorer = _RecordingScorer(_QUALITY_SCORE)
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE), content_scorer=scorer
+    )
+
+    assert result["per_example"][0]["content"]["quality"] == 0.8
+    assert result["metrics"]["content_quality"] == 0.8
+
+
+def test_score_content_threads_client_and_judge_model(trainer, tmp_path):
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+    scorer = _RecordingScorer(_QUALITY_SCORE)
+    client = FakeOllamaClient(VALID_RESPONSE)
+
+    trainer.evaluate_model(test_dataset=test_set, client=client, content_scorer=scorer)
+
+    assert scorer.calls[0]["client"] is client
+    assert scorer.calls[0]["judge_model"] == "llama3.1:8b"
+
+
+def test_content_quality_in_delta(trainer, tmp_path):
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+    scorer = _RecordingScorer(_QUALITY_SCORE)
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set,
+        client=FakeOllamaClient(VALID_RESPONSE),
+        content_scorer=scorer,
+        compare_base=True,
+    )
+
+    assert "content_quality" in result["delta"]
+
+
+def test_configured_judge_model_threads_to_scorer(tmp_path):
+    # A non-default config.judge_model must reach the scorer's score() call -
+    # this is what run_evaluation() in utilities/train_vision_model.py relies
+    # on when threading --judge-model through VisionTrainingConfig instead of
+    # only into the scorer instance.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+    scorer = _RecordingScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": 0.5})
+    trainer = VisionRAFTTrainer(
+        dataset_path=test_set,
+        config=VisionTrainingConfig(output_model="out", judge_model="my-judge:9b"),
+        output_dir=tmp_path / "models",
+    )
+
+    trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE), content_scorer=scorer
+    )
+
+    assert scorer.calls[0]["judge_model"] == "my-judge:9b"

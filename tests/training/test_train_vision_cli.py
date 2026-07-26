@@ -7,6 +7,7 @@ itself is covered by ``test_vision_raft_evaluate.py``.
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -81,7 +82,7 @@ def test_run_evaluation_forwards_compare_base(tmp_path, monkeypatch):
     _write_example(test_set)
     captured = {}
 
-    def fake_eval(self, test_dataset=None, compare_base=False):
+    def fake_eval(self, test_dataset=None, compare_base=False, content_scorer=None):
         captured["compare_base"] = compare_base
         return {
             "model": "m",
@@ -114,7 +115,7 @@ def test_run_evaluation_threads_base_model_into_config(tmp_path, monkeypatch):
     monkeypatch.setattr(
         tvm.VisionRAFTTrainer,
         "evaluate_model",
-        lambda self, test_dataset=None, compare_base=False: {
+        lambda self, test_dataset=None, compare_base=False, content_scorer=None: {
             "model": "out-model",
             "test_dataset": str(test_set),
             "metrics": {"total_examples": 1, "overall_score": 1.0},
@@ -129,6 +130,44 @@ def test_run_evaluation_threads_base_model_into_config(tmp_path, monkeypatch):
 
     assert captured.get("output_model") == "out-model"
     assert captured.get("base_model") == "deepseek-coder-v2:16b"
+
+
+def test_run_evaluation_threads_judge_model_into_config(tmp_path, monkeypatch):
+    # Guards the fix: --judge-model must land in VisionTrainingConfig (the
+    # authoritative source _score_content reads), not just the LLMJudgeScorer
+    # instance - otherwise the per-call config.judge_model (always truthy)
+    # silently wins and --judge-model is a no-op.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    captured_config = {}
+    real_config = tvm.VisionTrainingConfig
+
+    def spy_config(**kwargs):
+        config = real_config(**kwargs)
+        captured_config["config"] = config
+        return config
+
+    monkeypatch.setattr(tvm, "VisionTrainingConfig", spy_config)
+    monkeypatch.setattr(
+        tvm.VisionRAFTTrainer,
+        "evaluate_model",
+        lambda self, test_dataset=None, compare_base=False, content_scorer=None: {
+            "model": "out-model",
+            "test_dataset": str(test_set),
+            "metrics": {"total_examples": 1, "overall_score": 1.0},
+            "per_example": [],
+            "errors": [],
+        },
+    )
+
+    tvm.run_evaluation(
+        str(test_set),
+        "out-model",
+        content_scorer_kind="llm",
+        judge_model="my-judge:9b",
+    )
+
+    assert captured_config["config"].judge_model == "my-judge:9b"
 
 
 def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
@@ -156,7 +195,7 @@ def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
     monkeypatch.setattr(
         tvm.VisionRAFTTrainer,
         "evaluate_model",
-        lambda self, test_dataset=None, compare_base=False: canned,
+        lambda self, test_dataset=None, compare_base=False, content_scorer=None: canned,
     )
 
     assert tvm.run_evaluation(str(test_set), "some-model") == 0
@@ -214,7 +253,10 @@ def test_run_evaluation_failed_baseline_comparison_returns_1(tmp_path, monkeypat
     monkeypatch.setattr(
         tvm.VisionRAFTTrainer,
         "evaluate_model",
-        lambda self, test_dataset=None, compare_base=False: _failed_comparison_result(test_set),
+        lambda self,
+        test_dataset=None,
+        compare_base=False,
+        content_scorer=None: _failed_comparison_result(test_set),
     )
 
     assert tvm.run_evaluation(str(test_set), "some-model", compare_base=True) == 1
@@ -302,7 +344,7 @@ def test_run_evaluation_all_examples_failed_returns_1(tmp_path, monkeypatch):
     monkeypatch.setattr(
         tvm.VisionRAFTTrainer,
         "evaluate_model",
-        lambda self, test_dataset=None, compare_base=False: canned,
+        lambda self, test_dataset=None, compare_base=False, content_scorer=None: canned,
     )
 
     # No examples actually scored -> the evaluation could not run meaningfully.
@@ -339,3 +381,57 @@ def test_print_omits_content_when_absent(tmp_path, monkeypatch):
 
     lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
     assert "content f1" not in lines
+
+
+def test_content_scorer_flag_defaults(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["prog", "--evaluate", "x.jsonl"])
+    args = tvm.parse_args()
+    assert args.content_scorer == "overlap"
+    assert args.judge_model is None
+
+
+def test_content_scorer_flag_llm(monkeypatch):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prog",
+            "--evaluate",
+            "x.jsonl",
+            "--content-scorer",
+            "llm",
+            "--judge-model",
+            "llama3.1:8b",
+        ],
+    )
+    args = tvm.parse_args()
+    assert args.content_scorer == "llm"
+    assert args.judge_model == "llama3.1:8b"
+
+
+def test_print_shows_content_quality_when_present(tmp_path, monkeypatch):
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    result = _failed_comparison_result(test_set)
+    result["metrics"]["content_quality"] = 0.66
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(result)
+
+    lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
+    assert "content quality" in lines and "0.66" in lines
+
+
+def test_print_omits_content_quality_when_absent(tmp_path, monkeypatch):
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    result = _failed_comparison_result(test_set)
+    result["metrics"]["content_quality"] = None
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(result)
+
+    lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
+    assert "content quality" not in lines
