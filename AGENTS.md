@@ -274,7 +274,7 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (6527 symbols, 9158 relationships, 159 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (6714 symbols, 9458 relationships, 162 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
