@@ -121,6 +121,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Seeded train/val split producer** — `RAFTDatasetBuilder.split_dataset` /
   `save_split` write `train.jsonl` + `val.jsonl` deterministically, exposed via
   `build_vision_dataset.py --val-split-ratio` (`--split-seed`, `--force`).
+- **Judge calibration harness (Phase 3c)**: `--validate-judge` scores built-in
+  gold-by-construction fixtures through any `ContentScorer` and reports whether
+  each metric lands in its expected band, so the Phase 3b LLM judge's quality is
+  measurable rather than assumed. Runs both scorers side by side by default;
+  `--content-scorer overlap` needs no Ollama. Exits 1 on any breached band.
+  The originally-planned cloud judge was cancelled — the project's no-cloud-API
+  principle applies to the evaluation path too. **Live calibration finding:**
+  two runs against a local `llama3.1:8b` judge measured `paraphrase` f1 = 0.667
+  (band 0.70–1.00, deterministically reproduced both runs) and the `llm` column
+  also missed `identity`/`disjoint`/`noise` — see
+  `docs/training/README.md#judge-calibration` for the full scorecard.
+  `--content-scorer llm` is **not currently justified** over the deterministic
+  `overlap` default on this evidence; the new opt-in
+  `tests/training/test_judge_calibration_integration.py` records the live
+  result reproducibly (`-m integration`).
 
 ### Changed (refactor — behavior-preserving)
 

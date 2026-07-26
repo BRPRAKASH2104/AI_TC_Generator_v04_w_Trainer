@@ -148,6 +148,86 @@ adds a holistic `content_quality` score. It is non-deterministic (a local model
 call per example, temperature from the client config, default 0.0), so treat small
 run-to-run differences as noise. `content_f1` remains the headline signal.
 
+## Judge calibration
+
+`--validate-judge` answers a narrower question than `--evaluate`: is the content
+scorer itself trustworthy? It scores five built-in, gold-by-construction
+fixtures (`src/training/judge_calibration_cases.py`) directly through a
+`ContentScorer` — **no generation model runs in this mode**, so it measures the
+scorer in isolation, not a trained model's output quality. It does **not**
+validate a customized model; use `--evaluate` for that.
+
+**Running it:**
+
+```bash
+# Both scorers, side by side (needs Ollama for the llm column)
+python3 utilities/train_vision_model.py --validate-judge
+
+# Deterministic overlap scorer only — no Ollama required
+python3 utilities/train_vision_model.py --validate-judge --content-scorer overlap
+
+# Calibrate a different judge model
+python3 utilities/train_vision_model.py --validate-judge --judge-model llama3.1:8b
+```
+
+**Reading the scorecard:** each case prints one line per scorer kind, one
+`metric actual [band] PASS/FAIL` group per declared metric, followed by a
+per-scorer `passed/total` summary and a final `RESULT: PASS`/`RESULT: FAIL`
+line. The process exits 1 if any scorer breaches any band on any case, 0
+otherwise.
+
+**The five cases:**
+
+| Case | What it proves |
+|---|---|
+| `identity` | Generated == reference verbatim — the easiest possible case; both scorers must score it near 1.0. |
+| `disjoint` | Completely unrelated generations — both scorers must give it near-zero credit. |
+| `subset` | Half the reference set, verbatim — checks recall/precision arithmetic on a known partial match. |
+| `paraphrase` | **The discriminating case.** Three reference scenarios reworded in different words. The deterministic `overlap` scorer matches on string similarity and is *expected* to fail it (band `f1` 0.0–0.35); the LLM judge is expected to *clear* it (band `f1` ≥ 0.7), because recognizing paraphrases by meaning is the only thing that justifies its cost of two Ollama calls per example. |
+| `noise` | The full reference set plus two unrelated extras — checks that recall stays high while precision correctly drops. |
+
+**Caveat:** the bands are tolerances chosen to make each case's ground truth
+unambiguous, not claims of exact truth. A scorer breaching a band — in
+particular `llm` failing `paraphrase` — means that scorer is not earning its
+keep for that case. It is **not** a signal to widen the band; the fixtures and
+bands encode what "correct" means here, and the correct response to a breach is
+to fix or reconsider the scorer, not the test.
+
+### Known limitation: the LLM judge does not currently clear its own bands
+
+Two live calibration runs against a local `llama3.1:8b` judge
+(2026-07-26, deterministic — both runs produced bit-identical scores because
+the client's default judge temperature is 0.0) measured:
+
+```
+                  overlap          llm
+identity   f1     1.000  PASS      0.667  FAIL  (band 0.90-1.00)
+disjoint   f1     0.000  PASS      0.333  FAIL  (band 0.00-0.10)
+subset     —      PASS            PASS
+paraphrase f1     0.000  PASS      0.667  FAIL  (band 0.70-1.00)
+noise      —      PASS            partial FAIL  (recall 0.667, band 0.90-1.00)
+
+overlap: 5/5 passed · llm: 1/5 passed (only `subset`)
+```
+
+The headline number is **paraphrase f1 = 0.667 in both runs**, short of the
+0.70 floor that would justify the judge's cost — but the more significant part
+of this result is that the judge also missed the two sanity checks
+(`identity`, `disjoint`) that any working matcher should pass trivially:
+on `identity` its match prompt found only 2 of 3 identical pairs, and on
+`disjoint` it hallucinated one match between unrelated cases where none exist.
+This points to the judge's matching prompt/parsing being unreliable in
+general with this judge model, not only weak at paraphrase recognition.
+
+**On this evidence, `--content-scorer llm` is not currently justified over the
+default `overlap` scorer** — it is both non-deterministic in principle and, in
+this measurement, less accurate than the deterministic scorer on every case
+except `subset`. Treat `llm` as experimental until the matching prompt is
+revisited; `overlap`/`content_f1` remains the recommended default and headline
+signal for `--evaluate`. See
+`tests/training/test_judge_calibration_integration.py` for the reproducible
+live check (`-m integration`, requires a local `llama3.1:8b`).
+
 ## Key configuration (`config/cli_config.yaml`, `training:` section)
 
 | Key | Purpose |
