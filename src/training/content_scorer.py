@@ -1,23 +1,25 @@
 """Reference-aware content scoring for RAFT evaluation (Phase 3).
 
 Scores a model's generated test cases against the held-out example's reference
-answer by scenario precision/recall/F1. ``ReferenceOverlapScorer`` is the
-deterministic first scorer; the ``ContentScorer`` protocol is the seam for a
-future LLM-as-judge (Phase 3b).
+answer by scenario precision/recall/F1. ``ReferenceOverlapScorer`` is the only
+scorer; the ``ContentScorer`` protocol remains the seam for adding another.
+
+An LLM-as-judge implementation existed here (Phase 3b) and was retired
+2026-07-26 after calibration showed it returned a near-constant match list
+regardless of input. See ``docs/training/README.md`` for the evidence.
 """
 
-from typing import Any, Protocol, TypedDict
+from typing import Protocol, TypedDict
 
 from src.core.deduplicator import TestCaseDeduplicator
 
 
 class ContentScore(TypedDict):
-    """Per-example content-quality scores; a field is None when undefined."""
+    """Per-example content scores; a field is None when undefined."""
 
     precision: float | None
     recall: float | None
     f1: float | None
-    quality: float | None
 
 
 def _prf(matched: int, n_generated: int, n_reference: int) -> tuple[float | None, float, float]:
@@ -49,19 +51,12 @@ class ContentScorer(Protocol):
         self,
         generated_cases: list[dict],
         reference_cases: list[dict],
-        *,
-        client: Any = None,
-        judge_model: str | None = None,
     ) -> ContentScore | None:
-        """Return precision/recall/F1/quality for the generation, or None.
+        """Return precision/recall/F1 for the generation, or None.
 
         Args:
             generated_cases: Canonical, deduplicated generated test cases.
             reference_cases: Canonical, deduplicated reference test cases.
-            client: Optional model client for scorers that call an LLM
-                (ignored by deterministic scorers).
-            judge_model: Optional judge model name (ignored by deterministic
-                scorers).
         """
         ...
 
@@ -93,34 +88,24 @@ class ReferenceOverlapScorer:
         self,
         generated_cases: list[dict],
         reference_cases: list[dict],
-        *,
-        client: Any = None,  # noqa: ARG002
-        judge_model: str | None = None,  # noqa: ARG002
     ) -> ContentScore | None:
         """Score generated cases against reference cases by string overlap.
-
-        The ``client`` and ``judge_model`` arguments are part of the widened
-        ``ContentScorer`` protocol and are ignored here — this scorer is
-        deterministic and makes no model calls.
 
         Args:
             generated_cases: Canonical, deduplicated generated test cases.
             reference_cases: Canonical, deduplicated reference test cases.
-            client: Ignored.
-            judge_model: Ignored.
 
         Returns:
-            A ``ContentScore`` (``quality`` always None), or None when there are
-            no reference cases.
+            A ``ContentScore``, or None when there are no reference cases.
         """
         if not reference_cases:
             return None
         if not generated_cases:
-            return {"precision": None, "recall": 0.0, "f1": 0.0, "quality": None}
+            return {"precision": None, "recall": 0.0, "f1": 0.0}
 
         matched = self._count_matches(generated_cases, reference_cases)
         precision, recall, f1 = _prf(matched, len(generated_cases), len(reference_cases))
-        return {"precision": precision, "recall": recall, "f1": f1, "quality": None}
+        return {"precision": precision, "recall": recall, "f1": f1}
 
     def _count_matches(self, generated_cases: list[dict], reference_cases: list[dict]) -> int:
         """Count greedy one-to-one matches between generated and reference."""

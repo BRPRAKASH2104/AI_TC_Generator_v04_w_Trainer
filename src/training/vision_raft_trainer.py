@@ -70,10 +70,6 @@ class VisionTrainingConfig:
     # count as covering a reference case (reuses the deduplicator's 0.85).
     content_match_threshold: float = 0.85
 
-    # Phase 3b LLM-judge: the fixed evaluator model used by LLMJudgeScorer,
-    # independent of the model under test and identical across the A/B passes.
-    judge_model: str = "llama3.1:8b"
-
     # RAFT parameters
     oracle_probability: float = 0.8  # Probability of including oracle docs
     distractor_ratio: float = 1.5  # Distractors per oracle
@@ -736,7 +732,6 @@ Output test cases in structured JSON format as demonstrated in training examples
             "content_precision",
             "content_recall",
             "content_f1",
-            "content_quality",
         )
         delta: dict[str, float | None] = {}
         for key in comparable:
@@ -936,7 +931,7 @@ Output test cases in structured JSON format as demonstrated in training examples
             return result
 
         result.update(self._score_generation(raw_output))
-        result["content"] = self._score_content(raw_output, example, content_scorer, client)
+        result["content"] = self._score_content(raw_output, example, content_scorer)
         return result
 
     def _generate_for_example(
@@ -1118,7 +1113,6 @@ Output test cases in structured JSON format as demonstrated in training examples
         raw_output: str | dict[str, Any],
         example: dict[str, Any],
         content_scorer: ContentScorer,
-        client: Any,
     ) -> ContentScore | None:
         """Score one generation against the example's reference answer.
 
@@ -1126,8 +1120,6 @@ Output test cases in structured JSON format as demonstrated in training examples
             raw_output: The raw model response.
             example: The RAFT example (source of the reference answer).
             content_scorer: A ContentScorer implementation.
-            client: The Ollama client, threaded to scorers that call a model
-                (the deterministic scorer ignores it).
 
         Returns:
             A ContentScore dict, or None when there is no usable reference or the
@@ -1139,9 +1131,7 @@ Output test cases in structured JSON format as demonstrated in training examples
         try:
             generated = self._canonical_unique_cases(raw_output)
             reference = self._canonical_unique_cases(reference_raw)
-            return content_scorer.score(
-                generated, reference, client=client, judge_model=self.config.judge_model
-            )
+            return content_scorer.score(generated, reference)
         except Exception:  # noqa: BLE001 - a scorer fault must not abort the run
             return None
 
@@ -1203,9 +1193,6 @@ Output test cases in structured JSON format as demonstrated in training examples
             "content_precision": mean_content("precision"),
             "content_recall": mean_content("recall"),
             "content_f1": mean_content("f1"),
-            # Phase 3b LLM-judge holistic quality (complementary to F1); None
-            # unless an LLM judge scored at least one example.
-            "content_quality": mean_content("quality"),
         }
 
 

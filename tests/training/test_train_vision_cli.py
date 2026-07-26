@@ -7,7 +7,6 @@ itself is covered by ``test_vision_raft_evaluate.py``.
 
 import importlib.util
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -130,44 +129,6 @@ def test_run_evaluation_threads_base_model_into_config(tmp_path, monkeypatch):
 
     assert captured.get("output_model") == "out-model"
     assert captured.get("base_model") == "deepseek-coder-v2:16b"
-
-
-def test_run_evaluation_threads_judge_model_into_config(tmp_path, monkeypatch):
-    # Guards the fix: --judge-model must land in VisionTrainingConfig (the
-    # authoritative source _score_content reads), not just the LLMJudgeScorer
-    # instance - otherwise the per-call config.judge_model (always truthy)
-    # silently wins and --judge-model is a no-op.
-    test_set = tmp_path / "held.jsonl"
-    _write_example(test_set)
-    captured_config = {}
-    real_config = tvm.VisionTrainingConfig
-
-    def spy_config(**kwargs):
-        config = real_config(**kwargs)
-        captured_config["config"] = config
-        return config
-
-    monkeypatch.setattr(tvm, "VisionTrainingConfig", spy_config)
-    monkeypatch.setattr(
-        tvm.VisionRAFTTrainer,
-        "evaluate_model",
-        lambda self, test_dataset=None, compare_base=False, content_scorer=None: {
-            "model": "out-model",
-            "test_dataset": str(test_set),
-            "metrics": {"total_examples": 1, "overall_score": 1.0},
-            "per_example": [],
-            "errors": [],
-        },
-    )
-
-    tvm.run_evaluation(
-        str(test_set),
-        "out-model",
-        content_scorer_kind="llm",
-        judge_model="my-judge:9b",
-    )
-
-    assert captured_config["config"].judge_model == "my-judge:9b"
 
 
 def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
@@ -381,77 +342,6 @@ def test_print_omits_content_when_absent(tmp_path, monkeypatch):
 
     lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
     assert "content f1" not in lines
-
-
-def test_content_scorer_flag_parses_to_none_by_default(monkeypatch):
-    """``--content-scorer`` has no parse-level default: ``--validate-judge``
-    needs to distinguish "omitted" (run both scorers) from an explicit choice,
-    so the default moved from ``"overlap"`` to ``None``. The user-visible
-    ``--evaluate`` behavior is unchanged -- see
-    ``test_evaluate_without_content_scorer_still_resolves_to_overlap``.
-    """
-    monkeypatch.setattr(sys, "argv", ["prog", "--evaluate", "x.jsonl"])
-    args = tvm.parse_args()
-    assert args.content_scorer is None
-    assert args.judge_model is None
-
-
-def test_evaluate_without_content_scorer_still_resolves_to_overlap(tmp_path, monkeypatch):
-    """``--content-scorer`` parses to ``None`` when omitted (see above), but
-    ``main()`` must still resolve that to ``"overlap"`` at the
-    ``run_evaluation`` call site so today's ``--evaluate`` behavior is
-    unchanged. This is the whole justification for the ``None`` default: if
-    someone later drops the ``args.content_scorer or "overlap"`` resolution,
-    this test fails.
-    """
-    test_set = tmp_path / "held.jsonl"
-    _write_example(test_set)
-    monkeypatch.setattr(sys, "argv", ["prog", "--evaluate", str(test_set)])
-    monkeypatch.setattr(tvm, "check_ollama_connection", lambda: True)
-
-    seen_kwargs = {}
-
-    def _fake_run_evaluation(*args, **kwargs):
-        seen_kwargs.update(kwargs)
-        return 0
-
-    monkeypatch.setattr(tvm, "run_evaluation", _fake_run_evaluation)
-
-    assert tvm.main() == 0
-    assert seen_kwargs["content_scorer_kind"] == "overlap"
-
-
-def test_content_scorer_flag_llm(monkeypatch):
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "prog",
-            "--evaluate",
-            "x.jsonl",
-            "--content-scorer",
-            "llm",
-            "--judge-model",
-            "llama3.1:8b",
-        ],
-    )
-    args = tvm.parse_args()
-    assert args.content_scorer == "llm"
-    assert args.judge_model == "llama3.1:8b"
-
-
-def test_print_shows_content_quality_when_present(tmp_path, monkeypatch):
-    test_set = tmp_path / "held.jsonl"
-    _write_example(test_set)
-    result = _failed_comparison_result(test_set)
-    result["metrics"]["content_quality"] = 0.66
-    rec = _RecordingLogger()
-    monkeypatch.setattr(tvm, "logger", rec)
-
-    tvm.print_evaluation_result(result)
-
-    lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
-    assert "content quality" in lines and "0.66" in lines
 
 
 def test_print_omits_content_quality_when_absent(tmp_path, monkeypatch):

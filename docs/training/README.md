@@ -119,7 +119,6 @@ Implemented by `VisionRAFTTrainer.evaluate_model`
 | `unique_valid_test_cases_per_example` | Canonical-valid cases after production **deduplication** | The meaningful coverage signal. Distinct usable scenarios per example. |
 | `raw_test_cases_per_example` | Raw object count returned | **Output volume, not coverage** — includes duplicates and invalid objects. Do not use it for model selection. |
 | `content_f1` (+ `content_precision`, `content_recall`) | Reference-aware scenario overlap between the generated cases and the held-out reference answer | **The meaningful quality signal when references exist.** Deterministic (deduplicator similarity ≥ 0.85); `None` when an example has no parseable reference. |
-| `content_quality` | LLM-judge holistic quality (0–1) of the generation vs the reference, from `--content-scorer llm` | **Complementary** to `content_f1` (not the headline). Non-deterministic; `None` under the default `overlap` scorer. |
 
 **A/B (`--compare-base`) honesty notes:**
 
@@ -135,177 +134,102 @@ Implemented by `VisionRAFTTrainer.evaluate_model`
   headline signal (quality), above the count-based coverage delta. It is paired
   and withheld with the baseline exactly like the other deltas.
 
-By default `--evaluate` uses the deterministic `overlap` content scorer. To score
-by *meaning* instead, add an LLM-as-judge:
+`--evaluate` scores content with the deterministic `overlap` scorer, which
+matches generated↔reference cases by string similarity. An LLM-as-judge scorer
+(`--content-scorer llm`) existed alongside it and was **retired 2026-07-26** —
+calibration showed it returned a near-constant match list regardless of input.
+See [Content scorer calibration](#content-scorer-calibration) for the evidence
+and the retirement note.
 
-```bash
-python3 utilities/train_vision_model.py --evaluate val.jsonl --output-model my-model \
-  --content-scorer llm --judge-model llama3.1:8b
-```
-
-The judge matches generated↔reference cases semantically (precision/recall/F1) and
-adds a holistic `content_quality` score. It is non-deterministic (a local model
-call per example, temperature from the client config, default 0.0), so treat small
-run-to-run differences as noise. `content_f1` remains the headline signal.
-
-**Before reaching for this flag**, see [Judge calibration](#judge-calibration)
-below and its "Known limitation" — a live calibration run found this judge's
-matching unreliable, so `--content-scorer llm` is not currently recommended
-over the default `overlap` scorer.
-
-## Judge calibration
+## Content scorer calibration
 
 `--validate-judge` answers a narrower question than `--evaluate`: is the content
-scorer itself trustworthy? It scores six built-in, gold-by-construction
-fixtures (`src/training/judge_calibration_cases.py`) directly through a
-`ContentScorer` — **no generation model runs in this mode**, so it measures the
-scorer in isolation, not a trained model's output quality. It does **not**
-validate a customized model; use `--evaluate` for that.
+scorer itself trustworthy? It scores six built-in, gold-by-construction fixtures
+(`src/training/judge_calibration_cases.py`) directly through a `ContentScorer`
+— **no generation model runs in this mode**, so it measures the scorer in
+isolation, not a trained model's output quality. It does **not** validate a
+customized model; use `--evaluate` for that.
 
-**Running it:**
+**Running it** (needs no dataset, no trained model, and no Ollama):
 
 ```bash
-# Both scorers, side by side (needs Ollama for the llm column)
 python3 utilities/train_vision_model.py --validate-judge
-
-# Deterministic overlap scorer only — no Ollama required
-python3 utilities/train_vision_model.py --validate-judge --content-scorer overlap
-
-# Calibrate a different judge model
-python3 utilities/train_vision_model.py --validate-judge --judge-model llama3.1:8b
 ```
 
-**Reading the scorecard:** each case prints one line per scorer kind, one
-`metric actual [band] PASS/FAIL` group per declared metric, followed by a
-per-scorer `passed/total` summary and a final `RESULT: PASS`/`RESULT: FAIL`
-line. The process exits 1 if any scorer breaches any band on any case, 0
-otherwise.
+**Reading the scorecard:** each case prints one `metric actual [band] PASS/FAIL`
+group per declared metric, followed by a `passed/total` summary and a final
+`RESULT: PASS`/`RESULT: FAIL` line. The process exits 1 if any band is breached
+on any case, 0 otherwise.
 
 **The six cases:**
 
 | Case | What it proves |
 |---|---|
-| `identity` | Generated == reference verbatim — the easiest possible case; both scorers must score it near 1.0. |
-| `disjoint` | Completely unrelated generations — both scorers must give it near-zero credit. |
+| `identity` | Generated == reference verbatim — the easiest possible case; the scorer must score it near 1.0. |
+| `disjoint` | Completely unrelated generations — must get near-zero credit. |
 | `subset` | Half the reference set, verbatim — checks recall/precision arithmetic on a known partial match. |
-| `paraphrase` | **The discriminating case.** Three reference scenarios reworded in different words. The deterministic `overlap` scorer matches on string similarity and is *expected* to fail it (band `f1` 0.0–0.35); the LLM judge is expected to *clear* it (band `f1` ≥ 0.7), because recognizing paraphrases by meaning is the only thing that justifies its cost of two Ollama calls per example. |
-| `noise` | The full reference set plus two unrelated extras — checks that recall stays high while precision correctly drops. |
-| `mixed` | One reference case verbatim plus two unrelated ones. The true match count (1) is well below `min(len(generated), len(reference))` = 3, so a scorer that pairs everything 1:1 scores 1.0 and breaches the 0.2–0.5 band, while correct matching lands on 1/3. This is the only case that catches an over-pairing judge on a set where genuine matches exist. |
+| `paraphrase` | Three reference scenarios reworded. `overlap` matches on string similarity and is *expected* to miss them (band `f1` 0.0–0.35). This pins the documented limit of string matching — it is the bar a semantic scorer would have to beat to be worth its cost. |
+| `noise` | The full reference set plus two unrelated extras — recall stays high while precision correctly drops. |
+| `mixed` | One reference case verbatim plus two unrelated. Only 1 of 3 generated cases has a counterpart, well below `min(len(generated), len(reference))` = 3, so a scorer that pairs indiscriminately scores 1.0 and breaches the 0.2–0.5 band while correct matching lands on 1/3. |
 
 **Caveat:** the bands are tolerances chosen to make each case's ground truth
-unambiguous, not claims of exact truth. A scorer breaching a band — in
-particular `llm` failing `paraphrase` — means that scorer is not earning its
-keep for that case. It is **not** a signal to widen the band; the correct
-response to a breach is to fix or reconsider the scorer, not the test.
+unambiguous, not claims of exact truth. A breach means the scorer is not earning
+its keep on that case. It is **not** a signal to widen the band; the correct
+response is to fix or reconsider the scorer, not the test.
 
-**Limitation — the harness grades pair *count*, not pair *correctness*.**
-`LLMJudgeScorer._count_valid_pairs` only counts how many generated↔reference
-pairs came back, never whether they are the *right* pairs. A judge that
-mispairs every single case would still score full marks:
+**Limitation — the metric grades pair *count*, not pair *correctness*.** The
+precision/recall/F1 convention counts how many generated↔reference pairs matched,
+never whether they are the *right* pairs. `mixed` narrows this (a scorer claiming
+too many matches breaches its band) but cannot close it: a scorer claiming the
+*right number* of matches between the *wrong items* is indistinguishable from a
+correct one. Closing that requires `ContentScore` to expose the pairing itself,
+not just counts — a metric-interface change. This convention is inherited from
+the original content metric, not introduced by the harness.
 
-```python
-LLMJudgeScorer._count_valid_pairs([[0, 1], [1, 2], [2, 0]], 3, 3)  # -> 3
-_prf(3, 3, 3)                                                       # -> (1.0, 1.0, 1.0)
-```
+A shuffled-order (`permutation`) fixture was proposed for this and **tested and
+rejected**: a permutation has as many true matches as `min(len(generated),
+len(reference))`, so pairing everything 1:1 reaches the correct score by the
+wrong route and discriminates nothing.
 
-so a judge whose matching is completely wrong would still pass precision,
-recall, and F1. This limitation is **inherited from the prior phase's metric**
-(the same pair-count convention `content_f1` already used), not introduced by
-this harness.
+### Retired: the LLM-as-judge content scorer
 
-`mixed` narrows it. Before that case existed, an over-pairing judge cleared
-4 of 5 fixtures — only `disjoint` caught it, and only because *nothing* there
-should match. `mixed` adds the case where genuine matches exist alongside
-non-matches, so over-claiming is detectable without relying on an all-or-nothing
-set.
+A second scorer — `LLMJudgeScorer`, selected via `--content-scorer llm` — matched
+cases by *meaning* using a local Ollama judge, and was the reason this
+calibration harness was built. **It was retired on 2026-07-26**, along with
+`--content-scorer`, `--judge-model`, `VisionTrainingConfig.judge_model`, the
+`ContentScore.quality` field, and the `content_quality` metric.
 
-**What does *not* work, tested and rejected:** a `permutation` fixture — the
-same cases with match order shuffled — was the original proposal for closing
-this hole. It does not close it. A permutation has as many true matches as
-`min(len(generated), len(reference))`, so pairing everything 1:1 reaches the
-correct score by the wrong route:
-
-```python
-# permuted generated vs reference, judge pairs positionally and is WRONG each time
-_pairing_score([[0, 0], [1, 1], [2, 2]], permuted, reference)  # -> f1 1.0
-# ...and a correct content-aware scorer also gets 1.0. No discrimination.
-```
-
-`test_permutation_construction_would_not_catch_an_over_pairing_judge` pins this
-so the idea is not re-proposed.
-
-**The residual hole, still open:** `mixed` catches a judge claiming *too many*
-matches. It cannot catch one claiming the *right number* of matches between the
-*wrong items* — `[[1, 2]]` and `[[0, 0]]` both score 1/3 on `mixed`. Closing
-that requires `ContentScore` to expose the pairing itself, not just counts,
-which is a metric-interface change beyond this harness.
-
-### Known limitation: the LLM judge returns a near-constant match list
-
-Probing the live judge's raw match output — the `[[generated_idx,
-reference_idx], ...]` pairs it returns before precision/recall/F1 are
-computed — across all six fixtures plus two synthetic checks shows the judge
-returning almost the same answer regardless of input:
+Calibration is what condemned it. Probing the judge's raw match output showed a
+near-constant answer regardless of input:
 
 ```
-identity           -> {"matches": [[0,0],[1,1]]}
+identity           -> {"matches": [[0,0],[1,1]]}     # misses a third IDENTICAL pair
 paraphrase         -> {"matches": [[0,0],[1,1]]}
 noise              -> {"matches": [[0,0],[1,1]]}
-disjoint           -> {"matches": [[0,0],[1,None]]}
+disjoint           -> {"matches": [[0,0],[1,None]]}  # invents a match
 mixed              -> {"matches": [[0,0],[1,None]]}
-subset             -> {"matches": [[0,0],[1,2]]}    # only real deviation
-mirror-fold 1-vs-1 -> {"matches": [[0,0],[1,1]]}    # [1,1] out of range entirely
-reordered 3-vs-3   -> {"matches": [[0,0],[1,1]]}    # reordering changes nothing
+subset             -> {"matches": [[0,0],[1,2]]}     # only real deviation
+reordered 3-vs-3   -> {"matches": [[0,0],[1,1]]}     # reordering changes nothing
 ```
 
-This is not truncation (`num_predict` is 4096 and the JSON is well-formed);
-the judge emits a near-constant answer irrespective of the actual
-generated/reference content.
+This was not truncation (`num_predict` is 4096 and the JSON was well-formed).
+Scores: `llama3.1:8b` passed 2 of 6 cases against `overlap`'s 6 of 6, and **both
+passes were false positives** — the count-only check happened to land on the
+right number.
 
-Two live calibration runs against the same local `llama3.1:8b` judge
-(2026-07-26, deterministic — both runs produced bit-identical scores because
-the client's default judge temperature is 0.0) measured:
+A larger local judge did not help. `deepseek-coder-v2:16b` scored 3 of 6 and
+appeared to clear `paraphrase` with f1 = 1.000, but probing showed it returning
+`[[0,0],[1,1],[2,2]]` — pairing positionally. It scored *worse* on the trivial
+`identity` case (2 pairs) than on the hard `paraphrase` one (3 pairs), which is
+backwards for genuine comprehension; its `paraphrase` result was an artifact of
+the fixture listing paraphrases in the same order as their references.
 
-```
-                  overlap          llm
-identity   f1     1.000  PASS      0.667  FAIL  (band 0.90-1.00)
-disjoint   f1     0.000  PASS      0.333  FAIL  (band 0.00-0.10)
-subset     —      PASS            PASS
-paraphrase f1     0.000  PASS      0.667  FAIL  (band 0.70-1.00)
-noise      —      PASS            partial FAIL  (recall 0.667, band 0.90-1.00)
-mixed      f1     0.333  PASS      0.333  PASS  (band 0.20-0.50)
-
-overlap: 6/6 passed · llm: 2/6 passed (`subset`, `mixed`)
-```
-
-Read against the probe table above, `identity` and `paraphrase` produce the
-*identical* `[[0,0],[1,1]]` match list and therefore the identical f1 = 0.667
-— the harness got **zero paraphrase-specific signal** from this run. The
-judge's competence at recognizing paraphrases by meaning is **unmeasured, not
-failed**; the finding the probe actually supports is stronger and more
-actionable: the judge's matching is unreliable across the board, not narrowly
-weak at one case.
-
-**Both `llm` PASSes are false positives, not partial competence.**
-`LLMJudgeScorer._count_valid_pairs` counts how many pairs were reported, never
-whether they're the *correct* pairs:
-
-- `subset` — the near-constant `[[0,0],[1,2]]` happens to yield the right count.
-- `mixed` — the judge returns `[[0,0],[1,None]]`; `[1,None]` is not a valid
-  integer pair, so it is discarded, leaving exactly one match. The count lands
-  on the correct 1/3 because a malformed pair was filtered out, not because the
-  judge identified the single true match and rejected the two false ones. The
-  same `[[0,0],[1,None]]` output on `disjoint` — where nothing should match —
-  correctly *fails*, which is what shows the `mixed` pass to be luck.
-
-**On this evidence, `--content-scorer llm` is not currently justified over the
-default `overlap` scorer** — and more strongly than a single-case weakness
-would suggest, since the judge is unreliable in general rather than
-specifically weak at paraphrase recognition. Treat `llm` as experimental until
-the matching prompt is revisited; `overlap`/`content_f1` remains the
-recommended default and headline signal for `--evaluate`. See
-`tests/training/test_judge_calibration_integration.py` for the reproducible
-live check (`-m integration`, requires a local `llama3.1:8b`).
+Both models failed the same way, and — because the metric counts pairs rather
+than checking them — `paraphrase` could not have distinguished a competent judge
+from a positional guesser even in principle. With no path to validating the one
+case the feature existed for, the scorer was removed rather than carried as
+permanently experimental. The harness remains: it validates `overlap` and would
+validate any future scorer.
 
 ## Key configuration (`config/cli_config.yaml`, `training:` section)
 

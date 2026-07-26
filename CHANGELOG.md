@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **The LLM-as-judge content scorer, retired on calibration evidence.** Deletes
+  `src/training/llm_judge_scorer.py`, the `--content-scorer` and `--judge-model`
+  CLI flags, `VisionTrainingConfig.judge_model`, the `ContentScore.quality`
+  field, the `content_quality` aggregate metric and its CLI/delta printing, and
+  the `client`/`judge_model` parameters that `ContentScorer.score()` carried
+  solely for the judge. `--evaluate` now always uses the deterministic `overlap`
+  scorer; `content_f1` is unchanged and remains the headline content signal.
+  **Why:** the Phase 3c calibration harness showed the judge returned a
+  near-constant match list regardless of input — it missed one of three
+  *identical* pairs, invented matches between unrelated cases, and passed only
+  2 of 6 fixtures against `overlap`'s 6 of 6, with both passes false positives.
+  A larger local judge (`deepseek-coder-v2:16b`) failed the same way: it scored
+  worse on the trivial `identity` case than on the hard `paraphrase` one, which
+  is backwards for genuine comprehension. Because the metric counts matched
+  pairs without checking which pairs, `paraphrase` — the case the feature
+  existed for — could not have distinguished a competent judge from a positional
+  guesser even in principle. Removed rather than carried as permanently
+  experimental. The calibration harness (`--validate-judge`) is retained and now
+  needs no Ollama at all. See `docs/training/README.md#retired-the-llm-as-judge-content-scorer`.
+
 ### Fixed
 
 - **A/B evaluation no longer reports a failed baseline as positive lift**
