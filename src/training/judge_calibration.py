@@ -166,3 +166,61 @@ def run_calibration(
         "errors": errors,
         "passed": failed == 0,
     }
+
+
+def _format_band(band: Band) -> str:
+    """Render an inclusive band as ``[lo-hi]`` with open bounds as infinities."""
+    low, high = band
+    lo = "-inf" if low is None else f"{low:.2f}"
+    hi = "+inf" if high is None else f"{high:.2f}"
+    return f"[{lo}-{hi}]"
+
+
+def _format_result(result: CalibrationResult) -> str:
+    """Render one case's outcome for one scorer as a single line."""
+    if result["error"] is not None:
+        return f"ERROR ({result['error']})"
+    if not result["checks"]:
+        return "no bands declared - not checked"
+    parts = []
+    for check in result["checks"]:
+        actual = "None" if check["actual"] is None else f"{check['actual']:.3f}"
+        verdict = "PASS" if check["passed"] else "FAIL"
+        parts.append(f"{check['metric']} {actual} {_format_band(check['band'])} {verdict}")
+    return " | ".join(parts)
+
+
+def format_report(reports: Sequence[CalibrationReport]) -> str:
+    """Render one or more calibration reports as a side-by-side scorecard.
+
+    Args:
+        reports: One report per scorer kind. All reports must have been run over
+            the same cases in the same order.
+
+    Returns:
+        A printable scorecard ending in a ``RESULT: PASS``/``RESULT: FAIL`` line,
+        where any failing scorer fails the whole scorecard.
+    """
+    lines = ["", "Judge Calibration Scorecard", "=" * 72]
+    if not reports:
+        lines += ["(no scorers run)", ""]
+        return "\n".join(lines)
+
+    width = max(len(report["scorer_kind"]) for report in reports)
+    for index, first_case in enumerate(reports[0]["results"]):
+        lines.append("")
+        lines.append(f"{first_case['name']} - {first_case['description']}")
+        for report in reports:
+            result = report["results"][index]
+            lines.append(f"  {report['scorer_kind']:<{width}} : {_format_result(result)}")
+
+    lines += ["", "-" * 72]
+    for report in reports:
+        passed_count = report["total"] - report["failed"]
+        lines.append(
+            f"  {report['scorer_kind']:<{width}} : {passed_count}/{report['total']} passed "
+            f"({report['failed']} failed, {report['errors']} errors)"
+        )
+    overall = all(report["passed"] for report in reports)
+    lines += [f"RESULT: {'PASS' if overall else 'FAIL'}", ""]
+    return "\n".join(lines)

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from src.training.content_scorer import ReferenceOverlapScorer
-from src.training.judge_calibration import CalibrationCase, run_calibration
+from src.training.judge_calibration import CalibrationCase, format_report, run_calibration
 from src.training.judge_calibration_cases import DEFAULT_CALIBRATION_CASES
 
 if TYPE_CHECKING:
@@ -223,3 +223,69 @@ def test_overlap_noise_precision_penalises_padding():
     result = next(r for r in _overlap_report()["results"] if r["name"] == "noise")
     assert result["score"]["recall"] == pytest.approx(1.0)
     assert result["score"]["precision"] == pytest.approx(0.6)
+
+
+def _report_with(scorer_kind: str, score: ContentScore | None, band: tuple):
+    cases = [_case("identity", {scorer_kind: {"f1": band}})]
+    return run_calibration(_FixedScorer(score), scorer_kind, cases)
+
+
+def test_format_report_renders_case_name_and_pass_marker():
+    report = _report_with(
+        "overlap", {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}, (0.9, 1.0)
+    )
+
+    text = format_report([report])
+
+    assert "identity" in text
+    assert "PASS" in text
+    assert "RESULT: PASS" in text
+
+
+def test_format_report_marks_a_breach_and_overall_failure():
+    report = _report_with(
+        "llm", {"precision": 0.1, "recall": 0.1, "f1": 0.1, "quality": None}, (0.7, 1.0)
+    )
+
+    text = format_report([report])
+
+    assert "FAIL" in text
+    assert "RESULT: FAIL" in text
+
+
+def test_format_report_shows_errors_distinctly_from_breaches():
+    cases = [_case("boom", {"llm": {"f1": (0.9, 1.0)}})]
+    report = run_calibration(_RaisingScorer(), "llm", cases)
+
+    text = format_report([report])
+
+    assert "ERROR" in text
+    assert "judge exploded" in text
+
+
+def test_format_report_puts_both_scorers_side_by_side():
+    good = _report_with(
+        "overlap", {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}, (0.9, 1.0)
+    )
+    bad = _report_with(
+        "llm", {"precision": 0.1, "recall": 0.1, "f1": 0.1, "quality": None}, (0.7, 1.0)
+    )
+
+    text = format_report([good, bad])
+
+    assert "overlap" in text
+    assert "llm" in text
+    assert "RESULT: FAIL" in text, "one failing scorer fails the whole scorecard"
+
+
+def test_format_report_handles_no_reports():
+    assert "no scorers run" in format_report([])
+
+
+def test_format_report_notes_unchecked_cases():
+    cases = [_case("identity", {"overlap": {"f1": (0.9, 1.0)}})]
+    report = run_calibration(
+        _FixedScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}), "llm", cases
+    )
+
+    assert "not checked" in format_report([report])
