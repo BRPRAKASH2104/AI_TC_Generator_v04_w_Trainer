@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "src/training/vision_raft_trainer.py": {
-    "mtime": 1785037570.0951066,
-    "ast_hash": "384dc55ccfabc1b04acc5335b5a6d697",
+    "mtime": 1785054510.2310534,
+    "ast_hash": "62fde833ee2b5cfae2f1aa9dffc5e8a8",
     "semantic_hash": ""
   },
   "src/yaml_prompt_manager.py": {
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   "utilities/train_vision_model.py": {
-    "mtime": 1785046424.4686465,
-    "ast_hash": "ceb4a039f2664b95bc6915a1a790f476",
+    "mtime": 1785054510.232529,
+    "ast_hash": "7873260053d65681b423934d454d9346",
     "semantic_hash": ""
   },
   "utilities/verify_v03_compatibility.py": {
@@ -980,8 +980,8 @@
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
-    "mtime": 1785052503.7968915,
-    "ast_hash": "4727ef6284082f6f2e84229e37d6221c",
+    "mtime": 1785054510.2296193,
+    "ast_hash": "070b7a65585c0efb734177a766861103",
     "semantic_hash": ""
   },
   "tests/integration/test_ollama_schema_smoke.py": {
@@ -1115,13 +1115,13 @@
     "semantic_hash": ""
   },
   "tests/training/test_train_vision_cli.py": {
-    "mtime": 1785046424.4679759,
-    "ast_hash": "b391abbbe1a07ba8d8da9e1a76274ceb",
+    "mtime": 1785054510.2319736,
+    "ast_hash": "fe2a8c43dc5f3d61f0fd889cd344ca46",
     "semantic_hash": ""
   },
   "tests/training/test_vision_raft_evaluate.py": {
-    "mtime": 1785037570.0982025,
-    "ast_hash": "1ab965e010d0bba8dcb09d49a6a4aa61",
+    "mtime": 1785054510.2322958,
+    "ast_hash": "2f5ccc88add1a01e4e58e196365ea183",
     "semantic_hash": ""
   },
   "commit.md": {
@@ -1140,8 +1140,8 @@
     "semantic_hash": ""
   },
   "docs/training/README.md": {
-    "mtime": 1785052503.7972536,
-    "ast_hash": "bf8169c774973cfab9ce6ab8c496acae",
+    "mtime": 1785054510.2299643,
+    "ast_hash": "ef5028178a462bc3450c775ac859e799",
     "semantic_hash": ""
   },
   "docs/training/archive/GETTING_STARTED_WITH_TRAINING.md": {
@@ -1180,13 +1180,13 @@
     "semantic_hash": ""
   },
   "src/training/content_scorer.py": {
-    "mtime": 1785037570.0939074,
-    "ast_hash": "861eb0768605c55b140e8e169a4bf4f0",
+    "mtime": 1785054510.2301981,
+    "ast_hash": "0323a4ab35f76a9dad52e08c9d6644a9",
     "semantic_hash": ""
   },
   "tests/training/test_content_scorer.py": {
-    "mtime": 1785037570.096155,
-    "ast_hash": "7fef4eada7003574a75d65a61862b830",
+    "mtime": 1785054510.231366,
+    "ast_hash": "739105001c9d9e8b16fb2f0b79443e81",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-24-phase3-content-metric.md": {
@@ -1197,16 +1197,6 @@
   "docs/superpowers/specs/2026-07-24-phase3-content-metric-design.md": {
     "mtime": 1784967609.9910414,
     "ast_hash": "c8d2ada927bc1aca39ed34d6d045014a",
-    "semantic_hash": ""
-  },
-  "src/training/llm_judge_scorer.py": {
-    "mtime": 1785037570.094448,
-    "ast_hash": "4c70f0048a16bf15993f1bc3b2e9cdc9",
-    "semantic_hash": ""
-  },
-  "tests/training/test_llm_judge_scorer.py": {
-    "mtime": 1785037570.0967264,
-    "ast_hash": "bd46a82371cc77558c36665c88920e3c",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-25-phase3b-llm-judge.md": {
@@ -1220,28 +1210,23 @@
     "semantic_hash": ""
   },
   "src/training/judge_calibration.py": {
-    "mtime": 1785046424.4503195,
-    "ast_hash": "64920555883313b818331e0897df1ab0",
+    "mtime": 1785054510.2303994,
+    "ast_hash": "af16fb83cd94479cc3dda63cd29cb3ed",
     "semantic_hash": ""
   },
   "src/training/judge_calibration_cases.py": {
-    "mtime": 1785052503.7976184,
-    "ast_hash": "3f3848f4426002a00dac0c59ab3f03b3",
+    "mtime": 1785054510.2306342,
+    "ast_hash": "e8a3da64aff9a6dbdb186bdb462ee705",
     "semantic_hash": ""
   },
   "tests/training/test_judge_calibration.py": {
-    "mtime": 1785052503.7978935,
-    "ast_hash": "8bd06b196a0833c605f8a1e0bef9256d",
+    "mtime": 1785054510.2315814,
+    "ast_hash": "c70e46213f2e96b5b0911c3661cf7865",
     "semantic_hash": ""
   },
   "tests/training/test_judge_calibration_cli.py": {
-    "mtime": 1785046424.4554539,
-    "ast_hash": "48e9fc6c005c0af450c38e91eed51d24",
-    "semantic_hash": ""
-  },
-  "tests/training/test_judge_calibration_integration.py": {
-    "mtime": 1785046424.4613268,
-    "ast_hash": "5909a6aba6dd9db6dd32db042881bfb0",
+    "mtime": 1785054510.2317579,
+    "ast_hash": "88771cabd3e27b3cff2882718f3b09ac",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-07-26-phase3c-judge-calibration.md": {

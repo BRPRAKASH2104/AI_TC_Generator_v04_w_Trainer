@@ -1,16 +1,16 @@
 # Graph Report - AI_TC_Generator_v04_w_Trainer  (2026-07-26)
 
 ## Corpus Check
-- 244 files · ~263,684 words
+- 241 files · ~260,089 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4668 nodes · 7314 edges · 325 communities (296 shown, 29 thin omitted)
-- Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 837 edges (avg confidence: 0.61)
+- 4584 nodes · 7114 edges · 334 communities (303 shown, 31 thin omitted)
+- Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 829 edges (avg confidence: 0.61)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `59029013`
+- Built from commit: `da5de723`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -333,15 +333,24 @@
 - Troubleshooting
 - Support and Maintenance
 - TestTriStateBooleanFlags
+- Support and Maintenance
 - test_extract_spec_relation_with_missing_source
 - .test_build_dataset_empty_directory
 - .test_mixed_annotated_and_unannotated
 - .test_build_dataset_success
+- test_extract_spec_relation_with_missing_source
+- test_extract_spec_relation_with_missing_target
+- test_parse_relationships_with_data
+- .test_save_dataset_jsonl_format
+- .test_filter_by_quality
+- .test_build_dataset_nonexistent_directory
+- .test_skip_unannotated_examples
+- .test_builder_initialization
 
 ## God Nodes (most connected - your core abstractions)
-1. `ConfigManager` - 176 edges
+1. `ConfigManager` - 174 edges
 2. `BaseProcessor` - 103 edges
-3. `OllamaClient` - 82 edges
+3. `OllamaClient` - 75 edges
 4. `YAMLPromptManager` - 74 edges
 5. `REQIFArtifactExtractor` - 68 edges
 6. `TestCaseGenerator` - 67 edges
@@ -369,27 +378,27 @@
 - **Context-Aware Processing documented across README, CLAUDE.md, and Tests area** — claude_critical_architecture_context_aware_processing, readme_context_aware_processing, claude_skills_generated_tests_skill_key_symbols [INFERRED 0.80]
 - **GitNexus (code) + Graphify (docs) two-step investigation workflow** — claude_workflow_codebase_architecture_investigation, claude_gitnexus_code_intelligence, claude_graphify [EXTRACTED 1.00]
 
-## Communities (325 total, 29 thin omitted)
+## Communities (334 total, 31 thin omitted)
 
 ### Community 0 - "BaseProcessor"
-Cohesion: 0.04
-Nodes (37): BaseProcessor, Initialize file-specific logger, Base processor containing shared logic for REQIFZ file processing, Test BaseProcessor initialization and configuration, Processor initializes with default config when none provided, Processor accepts custom configuration, Processor accepts injected dependencies (extractor, generator, formatter), RAFT collector requires BOTH consent flags (review 2026-07-17 §6) (+29 more)
+Cohesion: 0.06
+Nodes (25): BaseProcessor, Base processor containing shared logic for REQIFZ file processing, Test BaseProcessor initialization and configuration, Processor initializes with default config when none provided, Processor accepts custom configuration, Processor accepts injected dependencies (extractor, generator, formatter), RAFT collector requires BOTH consent flags (review 2026-07-17 §6), RAFT collector is None when training.enable_raft is False (+17 more)
 
 ### Community 1 - "Core Extraction & Generation Pipeline"
 Cohesion: 0.18
 Nodes (15): _apply_preset(), _list_templates(), main(), Resolve the processing mode: --hp forces HP, else the effective     config (whic, AI Test Case Generator - Modular Architecture      Process REQIFZ files to gener, Display application banner with mode information, Validate prompt templates using modular components, List available templates using modular components (+7 more)
 
 ### Community 2 - "BaseProcessor Context Tests"
-Cohesion: 0.22
-Nodes (9): Processors - Key Symbols, HighPerformanceREQIFZFileProcessor (class), REQIFZFileProcessor (class), Integration tests for processors.  Tests the full workflow integration between c, Integration tests for refactored processors.  Tests complete workflows with Base, Test context preservation in refactored processors, Run integration tests, run_integration_tests() (+1 more)
+Cohesion: 0.07
+Nodes (16): Tests for image preprocessing (resize/compression) - CRITICAL priority, Large images (>1024px) should be resized to max 1024px dimension., Small images (<1024px) should not be resized., RGBA images should be converted to RGB for compatibility., Resizing should maintain aspect ratio., Preprocessing should reduce file size for large images., Invalid image data should return original bytes (graceful degradation)., Tests for enhanced image validation - MEDIUM priority (+8 more)
 
 ### Community 3 - "ConfigManager Settings"
-Cohesion: 0.11
-Nodes (15): Static configuration for test case generation and formatting, StaticTestConfig, Formats test cases for output to Excel and other formats, TestCaseFormatter, Test that Description is empty if confidence score is missing, Test that confidence score is added to Description column, test_excel_description_handles_missing_confidence(), test_excel_description_includes_confidence() (+7 more)
+Cohesion: 0.07
+Nodes (18): Integration tests with real components (where practical).  Tests for API compati, Test configuration with real validation logic., Test that ConfigManager can read environment variables., Test actual Pydantic validation in config., Test performance characteristics with real components., Test that ujson optimization is actually faster than standard json., Test real API compatibility where possible., Test actual file processing components integration. (+10 more)
 
 ### Community 4 - "Ollama Exception Types"
 Cohesion: 0.03
-Nodes (76): OllamaConfig, Get the complete API URL for Ollama, Get the URL for version endpoint (Ollama 0.12.5+), Get the URL for model information endpoint (Ollama), Configuration for Ollama API connection and settings (Python 3.14 + Ollama 0.12., calculate_confidence(), Calculate confidence score from logprobs if available.      Uses perplexity-base, AsyncOllamaClient (+68 more)
+Nodes (49): OllamaConfig, Self, Post-initialization validation and audit logging, Get the complete API URL for Ollama, Get the URL for version endpoint (Ollama 0.12.5+), Get the URL for model information endpoint (Ollama), Configuration for Ollama API connection and settings (Python 3.14 + Ollama 0.12., Regression tests for AsyncOllamaClient concurrency wiring.  The CLI --max-concur (+41 more)
 
 ### Community 5 - "Ollama Configuration"
 Cohesion: 0.07
@@ -424,16 +433,16 @@ Cohesion: 0.05
 Nodes (30): Any, AugmentedRequirement, Path, RAFTDataCollector, Extract images from requirement for vision model training.          Args:, Get statistics on collected RAFT examples (including vision data), Collects training data in RAFT format with context annotation, Clear all collected data (use with caution).          Returns:             Numbe (+22 more)
 
 ### Community 13 - "VisionRAFTTrainer"
-Cohesion: 0.06
-Nodes (52): Deterministic scenario precision/recall/F1 by test-case overlap.      A generate, ReferenceOverlapScorer, create_vision_training_pipeline(), Logger, Vision-Aware RAFT Prompt-Customized Model Creation  This module does not fine-tu, Convenience function to create vision training pipeline.      Args:         data, Initialize vision RAFT trainer.          Args:             dataset_path: Path to, Configuration for vision model training (+44 more)
+Cohesion: 0.09
+Nodes (24): Test case deduplication module for the AI Test Case Generator.  This module prov, _prf(), Reference-aware content scoring for RAFT evaluation (Phase 3).  Scores a model's, Count greedy one-to-one matches between generated and reference., Precision/recall/F1 from a match count (shared by both scorers).      Args:, Deterministic scenario precision/recall/F1 by test-case overlap.      A generate, Initialize the scorer.          Args:             match_threshold: Minimum field, Score generated cases against reference cases by string overlap.          Args: (+16 more)
 
 ### Community 14 - "test_image_extractor.py"
 Cohesion: 0.06
 Nodes (33): extractor(), Tests for image extraction from REQIFZ files, Test extraction of external image files, Test extraction of base64-embedded images, Test extraction without saving images, Test image format determination, Test hash computation, Test filename sanitization (+25 more)
 
 ### Community 15 - "Any"
-Cohesion: 0.13
-Nodes (16): DataFrame, Any, Path, TestCaseList, Get static test-case field values.          StaticTestConfig is the single sourc, Generate unique issue ID for test case, Create Excel file with professional formatting, Apply professional formatting to Excel worksheet (v03 style) (+8 more)
+Cohesion: 0.14
+Nodes (15): DataFrame, Any, Path, TestCaseList, Generate unique issue ID for test case, Create Excel file with professional formatting, Apply professional formatting to Excel worksheet (v03 style), Add metadata information to separate sheet (+7 more)
 
 ### Community 16 - "Installation Guide: AI Test Case Generator"
 Cohesion: 0.05
@@ -445,7 +454,7 @@ Nodes (15): Unit tests for YAML prompt manager - Fixed to match actual implement
 
 ### Community 18 - "FAQ Documentation"
 Cohesion: 0.11
-Nodes (18): Can I process normal XML files?, Can I stop processing mid-way?, Can I use OpenAI or external AI services?, ⚙️ Configuration, 📄 File Processing, Frequently Asked Questions (FAQ) - AI Test Case Generator, How do I configure for multiple projects?, How do I know if my model is compatible? (+10 more)
+Nodes (18): Can I process normal XML files?, Can I run on a Raspberry Pi or small device?, Can I use OpenAI or external AI services?, ⚙️ Configuration, 📄 File Processing, Frequently Asked Questions (FAQ) - AI Test Case Generator, How do I configure for multiple projects?, How do I know if my model is compatible? (+10 more)
 
 ### Community 19 - "ProgressiveRAFTTrainer"
 Cohesion: 0.13
@@ -456,8 +465,8 @@ Cohesion: 0.05
 Nodes (37): A/B Testing, Automated Metrics, Best Practices, Collection Issues, Continuous Improvement, Deployment, Deployment Issues, Enable Training Data Collection (+29 more)
 
 ### Community 21 - "test_relationship_parser.py"
-Cohesion: 0.05
-Nodes (39): parser(), Tests for requirement relationship parsing, Test parsing relationships from REQIF without SPEC-RELATION elements, Test relationship type classification, Create a relationship parser instance, Test augmenting requirements with relationship metadata, Test hierarchy level calculation, Test hierarchy level calculation with circular reference (+31 more)
+Cohesion: 0.07
+Nodes (25): Tests for requirement relationship parsing, Test parsing relationships from REQIF without SPEC-RELATION elements, Test relationship type classification, Test augmenting requirements with relationship metadata, Test hierarchy level calculation, Test hierarchy level calculation with circular reference, Test building dependency graph, Test finding root requirements (+17 more)
 
 ### Community 22 - "Vision Implementation Fix Plan"
 Cohesion: 0.05
@@ -476,8 +485,8 @@ Cohesion: 0.06
 Nodes (34): 10. Maintainability and Extensibility:, 11. Automation and Tooling:, 12. Report, 1. Core Philosophy: Document the "Why," Not the "What", 1. Guiding Principles (The "Vibe"), 1. Pre-Flight Protocol (Mandatory), 1. Preparation and Scope:, 2. Code Implementation (+26 more)
 
 ### Community 26 - "RAFT Technical Implementation"
-Cohesion: 0.11
-Nodes (19): Any, Parse a raw model response and score it by canonical-schema pass rate., Parse a raw response into canonical, deduplicated test cases.          Shared by, Return the example's reference assistant answer, or None if absent.          Arg, Score one generation against the example's reference answer.          Args:, Creates a prompt-customized Ollama model from a RAFT dataset.      This class ha, Aggregate per-example results into summary metrics.          Args:             p, Analyze training dataset for statistics (+11 more)
+Cohesion: 0.06
+Nodes (26): Any, Path, Parse a raw model response and score it by canonical-schema pass rate., Parse a raw response into canonical, deduplicated test cases.          Shared by, Return the example's reference assistant answer, or None if absent.          Arg, Score one generation against the example's reference answer.          Args:, Aggregate per-example results into summary metrics.          Args:             p, Create a prompt-customized Ollama model from the RAFT dataset.          Returns: (+18 more)
 
 ### Community 27 - "AppLogger"
 Cohesion: 0.11
@@ -488,8 +497,8 @@ Cohesion: 0.15
 Nodes (29): check_models_available(), check_ollama_service(), get_reqifz_files(), main(), Any, Path, Get all REQIFZ files in input directory, Test standard mode with valid REQIFZ file (+21 more)
 
 ### Community 29 - ".extract_json_from_response"
-Cohesion: 0.12
-Nodes (12): Extract JSON from AI model response with multiple fallback strategies., Test JSON response parsing with fallback strategies., Test direct JSON parsing from clean response., Test JSON extraction from markdown code blocks., Test JSON extraction from code blocks without language specifier., Test JSON extraction using curly braces pattern matching., Test that invalid JSON returns None., Test that empty response returns None. (+4 more)
+Cohesion: 0.14
+Nodes (11): Extract JSON from AI model response with multiple fallback strategies., Test JSON response parsing with fallback strategies., Test direct JSON parsing from clean response., Test JSON extraction from markdown code blocks., Test JSON extraction from code blocks without language specifier., Test JSON extraction using curly braces pattern matching., Test that invalid JSON returns None., Test that empty response returns None. (+3 more)
 
 ### Community 30 - "Core Support Modules"
 Cohesion: 0.06
@@ -504,20 +513,20 @@ Cohesion: 0.06
 Nodes (30): 1. Project Structure & Organization, 2. Code Complexity Analysis, 3. Testing Coverage, 4. Code Quality & Style, 5. Performance & Resource Utilization, 6. Security Analysis, 7. AI Model Usage Efficiency, 8. Documentation (+22 more)
 
 ### Community 33 - ".extract_tables_from_html"
-Cohesion: 0.05
-Nodes (31): HTMLTableData, JSONObject, HTMLTableParser, Any, Element, Optimized JSON extraction with faster regex patterns, Enhanced HTML table parser for REQIF XML content, Extract structured data from HTML tables with enhanced parsing.          Handles (+23 more)
+Cohesion: 0.07
+Nodes (24): HTMLTableData, HTMLTableParser, Any, Element, Enhanced HTML table parser for REQIF XML content, Extract structured data from HTML tables with enhanced parsing.          Handles, Clean HTML content for better parsing, Collect th/td cells of a row in document order.          A row may mix th (row-l (+16 more)
 
 ### Community 34 - "YAMLPromptManager"
-Cohesion: 0.07
-Nodes (35): Interface, InterfaceIndex, build_interface_index(), interface_signals(), Relevance-scoped system-interface selection for prompts.  Attaching the full glo, Extract signal-like tokens from text (upper-cased, filtered)., Signal-name tokens that identify an interface (from id, name, text)., Pre-compute (signals, interface) pairs once per requirement set. (+27 more)
+Cohesion: 0.18
+Nodes (22): Interface, InterfaceIndex, build_interface_index(), interface_signals(), Relevance-scoped system-interface selection for prompts.  Attaching the full glo, Extract signal-like tokens from text (upper-cased, filtered)., Signal-name tokens that identify an interface (from id, name, text)., Pre-compute (signals, interface) pairs once per requirement set. (+14 more)
 
 ### Community 35 - "Progress Summary: December 6, 2025"
 Cohesion: 0.07
 Nodes (26): 1. Comprehensive Code Review ✅, 2. Project Structure Cleanup ✅, 3. Code Formatting ✅, 4. Critical Test Coverage Gap - BaseProcessor ✅ **[P0 PRIORITY]**, Actions Completed, After Today's Work, Before Today's Work, Challenges Encountered (+18 more)
 
 ### Community 36 - "RequirementRelationshipParser"
-Cohesion: 0.09
-Nodes (46): CalibrationCase, format_report(), Run ``scorer`` over ``cases`` and check the per-kind expected bands.      Args:, Render one or more calibration reports as a side-by-side scorecard.      Args:, One gold-by-construction case with per-scorer expected bands., run_calibration(), _case(), _FixedScorer (+38 more)
+Cohesion: 0.06
+Nodes (65): Band, ContentScore, ContentScorer, Protocol, TypedDict, Per-example content scores; a field is None when undefined., Scores generated test cases against reference cases.      Implementations return, Return precision/recall/F1 for the generation, or None.          Args: (+57 more)
 
 ### Community 37 - "CLI Configuration System - Working Example"
 Cohesion: 0.08
@@ -544,28 +553,28 @@ Cohesion: 0.22
 Nodes (7): Test cases missing the canonical five fields must not reach the     formatter as, {} must be dropped; the canonical case survives., Whitespace-only canonical fields count as missing., fail_on_validation_error=True must fail the requirement instead of         expor, A fully canonical case must flow through the pipeline., The model may return test_steps as a list; validators normalise it., TestCanonicalSchemaEnforcement
 
 ### Community 43 - "Vision Fix Tests"
-Cohesion: 0.08
-Nodes (28): Test helper utilities for creating XHTML-formatted test artifacts., create_augmented_requirement(), create_test_artifact(), create_test_artifact_with_images(), create_test_interface(), create_test_table(), Any, Test artifact builder utilities for creating XHTML-formatted test data.  This mo (+20 more)
+Cohesion: 0.07
+Nodes (32): Test helper utilities for creating XHTML-formatted test artifacts., create_augmented_requirement(), create_test_artifact(), create_test_artifact_with_images(), create_test_information(), create_test_interface(), create_test_table(), Any (+24 more)
 
 ### Community 44 - "Review Comments — 2026-04-06"
 Cohesion: 0.08
 Nodes (24): Broken References, CI/CD Issues, Configuration Problems, Coverage Gaps, Critical Issues, Critical Issues, Executive Summary, Gaps (+16 more)
 
 ### Community 45 - "Generator Error Handling Tests"
-Cohesion: 0.13
-Nodes (22): Band, ContentScorer, Protocol, Reference-aware content scoring for RAFT evaluation (Phase 3).  Scores a model's, Scores generated test cases against reference cases.      Implementations return, CalibrationResult, _check_metrics(), _format_band() (+14 more)
+Cohesion: 0.11
+Nodes (26): create_vision_training_pipeline(), Convenience function to create vision training pipeline.      Args:         data, check_base_model_exists(), check_ollama_connection(), check_output_model_exists(), _format_delta(), main(), parse_args() (+18 more)
 
 ### Community 46 - "QualityScorer"
-Cohesion: 0.08
-Nodes (22): Any, Logger, Path, RAFTExample, QualityMetrics, QualityScorer, Assess the quality of a single RAFT training example (with vision support)., Calculate how relevant the context is to the requirement.          This analyzes (+14 more)
+Cohesion: 0.09
+Nodes (21): Any, Logger, Path, RAFTExample, QualityMetrics, QualityScorer, Assess the quality of a single RAFT training example (with vision support)., Calculate how relevant the context is to the requirement.          This analyzes (+13 more)
 
 ### Community 47 - "Graphify Reference Sections"
 Cohesion: 0.11
 Nodes (30): Step 0 - GitHub repos and multi-path merge, Step 2.5 - Video and audio, Step 3 Part A - Structural extraction for code files, Step 3 Part B - Semantic extraction (parallel subagents), Step 3 Part C - Merge AST + semantic into final extraction, Step 4.5 - Graph health check, For /graphify add and --watch, For /graphify query (+22 more)
 
 ### Community 48 - "RAFTAnnotator"
-Cohesion: 0.05
-Nodes (34): Any, Logger, Path, RAFTExample, RAFTAnnotator, Interactive RAFT Annotation Interface  This module provides an interactive inter, Annotate a single RAFT example with user interaction.          Returns:, Build numbered list of context items for annotation (+26 more)
+Cohesion: 0.12
+Nodes (11): context_items(), _example(), Unit tests for the interactive ``RAFTAnnotator``.  Coverage for review 2026-07-2, test_annotate_single_example_happy_path(), test_annotate_single_example_skip_moves_to_rejected(), test_build_context_items_list_reflects_context(), test_get_unannotated_files_filters_annotated(), test_get_unannotated_files_skips_corrupt() (+3 more)
 
 ### Community 49 - "VersionChecker"
 Cohesion: 0.15
@@ -580,16 +589,16 @@ Cohesion: 0.11
 Nodes (18): 1. `src/yaml_prompt_manager.py` — `_selection_rules` caching, 2. `src/core/ollama_client.py` — throwaway `temp_session` in `_check_version_compatibility`, 3. `src/config.py` — `load_cli_config` and `setattr` loop, 4. `tests/` — deleted `test_ollama_compatibility.py`, 5. Root-level stray files, All Clear, Architecture Consistency, Architecture & Dead Code Audit (+10 more)
 
 ### Community 52 - "TestEndToEndWorkflows"
-Cohesion: 0.10
-Nodes (54): _client_that_must_not_be_called(), _example_with_reference(), FakeOllamaClient, _make_trainer(), Unit tests for ``VisionRAFTTrainer.evaluate_model`` (Phase 1 output-quality eval, Records calls and returns a canned raw response, no subprocess involved.      ``, Build a trainer whose dataset_path is a throwaway (eval uses test_dataset)., A ContentScorer stub that returns a fixed score and records kwargs. (+46 more)
+Cohesion: 0.11
+Nodes (48): _client_that_must_not_be_called(), _example_with_reference(), FakeOllamaClient, _make_trainer(), Unit tests for ``VisionRAFTTrainer.evaluate_model`` (Phase 1 output-quality eval, Records calls and returns a canned raw response, no subprocess involved.      ``, Build a trainer whose dataset_path is a throwaway (eval uses test_dataset)., test_aggregate_reports_content_metrics() (+40 more)
 
 ### Community 53 - "RAFTDatasetBuilder"
-Cohesion: 0.08
-Nodes (13): Test saving RAFT dataset in JSONL format, Test filtering examples by quality rating, Test suite for RAFT Dataset Builder, Test building dataset when validated directory doesn't exist, Test that unannotated examples are skipped, Create temporary directories for tests, Test that saving empty dataset raises ValueError, Test building dataset with only oracle context (no distractors) (+5 more)
+Cohesion: 0.09
+Nodes (12): Test building dataset from empty directory, Test suite for RAFT Dataset Builder, Create temporary directories for tests, Test that saving empty dataset raises ValueError, Test building dataset with only oracle context (no distractors), Test dataset building with mix of annotated and unannotated examples, Test dataset validation functionality, Test handling Unicode characters in context (+4 more)
 
 ### Community 54 - "V03CompatibilityVerifier"
-Cohesion: 0.06
-Nodes (29): PerformanceMetrics, Memory-efficient formatter for large test case sets, StreamingTestCaseFormatter, HighPerformanceREQIFZFileProcessor, Any, Exception, Path, ProcessingResult (+21 more)
+Cohesion: 0.07
+Nodes (26): PerformanceMetrics, HighPerformanceREQIFZFileProcessor, Any, Exception, Path, ProcessingResult, Process a single REQIFZ file with high-performance async processing.          Ar, Fold the per-requirement async results into test cases + failures.          Pres (+18 more)
 
 ### Community 55 - "Cluster_1 & Integration Skill Docs"
 Cohesion: 0.33
@@ -600,44 +609,44 @@ Cohesion: 0.11
 Nodes (17): Chain-of-Verification, Code Review — Full Business-Logic Audit, [Critical] 1. Partial output is reported as a successful run, [Critical] 2. External `<object>` images overwrite their usable metadata and disable vision, [Critical] 3. The RAFT training path never trains on the dataset, [Critical] 4. Invalid test-case objects are exported as plausible defaults, Critical Findings, Executive Summary (+9 more)
 
 ### Community 57 - "REQIF Extractor Robustness Tests"
-Cohesion: 0.15
-Nodes (11): main(), Path, Verify context-aware augmentation, Verify prompt generation includes all context, Verify field name mapping works for both v03 and v04 formats, Verifies v03 compatibility fixes, Print verification summary, Run all verification checks (+3 more)
+Cohesion: 0.17
+Nodes (10): main(), Path, Verify context-aware augmentation, Verify field name mapping works for both v03 and v04 formats, Verifies v03 compatibility fixes, Print verification summary, Run all verification checks, Verify artifact extraction extracts ALL spec objects (+2 more)
 
 ### Community 58 - "TestPromptBuilder"
-Cohesion: 0.11
-Nodes (23): LLMJudgeScorer, Any, LLM-as-judge content scorer for RAFT evaluation (Phase 3b).  Matches generated t, Extract a JSON object from a raw model response., Return (precision, recall, f1), or (None, None, None) on any fault., Count valid, in-range, one-to-one [gen, ref] index pairs., Return the clamped [0,1] holistic quality, or None on any fault., Semantic precision/recall/F1 + holistic quality via a local LLM judge.      Make (+15 more)
+Cohesion: 0.12
+Nodes (10): Any, Path, ProcessingResult, Initialize file-specific logger, Extract artifacts from REQIFZ file          Args:             reqifz_path: Path, Generate output file path for Excel file          Args:             reqifz_path:, Create metadata dictionary for Excel output, Create success result dictionary.          A result with failed_requirements is (+2 more)
 
 ### Community 59 - "BaseModel"
-Cohesion: 0.20
-Nodes (6): Test PromptBuilder functionality, Test default prompt building without YAML manager (POSITIVE), Test prompt building with YAML template (POSITIVE), Test fallback to default when YAML fails (NEGATIVE), Test table formatting with valid data (POSITIVE), TestPromptBuilder
+Cohesion: 0.11
+Nodes (11): Comprehensive test suite for refactored components.  Tests BaseProcessor, Prompt, Test generator refactoring with PromptBuilder, Test TestCaseGenerator uses PromptBuilder (POSITIVE), Test AsyncTestCaseGenerator uses PromptBuilder (POSITIVE), Test TestCaseGenerator has no awkward coupling (ARCHITECTURE), Test AsyncGenerator doesn't create sync generator (ARCHITECTURE), Test error handling and edge cases, Test generator handling empty AI response (NEGATIVE) (+3 more)
 
 ### Community 60 - ".process_file"
 Cohesion: 0.17
 Nodes (11): _print_partial_details(), Any, Map a processing result to the process exit code.      Contract: 0 = everything, Print the failed files/requirements behind a partial completion., Execute standard processing using modular components, Execute high-performance processing using async modular components, _resolve_exit_code(), _run_hp_mode() (+3 more)
 
 ### Community 61 - "Custom Exception Hierarchy"
-Cohesion: 0.05
-Nodes (59): AITestCaseGeneratorError, ConfigurationError, OllamaConnectionError, OllamaError, OllamaModelNotFoundError, OllamaResponseError, OllamaTimeoutError, Exception (+51 more)
+Cohesion: 0.04
+Nodes (102): OllamaConnectionError, OllamaError, OllamaModelNotFoundError, OllamaResponseError, OllamaTimeoutError, Custom exceptions for AI Test Case Generator.  Provides structured error handlin, Base exception for Ollama client errors, Raised when connection to Ollama API fails (+94 more)
 
 ### Community 62 - "Relationship Parsing Integration Tests"
-Cohesion: 0.14
-Nodes (13): Integration tests for relationship parsing with extractor, Create a temporary REQIFZ file without SPEC-RELATION elements, Create a temporary REQIFZ file with SPEC-RELATION elements, Test extractor parses relationships and augments artifacts, Test extractor handles files without relationships gracefully, Test extractor builds dependency graph when requested, Test extractor can parse relationships without augmenting artifacts, sample_reqifz_with_relationships() (+5 more)
+Cohesion: 0.11
+Nodes (17): Integration tests for relationship parsing with extractor, Create a temporary REQIFZ file without SPEC-RELATION elements, Create a temporary REQIFZ file with SPEC-RELATION elements, Test extractor parses relationships and augments artifacts, Test extractor handles files without relationships gracefully, extract_reqifz_content must parse relationships itself when enabled in config., With relationship parsing disabled, artifacts must not carry relationship keys., Test extractor builds dependency graph when requested (+9 more)
 
 ### Community 63 - "2. Detailed Findings"
 Cohesion: 0.12
 Nodes (15): 1. Executive Summary, 2.1 Code Structure and Organization, 2.2 Readability and Style, 2.3 Functionality and Correctness, 2.4 Python Analysis (Python 3.14), 2.5 Performance and Efficiency, 2.6 AI Model Integration, 2.7 Documentation (+7 more)
 
 ### Community 64 - "REQIF XML Parsing"
-Cohesion: 0.13
-Nodes (18): CalibrationReport, Gold-by-construction calibration cases for content scorers (Phase 3c).  Each cas, Aggregate outcome for one scorer over all cases., llm_report(), _ollama_reason(), Live-Ollama calibration of the LLM judge (Phase 3c).  The unit tests use scripte, The discriminating case — this is what justifies the LLM judge's cost., The full llm scorecard column must pass with no breached bands. (+10 more)
+Cohesion: 0.11
+Nodes (10): Test requirement without heading (EDGE CASE), Test output path generation, Test output path with custom directory, Test metadata creation, Test success result creation, Test error result creation, Test BaseProcessor shared methods, Test logger initialization (+2 more)
 
 ### Community 65 - "conftest.py"
 Cohesion: 0.12
 Nodes (15): mock_async_ollama_client(), mock_logger(), mock_ollama_client(), Pytest configuration and shared fixtures for AI Test Case Generator tests., Create a temporary REQIFZ file for testing., Mock logger for testing., Mock OllamaClient for testing without API calls., Mock AsyncOllamaClient for testing async functionality. (+7 more)
 
 ### Community 66 - "Deduplicator Unit Tests"
-Cohesion: 0.10
-Nodes (19): Tests for test case deduplication, Test deduplication with custom fields to compare, Test deduplication with empty test cases list, Test finding similar pairs without removing them, Test that deduplication report has correct structure, Distinct test cases in the active preconditions/test_steps schema must not be me, Exact duplicates in the adaptive schema are still detected., test_steps may arrive as a list of steps (see validators.py normalisation). (+11 more)
+Cohesion: 0.05
+Nodes (58): DuplicateGroup, SimilarityScore, Any, TestCaseList, Calculate similarity score between two test cases.          Args:             tc, Public field-similarity (0.0–1.0) between two test cases.          Single source, Resolve a comparison field through its schema aliases.          Returns the firs, Select which test cases to remove from a duplicate group.          Args: (+50 more)
 
 ### Community 67 - "AI_TC_Generator_v04_w_Trainer - Codebase Review Findings (2025-10-11)"
 Cohesion: 0.13
@@ -649,43 +658,43 @@ Nodes (17): 2025-10-07 — Initial codebase review (v1.5.0 → v2.1.0), 2025-10-
 
 ### Community 69 - ".deduplicate"
 Cohesion: 0.14
-Nodes (9): Path, Create a prompt-customized Ollama model from the RAFT dataset.          Returns:, The generation-control PARAMETERs baked into the customized Modelfile., Build a static Ollama Modelfile for prompt customization.          The system pr, Register the Modelfile as a named model via `ollama create`.          This is pr, Save training progress and results, Describe what the A/B delta actually compares.          The customized Modelfile, Decode base64 image strings to temporary files for the vision method.          T (+1 more)
+Nodes (7): AITestCaseGeneratorError, ConfigurationError, Exception, Raised when test case generation fails, Raised when configuration is invalid, Base exception for all AI Test Case Generator errors, TestCaseGenerationError
 
 ### Community 70 - "TestEnhancedImageValidation"
-Cohesion: 0.09
-Nodes (21): Best Practices, Configuration Overview, Core Training Dependencies, Deployment, Directory Structure, Evaluation Metrics, Evaluation Results Format, Evaluation Scripts (+13 more)
+Cohesion: 0.08
+Nodes (24): Advanced Training Pipeline, Basic Training Workflow, Best Practices, Configuration Overview, Core Training Dependencies, Deployment, Directory Structure, Evaluation Metrics (+16 more)
 
 ### Community 71 - "._resolve_config_path"
 Cohesion: 0.14
 Nodes (8): Path, Set default configuration if config file is missing, Load all prompt templates from YAML files, Reload all prompt templates (useful for development), Validate a YAML template file and return any errors, Initialize YAML Prompt Manager          Args:             config_file: Path to p, Resolve configuration file path, checking multiple locations          Args:, Load main configuration file
 
 ### Community 72 - "Annotation Process"
-Cohesion: 0.10
-Nodes (23): _failed_comparison_result(), Tests for the ``train_vision_model`` CLI evaluation wiring (``--evaluate``).  ``, Captures log lines so tests can assert on the printed summary., Result shape for a run whose baseline produced no usable observation., ``--content-scorer`` has no parse-level default: ``--validate-judge``     needs, ``--content-scorer`` parses to ``None`` when omitted (see above), but     ``main, _RecordingLogger, test_content_scorer_flag_parses_to_none_by_default() (+15 more)
+Cohesion: 0.13
+Nodes (17): _failed_comparison_result(), Tests for the ``train_vision_model`` CLI evaluation wiring (``--evaluate``).  ``, Captures log lines so tests can assert on the printed summary., Result shape for a run whose baseline produced no usable observation., _RecordingLogger, test_print_evaluation_result_reports_baseline_errors(), test_print_evaluation_result_reports_paired_sample_size(), test_print_evaluation_result_surfaces_bundle_vs_base_caveat() (+9 more)
 
 ### Community 73 - "Building and Running"
 Cohesion: 0.09
 Nodes (22): Always Do, Architecture, CLI, Commands, Common Pitfalls, Critical Architecture: Canonical Test-Case Schema, Critical Architecture: Context-Aware Processing, Critical Architecture: Excel Formatter (+14 more)
 
 ### Community 74 - "TestCaseDeduplicator Core"
-Cohesion: 0.11
-Nodes (10): ArtifactType, StrEnum, Enumeration of REQIF artifact types, Map REQIF SPEC-OBJECT-TYPE LONG-NAME to our ArtifactType enum, Determine artifact type based on content patterns.          FIX: More lenient cl, Regression tests for REQIF SPEC-OBJECT-TYPE -> ArtifactType mapping.  Guards rev, SPEC-OBJECT-TYPE LONG-NAME classification precedence., The exact regression: 'Design Information' must not become INFORMATION. (+2 more)
+Cohesion: 0.17
+Nodes (5): Regression tests for REQIF SPEC-OBJECT-TYPE -> ArtifactType mapping.  Guards rev, SPEC-OBJECT-TYPE LONG-NAME classification precedence., The exact regression: 'Design Information' must not become INFORMATION., requirement' is matched first, so a 'Design Requirement' stays a requirement., TestReqifTypeMapping
 
 ### Community 75 - "._generate_test_cases_for_requirement_async"
-Cohesion: 0.13
-Nodes (18): extract_image_paths(), Any, Path, ProcessingResult, RequirementData, TestCaseList, Build a structured error object with the consistent result interface.          S, Split a client response into (response_text, confidence_score). (+10 more)
+Cohesion: 0.19
+Nodes (12): extract_image_paths(), Path, ProcessingResult, RequirementData, Build a structured error object with the consistent result interface.          S, Split a requirement whose table exceeds the prompt row limit.          A single, Merge per-chunk generation results into one requirement result.          Flatten, Extract image file paths from requirement metadata.      This is a shared helper (+4 more)
 
 ### Community 76 - "Shared Generator Core Pipeline"
 Cohesion: 0.10
 Nodes (20): Branch Review — Vision RAFT Evaluation and A/B Comparison, Chain-of-Verification, Change and Risk Summary, [Critical] 1. A failed baseline still reports positive lift and exits successfully, [Critical] 2. “Coverage” rewards duplicates and canonical-invalid output, Findings, Independent answers, Missing Coverage (+12 more)
 
 ### Community 77 - "Prompt Builder Formatting"
-Cohesion: 0.12
-Nodes (15): Detects and removes duplicate or highly similar test cases, TestCaseDeduplicator, Initialize the scorer.          Args:             match_threshold: Minimum field, Test keeping the best quality test case from duplicates, Test different similarity thresholds, Test that comparison is case-insensitive, Test deduplication with highly similar test cases, Test keeping the first occurrence of duplicates (+7 more)
+Cohesion: 0.21
+Nodes (8): Path, RAFTExample, Annotate a single RAFT example with user interaction.          Returns:, Save validated example to validated directory, Move skipped example to rejected directory, Get list of files that need annotation, Check if example has been properly annotated, Start interactive annotation session.          Args:             batch_size: Num
 
 ### Community 78 - "System Assessment"
-Cohesion: 0.09
-Nodes (20): Ollama API clients for the AI Test Case Generator.  This module provides both sy, AsyncFileProcessor, Protocol, Base processor for the AI Test Case Generator.  This module provides the base cl, Structural type for synchronous per-file processing (e.g. REQIFZFileProcessor)., Structural type for asynchronous per-file processing (e.g. HighPerformanceREQIFZ, SyncFileProcessor, High-performance processor for the AI Test Case Generator.  This module provides (+12 more)
+Cohesion: 0.05
+Nodes (41): Static configuration for test case generation and formatting, StaticTestConfig, Initialize test case deduplicator.          Args:             similarity_thresho, Test case formatters for the AI Test Case Generator.  This module provides class, Get static test-case field values.          StaticTestConfig is the single sourc, Memory-efficient formatter for large test case sets, Formats test cases for output to Excel and other formats, StreamingTestCaseFormatter (+33 more)
 
 ### Community 79 - "create_test_information"
 Cohesion: 0.25
@@ -700,8 +709,8 @@ Cohesion: 0.23
 Nodes (12): AGENTS.md - Always Do, AGENTS.md - GitNexus — Code Intelligence, AGENTS.md - graphify, AGENTS.md - Never Do, AGENTS.md - Resources, GitNexus - Always Do, GitNexus — Code Intelligence, GitNexus - Never Do (+4 more)
 
 ### Community 82 - "Artifact Extraction & Relationships"
-Cohesion: 0.12
-Nodes (12): ContentScore, _prf(), Any, TypedDict, Score generated cases against reference cases by string overlap.          The ``, Count greedy one-to-one matches between generated and reference., Per-example content-quality scores; a field is None when undefined., Precision/recall/F1 from a match count (shared by both scorers).      Args: (+4 more)
+Cohesion: 0.20
+Nodes (10): calculate_confidence(), Any, TestCaseList, Split a client response into (response_text, confidence_score)., Validate, stamp, deduplicate and enrich parsed test cases.          This is the, Mark each test case with its semantic-validation outcome.      Must run BEFORE d, Calculate confidence score from logprobs if available.      Uses perplexity-base, stamp_validation_results() (+2 more)
 
 ### Community 83 - "Async Client Init Tests"
 Cohesion: 0.25
@@ -712,28 +721,28 @@ Cohesion: 0.33
 Nodes (6): Cluster_19 - Connected Areas, Cluster_19 - Entry Points, Cluster_19 - Execution Flows, Cluster_19 - How to Explore, Cluster_19 - Key Files, Cluster_19 - Key Symbols
 
 ### Community 85 - "Canonical Schema Validation Tests"
-Cohesion: 0.09
-Nodes (23): 5-Minute Setup, Additional Resources, Build Vision RAFT Dataset, Dataset Format, Dataset Preparation, Hardware Requirements, Option 1: Ollama Modelfile (Recommended), Option 2: Full Fine-Tuning (Advanced) (+15 more)
+Cohesion: 0.10
+Nodes (19): 5-Minute Setup, Additional Resources, Build Vision RAFT Dataset, Dataset Format, Dataset Preparation, Hardware Requirements, Option 1: Ollama Modelfile (Recommended), Option 2: Full Fine-Tuning (Advanced) (+11 more)
 
 ### Community 86 - ".get_test_prompt"
 Cohesion: 0.21
-Nodes (8): ArtifactList, Any, Path, Parse SPEC-RELATION elements and augment artifacts when enabled in config., Extract images and augment artifacts using the shared configuration., Classify artifacts by type, Parse SPEC-RELATION elements and augment artifacts with relationship metadata., Extract all artifacts from a REQIFZ file.          Args:             reqifz_file
+Nodes (8): Any, Exception, Path, ProcessingResult, Generate test cases for each requirement sequentially.          Returns ``(all_t, Map a processing exception to an error result.          Same branch selection an, Process all REQIFZ files in a directory., Process a single REQIFZ file and generate test cases.          Args:
 
 ### Community 87 - "validation_and_tools.py"
-Cohesion: 0.02
-Nodes (92): Test case deduplication module for the AI Test Case Generator.  This module prov, Initialize test case deduplicator.          Args:             similarity_thresho, Raised when generated test cases fail canonical-schema validation.      Only rai, TestCaseValidationError, Test case formatters for the AI Test Case Generator.  This module provides class, AsyncTestCaseGenerator, _GeneratorCore, Test case generators for the AI Test Case Generator.  This module provides class (+84 more)
+Cohesion: 0.05
+Nodes (38): PromptBuilder, Prompt builder for the AI Test Case Generator.  This module provides a stateless, Stateless prompt builder for test case generation, Initialize prompt builder.          Args:             yaml_manager: Optional YAM, is_canonical_test_case(), Semantic validation for AI-generated test cases.  This module validates that tes, Check that a test case carries every canonical field with content.      A field, AI Test Case Generator - Modular Architecture  A comprehensive tool for generati (+30 more)
 
 ### Community 88 - "Cluster_81 & 82 Skill Docs"
-Cohesion: 0.15
-Nodes (24): AGENTS.md - CLI (skill file map), GitNexus - CLI (skill file map), Cluster_19 - When to Use, Cluster_1 - When to Use, Cluster_34 - When to Use, Integration - Connected Areas, Integration - Entry Points, Integration - Execution Flows (+16 more)
+Cohesion: 0.19
+Nodes (20): AGENTS.md - CLI (skill file map), GitNexus - CLI (skill file map), Cluster_19 - When to Use, Cluster_1 - When to Use, Cluster_34 - When to Use, Integration - Connected Areas, Integration - How to Explore, Integration - When to Use (+12 more)
 
 ### Community 89 - "HTMLTableParser"
 Cohesion: 0.22
 Nodes (14): _poor_example(), Unit tests for ``ProgressiveRAFTTrainer`` (curriculum assessment).  Coverage for, _rich_example(), _simple_example(), test_get_curriculum_status_structure(), test_get_training_recommendations_flags_sparse_dataset(), test_load_validated_examples_reads_annotated_only(), test_load_validated_examples_skips_corrupt() (+6 more)
 
 ### Community 90 - "Advanced Training Approaches"
-Cohesion: 0.12
-Nodes (12): Training module for RAFT data collection and dataset preparation, CurriculumStage, Logger, Path, Progressive RAFT Curriculum Assessment  This module does not train or fine-tune, Define progressive training curriculum, Tracks training curriculum progress, Load training progress from file (+4 more)
+Cohesion: 0.13
+Nodes (11): CurriculumStage, Logger, Path, Progressive RAFT Curriculum Assessment  This module does not train or fine-tune, Define progressive training curriculum, Tracks training curriculum progress, Load training progress from file, Defines requirements for a curriculum stage (+3 more)
 
 ### Community 91 - "REQIFZ Codebase Architecture Diagram"
 Cohesion: 0.11
@@ -744,12 +753,12 @@ Cohesion: 0.17
 Nodes (11): 1. Executive Summary, 2. Implementation Overview, 3. Issues & Findings (Priority Order), 4. Improvement Suggestions, 5. Conclusion, [CRITICAL] Memory Usage & Stability, [HIGH] Silent Failure on Image Loading, [LOW] Resource Cleanup (+3 more)
 
 ### Community 93 - "Secrets Configuration"
-Cohesion: 0.14
-Nodes (9): Comprehensive tests for BaseProcessor - the foundation of all processing workflo, Test metadata dictionary creation, Metadata includes all provided values, Metadata uses 'auto-selected' when template is None, Test RAFT training data collection, RAFT examples are saved when collector is enabled, RAFT example saving is no-op when collector is None, TestMetadataCreation (+1 more)
+Cohesion: 0.10
+Nodes (13): Comprehensive tests for BaseProcessor - the foundation of all processing workflo, Test metadata dictionary creation, Metadata includes all provided values, Metadata uses 'auto-selected' when template is None, Test RAFT training data collection, RAFT examples are saved when collector is enabled, RAFT example saving is no-op when collector is None, Test file-specific logger initialization (+5 more)
 
 ### Community 94 - "TestValidationStamping"
-Cohesion: 0.03
-Nodes (58): BaseSettings, PydanticBaseSettingsSource, ConfigManager, Select appropriate model based on requirement characteristics (hybrid strategy)., HighPerformanceREQIFArtifactExtractor, Extracts and processes artifacts from REQIFZ files, Extractor used by the HP pipeline.      Historically this class parallelized XML, REQIFArtifactExtractor (+50 more)
+Cohesion: 0.04
+Nodes (38): BaseSettings, PydanticBaseSettingsSource, ConfigManager, Select appropriate model based on requirement characteristics (hybrid strategy)., Standard processor for REQIFZ files using synchronous processing, REQIFZFileProcessor, Create mock configuration for testing, Test error conditions and edge cases in end-to-end workflows (+30 more)
 
 ### Community 95 - "GitNexus Guide"
 Cohesion: 0.18
@@ -784,8 +793,8 @@ Cohesion: 0.18
 Nodes (10): 1. Guiding Principles ("The Vibe"), 2. Code Quality & Modern Python, 3. Testing & Coverage, 4. Architecture & Components, 5. Documentation, Core, Executive Summary, Processors (+2 more)
 
 ### Community 103 - "OllamaClient Request Tests"
-Cohesion: 0.13
-Nodes (30): Enum, ArchiveLimitError, Exception, ZipFile, Archive-safety limits for REQIFZ (ZIP) extraction.  REQIFZ files are attacker-in, Read a single ZIP entry, decompressing at most ``max_bytes`` bytes.      Streams, Log and raise a rejection for an unsafe archive., Raised when a ZIP archive exceeds a configured safety limit. (+22 more)
+Cohesion: 0.14
+Nodes (29): Enum, ArchiveLimitError, Exception, ZipFile, Archive-safety limits for REQIFZ (ZIP) extraction.  REQIFZ files are attacker-in, Read a single ZIP entry, decompressing at most ``max_bytes`` bytes.      Streams, Log and raise a rejection for an unsafe archive., Raised when a ZIP archive exceeds a configured safety limit. (+21 more)
 
 ### Community 104 - "Copilot Instructions for AI_TC_Generator_v04_w_Trainer"
 Cohesion: 0.18
@@ -804,12 +813,12 @@ Cohesion: 0.33
 Nodes (13): _generator(), Tests for large-table chunking in the generator (archived finding 7).  Oversized, _table(), _tc(), test_async_oversized_table_generates_per_chunk_and_merges(), test_chunks_keep_other_requirement_fields(), test_merge_all_failed_returns_error(), test_merge_flattens_and_renumbers() (+5 more)
 
 ### Community 108 - "Network Error Handling Tests"
-Cohesion: 0.20
-Nodes (17): _load_cli_module(), _ollama_reason(), Path, Live-Ollama integration test for ``VisionRAFTTrainer.evaluate_model``.  The unit, A missing base model must fail the comparison and return CLI exit 1., A live run with a reference answer must populate content metrics., A live LLM-judge run must populate content quality and P/R/F1 in [0,1]., Return None when a reachable Ollama has TEXT_MODEL, else a skip reason. (+9 more)
+Cohesion: 0.10
+Nodes (34): Logger, Vision-Aware RAFT Prompt-Customized Model Creation  This module does not fine-tu, Creates a prompt-customized Ollama model from a RAFT dataset.      This class ha, Initialize vision RAFT trainer.          Args:             dataset_path: Path to, Configuration for vision model training, Track training progress and metrics, TrainingProgress, VisionRAFTTrainer (+26 more)
 
 ### Community 109 - "build_vision_dataset.py"
-Cohesion: 0.19
-Nodes (11): RAFT Training Dataset Builder  This module builds RAFT training datasets from an, main(), parse_args(), print_dataset_stats(), Any, Namespace, Validate input paths.      Args:         validated_dir: Path to validated exampl, Print dataset statistics.      Args:         raft_examples: List of RAFT trainin (+3 more)
+Cohesion: 0.24
+Nodes (10): main(), parse_args(), print_dataset_stats(), Any, Namespace, Validate input paths.      Args:         validated_dir: Path to validated exampl, Print dataset statistics.      Args:         raft_examples: List of RAFT trainin, Build vision RAFT dataset from validated examples.      Returns:         Exit co (+2 more)
 
 ### Community 110 - "Commands"
 Cohesion: 0.20
@@ -820,28 +829,28 @@ Cohesion: 0.20
 Nodes (9): After Indexing, analyze — Build or refresh the index, clean — Delete the index, Commands, GitNexus CLI Commands, list — Show all indexed repos, status — Check index freshness, Troubleshooting (+1 more)
 
 ### Community 112 - "Model Training Guide TOC"
-Cohesion: 0.36
-Nodes (4): Configuration for semantic validation, ValidationConfig, ValidationConfig/DeduplicationConfig must actually reach the components.      Re, TestConfigWiring
+Cohesion: 0.29
+Nodes (5): DeduplicationConfig, Configuration for test case deduplication, ValidationConfig/DeduplicationConfig must actually reach the components.      Re, DeduplicationConfig defaults must not reintroduce the legacy action/data fields., TestConfigWiring
 
 ### Community 113 - "Training Guide Setup Sections"
-Cohesion: 0.15
-Nodes (6): Format table data for inclusion in prompts.          Row display rules (kept con, Tables within the limit are shown in full (previously cut at >50)., Beyond the limit, the truncation note must scope coverage to displayed rows., Test table formatting with empty data (NEGATIVE), Test table truncation for large tables (EDGE CASE), Test table formatting error handling (NEGATIVE)
+Cohesion: 0.17
+Nodes (7): Test that prompt variables are correctly substituted., Test synchronous test case generation., Test successful test case generation., Test test case generation with specific template., Test handling of AI generation failure., Test handling of invalid JSON response from AI., TestTestCaseGenerator
 
 ### Community 114 - "Evaluation & Deployment"
 Cohesion: 0.18
 Nodes (6): Sync generator must return structured error dicts, mirroring the async     gener, A transport exception must surface as a structured error, not []., An empty AI response must be reported as EmptyResponse., A non-JSON response must be reported as InvalidJSONStructure., A response with an empty test_cases array must be reported as a failure., TestSyncGeneratorErrorContract
 
 ### Community 115 - "🎛️ Basic Usage Patterns"
-Cohesion: 0.17
-Nodes (9): Element, RequirementData, Parse REQIF XML content and extract artifacts, Build a mapping of SPEC-OBJECT-TYPE identifiers to their LONG-NAME values, Build mapping from SPEC-OBJECT-TYPE IDs to their ReqIF.ForeignID attribute ident, Build mapping from ATTRIBUTE-DEFINITION identifiers to their LONG-NAME values, Extract foreign ID from VALUES container, Extract a single spec object as an artifact (+1 more)
+Cohesion: 0.06
+Nodes (32): ArtifactList, ArtifactType, Any, Element, Path, RequirementData, StrEnum, Parse SPEC-RELATION elements and augment artifacts when enabled in config. (+24 more)
 
 ### Community 116 - "quality_scorer.py"
 Cohesion: 0.10
-Nodes (15): QualityAssessment, Complete quality assessment result, _poor_example(), Unit tests for the RAFT ``QualityScorer``.  Coverage for review 2026-07-20 Recom, A high-quality automotive example: domain keywords, diverse context, complex req, A degenerate example: no context, trivial requirement., _rich_example(), test_batch_assesses_and_summarizes() (+7 more)
+Nodes (16): QualityAssessment, Complete quality assessment result, _poor_example(), Unit tests for the RAFT ``QualityScorer``.  Coverage for review 2026-07-20 Recom, A high-quality automotive example: domain keywords, diverse context, complex req, A degenerate example: no context, trivial requirement., _rich_example(), test_batch_assesses_and_summarizes() (+8 more)
 
 ### Community 117 - "TestBaseProcessorInitialization"
-Cohesion: 0.18
-Nodes (6): Test handling of malformed AI responses, Test handling of invalid JSON in AI response, Test handling of JSON response missing expected keys, Test handling of malformed test case structures in response, Test handling of extremely large AI responses, TestMalformedResponses
+Cohesion: 0.22
+Nodes (9): 1. REQIFZ File Extraction, 2. Critical v2.0 Fix - Attribute Definition Mapping, 3. Context-Aware Processing (THE HEART OF THE SYSTEM), 4. Table Extraction, 5. Artifact Type Classification, 6. Prompt Building, 7. Test Case Generation, 8. Data Flow (+1 more)
 
 ### Community 118 - "Training Data Directory"
 Cohesion: 0.20
@@ -900,8 +909,8 @@ Cohesion: 0.25
 Nodes (7): Cluster_11, Entry Points, Execution Flows, How to Explore, Key Files, Key Symbols, When to Use
 
 ### Community 132 - "Cluster_40"
-Cohesion: 0.15
-Nodes (13): BaseModel, CLIConfig, FileProcessingConfig, ImageExtractionConfig, LoggingConfig, Configuration for requirement relationship parsing, Configuration for image extraction from REQIFZ files, Configuration for file processing and I/O operations (+5 more)
+Cohesion: 0.13
+Nodes (15): BaseModel, CLIConfig, FileProcessingConfig, ImageExtractionConfig, LoggingConfig, Configuration for semantic validation, Configuration for requirement relationship parsing, Configuration for image extraction from REQIFZ files (+7 more)
 
 ### Community 133 - "Tools"
 Cohesion: 0.22
@@ -916,7 +925,7 @@ Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
 ### Community 136 - "README.md"
-Cohesion: 0.17
+Cohesion: 0.15
 Nodes (6): Core Documentation, Documentation Index, Quick Links, Subdirectories, Archived Training Documents, Contents (superseded)
 
 ### Community 138 - "Expected Results & Benchmarks"
@@ -925,7 +934,7 @@ Nodes (11): Commands, Project, Basic Usage, Core Capabilities, Installation, Key
 
 ### Community 139 - "AI Test Case Generator v2.3.0"
 Cohesion: 0.11
-Nodes (18): 1. Collect RAFT examples during a normal run (opt-in), 2. Annotate the collected examples, 3. Build the vision RAFT dataset, 4. Create the prompt-customized Ollama model, 5. Evaluate a customized model on held-out data (optional), Judge calibration, Key configuration (`config/cli_config.yaml`, `training:` section), Known limitation: the LLM judge returns a near-constant match list (+10 more)
+Nodes (18): 1. Collect RAFT examples during a normal run (opt-in), 2. Annotate the collected examples, 3. Build the vision RAFT dataset, 4. Create the prompt-customized Ollama model, 5. Evaluate a customized model on held-out data (optional), Content scorer calibration, Key configuration (`config/cli_config.yaml`, `training:` section), Related source modules (+10 more)
 
 ### Community 140 - "Annotation Context Helpers"
 Cohesion: 0.21
@@ -992,8 +1001,8 @@ Cohesion: 0.13
 Nodes (14): Architecture, Component 1 — Shared contract & math (`src/training/content_scorer.py`), Component 2 — `LLMJudgeScorer` (new `src/training/llm_judge_scorer.py`), Component 3 — Trainer wiring (`src/training/vision_raft_trainer.py`), Component 4 — CLI selection (`utilities/train_vision_model.py`), Data Flow, Documentation, Error Handling (+6 more)
 
 ### Community 156 - "YAML Prompt Management System"
-Cohesion: 0.08
-Nodes (24): Advanced Features, Auto-Selection Rules, Available Templates, Backward Compatibility, Common Issues, Configuration, Creating New Templates, Directory Structure (+16 more)
+Cohesion: 0.25
+Nodes (8): Auto-Selection Rules, Available Templates, Configuration, Directory Structure, Main Configuration (`prompts/config/prompt_config.yaml`), Overview, Test Generation Templates, YAML Prompt Management System
 
 ### Community 157 - "AI Test Case Generator - Comprehensive Code Review"
 Cohesion: 0.25
@@ -1008,8 +1017,8 @@ Cohesion: 0.25
 Nodes (8): AI Context Enhancement, AI Test Case Generator User Manual, Creating Support Tickets, Excel File Structure, 📞 Need More Help?, 📂 Understanding the Output, 📖 Welcome to AI Test Case Generator, 🎯 What This Tool Does
 
 ### Community 160 - "Advanced Features"
-Cohesion: 0.25
-Nodes (5): Any, Get statistics on the RAFT dataset, Validate RAFT dataset format and quality.          Args:             dataset_pat, Split examples into (train, val) deterministically.          Args:             e, Write ``train.jsonl`` and ``val.jsonl`` to ``out_dir``.          Args:
+Cohesion: 0.15
+Nodes (9): Any, Logger, Path, Save RAFT dataset in Ollama fine-tuning format (with vision support).          A, Get statistics on the RAFT dataset, Validate RAFT dataset format and quality.          Args:             dataset_pat, Initialize RAFT dataset builder.          Args:             validated_dir: Direc, Split examples into (train, val) deterministically.          Args:             e (+1 more)
 
 ### Community 161 - "._calculate_similarity"
 Cohesion: 0.24
@@ -1036,12 +1045,12 @@ Cohesion: 0.50
 Nodes (4): Cluster_1 - Entry Points, Cluster_1 - How to Explore, Cluster_1 - Key Files, Cluster_1 - Key Symbols
 
 ### Community 167 - "JSON Parser Edge Cases"
-Cohesion: 0.10
-Nodes (22): CRITICAL TESTS: Context-aware requirement augmentation.      This is the heart o, Requirements are augmented with heading, info, and interface context, Design Information artifacts are folded into requirement context.          Paire, Information context resets after each requirement (critical!), New heading resets information context, Requirements with no text content are skipped, Requirements without heading use 'No Heading' default, Multiple requirements can share same heading context (+14 more)
+Cohesion: 0.06
+Nodes (32): Processors - Key Symbols, HighPerformanceREQIFZFileProcessor (class), REQIFZFileProcessor (class), CRITICAL TESTS: Context-aware requirement augmentation.      This is the heart o, Requirements are augmented with heading, info, and interface context, Design Information artifacts are folded into requirement context.          Paire, Information context resets after each requirement (critical!), New heading resets information context (+24 more)
 
 ### Community 168 - "Standard Processor Integration Tests"
-Cohesion: 0.09
-Nodes (20): RelationshipData, RelationshipList, RelationshipMap, Any, Element, StrEnum, Build mapping of SPEC-RELATION-TYPE identifiers to their LONG-NAME values, Extract a single SPEC-RELATION element (+12 more)
+Cohesion: 0.13
+Nodes (13): RelationshipList, RelationshipMap, Any, Augment requirements with relationship metadata.          Args:             requ, Calculate hierarchy level (depth) of a requirement.          Args:             r, Build a dependency graph from relationships.          Args:             relation, Find root requirements (those with no parent).          Args:             requir, Find leaf requirements (those with no children).          Args:             requ (+5 more)
 
 ### Community 169 - "Cluster_30"
 Cohesion: 0.29
@@ -1052,16 +1061,16 @@ Cohesion: 0.29
 Nodes (6): Cluster_74, Entry Points, How to Explore, Key Files, Key Symbols, When to Use
 
 ### Community 171 - ".__aexit__"
-Cohesion: 0.21
-Nodes (9): DuplicateGroup, Any, TestCaseList, Select which test cases to remove from a duplicate group.          Args:, Find the best test case in a duplicate group.          Criteria (in order):, Create a deduplication report.          Args:             original_count: Number, Find pairs of similar test cases without removing them.          Useful for revi, Remove duplicate test cases from a list.          Args:             test_cases: (+1 more)
+Cohesion: 0.22
+Nodes (5): Any, Build numbered list of context items for annotation, Display context items in a table for user review, Get user's selection of relevant (oracle) context items, Display detailed annotation help
 
 ### Community 172 - "ArtifactType Enum"
 Cohesion: 0.07
 Nodes (19): Any, Path, Configuration for secrets and sensitive data management, Load secrets from environment variables after initialization, Get a summary of secrets with masked values for logging, Validate that required secrets are present          Args:             required_s, Save current configuration to a YAML file.          The entire credential-bearin, Print a summary of current configuration (+11 more)
 
 ### Community 173 - "Resource Constraint Tests"
-Cohesion: 0.14
-Nodes (8): Test error conditions and edge cases in end-to-end workflows, Create temporary output directory for tests, Create mock configuration for testing, Path to sample REQIFZ file, Test handling of malformed REQIFZ files, Test handling of AI service timeouts, Test handling of insufficient file permissions, TestErrorConditions
+Cohesion: 0.22
+Nodes (7): RAFTAnnotator, Interactive annotation interface for RAFT training examples, Get quality rating and annotation notes from user, Get annotation statistics, annotator(), test_get_unannotated_files_missing_collected_dir(), test_init_creates_output_directories()
 
 ### Community 175 - "Cluster_83"
 Cohesion: 0.40
@@ -1116,8 +1125,8 @@ Cohesion: 0.70
 Nodes (4): formatCost(), formatTokens(), getSwarmStatus(), statusline()
 
 ### Community 188 - "Overview"
-Cohesion: 0.23
-Nodes (7): cli(), _load_cli_module(), CLI tests for --validate-judge on train_vision_model.py.  The calibration runner, _run_argv(), test_compare_base_without_evaluate_still_rejected(), test_validate_judge_defaults_content_scorer_to_none(), test_validate_judge_rejects_combination_with_evaluate()
+Cohesion: 0.31
+Nodes (6): cli(), _load_cli_module(), CLI tests for --validate-judge on train_vision_model.py.  The calibration runner, _run_argv(), test_compare_base_without_evaluate_still_rejected(), test_validate_judge_rejects_combination_with_evaluate()
 
 ### Community 189 - "REQIFZ Pipeline Stages"
 Cohesion: 0.25
@@ -1232,8 +1241,8 @@ Cohesion: 0.25
 Nodes (7): Cluster_45, Entry Points, Execution Flows, How to Explore, Key Files, Key Symbols, When to Use
 
 ### Community 217 - "Creating New Templates"
-Cohesion: 0.20
-Nodes (6): RequirementData, Build default prompt without template.          FIX: Updated to match YAML templ, Format requirement traceability relationships for inclusion in prompt., Build prompt from requirement data.          Args:             requirement: Requ, Build prompt using YAML template.          Args:             requirement: Requir, Level 0 (top-level) is the default and should not add noise.
+Cohesion: 0.05
+Nodes (24): Any, RequirementData, Build default prompt without template.          FIX: Updated to match YAML templ, Format table data for inclusion in prompts.          Row display rules (kept con, Format information list for inclusion in prompt (v03 restoration).          Args, Format system interface list for inclusion in prompt (v03 restoration)., Format requirement traceability relationships for inclusion in prompt., Format image context with specific analysis guidance for vision models (v2.3.0). (+16 more)
 
 ### Community 218 - "Development and Testing"
 Cohesion: 0.50
@@ -1284,8 +1293,8 @@ Cohesion: 0.50
 Nodes (3): Reporting a Vulnerability, Security Policy, Supported Versions
 
 ### Community 230 - "Fine-Tuning Methods"
-Cohesion: 0.29
-Nodes (6): SimilarityScore, Calculate similarity score between two test cases.          Args:             tc, Public field-similarity (0.0–1.0) between two test cases.          Single source, Resolve a comparison field through its schema aliases.          Returns the firs, Score a test case for quality comparison.          Returns:             Tuple of, TestCase
+Cohesion: 0.25
+Nodes (8): Architecture - 10/10, Gaps and Recommendations, LLM Integration - 9.5/10, Overall Rating: 9.0/10, Performance - 9.5/10, REQIFZ Extraction - 9.5/10, Requirement Understanding - 9.0/10, System Assessment
 
 ### Community 231 - "Advanced Training Topics"
 Cohesion: 0.50
@@ -1300,12 +1309,12 @@ Cohesion: 0.20
 Nodes (6): Test output file path generation, Output path uses input file's parent directory by default, Output path uses custom directory when provided, Model name with special characters is sanitized, Output filename includes timestamp for uniqueness, TestOutputPathGeneration
 
 ### Community 234 - "Installation Prerequisites"
-Cohesion: 0.33
-Nodes (8): dataset(), Failure-path tests for VisionRAFTTrainer.train().  Regression coverage for revie, A minimal one-line RAFT JSONL dataset., test_command_not_found_is_failed_with_error(), test_nonzero_returncode_is_failed_with_error(), test_success_is_completed_without_errors(), test_timeout_is_failed_with_error(), _trainer()
+Cohesion: 0.32
+Nodes (5): RelationshipData, Element, Build mapping of SPEC-RELATION-TYPE identifiers to their LONG-NAME values, Extract a single SPEC-RELATION element, Parse all SPEC-RELATION elements from REQIF XML.          Args:             root
 
 ### Community 235 - "Model Evaluation"
-Cohesion: 0.04
-Nodes (46): 1. REQIFZ File Extraction, 2. Critical v2.0 Fix - Attribute Definition Mapping, 3. Context-Aware Processing (THE HEART OF THE SYSTEM), 4. Table Extraction, 5. Artifact Type Classification, 6. Prompt Building, 7. Test Case Generation, 8. Data Flow (+38 more)
+Cohesion: 0.15
+Nodes (12): Architecture Philosophy, Critical Methods, Critical Takeaways, Key Statistics (From 28 Real Automotive Files), Performance Characteristics, Processing Performance, Quick Navigation, Quick Reference (+4 more)
 
 ### Community 236 - "🚀 Quick Start Guide"
 Cohesion: 0.25
@@ -1328,8 +1337,8 @@ Cohesion: 0.50
 Nodes (4): Error Types and Solutions, File Formats Supported, Getting Help, 📞 Support and Resources
 
 ### Community 241 - "📋 Quick Reference"
-Cohesion: 0.20
-Nodes (7): RAFTTrainingExample, Logger, Path, Convert annotated example to RAFT format (with vision support), Save RAFT dataset in Ollama fine-tuning format (with vision support).          A, Initialize RAFT dataset builder.          Args:             validated_dir: Direc, Build RAFT training dataset from annotated examples.          RAFT format:
+Cohesion: 0.50
+Nodes (3): RAFTTrainingExample, Convert annotated example to RAFT format (with vision support), Build RAFT training dataset from annotated examples.          RAFT format:
 
 ### Community 242 - "__init__.py"
 Cohesion: 0.18
@@ -1384,8 +1393,8 @@ Cohesion: 0.67
 Nodes (3): Critical Issues (Must Fix Before Production), Executive Summary, Key Strengths
 
 ### Community 257 - "Training Workflows"
-Cohesion: 0.22
-Nodes (5): Any, Format information list for inclusion in prompt (v03 restoration).          Args, Format image context with specific analysis guidance for vision models (v2.3.0)., Test info list formatting (POSITIVE), Test info list formatting with empty list (NEGATIVE)
+Cohesion: 0.29
+Nodes (7): Current Status, Current Value (Text-Only AI), Future Enhancements, Image Extraction, Image Sources Supported, Integration Proposal, Processing Features
 
 ### Community 258 - "Training Infrastructure Config"
 Cohesion: 0.29
@@ -1421,7 +1430,7 @@ Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphif
 
 ### Community 275 - "CHANGELOG.md"
 Cohesion: 0.10
-Nodes (19): Added, Added (CI), Added (feature), Added (test coverage), Added (test coverage), Changed, Changed, Changed (CI) (+11 more)
+Nodes (20): Added, Added (CI), Added (feature), Added (test coverage), Added (test coverage), Changed, Changed, Changed (CI) (+12 more)
 
 ### Community 277 - "test_keep_strategy_best"
 Cohesion: 0.18
@@ -1436,8 +1445,8 @@ Cohesion: 0.50
 Nodes (4): Best Practices, Template Design, Template Organization, Variable Usage
 
 ### Community 283 - "Creating New Templates"
-Cohesion: 0.40
-Nodes (5): Can I run on a Raspberry Pi or small device?, How much disk space do I need?, ⚡ Performance & Technical, What affects processing speed?, Why does high-performance mode need more RAM?
+Cohesion: 0.29
+Nodes (4): JSONObject, Optimized JSON extraction with faster regex patterns, Test that FastJSONResponseParser works with basic JSON., Test that FastJSONResponseParser handles fallback scenarios.
 
 ### Community 284 - "🚀 Quick Start Guide"
 Cohesion: 0.50
@@ -1476,8 +1485,8 @@ Cohesion: 0.50
 Nodes (4): Curriculum Learning Monitoring, Data Collection Monitoring, Monitoring Training, Training Progress Monitoring
 
 ### Community 294 - "📂 Understanding the Output"
-Cohesion: 0.25
-Nodes (4): Format system interface list for inclusion in prompt (v03 restoration)., Test interface formatting (POSITIVE), Test interface formatting with empty list (NEGATIVE), Test interface formatting with missing ID (EDGE CASE)
+Cohesion: 0.29
+Nodes (5): StrEnum, Relationship parser for REQIF SPEC-RELATION elements.  This module provides func, Classify relationship type based on type name, Enumeration of common REQIF relationship types, RelationType
 
 ### Community 295 - "verify_doc_examples.sh"
 Cohesion: 0.83
@@ -1500,40 +1509,44 @@ Cohesion: 0.67
 Nodes (3): Environment Configuration, Hardware Optimization, Training Environment Variables
 
 ### Community 301 - ".to_dict"
-Cohesion: 0.33
-Nodes (5): Partial generation failures must be visible in processor results     (review 202, One failed requirement out of two: success, but marked partial., No failures: partial must be False and failed_requirements empty., Every requirement failing must produce an unsuccessful result., TestPartialCompletionReporting
+Cohesion: 0.29
+Nodes (4): AugmentedRequirement, Build context-aware augmented requirements from artifacts.          This method, Save RAFT training example if collection is enabled.          This method is a n, Clean XML/HTML text for readable output. Handles str, list, or None.
 
 ### Community 302 - "TestTriStateBooleanFlags"
-Cohesion: 0.30
-Nodes (10): RAFTDatasetBuilder, Builds RAFT training dataset from annotated examples, _examples(), Unit tests for RAFT Dataset Builder  Tests cover positive, negative, and corner, Test handling Unicode characters in context, test_save_split_refuses_overwrite_without_force(), test_save_split_writes_two_jsonl_files(), test_split_is_deterministic_for_a_seed() (+2 more)
+Cohesion: 0.40
+Nodes (9): RAFTDatasetBuilder, Builds RAFT training dataset from annotated examples, _examples(), Unit tests for RAFT Dataset Builder  Tests cover positive, negative, and corner, test_save_split_refuses_overwrite_without_force(), test_save_split_writes_two_jsonl_files(), test_split_is_deterministic_for_a_seed(), test_split_keeps_at_least_one_val_and_one_train() (+1 more)
 
 ### Community 303 - ".test_build_dataset_nonexistent_directory"
-Cohesion: 0.25
-Nodes (5): Test Excel save failure (NEGATIVE), Integration tests for refactored standard processor, Test standard processor with no artifacts (NEGATIVE), Test when no test cases are generated (NEGATIVE), TestStandardProcessorIntegration
+Cohesion: 0.33
+Nodes (3): Training module for RAFT data collection and dataset preparation, Interactive RAFT Annotation Interface  This module provides an interactive inter, RAFT Training Dataset Builder  This module builds RAFT training datasets from an
 
 ### Community 304 - "🤖 Models & AI"
 Cohesion: 0.43
 Nodes (3): Preset max_concurrent=8 must beat deepseek recommended_concurrent=3., Preset values must control execution: mode, boolean flags, and     concurrency m, TestPresetPrecedence
 
 ### Community 306 - "Advanced Features"
-Cohesion: 0.29
-Nodes (4): Test behavior under resource constraints, Test behavior under simulated memory pressure, Test that concurrent request limits are delegated to client, TestResourceConstraints
+Cohesion: 0.40
+Nodes (5): Can I stop processing mid-way?, How do I process multiple REQIFZ files?, How many test cases should I expect?, 🎯 Usage & Operation, Why do I get "No test cases generated"?
 
 ### Community 307 - "Integration with Existing Code"
 Cohesion: 0.25
 Nodes (5): Integration tests for refactored HP processor, Test complete HP processing flow (POSITIVE), Test HP processor with no artifacts (NEGATIVE), Test HP processor with some errors (MIXED), TestHPProcessorIntegration
 
 ### Community 308 - "Support and Maintenance"
-Cohesion: 0.50
-Nodes (3): DeduplicationConfig, Configuration for test case deduplication, DeduplicationConfig defaults must not reintroduce the legacy action/data fields.
+Cohesion: 0.40
+Nodes (5): Code Locations Reference, Extraction & Parsing, Generation & Output, Processing & Context, Workflows
 
 ### Community 310 - "test_deduplication_rate_calculation"
-Cohesion: 0.67
-Nodes (3): Advanced Training Pipeline, Basic Training Workflow, Training Workflows
+Cohesion: 0.40
+Nodes (5): Component Linking Mechanism, Embedded Resources, Physical Structure, REQIFZ File Structure, XML Structure
 
 ### Community 311 - "📄 File Processing"
 Cohesion: 0.40
 Nodes (5): Can I install this on Windows?, Can I use system-installed Python instead of pip installs?, How do I know if Ollama is running?, 🎛️ Installation & Setup, What if I get "Python version not compatible"?
+
+### Community 312 - "Creating New Templates"
+Cohesion: 0.50
+Nodes (4): Integration - Entry Points, Integration - Execution Flows, Integration - Key Files, Integration - Key Symbols
 
 ### Community 313 - ".add_requirement_failure"
 Cohesion: 0.50
@@ -1543,25 +1556,49 @@ Nodes (4): Utilities - Entry Points, Utilities - Execution Flows, Utilities - Ke
 Cohesion: 0.50
 Nodes (4): Creating Prompt-Customized Models, Documentation, Performance Benchmarks, Troubleshooting
 
+### Community 315 - "test_multiple_levels_hierarchy"
+Cohesion: 0.50
+Nodes (4): Creating New Templates, Step 1: Add Template to YAML, Step 2: Add Selection Rules (Optional), Step 3: Test Your Template
+
+### Community 316 - "sample_reqif_without_relationships"
+Cohesion: 0.50
+Nodes (4): Overview, What is RAFT Vision Training?, What's New in v2.2.0?, Why Train Vision Models?
+
+### Community 317 - "test_parse_relationships_with_data"
+Cohesion: 0.67
+Nodes (3): Advanced Features, Performance Monitoring (Future), Template Inheritance (Future)
+
+### Community 318 - "Troubleshooting"
+Cohesion: 0.67
+Nodes (3): Backward Compatibility, Integration with Existing Code, Output File Changes
+
+### Community 319 - "Support and Maintenance"
+Cohesion: 0.67
+Nodes (3): Common Issues, Troubleshooting, Validation Commands
+
+### Community 321 - "Support and Maintenance"
+Cohesion: 0.67
+Nodes (3): Getting Help, Regular Maintenance, Support and Maintenance
+
 ## Knowledge Gaps
-- **1376 isolated node(s):** `statusline.sh script`, `cleanup_cache.sh script`, `ai-tc-generator`, `Core Workflow`, `Navigation` (+1371 more)
+- **1377 isolated node(s):** `statusline.sh script`, `cleanup_cache.sh script`, `ai-tc-generator`, `Core Workflow`, `Navigation` (+1372 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **29 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `RAFTDataCollector` connect `RAFTDataCollector` to `BaseProcessor`, `Advanced Training Approaches`, `System Assessment`, `validation_and_tools.py`?**
+- **Why does `RAFTDataCollector` connect `RAFTDataCollector` to `BaseProcessor`, `TestPromptBuilder`, `System Assessment`, `.test_build_dataset_nonexistent_directory`?**
+  _High betweenness centrality (0.119) - this node is a cross-community bridge._
+- **Why does `FileProcessingLogger` connect `System Assessment` to `BaseProcessor`, `Deduplicator Unit Tests`, `📂 Understanding the Output`, `OllamaClient Request Tests`, `RequirementImageExtractor`, `Standard Processor Integration Tests`, `SemanticValidator`, `Getting Started with AI Training: A Beginner's Guide`, `RAFTDataCollector`, `VisionRAFTTrainer`, `create_test_information`, `Artifact Extraction & Relationships`, `🎛️ Basic Usage Patterns`, `validation_and_tools.py`, `TestPromptBuilder`, `Custom Exception Hierarchy`?**
   _High betweenness centrality (0.104) - this node is a cross-community bridge._
-- **Why does `FileProcessingLogger` connect `validation_and_tools.py` to `BaseProcessor`, `ConfigManager Settings`, `Ollama Exception Types`, `SemanticValidator`, `OllamaClient Request Tests`, `RequirementImageExtractor`, `Standard Processor Integration Tests`, `TestCaseDeduplicator Core`, `Getting Started with AI Training: A Beginner's Guide`, `RAFTDataCollector`, `Prompt Builder Formatting`, `System Assessment`, `create_test_information`, `V03CompatibilityVerifier`, `TestValidationStamping`?**
-  _High betweenness centrality (0.087) - this node is a cross-community bridge._
-- **Why does `Architecture` connect `__init__.py` to `CLAUDE.md Critical Architecture Rules`, `Expected Results & Benchmarks`, `.add_warning`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
+- **Why does `ConfigManager` connect `TestValidationStamping` to `BaseProcessor`, `Core Extraction & Generation Pipeline`, `ConfigManager Settings`, `main.py`, `test_keep_strategy_best`, `AppLogger`, `JSON Parser Edge Cases`, `DeduplicationConfig`, `Vision Fix Tests`, `ArtifactType Enum`, `TestSecretExclusion`, `🤖 Models & AI`, `Creating New Templates`, `test_keep_strategy_best`, `V03CompatibilityVerifier`, `REQIF Extractor Robustness Tests`, `TestPromptBuilder`, `.process_file`, `Custom Exception Hierarchy`, `Relationship Parsing Integration Tests`, `TestTriStateBooleanFlags`, `System Assessment`, `validation_and_tools.py`, `Secrets Configuration`, `OllamaClient Request Tests`, `Troubleshooting Guide`, `Network Error Handling Tests`, `📊 Understanding Results`, `🎛️ Basic Usage Patterns`, `Advanced Features`?**
+  _High betweenness centrality (0.099) - this node is a cross-community bridge._
 - **Are the 92 inferred relationships involving `ConfigManager` (e.g. with `AppLogger` and `_JsonFormatter`) actually correct?**
   _`ConfigManager` has 92 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 51 inferred relationships involving `BaseProcessor` (e.g. with `ConfigManager` and `FileProcessingLogger`) actually correct?**
   _`BaseProcessor` has 51 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 41 inferred relationships involving `OllamaClient` (e.g. with `AsyncTestCaseGenerator` and `_GeneratorCore`) actually correct?**
-  _`OllamaClient` has 41 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 40 inferred relationships involving `OllamaClient` (e.g. with `AsyncTestCaseGenerator` and `_GeneratorCore`) actually correct?**
+  _`OllamaClient` has 40 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 39 inferred relationships involving `YAMLPromptManager` (e.g. with `generate_sample_outputs()` and `test_auto_selection()`) actually correct?**
   _`YAMLPromptManager` has 39 INFERRED edges - model-reasoned connections that need verification._

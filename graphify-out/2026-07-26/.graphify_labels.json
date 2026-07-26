@@ -320,11 +320,8 @@
   "318": "Troubleshooting",
   "319": "Support and Maintenance",
   "320": "TestTriStateBooleanFlags",
-  "321": "test_calculate_hierarchy_level_with_cycle",
   "322": "test_extract_spec_relation_with_missing_source",
   "323": ".test_build_dataset_empty_directory",
   "324": ".test_mixed_annotated_and_unannotated",
-  "325": ".test_build_dataset_success",
-  "326": "test_multiple_duplicate_groups",
-  "327": "test_keep_strategy_first"
+  "325": ".test_build_dataset_success"
 }
