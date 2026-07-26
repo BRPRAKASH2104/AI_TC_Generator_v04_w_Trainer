@@ -45,6 +45,9 @@ import argparse
 import logging
 import os
 import sys
+from collections.abc import (
+    Sequence,  # noqa: TC003 -- must resolve at runtime (no `from __future__ import annotations` here)
+)
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +55,8 @@ from typing import Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from src.training.judge_calibration import format_report, run_calibration  # noqa: E402
+from src.training.judge_calibration_cases import DEFAULT_CALIBRATION_CASES  # noqa: E402
 from src.training.vision_raft_trainer import (  # noqa: E402
     VisionRAFTTrainer,
     VisionTrainingConfig,
@@ -145,11 +150,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--content-scorer",
         choices=("overlap", "llm"),
-        default="overlap",
+        default=None,
         help=(
-            "Content scorer for --evaluate: 'overlap' (deterministic string "
-            "similarity, default) or 'llm' (LLM-as-judge semantic matching + "
-            "quality; non-deterministic, needs a local judge model)."
+            "Content scorer: 'overlap' (deterministic string similarity, the "
+            "default for --evaluate) or 'llm' (LLM-as-judge semantic matching + "
+            "quality; non-deterministic, needs a local judge model). With "
+            "--validate-judge, omitting this runs BOTH scorers."
         ),
     )
     parser.add_argument(
@@ -159,7 +165,22 @@ def parse_args() -> argparse.Namespace:
         help="Judge model for --content-scorer llm (default: config judge_model, llama3.1:8b).",
     )
 
+    parser.add_argument(
+        "--validate-judge",
+        action="store_true",
+        help=(
+            "Calibration mode: score built-in gold-by-construction fixtures with "
+            "the content scorer(s) and report whether each lands in its expected "
+            "band. Needs no dataset and no trained model. Exits 1 on any breach."
+        ),
+    )
+
     args = parser.parse_args()
+
+    # Calibration is a standalone mode over built-in fixtures; combining it with
+    # dataset evaluation would silently run only one of them.
+    if args.validate_judge and args.evaluate:
+        parser.error("--validate-judge cannot be combined with --evaluate")
 
     # --compare-base only has meaning in evaluation mode; accepting it during
     # model creation would silently ignore it (2026-07-24 review, Optional 7).
@@ -498,6 +519,53 @@ def run_evaluation(
     return 1 if total == 0 or failed >= total or baseline_unusable else 0
 
 
+def run_judge_calibration(
+    scorer_kinds: Sequence[str],
+    judge_model: str | None = None,
+) -> int:
+    """Calibrate content scorers against the built-in fixtures and print a scorecard.
+
+    Args:
+        scorer_kinds: Scorer kinds to run, in order ("overlap" and/or "llm").
+        judge_model: Judge model for the "llm" scorer; None uses the config
+            default.
+
+    Returns:
+        0 when every declared band held for every scorer, 1 when any band was
+        breached or any scorer faulted.
+    """
+    config_kwargs: dict[str, Any] = {}
+    if judge_model is not None:
+        config_kwargs["judge_model"] = judge_model
+    config = VisionTrainingConfig(**config_kwargs)
+
+    reports = []
+    for kind in scorer_kinds:
+        if kind == "llm":
+            from src.core.ollama_client import OllamaClient
+            from src.training.llm_judge_scorer import LLMJudgeScorer
+
+            scorer: Any = LLMJudgeScorer(judge_model=config.judge_model)
+            client: Any = OllamaClient()
+        else:
+            from src.training.content_scorer import ReferenceOverlapScorer
+
+            scorer = ReferenceOverlapScorer(config.content_match_threshold)
+            client = None
+        reports.append(
+            run_calibration(
+                scorer,
+                kind,
+                DEFAULT_CALIBRATION_CASES,
+                client=client,
+                judge_model=config.judge_model,
+            )
+        )
+
+    print(format_report(reports))
+    return 0 if all(report["passed"] for report in reports) else 1
+
+
 def main() -> int:
     """Create a prompt-customized vision model from the RAFT dataset.
 
@@ -512,6 +580,20 @@ def main() -> int:
         if args.verbose:
             logging.getLogger().setLevel(logging.DEBUG)
             logger.debug("Verbose logging enabled")
+
+        # Calibration-only mode: validate the content scorers against built-in
+        # fixtures. Needs no dataset, no trained model, and no Ollama unless the
+        # llm column is being run.
+        if args.validate_judge:
+            kinds = ("overlap", "llm") if args.content_scorer is None else (args.content_scorer,)
+            if "llm" in kinds:
+                logger.info("Checking Ollama connection...")
+                if not check_ollama_connection():
+                    logger.error("Cannot connect to Ollama at http://localhost:11434")
+                    logger.error("Please ensure Ollama is running: ollama serve")
+                    return 1
+                logger.info("✅ Ollama is running")
+            return run_judge_calibration(kinds, judge_model=args.judge_model)
 
         # Evaluation-only mode: score an existing customized model on a held-out
         # dataset. This is a separate path - the training dataset and the base /
@@ -528,7 +610,7 @@ def main() -> int:
                 args.output_model,
                 args.compare_base,
                 args.base_model,
-                content_scorer_kind=args.content_scorer,
+                content_scorer_kind=args.content_scorer or "overlap",
                 judge_model=args.judge_model,
             )
 

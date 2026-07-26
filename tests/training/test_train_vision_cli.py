@@ -383,11 +383,42 @@ def test_print_omits_content_when_absent(tmp_path, monkeypatch):
     assert "content f1" not in lines
 
 
-def test_content_scorer_flag_defaults(monkeypatch):
+def test_content_scorer_flag_parses_to_none_by_default(monkeypatch):
+    """``--content-scorer`` has no parse-level default: ``--validate-judge``
+    needs to distinguish "omitted" (run both scorers) from an explicit choice,
+    so the default moved from ``"overlap"`` to ``None``. The user-visible
+    ``--evaluate`` behavior is unchanged -- see
+    ``test_evaluate_without_content_scorer_still_resolves_to_overlap``.
+    """
     monkeypatch.setattr(sys, "argv", ["prog", "--evaluate", "x.jsonl"])
     args = tvm.parse_args()
-    assert args.content_scorer == "overlap"
+    assert args.content_scorer is None
     assert args.judge_model is None
+
+
+def test_evaluate_without_content_scorer_still_resolves_to_overlap(tmp_path, monkeypatch):
+    """``--content-scorer`` parses to ``None`` when omitted (see above), but
+    ``main()`` must still resolve that to ``"overlap"`` at the
+    ``run_evaluation`` call site so today's ``--evaluate`` behavior is
+    unchanged. This is the whole justification for the ``None`` default: if
+    someone later drops the ``args.content_scorer or "overlap"`` resolution,
+    this test fails.
+    """
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    monkeypatch.setattr(sys, "argv", ["prog", "--evaluate", str(test_set)])
+    monkeypatch.setattr(tvm, "check_ollama_connection", lambda: True)
+
+    seen_kwargs = {}
+
+    def _fake_run_evaluation(*args, **kwargs):
+        seen_kwargs.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(tvm, "run_evaluation", _fake_run_evaluation)
+
+    assert tvm.main() == 0
+    assert seen_kwargs["content_scorer_kind"] == "overlap"
 
 
 def test_content_scorer_flag_llm(monkeypatch):
