@@ -6,7 +6,11 @@ aggregation are pinned without needing Ollama.
 
 from typing import TYPE_CHECKING, Any
 
+import pytest
+
+from src.training.content_scorer import ReferenceOverlapScorer
 from src.training.judge_calibration import CalibrationCase, run_calibration
+from src.training.judge_calibration_cases import DEFAULT_CALIBRATION_CASES
 
 if TYPE_CHECKING:
     from src.training.content_scorer import ContentScore
@@ -172,3 +176,50 @@ def test_client_and_judge_model_are_threaded_to_the_scorer():
 
     assert seen["client"] is sentinel
     assert seen["judge_model"] == "llama3.1:8b"
+
+
+def _overlap_report():
+    return run_calibration(ReferenceOverlapScorer(0.85), "overlap", DEFAULT_CALIBRATION_CASES)
+
+
+def test_default_cases_have_the_five_expected_names():
+    names = [case["name"] for case in DEFAULT_CALIBRATION_CASES]
+    assert names == ["identity", "disjoint", "subset", "paraphrase", "noise"]
+
+
+def test_every_default_case_declares_bands_for_both_scorer_kinds():
+    for case in DEFAULT_CALIBRATION_CASES:
+        assert set(case["expected"]) == {"overlap", "llm"}, case["name"]
+
+
+def test_overlap_column_passes_every_default_case():
+    """The overlap scorer is deterministic, so this pins its real behavior."""
+    report = _overlap_report()
+
+    failures = [r["name"] for r in report["results"] if not r["passed"]]
+    assert failures == [], f"overlap breached bands for: {failures}"
+    assert report["errors"] == 0
+
+
+def test_overlap_scores_identity_perfectly():
+    result = _overlap_report()["results"][0]
+    assert result["score"]["f1"] == pytest.approx(1.0)
+
+
+def test_overlap_fails_to_match_paraphrases():
+    """The known limitation this whole phase exists to measure."""
+    result = next(r for r in _overlap_report()["results"] if r["name"] == "paraphrase")
+    assert result["score"]["f1"] <= 0.35
+    assert result["passed"] is True, "the low score IS the expected overlap behavior"
+
+
+def test_overlap_subset_recall_is_one_half():
+    result = next(r for r in _overlap_report()["results"] if r["name"] == "subset")
+    assert result["score"]["recall"] == pytest.approx(0.5)
+    assert result["score"]["precision"] == pytest.approx(1.0)
+
+
+def test_overlap_noise_precision_penalises_padding():
+    result = next(r for r in _overlap_report()["results"] if r["name"] == "noise")
+    assert result["score"]["recall"] == pytest.approx(1.0)
+    assert result["score"]["precision"] == pytest.approx(0.6)
