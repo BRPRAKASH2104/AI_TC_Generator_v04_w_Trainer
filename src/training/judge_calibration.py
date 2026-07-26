@@ -10,12 +10,11 @@ known limitation of one scorer as expected behaviour while holding another to a
 higher bar (see ``judge_calibration_cases.DEFAULT_CALIBRATION_CASES``).
 """
 
-from typing import TYPE_CHECKING, Any, TypedDict
+from collections.abc import Sequence  # noqa: TC003 -- must resolve at runtime for get_type_hints()
+from typing import Any, TypedDict
 
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from src.training.content_scorer import ContentScore, ContentScorer
+# ContentScore/ContentScorer must resolve at runtime for get_type_hints() to work
+from src.training.content_scorer import ContentScore, ContentScorer  # noqa: TC001
 
 # Inclusive (min, max); either bound may be None to leave that side open.
 Band = tuple[float | None, float | None]
