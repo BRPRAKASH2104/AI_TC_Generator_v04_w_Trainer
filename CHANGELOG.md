@@ -128,12 +128,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--content-scorer overlap` needs no Ollama. Exits 1 on any breached band.
   The originally-planned cloud judge was cancelled — the project's no-cloud-API
   principle applies to the evaluation path too. **Live calibration finding:**
-  two runs against a local `llama3.1:8b` judge measured `paraphrase` f1 = 0.667
-  (band 0.70–1.00, deterministically reproduced both runs) and the `llm` column
-  also missed `identity`/`disjoint`/`noise` — see
-  `docs/training/README.md#judge-calibration` for the full scorecard.
-  `--content-scorer llm` is **not currently justified** over the deterministic
-  `overlap` default on this evidence; the new opt-in
+  probing the judge's raw match output shows it returns a near-constant match
+  list (`[[0,0],[1,1]]`) regardless of input — identical across `identity`,
+  `paraphrase`, `noise`, and even a reordered fixture — so the harness got zero
+  paraphrase-specific signal; the judge's paraphrase competence is
+  **unmeasured, not failed**. The judge also missed `identity`/`disjoint`/
+  `noise`, and its one `subset` PASS is a false positive (its count-only
+  `_count_valid_pairs` check happens to land on the right number). See
+  `docs/training/README.md#judge-calibration` for the full scorecard and probe
+  table. `--content-scorer llm` is **not currently justified** over the
+  deterministic `overlap` default on this evidence; the new opt-in
   `tests/training/test_judge_calibration_integration.py` records the live
   result reproducibly (`-m integration`).
 

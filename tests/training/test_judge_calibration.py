@@ -4,16 +4,13 @@ Uses scripted fake scorers so the runner's band-checking, error isolation, and
 aggregation are pinned without needing Ollama.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pytest
 
-from src.training.content_scorer import ReferenceOverlapScorer
+from src.training.content_scorer import ContentScore, ReferenceOverlapScorer  # noqa: TC001
 from src.training.judge_calibration import CalibrationCase, format_report, run_calibration
 from src.training.judge_calibration_cases import DEFAULT_CALIBRATION_CASES
-
-if TYPE_CHECKING:
-    from src.training.content_scorer import ContentScore
 
 
 class _FixedScorer:

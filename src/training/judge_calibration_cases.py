@@ -85,7 +85,7 @@ _PARA_ANTI_PINCH: dict = {
 
 _PARA_MIRROR_FOLD: dict = {
     "summary_suffix": "Wing mirrors retract on central locking",
-    "preconditions": "Doors in open state, mirrors extended, engine switched off",
+    "preconditions": "Vehicle in unlocked state, mirrors extended, engine switched off",
     "test_steps": ("1. Press lock on the keyless remote\n2. Watch the wing mirrors on both sides"),
     "expected_result": "Each wing mirror swings inward no more than 3 seconds after lock",
     "test_type": "Functional",
