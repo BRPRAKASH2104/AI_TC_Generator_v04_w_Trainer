@@ -4,18 +4,12 @@ Uses scripted fake scorers so the runner's band-checking, error isolation, and
 aggregation are pinned without needing Ollama.
 """
 
-from typing import Any
 
 import pytest
 
-from src.training.content_scorer import (  # noqa: TC001
-    ContentScore,
-    ReferenceOverlapScorer,
-    _prf,
-)
+from src.training.content_scorer import ContentScore, ReferenceOverlapScorer  # noqa: TC001
 from src.training.judge_calibration import CalibrationCase, format_report, run_calibration
 from src.training.judge_calibration_cases import DEFAULT_CALIBRATION_CASES
-from src.training.llm_judge_scorer import LLMJudgeScorer
 
 
 class _FixedScorer:
@@ -28,9 +22,6 @@ class _FixedScorer:
         self,
         generated_cases: list[dict],
         reference_cases: list[dict],
-        *,
-        client: Any = None,
-        judge_model: str | None = None,
     ) -> ContentScore | None:
         return self._score
 
@@ -45,14 +36,11 @@ class _RaisingScorer:
         self,
         generated_cases: list[dict],
         reference_cases: list[dict],
-        *,
-        client: Any = None,
-        judge_model: str | None = None,
     ) -> ContentScore | None:
         self.calls += 1
         if self.calls == 1:
             raise RuntimeError("judge exploded")
-        return {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": 1.0}
+        return {"precision": 1.0, "recall": 1.0, "f1": 1.0}
 
 
 def _case(name: str, expected: dict) -> CalibrationCase:
@@ -67,7 +55,7 @@ def _case(name: str, expected: dict) -> CalibrationCase:
 
 def test_all_bands_within_range_passes():
     cases = [_case("identity", {"overlap": {"f1": (0.9, 1.0)}})]
-    scorer = _FixedScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None})
+    scorer = _FixedScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0})
 
     report = run_calibration(scorer, "overlap", cases)
 
@@ -80,7 +68,7 @@ def test_all_bands_within_range_passes():
 
 def test_breached_band_fails_the_report():
     cases = [_case("paraphrase", {"llm": {"f1": (0.7, 1.0)}})]
-    scorer = _FixedScorer({"precision": 0.2, "recall": 0.2, "f1": 0.2, "quality": None})
+    scorer = _FixedScorer({"precision": 0.2, "recall": 0.2, "f1": 0.2})
 
     report = run_calibration(scorer, "llm", cases)
 
@@ -92,7 +80,7 @@ def test_breached_band_fails_the_report():
 
 def test_none_metric_with_declared_band_is_a_breach_not_a_crash():
     cases = [_case("empty", {"llm": {"quality": (0.5, 1.0)}})]
-    scorer = _FixedScorer({"precision": None, "recall": 0.0, "f1": 0.0, "quality": None})
+    scorer = _FixedScorer({"precision": None, "recall": 0.0, "f1": 0.0})
 
     report = run_calibration(scorer, "llm", cases)
 
@@ -128,7 +116,7 @@ def test_scorer_exception_is_isolated_and_run_continues():
 
 def test_bands_are_selected_by_scorer_kind():
     cases = [_case("paraphrase", {"overlap": {"f1": (0.0, 0.35)}, "llm": {"f1": (0.7, 1.0)}})]
-    scorer = _FixedScorer({"precision": 0.0, "recall": 0.0, "f1": 0.0, "quality": None})
+    scorer = _FixedScorer({"precision": 0.0, "recall": 0.0, "f1": 0.0})
 
     assert run_calibration(scorer, "overlap", cases)["passed"] is True
     assert run_calibration(scorer, "llm", cases)["passed"] is False
@@ -136,7 +124,7 @@ def test_bands_are_selected_by_scorer_kind():
 
 def test_kind_with_no_declared_bands_is_not_checked():
     cases = [_case("identity", {"overlap": {"f1": (0.9, 1.0)}})]
-    scorer = _FixedScorer({"precision": 0.0, "recall": 0.0, "f1": 0.0, "quality": None})
+    scorer = _FixedScorer({"precision": 0.0, "recall": 0.0, "f1": 0.0})
 
     report = run_calibration(scorer, "llm", cases)
 
@@ -146,38 +134,16 @@ def test_kind_with_no_declared_bands_is_not_checked():
 
 def test_bands_are_inclusive_at_both_ends():
     cases = [_case("edge", {"overlap": {"f1": (0.5, 0.5)}})]
-    scorer = _FixedScorer({"precision": 0.5, "recall": 0.5, "f1": 0.5, "quality": None})
+    scorer = _FixedScorer({"precision": 0.5, "recall": 0.5, "f1": 0.5})
 
     assert run_calibration(scorer, "overlap", cases)["passed"] is True
 
 
 def test_open_ended_band_accepts_none_bound():
     cases = [_case("open", {"overlap": {"f1": (0.9, None)}})]
-    scorer = _FixedScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None})
+    scorer = _FixedScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0})
 
     assert run_calibration(scorer, "overlap", cases)["passed"] is True
-
-
-def test_client_and_judge_model_are_threaded_to_the_scorer():
-    seen: dict[str, Any] = {}
-
-    class _Recording:
-        def score(self, generated_cases, reference_cases, *, client=None, judge_model=None):
-            seen["client"] = client
-            seen["judge_model"] = judge_model
-            return {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}
-
-    sentinel = object()
-    run_calibration(
-        _Recording(),
-        "llm",
-        [_case("identity", {"llm": {"f1": (0.9, 1.0)}})],
-        client=sentinel,
-        judge_model="llama3.1:8b",
-    )
-
-    assert seen["client"] is sentinel
-    assert seen["judge_model"] == "llama3.1:8b"
 
 
 def _overlap_report():
@@ -189,9 +155,9 @@ def test_default_cases_have_the_six_expected_names():
     assert names == ["identity", "disjoint", "subset", "paraphrase", "noise", "mixed"]
 
 
-def test_every_default_case_declares_bands_for_both_scorer_kinds():
+def test_every_default_case_declares_overlap_bands():
     for case in DEFAULT_CALIBRATION_CASES:
-        assert set(case["expected"]) == {"overlap", "llm"}, case["name"]
+        assert set(case["expected"]) == {"overlap"}, case["name"]
 
 
 def test_overlap_column_passes_every_default_case():
@@ -234,7 +200,7 @@ def _report_with(scorer_kind: str, score: ContentScore | None, band: tuple):
 
 def test_format_report_renders_case_name_and_pass_marker():
     report = _report_with(
-        "overlap", {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}, (0.9, 1.0)
+        "overlap", {"precision": 1.0, "recall": 1.0, "f1": 1.0}, (0.9, 1.0)
     )
 
     text = format_report([report])
@@ -246,7 +212,7 @@ def test_format_report_renders_case_name_and_pass_marker():
 
 def test_format_report_marks_a_breach_and_overall_failure():
     report = _report_with(
-        "llm", {"precision": 0.1, "recall": 0.1, "f1": 0.1, "quality": None}, (0.7, 1.0)
+        "llm", {"precision": 0.1, "recall": 0.1, "f1": 0.1}, (0.7, 1.0)
     )
 
     text = format_report([report])
@@ -267,10 +233,10 @@ def test_format_report_shows_errors_distinctly_from_breaches():
 
 def test_format_report_puts_both_scorers_side_by_side():
     good = _report_with(
-        "overlap", {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}, (0.9, 1.0)
+        "overlap", {"precision": 1.0, "recall": 1.0, "f1": 1.0}, (0.9, 1.0)
     )
     bad = _report_with(
-        "llm", {"precision": 0.1, "recall": 0.1, "f1": 0.1, "quality": None}, (0.7, 1.0)
+        "llm", {"precision": 0.1, "recall": 0.1, "f1": 0.1}, (0.7, 1.0)
     )
 
     text = format_report([good, bad])
@@ -287,32 +253,10 @@ def test_format_report_handles_no_reports():
 def test_format_report_notes_unchecked_cases():
     cases = [_case("identity", {"overlap": {"f1": (0.9, 1.0)}})]
     report = run_calibration(
-        _FixedScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}), "llm", cases
+        _FixedScorer({"precision": 1.0, "recall": 1.0, "f1": 1.0}), "llm", cases
     )
 
     assert "not checked" in format_report([report])
-
-
-def _pairing_score(pairs: list, generated: list[dict], reference: list[dict]):
-    """Score an explicit index pairing the way ``LLMJudgeScorer`` would.
-
-    Simulates a judge that emitted ``pairs``, so a fixture's power to catch a
-    specific judge failure can be asserted without calling a model.
-
-    Args:
-        pairs: ``[generated_index, reference_index]`` pairs the judge returned.
-        generated: The generated cases.
-        reference: The reference cases.
-
-    Returns:
-        The ``(precision, recall, f1)`` that judge would have scored.
-    """
-    matched = LLMJudgeScorer._count_valid_pairs(pairs, len(generated), len(reference))
-    return _prf(matched, len(generated), len(reference))
-
-
-def _mixed_case() -> CalibrationCase:
-    return next(case for case in DEFAULT_CALIBRATION_CASES if case["name"] == "mixed")
 
 
 def test_overlap_scores_mixed_by_true_matches_only():
@@ -321,55 +265,3 @@ def test_overlap_scores_mixed_by_true_matches_only():
 
     assert result["score"]["precision"] == pytest.approx(1 / 3)
     assert result["score"]["recall"] == pytest.approx(1 / 3)
-
-
-def test_mixed_case_catches_an_over_pairing_judge():
-    """The reason this fixture exists.
-
-    The metric counts matched *pairs* and never checks which pairs, so a judge
-    that pairs everything 1:1 scores perfectly on most constructions. Here the
-    true match count (1) is far below ``min(len(generated), len(reference))``,
-    so over-pairing is forced outside the declared band.
-    """
-    case = _mixed_case()
-    generated, reference = case["generated"], case["reference"]
-    low, high = case["expected"]["llm"]["f1"]
-
-    correct = _pairing_score([[0, 0]], generated, reference)[2]
-    over_pairing = _pairing_score([[0, 0], [1, 1], [2, 2]], generated, reference)[2]
-
-    assert low <= correct <= high, "the correct pairing must land inside the band"
-    assert over_pairing > high, "an over-pairing judge must breach the band"
-
-
-def test_permutation_construction_would_not_catch_an_over_pairing_judge():
-    """Why there is no ``permutation`` fixture, pinned so nobody re-adds one.
-
-    Shuffling the reference cases into the generated slot looks like it should
-    expose a judge that pairs by position rather than by meaning. It does not:
-    a permutation has as many true matches as ``min(len(generated),
-    len(reference))``, so pairing everything 1:1 reaches the correct score by
-    the wrong route and stays indistinguishable from real matching.
-    """
-    reference = _mixed_case()["reference"]
-    permuted = [reference[2], reference[0], reference[1]]
-    all_pairs = [[0, 0], [1, 1], [2, 2]]
-
-    assert _pairing_score(all_pairs, permuted, reference)[2] == pytest.approx(1.0)
-    assert _pairing_score([[0, 1], [1, 2], [2, 0]], permuted, reference)[2] == pytest.approx(1.0)
-
-
-def test_right_count_wrong_item_remains_undetectable():
-    """The residual hole, pinned honestly rather than claimed closed.
-
-    ``mixed`` catches a judge that claims *too many* matches. It cannot catch
-    one that claims the right number of matches between the wrong items, because
-    ``ContentScore`` exposes only counts, never the pairing itself.
-    """
-    case = _mixed_case()
-    generated, reference = case["generated"], case["reference"]
-
-    correct = _pairing_score([[0, 0]], generated, reference)[2]
-    wrong_item = _pairing_score([[1, 2]], generated, reference)[2]
-
-    assert wrong_item == pytest.approx(correct)

@@ -30,7 +30,7 @@ def test_perfect_overlap_scores_one():
     """Test that perfect overlap scores 1.0 across all metrics."""
     scorer = ReferenceOverlapScorer()
     score = scorer.score([CASE_A, CASE_B], [CASE_A, CASE_B])
-    assert score == {"precision": 1.0, "recall": 1.0, "f1": 1.0, "quality": None}
+    assert score == {"precision": 1.0, "recall": 1.0, "f1": 1.0}
 
 
 def test_disjoint_scores_zero():
@@ -73,23 +73,4 @@ def test_no_generated_gives_zero_recall_none_precision():
     """Test scoring with no generated cases."""
     scorer = ReferenceOverlapScorer()
     score = scorer.score([], [CASE_A])
-    assert score == {"precision": None, "recall": 0.0, "f1": 0.0, "quality": None}
-
-
-def test_overlap_scorer_emits_quality_none():
-    """Test that overlap scorer emits quality: None."""
-    scorer = ReferenceOverlapScorer()
-    assert scorer.score([CASE_A], [CASE_A]) == {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0,
-        "quality": None,
-    }
-
-
-def test_overlap_scorer_ignores_widened_params():
-    """Test that overlap scorer ignores client and judge_model params."""
-    scorer = ReferenceOverlapScorer()
-    baseline = scorer.score([CASE_A, CASE_B], [CASE_A])
-    widened = scorer.score([CASE_A, CASE_B], [CASE_A], client=object(), judge_model="x")
-    assert widened == baseline
+    assert score == {"precision": None, "recall": 0.0, "f1": 0.0}

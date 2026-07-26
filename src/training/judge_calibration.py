@@ -103,15 +103,11 @@ def _run_case(
     scorer: ContentScorer,
     scorer_kind: str,
     case: CalibrationCase,
-    client: Any,
-    judge_model: str | None,
 ) -> CalibrationResult:
     """Score one case and check it, isolating any scorer fault."""
     bands = case["expected"].get(scorer_kind, {})
     try:
-        score = scorer.score(
-            case["generated"], case["reference"], client=client, judge_model=judge_model
-        )
+        score = scorer.score(case["generated"], case["reference"])
     except Exception as exc:  # noqa: BLE001 - a scorer fault must not abort the run
         return {
             "name": case["name"],
@@ -137,25 +133,20 @@ def run_calibration(
     scorer: ContentScorer,
     scorer_kind: str,
     cases: Sequence[CalibrationCase],
-    *,
-    client: Any = None,
-    judge_model: str | None = None,
 ) -> CalibrationReport:
     """Run ``scorer`` over ``cases`` and check the per-kind expected bands.
 
     Args:
         scorer: Any ``ContentScorer`` implementation.
-        scorer_kind: Selects which band set applies ("overlap" or "llm"). A kind
+        scorer_kind: Selects which band set applies (currently "overlap"). A kind
             with no declared bands for a case leaves that case unchecked.
         cases: Calibration cases to run.
-        client: Optional model client, threaded to scorers that call an LLM.
-        judge_model: Optional judge model name, threaded to LLM scorers.
 
     Returns:
         A ``CalibrationReport``. ``passed`` is True only when every case passed;
         a raising scorer counts as both a failure and an error.
     """
-    results = [_run_case(scorer, scorer_kind, case, client, judge_model) for case in cases]
+    results = [_run_case(scorer, scorer_kind, case) for case in cases]
     failed = sum(1 for result in results if not result["passed"])
     errors = sum(1 for result in results if result["error"] is not None)
     return {

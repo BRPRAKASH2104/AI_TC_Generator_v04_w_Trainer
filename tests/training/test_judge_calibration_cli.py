@@ -30,13 +30,6 @@ def _run_argv(cli, monkeypatch, argv: list[str]):
     return cli.parse_args()
 
 
-def test_validate_judge_defaults_content_scorer_to_none(cli, monkeypatch):
-    args = _run_argv(cli, monkeypatch, ["--validate-judge"])
-
-    assert args.validate_judge is True
-    assert args.content_scorer is None
-
-
 def test_validate_judge_rejects_combination_with_evaluate(cli, monkeypatch):
     with pytest.raises(SystemExit):
         _run_argv(cli, monkeypatch, ["--validate-judge", "--evaluate", "some.jsonl"])
@@ -61,7 +54,7 @@ def test_run_judge_calibration_returns_zero_when_all_pass(cli, monkeypatch):
         },
     )
 
-    assert cli.run_judge_calibration(["overlap"]) == 0
+    assert cli.run_judge_calibration() == 0
 
 
 def test_run_judge_calibration_returns_one_on_breach(cli, monkeypatch):
@@ -78,44 +71,4 @@ def test_run_judge_calibration_returns_one_on_breach(cli, monkeypatch):
         },
     )
 
-    assert cli.run_judge_calibration(["llm"]) == 1
-
-
-def test_run_judge_calibration_runs_every_requested_kind(cli, monkeypatch):
-    seen = []
-
-    def _fake(scorer, kind, cases, **kwargs):
-        seen.append(kind)
-        return {
-            "scorer_kind": kind,
-            "results": [],
-            "total": 0,
-            "failed": 0,
-            "errors": 0,
-            "passed": True,
-        }
-
-    monkeypatch.setattr(cli, "run_calibration", _fake)
-
-    assert cli.run_judge_calibration(["overlap", "llm"]) == 0
-    assert seen == ["overlap", "llm"]
-
-
-def test_judge_model_override_reaches_the_calibration_run(cli, monkeypatch):
-    seen = {}
-
-    def _fake(scorer, kind, cases, **kwargs):
-        seen["judge_model"] = kwargs.get("judge_model")
-        return {
-            "scorer_kind": kind,
-            "results": [],
-            "total": 0,
-            "failed": 0,
-            "errors": 0,
-            "passed": True,
-        }
-
-    monkeypatch.setattr(cli, "run_calibration", _fake)
-    cli.run_judge_calibration(["llm"], judge_model="deepseek-coder-v2:16b")
-
-    assert seen["judge_model"] == "deepseek-coder-v2:16b"
+    assert cli.run_judge_calibration() == 1

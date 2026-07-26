@@ -45,9 +45,6 @@ import argparse
 import logging
 import os
 import sys
-from collections.abc import (
-    Sequence,  # noqa: TC003 -- must resolve at runtime (no `from __future__ import annotations` here)
-)
 from pathlib import Path
 from typing import Any
 
@@ -148,30 +145,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--content-scorer",
-        choices=("overlap", "llm"),
-        default=None,
-        help=(
-            "Content scorer: 'overlap' (deterministic string similarity, the "
-            "default for --evaluate) or 'llm' (LLM-as-judge semantic matching + "
-            "quality; non-deterministic, needs a local judge model). With "
-            "--validate-judge, omitting this runs BOTH scorers."
-        ),
-    )
-    parser.add_argument(
-        "--judge-model",
-        type=str,
-        default=None,
-        help="Judge model for --content-scorer llm (default: config judge_model, llama3.1:8b).",
-    )
-
-    parser.add_argument(
         "--validate-judge",
         action="store_true",
         help=(
-            "Calibration mode: score built-in gold-by-construction fixtures with "
-            "the content scorer(s) and report whether each lands in its expected "
-            "band. Needs no dataset and no trained model. Exits 1 on any breach."
+            "Calibration mode: score built-in gold-by-construction fixtures "
+            "with the content scorer and report whether each lands in its "
+            "expected band. Needs no dataset, no trained model, and no Ollama. "
+            "Exits 1 on any breach."
         ),
     )
 
@@ -373,12 +353,6 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
             f"  Precision:      {metrics.get('content_precision', 0.0):.2f}   "
             f"Recall: {metrics.get('content_recall', 0.0):.2f}"
         )
-    content_quality = metrics.get("content_quality")
-    if content_quality is not None:
-        logger.info(
-            f"Content Quality:  {content_quality:.2f}  <- LLM-judge holistic "
-            "rubric (complementary to F1)"
-        )
     if result["errors"]:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
         for error in result["errors"]:
@@ -430,11 +404,6 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
                     f"  Content F1:     {_format_delta(delta.get('content_f1'))}  "
                     "<- reference-aware quality delta (the meaningful signal)"
                 )
-            if delta.get("content_quality") is not None:
-                logger.info(
-                    f"  Content Qual.:  {_format_delta(delta.get('content_quality'))}  "
-                    "<- LLM-judge quality delta (complementary)"
-                )
             provenance = result.get("provenance")
             if provenance:
                 logger.info(
@@ -452,8 +421,6 @@ def run_evaluation(
     output_model: str,
     compare_base: bool = False,
     base_model: str | None = None,
-    content_scorer_kind: str = "overlap",
-    judge_model: str | None = None,
 ) -> int:
     """Evaluate a customized model on a held-out RAFT dataset and print metrics.
 
@@ -464,10 +431,6 @@ def run_evaluation(
             customized-minus-base delta.
         base_model: Base model used for the ``compare_base`` comparison. None
             keeps ``VisionTrainingConfig``'s default.
-        content_scorer_kind: "overlap" (deterministic, default) or "llm"
-            (LLM-as-judge). Selects the content scorer.
-        judge_model: Judge model for the "llm" scorer; None uses the config
-            default.
 
     Returns:
         0 if at least one example was evaluated without a generation error
@@ -480,17 +443,11 @@ def run_evaluation(
         logger.error(f"Evaluation dataset not found: {test_dataset}")
         return 1
 
-    # Only override base_model/judge_model when provided, so the config
-    # defaults still apply. The config is the authoritative source the
-    # trainer reads from (see _score_content), so CLI overrides must be
-    # threaded through it rather than only into the scorer instance -
-    # otherwise the per-call judge_model (always the config default,
-    # since it's never None) silently wins over --judge-model.
+    # Only override base_model when provided, so the config default still
+    # applies.
     config_kwargs: dict[str, Any] = {"output_model": output_model}
     if base_model is not None:
         config_kwargs["base_model"] = base_model
-    if judge_model is not None:
-        config_kwargs["judge_model"] = judge_model
     config = VisionTrainingConfig(**config_kwargs)
 
     trainer = VisionRAFTTrainer(
@@ -498,14 +455,7 @@ def run_evaluation(
         config=config,
         logger=logger,
     )
-    content_scorer = None
-    if content_scorer_kind == "llm":
-        from src.training.llm_judge_scorer import LLMJudgeScorer
-
-        content_scorer = LLMJudgeScorer(judge_model=config.judge_model)
-    result = trainer.evaluate_model(
-        test_dataset=test_path, compare_base=compare_base, content_scorer=content_scorer
-    )
+    result = trainer.evaluate_model(test_dataset=test_path, compare_base=compare_base)
     print_evaluation_result(result)
 
     total = result["metrics"].get("total_examples", 0)
@@ -519,51 +469,21 @@ def run_evaluation(
     return 1 if total == 0 or failed >= total or baseline_unusable else 0
 
 
-def run_judge_calibration(
-    scorer_kinds: Sequence[str],
-    judge_model: str | None = None,
-) -> int:
-    """Calibrate content scorers against the built-in fixtures and print a scorecard.
-
-    Args:
-        scorer_kinds: Scorer kinds to run, in order ("overlap" and/or "llm").
-        judge_model: Judge model for the "llm" scorer; None uses the config
-            default.
+def run_judge_calibration() -> int:
+    """Calibrate the content scorer against the built-in fixtures and print a scorecard.
 
     Returns:
-        0 when every declared band held for every scorer, 1 when any band was
-        breached or any scorer faulted.
+        0 when every declared band held, 1 when any band was breached or the
+        scorer faulted.
     """
-    config_kwargs: dict[str, Any] = {}
-    if judge_model is not None:
-        config_kwargs["judge_model"] = judge_model
-    config = VisionTrainingConfig(**config_kwargs)
+    from src.training.content_scorer import ReferenceOverlapScorer
 
-    reports = []
-    for kind in scorer_kinds:
-        if kind == "llm":
-            from src.core.ollama_client import OllamaClient
-            from src.training.llm_judge_scorer import LLMJudgeScorer
+    config = VisionTrainingConfig()
+    scorer = ReferenceOverlapScorer(config.content_match_threshold)
+    report = run_calibration(scorer, "overlap", DEFAULT_CALIBRATION_CASES)
 
-            scorer: Any = LLMJudgeScorer(judge_model=config.judge_model)
-            client: Any = OllamaClient()
-        else:
-            from src.training.content_scorer import ReferenceOverlapScorer
-
-            scorer = ReferenceOverlapScorer(config.content_match_threshold)
-            client = None
-        reports.append(
-            run_calibration(
-                scorer,
-                kind,
-                DEFAULT_CALIBRATION_CASES,
-                client=client,
-                judge_model=config.judge_model,
-            )
-        )
-
-    print(format_report(reports))
-    return 0 if all(report["passed"] for report in reports) else 1
+    print(format_report([report]))
+    return 0 if report["passed"] else 1
 
 
 def main() -> int:
@@ -581,19 +501,10 @@ def main() -> int:
             logging.getLogger().setLevel(logging.DEBUG)
             logger.debug("Verbose logging enabled")
 
-        # Calibration-only mode: validate the content scorers against built-in
-        # fixtures. Needs no dataset, no trained model, and no Ollama unless the
-        # llm column is being run.
+        # Calibration-only mode: validate the content scorer against built-in
+        # fixtures. Needs no dataset, no trained model, and no Ollama.
         if args.validate_judge:
-            kinds = ("overlap", "llm") if args.content_scorer is None else (args.content_scorer,)
-            if "llm" in kinds:
-                logger.info("Checking Ollama connection...")
-                if not check_ollama_connection():
-                    logger.error("Cannot connect to Ollama at http://localhost:11434")
-                    logger.error("Please ensure Ollama is running: ollama serve")
-                    return 1
-                logger.info("✅ Ollama is running")
-            return run_judge_calibration(kinds, judge_model=args.judge_model)
+            return run_judge_calibration()
 
         # Evaluation-only mode: score an existing customized model on a held-out
         # dataset. This is a separate path - the training dataset and the base /
@@ -610,8 +521,6 @@ def main() -> int:
                 args.output_model,
                 args.compare_base,
                 args.base_model,
-                content_scorer_kind=args.content_scorer or "overlap",
-                judge_model=args.judge_model,
             )
 
         # Validate dataset

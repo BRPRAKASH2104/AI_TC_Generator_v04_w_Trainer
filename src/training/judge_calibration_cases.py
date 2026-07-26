@@ -4,17 +4,19 @@ Each case pairs a generated set with a reference set whose correct score is
 known by construction, plus the inclusive bands each scorer kind is expected to
 land in. Cases use the canonical test-case schema.
 
-``paraphrase`` is the discriminating case: the deterministic overlap scorer
-matches on string similarity and is EXPECTED to fail it, while the LLM judge
-must clear it to justify its cost. Paraphrases are hand-authored rather than
-model-generated, so the ground truth never depends on a model's opinion.
+``paraphrase`` pins the documented limit of string-similarity matching: the
+overlap scorer is EXPECTED to miss reworded scenarios. Paraphrases are
+hand-authored rather than model-generated, so the ground truth never depends on
+a model's opinion.
 
-``mixed`` guards a different failure: the metric counts matched *pairs* without
-checking which pairs, so a scorer that pairs everything 1:1 scores perfectly on
-most constructions. Keeping its true match count well below
-``min(len(generated), len(reference))`` forces over-pairing outside the band.
-Note a shuffled-order ("permutation") case does NOT achieve this — see
-``test_permutation_construction_would_not_catch_an_over_pairing_judge``.
+``mixed`` keeps its true match count well below ``min(len(generated),
+len(reference))``, so a scorer that pairs indiscriminately breaches the band
+rather than scoring perfectly.
+
+These cases were built to calibrate an LLM-as-judge scorer alongside the
+deterministic one. That judge was retired 2026-07-26 (it returned a
+near-constant match list regardless of input); the fixtures remain because they
+pin the surviving scorer's real behaviour.
 """
 
 from src.training.judge_calibration import (
@@ -142,7 +144,6 @@ DEFAULT_CALIBRATION_CASES: tuple[CalibrationCase, ...] = (
         "reference": list(_THREE_REFS),
         "expected": {
             "overlap": {"precision": (0.9, 1.0), "recall": (0.9, 1.0), "f1": (0.9, 1.0)},
-            "llm": {"precision": (0.9, 1.0), "recall": (0.9, 1.0), "f1": (0.9, 1.0)},
         },
     },
     {
@@ -152,7 +153,6 @@ DEFAULT_CALIBRATION_CASES: tuple[CalibrationCase, ...] = (
         "reference": list(_THREE_REFS),
         "expected": {
             "overlap": {"recall": (0.0, 0.1), "f1": (0.0, 0.1)},
-            "llm": {"recall": (0.0, 0.1), "f1": (0.0, 0.1)},
         },
     },
     {
@@ -162,19 +162,19 @@ DEFAULT_CALIBRATION_CASES: tuple[CalibrationCase, ...] = (
         "reference": [_REF_DOOR_LOCK, _REF_ANTI_PINCH, _REF_MIRROR_FOLD, _REF_HAZARD],
         "expected": {
             "overlap": {"recall": (0.4, 0.6), "precision": (0.9, 1.0)},
-            "llm": {"recall": (0.4, 0.6), "precision": (0.9, 1.0)},
         },
     },
     {
         "name": "paraphrase",
-        "description": "3 reference scenarios reworded — the discriminating case",
+        "description": "3 reference scenarios reworded — pins overlap's blind spot",
         "generated": [_PARA_DOOR_LOCK, _PARA_ANTI_PINCH, _PARA_MIRROR_FOLD],
         "reference": list(_THREE_REFS),
         "expected": {
             # Overlap matches on string similarity and is EXPECTED to miss these.
+            # The low score is the documented limit of string-similarity
+            # matching, not a defect: it is what a semantic scorer would have to
+            # beat to be worth its cost.
             "overlap": {"f1": (0.0, 0.35)},
-            # The judge's claimed advantage — this is what Phase 3b must earn.
-            "llm": {"f1": (0.7, 1.0)},
         },
     },
     {
@@ -184,21 +184,22 @@ DEFAULT_CALIBRATION_CASES: tuple[CalibrationCase, ...] = (
         "reference": list(_THREE_REFS),
         "expected": {
             "overlap": {"recall": (0.9, 1.0), "precision": (0.4, 0.8)},
-            "llm": {"recall": (0.9, 1.0), "precision": (0.4, 0.8)},
         },
     },
     {
         "name": "mixed",
-        "description": "1 reference case verbatim plus 2 unrelated — catches over-pairing",
+        "description": "1 reference case verbatim plus 2 unrelated — low true-match ratio",
         "generated": [_REF_DOOR_LOCK, _OTHER_AIR_FILTER, _OTHER_BLUETOOTH],
         "reference": list(_THREE_REFS),
         "expected": {
             # Exactly 1 of 3 generated cases has a counterpart, well below
-            # min(len(generated), len(reference)) = 3. A scorer that pairs
-            # everything 1:1 therefore scores 1.0 and breaches the ceiling,
-            # while correct matching lands on 1/3.
+            # min(len(generated), len(reference)) = 3, so a scorer that pairs
+            # indiscriminately scores 1.0 and breaches the ceiling while correct
+            # matching lands on 1/3. Added to catch an over-pairing LLM judge
+            # (retired 2026-07-26); retained because it still pins precision and
+            # recall on a set where most generated cases have no counterpart —
+            # a case no other fixture covers.
             "overlap": {"precision": (0.2, 0.5), "recall": (0.2, 0.5), "f1": (0.2, 0.5)},
-            "llm": {"precision": (0.2, 0.5), "recall": (0.2, 0.5), "f1": (0.2, 0.5)},
         },
     },
 )
