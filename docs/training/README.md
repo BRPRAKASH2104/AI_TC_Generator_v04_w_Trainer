@@ -156,7 +156,7 @@ over the default `overlap` scorer.
 ## Judge calibration
 
 `--validate-judge` answers a narrower question than `--evaluate`: is the content
-scorer itself trustworthy? It scores five built-in, gold-by-construction
+scorer itself trustworthy? It scores six built-in, gold-by-construction
 fixtures (`src/training/judge_calibration_cases.py`) directly through a
 `ContentScorer` — **no generation model runs in this mode**, so it measures the
 scorer in isolation, not a trained model's output quality. It does **not**
@@ -181,7 +181,7 @@ per-scorer `passed/total` summary and a final `RESULT: PASS`/`RESULT: FAIL`
 line. The process exits 1 if any scorer breaches any band on any case, 0
 otherwise.
 
-**The five cases:**
+**The six cases:**
 
 | Case | What it proves |
 |---|---|
@@ -190,6 +190,7 @@ otherwise.
 | `subset` | Half the reference set, verbatim — checks recall/precision arithmetic on a known partial match. |
 | `paraphrase` | **The discriminating case.** Three reference scenarios reworded in different words. The deterministic `overlap` scorer matches on string similarity and is *expected* to fail it (band `f1` 0.0–0.35); the LLM judge is expected to *clear* it (band `f1` ≥ 0.7), because recognizing paraphrases by meaning is the only thing that justifies its cost of two Ollama calls per example. |
 | `noise` | The full reference set plus two unrelated extras — checks that recall stays high while precision correctly drops. |
+| `mixed` | One reference case verbatim plus two unrelated ones. The true match count (1) is well below `min(len(generated), len(reference))` = 3, so a scorer that pairs everything 1:1 scores 1.0 and breaches the 0.2–0.5 band, while correct matching lands on 1/3. This is the only case that catches an over-pairing judge on a set where genuine matches exist. |
 
 **Caveat:** the bands are tolerances chosen to make each case's ground truth
 unambiguous, not claims of exact truth. A scorer breaching a band — in
@@ -208,17 +209,42 @@ _prf(3, 3, 3)                                                       # -> (1.0, 1
 ```
 
 so a judge whose matching is completely wrong would still pass precision,
-recall, and F1, and would clear 4 of the current 5 fixtures. This limitation
-is **inherited from the prior phase's metric** (the same pair-count
-convention `content_f1` already used), not introduced by this harness. A
-future `permutation` fixture — the same cases with match order shuffled —
-would detect it; not implemented here, documentation only.
+recall, and F1. This limitation is **inherited from the prior phase's metric**
+(the same pair-count convention `content_f1` already used), not introduced by
+this harness.
+
+`mixed` narrows it. Before that case existed, an over-pairing judge cleared
+4 of 5 fixtures — only `disjoint` caught it, and only because *nothing* there
+should match. `mixed` adds the case where genuine matches exist alongside
+non-matches, so over-claiming is detectable without relying on an all-or-nothing
+set.
+
+**What does *not* work, tested and rejected:** a `permutation` fixture — the
+same cases with match order shuffled — was the original proposal for closing
+this hole. It does not close it. A permutation has as many true matches as
+`min(len(generated), len(reference))`, so pairing everything 1:1 reaches the
+correct score by the wrong route:
+
+```python
+# permuted generated vs reference, judge pairs positionally and is WRONG each time
+_pairing_score([[0, 0], [1, 1], [2, 2]], permuted, reference)  # -> f1 1.0
+# ...and a correct content-aware scorer also gets 1.0. No discrimination.
+```
+
+`test_permutation_construction_would_not_catch_an_over_pairing_judge` pins this
+so the idea is not re-proposed.
+
+**The residual hole, still open:** `mixed` catches a judge claiming *too many*
+matches. It cannot catch one claiming the *right number* of matches between the
+*wrong items* — `[[1, 2]]` and `[[0, 0]]` both score 1/3 on `mixed`. Closing
+that requires `ContentScore` to expose the pairing itself, not just counts,
+which is a metric-interface change beyond this harness.
 
 ### Known limitation: the LLM judge returns a near-constant match list
 
 Probing the live judge's raw match output — the `[[generated_idx,
 reference_idx], ...]` pairs it returns before precision/recall/F1 are
-computed — across all five fixtures plus two synthetic checks shows the judge
+computed — across all six fixtures plus two synthetic checks shows the judge
 returning almost the same answer regardless of input:
 
 ```
@@ -226,7 +252,8 @@ identity           -> {"matches": [[0,0],[1,1]]}
 paraphrase         -> {"matches": [[0,0],[1,1]]}
 noise              -> {"matches": [[0,0],[1,1]]}
 disjoint           -> {"matches": [[0,0],[1,None]]}
-subset             -> {"matches": [[0,0],[1,2]]}    # only deviation
+mixed              -> {"matches": [[0,0],[1,None]]}
+subset             -> {"matches": [[0,0],[1,2]]}    # only real deviation
 mirror-fold 1-vs-1 -> {"matches": [[0,0],[1,1]]}    # [1,1] out of range entirely
 reordered 3-vs-3   -> {"matches": [[0,0],[1,1]]}    # reordering changes nothing
 ```
@@ -246,8 +273,9 @@ disjoint   f1     0.000  PASS      0.333  FAIL  (band 0.00-0.10)
 subset     —      PASS            PASS
 paraphrase f1     0.000  PASS      0.667  FAIL  (band 0.70-1.00)
 noise      —      PASS            partial FAIL  (recall 0.667, band 0.90-1.00)
+mixed      f1     0.333  PASS      0.333  PASS  (band 0.20-0.50)
 
-overlap: 5/5 passed · llm: 1/5 passed (only `subset`)
+overlap: 6/6 passed · llm: 2/6 passed (`subset`, `mixed`)
 ```
 
 Read against the probe table above, `identity` and `paraphrase` produce the
@@ -258,11 +286,17 @@ failed**; the finding the probe actually supports is stronger and more
 actionable: the judge's matching is unreliable across the board, not narrowly
 weak at one case.
 
-The scorecard's single `llm` PASS (`subset`) is a **false positive**, not
-partial competence: `LLMJudgeScorer._count_valid_pairs` counts how many pairs
-were reported, never whether they're the *correct* pairs, and the
-near-constant `[[0,0],[1,2]]` output happens to yield the right count for
-`subset` by coincidence.
+**Both `llm` PASSes are false positives, not partial competence.**
+`LLMJudgeScorer._count_valid_pairs` counts how many pairs were reported, never
+whether they're the *correct* pairs:
+
+- `subset` — the near-constant `[[0,0],[1,2]]` happens to yield the right count.
+- `mixed` — the judge returns `[[0,0],[1,None]]`; `[1,None]` is not a valid
+  integer pair, so it is discarded, leaving exactly one match. The count lands
+  on the correct 1/3 because a malformed pair was filtered out, not because the
+  judge identified the single true match and rejected the two false ones. The
+  same `[[0,0],[1,None]]` output on `disjoint` — where nothing should match —
+  correctly *fails*, which is what shows the `mixed` pass to be luck.
 
 **On this evidence, `--content-scorer llm` is not currently justified over the
 default `overlap` scorer** — and more strongly than a single-case weakness

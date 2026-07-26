@@ -8,6 +8,13 @@ land in. Cases use the canonical test-case schema.
 matches on string similarity and is EXPECTED to fail it, while the LLM judge
 must clear it to justify its cost. Paraphrases are hand-authored rather than
 model-generated, so the ground truth never depends on a model's opinion.
+
+``mixed`` guards a different failure: the metric counts matched *pairs* without
+checking which pairs, so a scorer that pairs everything 1:1 scores perfectly on
+most constructions. Keeping its true match count well below
+``min(len(generated), len(reference))`` forces over-pairing outside the band.
+Note a shuffled-order ("permutation") case does NOT achieve this — see
+``test_permutation_construction_would_not_catch_an_over_pairing_judge``.
 """
 
 from src.training.judge_calibration import (
@@ -178,6 +185,20 @@ DEFAULT_CALIBRATION_CASES: tuple[CalibrationCase, ...] = (
         "expected": {
             "overlap": {"recall": (0.9, 1.0), "precision": (0.4, 0.8)},
             "llm": {"recall": (0.9, 1.0), "precision": (0.4, 0.8)},
+        },
+    },
+    {
+        "name": "mixed",
+        "description": "1 reference case verbatim plus 2 unrelated — catches over-pairing",
+        "generated": [_REF_DOOR_LOCK, _OTHER_AIR_FILTER, _OTHER_BLUETOOTH],
+        "reference": list(_THREE_REFS),
+        "expected": {
+            # Exactly 1 of 3 generated cases has a counterpart, well below
+            # min(len(generated), len(reference)) = 3. A scorer that pairs
+            # everything 1:1 therefore scores 1.0 and breaches the ceiling,
+            # while correct matching lands on 1/3.
+            "overlap": {"precision": (0.2, 0.5), "recall": (0.2, 0.5), "f1": (0.2, 0.5)},
+            "llm": {"precision": (0.2, 0.5), "recall": (0.2, 0.5), "f1": (0.2, 0.5)},
         },
     },
 )
