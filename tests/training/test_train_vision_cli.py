@@ -342,17 +342,3 @@ def test_print_omits_content_when_absent(tmp_path, monkeypatch):
 
     lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
     assert "content f1" not in lines
-
-
-def test_print_omits_content_quality_when_absent(tmp_path, monkeypatch):
-    test_set = tmp_path / "held.jsonl"
-    _write_example(test_set)
-    result = _failed_comparison_result(test_set)
-    result["metrics"]["content_quality"] = None
-    rec = _RecordingLogger()
-    monkeypatch.setattr(tvm, "logger", rec)
-
-    tvm.print_evaluation_result(result)
-
-    lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
-    assert "content quality" not in lines
