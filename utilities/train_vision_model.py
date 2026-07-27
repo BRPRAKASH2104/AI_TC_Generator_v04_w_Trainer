@@ -46,7 +46,10 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -253,11 +256,12 @@ def check_output_model_exists(output_model: str) -> bool:
         return False
 
 
-def print_training_result(result: dict[str, Any]) -> None:
+def print_training_result(result: Mapping[str, Any]) -> None:
     """Print model-creation result summary.
 
     Args:
-        result: Result dictionary from VisionRAFTTrainer.train()
+        result: Result mapping from VisionRAFTTrainer.train(). Typed as a Mapping
+            so the trainer's ``TrainResult`` TypedDict is accepted directly.
     """
     logger.info("")
     logger.info("=" * 60)
@@ -372,6 +376,20 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
             f"  Precision:      {_format_score(metrics.get('content_precision'))}   "
             f"Recall: {_format_score(metrics.get('content_recall'))}"
         )
+        # Without the denominator, a run scoring one usable reference out of ten
+        # is indistinguishable from one that scored all ten.
+        scored = metrics.get("content_scored_examples", 0)
+        with_reference = metrics.get("content_reference_examples", 0)
+        scoring_errors = metrics.get("content_scoring_errors", 0)
+        logger.info(
+            f"  Scored on:      {scored}/{with_reference} example(s) with a reference"
+            + (f", {scoring_errors} scorer error(s)" if scoring_errors else "")
+        )
+        if with_reference and scored < with_reference:
+            logger.warning(
+                f"  Content F1 covers only {scored} of {with_reference} examples that "
+                "carried a reference; it is not comparable with a fully scored run."
+            )
     if result["errors"]:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
         for error in result["errors"]:

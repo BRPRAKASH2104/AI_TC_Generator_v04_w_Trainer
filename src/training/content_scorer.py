@@ -15,11 +15,19 @@ from src.core.deduplicator import TestCaseDeduplicator
 
 
 class ContentScore(TypedDict):
-    """Per-example content scores; a field is None when undefined."""
+    """Per-example content scores; a field is None when undefined.
+
+    ``matched_pairs`` exposes *which* generated case was matched to *which*
+    reference case, as ``(generated_index, reference_index)`` sorted by generated
+    index. Without it the metric counts pairs but never says which ones, so a
+    scorer pairing the right number of wrong items is indistinguishable from a
+    correct one (the ceiling recorded in CLAUDE.md).
+    """
 
     precision: float | None
     recall: float | None
     f1: float | None
+    matched_pairs: list[tuple[int, int]]
 
 
 def _prf(matched: int, n_generated: int, n_reference: int) -> tuple[float | None, float, float]:
@@ -66,10 +74,19 @@ class ReferenceOverlapScorer:
 
     A generated case "matches" a reference case when their field similarity
     (the production ``TestCaseDeduplicator`` similarity over
-    ``DEFAULT_FIELDS_TO_COMPARE``) is >= ``match_threshold``. Matching is greedy
-    and one-to-one: each generated case takes its highest-similarity
-    still-unmatched reference case at or above the threshold (ties broken by
-    reference order), so it is deterministic and order-stable.
+    ``DEFAULT_FIELDS_TO_COMPARE``) is >= ``match_threshold``.
+
+    Matching is one-to-one and of **maximum cardinality** over the
+    at-or-above-threshold graph. An earlier greedy rule let each generated case
+    take its best still-unmatched reference in turn, which made the score depend
+    on the order the model happened to list its cases — the same two cases scored
+    F1 0.50 or 1.00 depending on their order (2026-07-26 review, Critical 3).
+    Cardinality is the numerator of both precision and recall, so maximizing it
+    fixes both at once, and it is invariant under permutation of either side.
+
+    Note the matched *count* is permutation-invariant but the specific pairing
+    need not be unique: where several optimal matchings exist, ties are broken by
+    index order so the result stays deterministic run to run.
     """
 
     __slots__ = ("match_threshold", "_dedup")
@@ -101,27 +118,61 @@ class ReferenceOverlapScorer:
         if not reference_cases:
             return None
         if not generated_cases:
-            return {"precision": None, "recall": 0.0, "f1": 0.0}
+            return {"precision": None, "recall": 0.0, "f1": 0.0, "matched_pairs": []}
 
-        matched = self._count_matches(generated_cases, reference_cases)
-        precision, recall, f1 = _prf(matched, len(generated_cases), len(reference_cases))
-        return {"precision": precision, "recall": recall, "f1": f1}
+        matched_pairs = self._match_pairs(generated_cases, reference_cases)
+        precision, recall, f1 = _prf(len(matched_pairs), len(generated_cases), len(reference_cases))
+        return {
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "matched_pairs": matched_pairs,
+        }
 
-    def _count_matches(self, generated_cases: list[dict], reference_cases: list[dict]) -> int:
-        """Count greedy one-to-one matches between generated and reference."""
-        matched_ref: set[int] = set()
-        count = 0
-        for gen in generated_cases:
-            best_j: int | None = None
-            best_sim = -1.0
-            for j, ref in enumerate(reference_cases):
-                if j in matched_ref:
+    def _match_pairs(
+        self, generated_cases: list[dict], reference_cases: list[dict]
+    ) -> list[tuple[int, int]]:
+        """Maximum-cardinality one-to-one matching, as (generated, reference) pairs.
+
+        Kuhn's augmenting-path algorithm over the at-or-above-threshold
+        bipartite graph. Kept dependency-free (no scipy) in line with the
+        project's dependency-light, fully local constraints; the candidate sets
+        here are single-digit, so the O(V*E) bound is irrelevant in practice.
+
+        Args:
+            generated_cases: Canonical, deduplicated generated test cases.
+            reference_cases: Canonical, deduplicated reference test cases.
+
+        Returns:
+            Matched ``(generated_index, reference_index)`` pairs, sorted by
+            generated index.
+        """
+        # Adjacency in reference-index order keeps tie-breaking deterministic.
+        candidates: list[list[int]] = [
+            [
+                j
+                for j, ref in enumerate(reference_cases)
+                if self._dedup.similarity(gen, ref) >= self.match_threshold
+            ]
+            for gen in generated_cases
+        ]
+
+        # reference index -> generated index currently matched to it
+        matched_to: dict[int, int] = {}
+
+        def augment(gen_index: int, visited: set[int]) -> bool:
+            """Try to match gen_index, displacing earlier matches if needed."""
+            for ref_index in candidates[gen_index]:
+                if ref_index in visited:
                     continue
-                sim = self._dedup.similarity(gen, ref)
-                if sim >= self.match_threshold and sim > best_sim:
-                    best_sim = sim
-                    best_j = j
-            if best_j is not None:
-                matched_ref.add(best_j)
-                count += 1
-        return count
+                visited.add(ref_index)
+                holder = matched_to.get(ref_index)
+                if holder is None or augment(holder, visited):
+                    matched_to[ref_index] = gen_index
+                    return True
+            return False
+
+        for gen_index in range(len(generated_cases)):
+            augment(gen_index, set())
+
+        return sorted((gen, ref) for ref, gen in matched_to.items())

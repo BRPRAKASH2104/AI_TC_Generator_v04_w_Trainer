@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
     from logging import Logger
 
     from src.training.content_scorer import ContentScore, ContentScorer
@@ -485,7 +485,7 @@ Output test cases in structured JSON format as demonstrated in training examples
 
         return metrics
 
-    def _save_training_progress(self, result: TrainingResult) -> None:
+    def _save_training_progress(self, result: Mapping[str, Any]) -> None:
         """Save training progress and results"""
         progress_file = self.output_dir / f"{self.config.output_model}_training_log.json"
 
@@ -708,12 +708,36 @@ Output test cases in structured JSON format as demonstrated in training examples
                 self._aggregate_eval_metrics([base for _, base in paired]),
             )
 
+        # The content delta is only meaningful over pairs where BOTH sides
+        # produced a content score. Averaging across differing usable-reference
+        # subsets would compare two different populations, so withhold the
+        # content deltas outright when no pair qualifies — the same convention
+        # the overall delta already follows for a failed baseline.
+        content_paired = sum(
+            1
+            for custom, base in paired
+            if custom.get("content") is not None and base.get("content") is not None
+        )
+        if content_paired == 0:
+            # Also the no-pairs-at-all case: content_paired is 0 by construction.
+            content_status = "failed"
+        elif content_paired < len(paired):
+            content_status = "partial"
+        else:
+            content_status = "complete"
+
+        if delta is not None and content_status == "failed":
+            for key in ("content_precision", "content_recall", "content_f1"):
+                delta[key] = None
+
         comparison = {
             "status": status,
             "paired_examples": len(paired),
             "total_examples": len(custom_rows),
             "custom_failures": sum(1 for row in custom_rows if row["error"]),
             "baseline_failures": sum(1 for row in base_rows if row["error"]),
+            "content_status": content_status,
+            "content_paired_examples": content_paired,
         }
         return comparison, delta
 
@@ -994,6 +1018,7 @@ Output test cases in structured JSON format as demonstrated in training examples
             "invalid_test_cases": 0,
             "duplicate_test_cases": 0,
             "content": None,
+            "content_status": "absent",
             "score": 0.0,
             "error": None,
         }
@@ -1022,7 +1047,9 @@ Output test cases in structured JSON format as demonstrated in training examples
             return result
 
         result.update(self._score_generation(raw_output))
-        result["content"] = self._score_content(raw_output, example, content_scorer)
+        result["content"], result["content_status"] = self._score_content(
+            raw_output, example, content_scorer
+        )
         return result
 
     def _generate_for_example(
@@ -1204,8 +1231,14 @@ Output test cases in structured JSON format as demonstrated in training examples
         raw_output: str | dict[str, Any],
         example: dict[str, Any],
         content_scorer: ContentScorer,
-    ) -> ContentScore | None:
+    ) -> tuple[ContentScore | None, str]:
         """Score one generation against the example's reference answer.
+
+        The three ways scoring can fail to produce a number used to collapse into
+        a single ``None``, so a run could not tell "this example carried no
+        reference" from "the reference was unparseable" from "the scorer raised"
+        (2026-07-26 review, Critical 3). The status is returned alongside the
+        score so the aggregate can count each case.
 
         Args:
             raw_output: The raw model response.
@@ -1213,18 +1246,23 @@ Output test cases in structured JSON format as demonstrated in training examples
             content_scorer: A ContentScorer implementation.
 
         Returns:
-            A ContentScore dict, or None when there is no usable reference or the
-            scorer raises (isolated like per-example generation errors).
+            ``(score, status)`` where status is one of ``"absent"`` (no reference
+            answer), ``"scored"``, ``"unusable_reference"`` (a reference existed
+            but yielded no canonical cases), or ``"error"`` (the scorer raised).
+            ``score`` is None for every status except ``"scored"``.
         """
         reference_raw = self._reference_answer(example)
         if reference_raw is None:
-            return None
+            return None, "absent"
         try:
             generated = self._canonical_unique_cases(raw_output)
             reference = self._canonical_unique_cases(reference_raw)
-            return content_scorer.score(generated, reference)
+            score = content_scorer.score(generated, reference)
         except Exception:  # noqa: BLE001 - a scorer fault must not abort the run
-            return None
+            return None, "error"
+        if score is None:
+            return None, "unusable_reference"
+        return score, "scored"
 
     @staticmethod
     def _aggregate_eval_metrics(per_example: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1252,6 +1290,15 @@ Output test cases in structured JSON format as demonstrated in training examples
 
         content_rows = [r for r in per_example if r.get("content") is not None]
 
+        # Reference coverage. Averaging only the scored rows without publishing
+        # the denominator let a run report content_f1 == 1.0 off a single usable
+        # example out of two, which is not comparable with a run that scored all
+        # of them (2026-07-26 review, Critical 3).
+        content_reference_examples = sum(
+            1 for r in per_example if r.get("content_status", "absent") != "absent"
+        )
+        content_scoring_errors = sum(1 for r in per_example if r.get("content_status") == "error")
+
         # Each aggregate below is a per-field macro-mean over only the examples
         # where that field is defined (`is not None`), not over `content_rows`
         # as a whole. By design (see `ReferenceOverlapScorer.score`), a
@@ -1259,7 +1306,10 @@ Output test cases in structured JSON format as demonstrated in training examples
         # recall=0.0/f1=0.0 (defined against a non-empty reference). So
         # `content_precision` may be averaged over fewer examples than
         # `content_recall`/`content_f1` — this asymmetry is intentional, not a
-        # bug.
+        # bug. `content_scored_examples` is the denominator for
+        # `content_recall`/`content_f1`; compare it with
+        # `content_reference_examples` to see how much of the reference set
+        # actually contributed.
         def mean_content(field: str) -> float | None:
             values = [
                 r["content"][field] for r in content_rows if r["content"].get(field) is not None
@@ -1284,6 +1334,12 @@ Output test cases in structured JSON format as demonstrated in training examples
             "content_precision": mean_content("precision"),
             "content_recall": mean_content("recall"),
             "content_f1": mean_content("f1"),
+            # Denominators for the three scores above. Additive keys only:
+            # _compute_delta iterates a fixed tuple of comparable metrics, so
+            # counts are correctly excluded from the A/B delta.
+            "content_reference_examples": content_reference_examples,
+            "content_scored_examples": len(content_rows),
+            "content_scoring_errors": content_scoring_errors,
         }
 
 

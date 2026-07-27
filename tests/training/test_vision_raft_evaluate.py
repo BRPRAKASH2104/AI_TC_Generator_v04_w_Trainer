@@ -724,7 +724,87 @@ def test_per_example_content_matches_reference(trainer, tmp_path):
     result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE))
 
     content = result["per_example"][0]["content"]
-    assert content == {"precision": 1.0, "recall": 1.0, "f1": 1.0}
+    # Per key, not whole-dict: ContentScore is a documented seam and exact-dict
+    # comparisons on it have broken twice as fields were added and removed.
+    assert content["precision"] == 1.0
+    assert content["recall"] == 1.0
+    assert content["f1"] == 1.0
+    assert content["matched_pairs"] == [(0, 0)]
+
+
+# --- Critical 3: the headline score must publish its own denominator ---------
+
+
+def test_content_denominators_expose_partial_reference_coverage(trainer, tmp_path):
+    # One parseable reference (perfect match) and one unparseable. The aggregate
+    # used to report content_f1 == 1.0 with nothing revealing that only half the
+    # examples contributed.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            _example_with_reference([VALID_TEST_CASE]),
+            _text_example(),  # assistant content is prose, not canonical JSON
+        ],
+    )
+
+    metrics = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE)
+    )["metrics"]
+
+    assert metrics["content_f1"] == 1.0
+    assert metrics["content_reference_examples"] == 2
+    assert metrics["content_scored_examples"] == 1
+    assert metrics["content_scoring_errors"] == 0
+
+
+def test_content_denominators_count_examples_without_a_reference(trainer, tmp_path):
+    test_set = tmp_path / "held.jsonl"
+    no_reference = _text_example()
+    no_reference["messages"] = no_reference["messages"][:2]  # drop the assistant turn
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE]), no_reference])
+
+    metrics = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE)
+    )["metrics"]
+
+    assert metrics["content_reference_examples"] == 1
+    assert metrics["content_scored_examples"] == 1
+
+
+def test_content_scoring_errors_are_counted_not_silently_none(trainer, tmp_path):
+    class _ExplodingScorer:
+        def score(self, generated_cases, reference_cases):
+            raise RuntimeError("scorer blew up")
+
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set,
+        client=FakeOllamaClient(VALID_RESPONSE),
+        content_scorer=_ExplodingScorer(),
+    )
+
+    # A scorer fault must not abort the run, but it must be visible.
+    assert result["metrics"]["content_scoring_errors"] == 1
+    assert result["metrics"]["content_reference_examples"] == 1
+    assert result["metrics"]["content_scored_examples"] == 0
+    assert result["per_example"][0]["content_status"] == "error"
+
+
+def test_content_delta_is_withheld_when_no_pair_scored_content(trainer, tmp_path):
+    # Neither side can score content (the reference is prose), so a content
+    # delta would compare two undefined populations.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE), compare_base=True
+    )
+
+    assert result["comparison"]["content_status"] == "failed"
+    assert result["delta"]["content_f1"] is None
 
 
 def test_per_example_content_none_without_reference(trainer, tmp_path):
