@@ -29,7 +29,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -38,6 +38,42 @@ if TYPE_CHECKING:
     from src.training.content_scorer import ContentScore, ContentScorer
 
 type TrainingResult = dict[str, Any]
+
+
+class DatasetStats(TypedDict):
+    """Statistics produced by ``_analyze_dataset``.
+
+    These key names are the contract the CLI's ``print_training_result`` reads.
+    Declaring them here is what stops the printer from drifting onto keys the
+    trainer never emits (2026-07-26 review, Critical 4).
+    """
+
+    total_examples: int
+    vision_examples: int
+    text_only_examples: int
+    total_images: int
+    avg_images_per_vision_example: float
+    avg_oracle_docs: float
+    avg_distractor_docs: float
+
+
+class TrainResult(TypedDict):
+    """Result envelope returned by ``VisionRAFTTrainer.train()``.
+
+    ``dataset_stats`` and ``modelfile`` are absent when ``train()`` fails before
+    the corresponding step, so both are ``NotRequired``.
+    """
+
+    model_name: str
+    base_model: str
+    training_started: str
+    training_completed: str | None
+    duration_seconds: float
+    success: bool
+    metrics: dict[str, Any]
+    errors: list[str]
+    dataset_stats: NotRequired[DatasetStats]
+    modelfile: NotRequired[str]
 
 
 @dataclass(slots=True)
@@ -149,7 +185,7 @@ class VisionRAFTTrainer:
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def train(self) -> TrainingResult:
+    def train(self) -> TrainResult:
         """
         Create a prompt-customized Ollama model from the RAFT dataset.
 
@@ -161,7 +197,7 @@ class VisionRAFTTrainer:
             self.logger.info(f"   Base model: {self.config.base_model}")
             self.logger.info(f"   Dataset: {self.dataset_path}")
 
-        result: TrainingResult = {
+        result: TrainResult = {
             "model_name": self.config.output_model,
             "base_model": self.config.base_model,
             "training_started": datetime.now().isoformat(),
@@ -236,9 +272,13 @@ class VisionRAFTTrainer:
 
         return result
 
-    def _analyze_dataset(self) -> dict[str, Any]:
-        """Analyze training dataset for statistics"""
-        stats: dict[str, Any] = {
+    def _analyze_dataset(self) -> DatasetStats:
+        """Analyze training dataset for statistics.
+
+        Returns:
+            A ``DatasetStats`` whose keys are the contract the CLI printer reads.
+        """
+        stats: DatasetStats = {
             "total_examples": 0,
             "vision_examples": 0,
             "text_only_examples": 0,

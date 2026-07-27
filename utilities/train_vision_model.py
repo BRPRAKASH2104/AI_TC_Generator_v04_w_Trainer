@@ -266,7 +266,10 @@ def print_training_result(result: dict[str, Any]) -> None:
         logger.info("=" * 60)
         logger.info(f"Model name:       {result['model_name']}")
         logger.info(f"Duration:         {result['duration_seconds']:.1f}s")
-        logger.info(f"Modelfile:        {result.get('modelfile_path', 'N/A')}")
+        # These key names must match VisionRAFTTrainer's TrainResult/DatasetStats
+        # exactly. Reading keys the trainer never emits turned a successful
+        # `ollama create` into a KeyError and exit 1 (2026-07-26 review, Critical 4).
+        logger.info(f"Modelfile:        {result.get('modelfile', 'N/A')}")
         logger.info("")
         logger.info("Dataset Statistics:")
         stats = result["dataset_stats"]
@@ -274,9 +277,9 @@ def print_training_result(result: dict[str, Any]) -> None:
         logger.info(
             f"  Vision examples:    {stats['vision_examples']} ({stats['total_images']} images)"
         )
-        logger.info(f"  Text-only examples: {stats['text_examples']}")
+        logger.info(f"  Text-only examples: {stats['text_only_examples']}")
         if stats["vision_examples"] > 0:
-            logger.info(f"  Avg images/example: {stats['avg_images_per_example']:.2f}")
+            logger.info(f"  Avg images/example: {stats['avg_images_per_vision_example']:.2f}")
         logger.info("")
         logger.info("Next steps:")
         logger.info(

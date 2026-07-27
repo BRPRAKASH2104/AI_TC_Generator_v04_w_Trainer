@@ -342,3 +342,73 @@ def test_print_omits_content_when_absent(tmp_path, monkeypatch):
 
     lines = " ".join(rec.infos + rec.warnings + rec.errors).lower()
     assert "content f1" not in lines
+
+
+def _train_success_result():
+    """A success envelope in the exact shape ``VisionRAFTTrainer.train()`` emits.
+
+    The keys here are deliberately the trainer's own — ``modelfile``,
+    ``text_only_examples``, ``avg_images_per_vision_example`` — not the names the
+    printer used to read (2026-07-26 review, Critical 4).
+    """
+    return {
+        "model_name": "automotive-tc-vision-raft-v1",
+        "base_model": "llama3.2-vision:11b",
+        "training_started": "2026-07-27T10:00:00",
+        "training_completed": "2026-07-27T10:00:12",
+        "duration_seconds": 12.5,
+        "success": True,
+        "metrics": {"success": True},
+        "errors": [],
+        "modelfile": "/tmp/models/Modelfile",
+        "dataset_stats": {
+            "total_examples": 10,
+            "vision_examples": 4,
+            "text_only_examples": 6,
+            "total_images": 8,
+            "avg_images_per_vision_example": 2.0,
+            "avg_oracle_docs": 1.0,
+            "avg_distractor_docs": 1.5,
+        },
+    }
+
+
+def test_print_training_result_reads_the_trainers_own_keys(monkeypatch):
+    # Previously read modelfile_path/text_examples/avg_images_per_example, so a
+    # real success result printed "N/A" and then raised KeyError.
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_training_result(_train_success_result())
+
+    lines = " ".join(rec.infos + rec.warnings + rec.errors)
+    assert "/tmp/models/Modelfile" in lines
+    assert "N/A" not in lines
+    assert "Text-only examples: 6" in lines
+    assert "Avg images/example: 2.00" in lines
+
+
+def test_main_exits_zero_when_model_creation_succeeds(tmp_path, monkeypatch):
+    # `ollama create` succeeding must not report failure: the KeyError raised by
+    # the printer was swallowed by main()'s handler into `return 1`.
+    dataset = tmp_path / "train.jsonl"
+    _write_example(dataset)
+
+    class _FakeTrainer:
+        def train(self):
+            return _train_success_result()
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["prog", "--dataset", str(dataset), "--output-model", "automotive-tc-vision-raft-v1"],
+    )
+    monkeypatch.setattr(tvm, "validate_dataset", lambda path: None)
+    monkeypatch.setattr(tvm, "check_ollama_connection", lambda: True)
+    monkeypatch.setattr(tvm, "check_base_model_exists", lambda model: True)
+    monkeypatch.setattr(tvm, "check_output_model_exists", lambda model: False)
+    monkeypatch.setattr(tvm, "create_vision_training_pipeline", lambda **kwargs: _FakeTrainer())
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    assert tvm.main() == 0
+    assert "/tmp/models/Modelfile" in " ".join(rec.infos)
