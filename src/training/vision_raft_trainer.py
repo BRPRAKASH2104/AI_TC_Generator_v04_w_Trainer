@@ -101,6 +101,10 @@ class VisionTrainingConfig:
     max_eval_examples: int = 5000  # Reject held-out sets larger than this
     max_images_per_example: int = 16  # Reject examples carrying more images
     max_image_bytes: int = 10 * 1024 * 1024  # Reject a single decoded image above 10 MB
+    # Aggregate bound across the whole held-out file. The per-example limits
+    # above alone permit ~800 GiB of decoded payload (2026-07-26 review,
+    # Recommended 5).
+    max_eval_total_bytes: int = 2 * 1024**3  # Reject a dataset whose images exceed 2 GiB
 
     # Phase 3 content metric: minimum field similarity for a generated case to
     # count as covering a reference case (reuses the deduplicator's 0.85).
@@ -806,6 +810,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 that violates the contract (the message names the 1-based line).
         """
         examples: list[dict[str, Any]] = []
+        total_image_bytes = 0
         with open(path, encoding="utf-8") as handle:
             for line_number, line in enumerate(handle, start=1):
                 stripped = line.strip()
@@ -820,19 +825,60 @@ Output test cases in structured JSON format as demonstrated in training examples
                     parsed = json.loads(stripped)
                 except json.JSONDecodeError as exc:
                     raise ValueError(f"line {line_number}: invalid JSON ({exc})") from exc
-                self._validate_example_contract(parsed, line_number)
+                # The per-example limits alone permit max_eval_examples x
+                # max_images_per_example x max_image_bytes (~800 GiB at the
+                # defaults), so bound the aggregate too (2026-07-26 review,
+                # Recommended 5).
+                total_image_bytes += self._validate_example_contract(parsed, line_number)
+                if total_image_bytes > self.config.max_eval_total_bytes:
+                    raise ValueError(
+                        f"line {line_number}: evaluation dataset image payload exceeds the "
+                        f"{self.config.max_eval_total_bytes}-byte aggregate limit "
+                        "(config.max_eval_total_bytes); split it or raise the limit."
+                    )
                 examples.append(parsed)
 
         if not examples:
             raise ValueError(f"Evaluation dataset is empty (no examples): {path}")
         return examples
 
-    def _validate_example_contract(self, example: Any, line_number: int) -> None:
+    @staticmethod
+    def _select_user_message(messages: list[Any]) -> dict[str, Any] | None:
+        """Pick the user turn to validate and to generate from.
+
+        The RAFT builder emits ``[system, user, assistant]``, so the user turn is
+        normally at index 1; an explicit role match is accepted too, in case of
+        reordering. Validation and evaluation MUST agree on this choice — they
+        used to disagree, so a ``[system, assistant, user]`` dataset validated the
+        real user turn but generated from the assistant's reference answer,
+        feeding the model its own answer (2026-07-26 review, Recommended 5).
+
+        Args:
+            messages: The example's ``messages`` list.
+
+        Returns:
+            The selected user message, or None when there is no usable one.
+        """
+        explicit = next(
+            (m for m in messages if isinstance(m, dict) and m.get("role") == "user"),
+            None,
+        )
+        if explicit is not None:
+            return explicit
+        if len(messages) > 1 and isinstance(messages[1], dict):
+            return messages[1]
+        return None
+
+    def _validate_example_contract(self, example: Any, line_number: int) -> int:
         """Validate one loaded example against the RAFT evaluation contract.
 
         Args:
             example: The parsed JSON value for a single dataset line.
             line_number: 1-based line number, used in error messages.
+
+        Returns:
+            The example's approximate decoded image payload in bytes, for the
+            caller's running aggregate total.
 
         Raises:
             ValueError: If the example is not a well-formed, size-bounded RAFT
@@ -851,12 +897,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 "system and a user message"
             )
 
-        # The RAFT builder emits [system, user, assistant]; the user turn is at
-        # index 1. Accept an explicit role match too, in case of reordering.
-        user_message = next(
-            (m for m in messages if isinstance(m, dict) and m.get("role") == "user"),
-            messages[1] if isinstance(messages[1], dict) else None,
-        )
+        user_message = self._select_user_message(messages)
         if user_message is None:
             raise ValueError(f"line {line_number}: no user message found in 'messages'")
 
@@ -868,15 +909,19 @@ Output test cases in structured JSON format as demonstrated in training examples
             )
 
         images = user_message.get("images")
-        if images is not None:
-            self._validate_images(images, line_number)
+        if images is None:
+            return 0
+        return self._validate_images(images, line_number)
 
-    def _validate_images(self, images: Any, line_number: int) -> None:
+    def _validate_images(self, images: Any, line_number: int) -> int:
         """Validate the user message's ``images`` field.
 
         Args:
             images: The raw ``images`` value from the user message.
             line_number: 1-based line number, used in error messages.
+
+        Returns:
+            The approximate decoded size of all images in bytes.
 
         Raises:
             ValueError: If ``images`` is not a list of valid, size-bounded
@@ -891,6 +936,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 f"line {line_number}: {len(images)} images exceeds the per-example limit of "
                 f"{self.config.max_images_per_example} (config.max_images_per_example)"
             )
+        total_bytes = 0
         for position, encoded in enumerate(images):
             if not isinstance(encoded, str):
                 raise ValueError(
@@ -912,6 +958,8 @@ Output test cases in structured JSON format as demonstrated in training examples
                 raise ValueError(
                     f"line {line_number}: image {position} is not valid base64 ({exc})"
                 ) from exc
+            total_bytes += approx_decoded_bytes
+        return total_bytes
 
     def _evaluate_example(
         self,
@@ -951,11 +999,14 @@ Output test cases in structured JSON format as demonstrated in training examples
         }
 
         messages = example.get("messages", [])
-        if len(messages) < 2:
+        # Must be the same turn _validate_example_contract checked; indexing
+        # messages[1] directly generated from the assistant reference whenever the
+        # roles were ordered [system, assistant, user].
+        user_message = self._select_user_message(messages)
+        if user_message is None:
             result["error"] = "example missing user message"
             return result
 
-        user_message = messages[1]
         images = user_message.get("images") or []
         result["has_images"] = bool(images)
 

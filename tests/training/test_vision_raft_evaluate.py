@@ -774,3 +774,134 @@ def test_content_f1_is_in_the_delta(trainer, tmp_path):
     )
 
     assert "content_f1" in result["delta"]
+
+
+# --- Recommended 5: the validated message must be the evaluated message -------
+
+
+def _reordered_example():
+    """A [system, assistant, user] example: the user turn is NOT at index 1."""
+    return {
+        "messages": [
+            {"role": "system", "content": "s"},
+            {"role": "assistant", "content": "THE REFERENCE ANSWER"},
+            {"role": "user", "content": "THE ACTUAL USER PROMPT"},
+        ]
+    }
+
+
+def test_reordered_roles_generate_from_the_user_turn(trainer, tmp_path):
+    # The validator accepted this by role search while the evaluator indexed
+    # messages[1], so the model was fed its own reference answer as the prompt.
+    test_set = tmp_path / "reordered.jsonl"
+    _write_jsonl(test_set, [_reordered_example()])
+    client = FakeOllamaClient(VALID_RESPONSE)
+
+    trainer.evaluate_model(test_dataset=test_set, client=client)
+
+    assert len(client.text_calls) == 1
+    prompt = client.text_calls[0]["prompt"]
+    assert "THE ACTUAL USER PROMPT" in prompt
+    assert "THE REFERENCE ANSWER" not in prompt
+
+
+def test_duplicate_user_turns_use_the_first(trainer, tmp_path):
+    test_set = tmp_path / "dupe.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "FIRST USER TURN"},
+                    {"role": "user", "content": "SECOND USER TURN"},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+    client = FakeOllamaClient(VALID_RESPONSE)
+
+    trainer.evaluate_model(test_dataset=test_set, client=client)
+
+    assert "FIRST USER TURN" in client.text_calls[0]["prompt"]
+
+
+def test_extra_roles_do_not_break_user_selection(trainer, tmp_path):
+    test_set = tmp_path / "extra.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "tool", "content": "tool output"},
+                    {"role": "user", "content": "REAL PROMPT"},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+    client = FakeOllamaClient(VALID_RESPONSE)
+
+    trainer.evaluate_model(test_dataset=test_set, client=client)
+
+    assert "REAL PROMPT" in client.text_calls[0]["prompt"]
+
+
+def test_example_without_any_user_turn_is_rejected(trainer, tmp_path):
+    test_set = tmp_path / "nouser.jsonl"
+    _write_jsonl(
+        test_set,
+        [{"messages": [{"role": "system", "content": "s"}, ["not", "a", "dict"]]}],
+    )
+
+    with pytest.raises(ValueError, match="user message"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_aggregate_image_payload_over_the_limit_is_rejected(tmp_path):
+    # Each example is individually within max_image_bytes; together they are not.
+    # Without an aggregate bound the per-example limits permit ~800 GiB.
+    trainer = _make_trainer(tmp_path, max_image_bytes=1024, max_eval_total_bytes=64)
+    img = base64.b64encode(b"x" * 48).decode("ascii")  # ~48 decoded bytes each
+    test_set = tmp_path / "many.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": [img]},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ]
+        * 3,
+    )
+
+    with pytest.raises(ValueError, match="aggregate limit|max_eval_total_bytes"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_aggregate_image_payload_within_the_limit_is_accepted(tmp_path):
+    trainer = _make_trainer(tmp_path, max_image_bytes=1024, max_eval_total_bytes=10_000)
+    img = base64.b64encode(FAKE_IMAGE_BYTES).decode("ascii")
+    test_set = tmp_path / "ok.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": [img]},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ]
+        * 3,
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE))
+
+    assert result["metrics"]["total_examples"] == 3
