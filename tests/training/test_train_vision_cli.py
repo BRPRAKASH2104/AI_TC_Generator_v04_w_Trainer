@@ -162,6 +162,69 @@ def test_run_evaluation_happy_path_returns_0(tmp_path, monkeypatch):
     assert tvm.run_evaluation(str(test_set), "some-model") == 0
 
 
+def _zero_quality_result(test_set):
+    """A legitimate zero-quality evaluation: a reference existed, nothing matched.
+
+    ``ReferenceOverlapScorer`` reports ``precision=None`` here because 0/0 is
+    undefined, while recall and F1 stay defined against the non-empty reference.
+    """
+    return {
+        "model": "some-model",
+        "evaluation_date": "now",
+        "test_dataset": str(test_set),
+        "metrics": {
+            "text_examples_score": 0.0,
+            "vision_examples_score": None,
+            "overall_score": 0.0,
+            "total_examples": 1,
+            "text_examples": 1,
+            "vision_examples": 0,
+            "parse_success_rate": 0.0,
+            "raw_test_cases_per_example": 0.0,
+            "unique_valid_test_cases_per_example": 0.0,
+            "content_precision": None,
+            "content_recall": 0.0,
+            "content_f1": 0.0,
+        },
+        "per_example": [],
+        "errors": [],
+    }
+
+
+def test_print_evaluation_result_survives_none_precision(tmp_path, monkeypatch):
+    # 07-26 review Critical 2: content_f1 is defined so the content block runs,
+    # then `:.2f` on a None precision raised TypeError. `.get(key, 0.0)` cannot
+    # substitute a default when the key exists holding None.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    rec = _RecordingLogger()
+    monkeypatch.setattr(tvm, "logger", rec)
+
+    tvm.print_evaluation_result(_zero_quality_result(test_set))
+
+    lines = " ".join(rec.infos + rec.warnings + rec.errors)
+    assert "Content F1:" in lines
+    assert "Precision:      n/a" in lines
+    assert "Recall: 0.00" in lines
+
+
+def test_run_evaluation_zero_quality_exits_0(tmp_path, monkeypatch):
+    # Generation succeeded and every example was scored; the result is simply
+    # zero quality. That is a completed evaluation, not a training error.
+    test_set = tmp_path / "held.jsonl"
+    _write_example(test_set)
+    monkeypatch.setattr(
+        tvm.VisionRAFTTrainer,
+        "evaluate_model",
+        lambda self,
+        test_dataset=None,
+        compare_base=False,
+        content_scorer=None: _zero_quality_result(test_set),
+    )
+
+    assert tvm.run_evaluation(str(test_set), "some-model") == 0
+
+
 class _RecordingLogger:
     """Captures log lines so tests can assert on the printed summary."""
 

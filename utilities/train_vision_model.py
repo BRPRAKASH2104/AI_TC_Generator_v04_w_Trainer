@@ -310,6 +310,22 @@ def _format_delta(value: float | None) -> str:
     return "n/a" if value is None else f"{value:+.2f}"
 
 
+def _format_score(value: float | None) -> str:
+    """Format a score, or ``n/a`` when the metric is undefined.
+
+    A metric that is genuinely undefined arrives as ``None``, which
+    ``dict.get(key, 0.0)`` cannot replace — the key exists. Every score printed
+    here must go through this helper (2026-07-26 review, Critical 2).
+
+    Args:
+        value: The metric value, or None when it is undefined.
+
+    Returns:
+        The value to two decimal places, or ``"n/a"``.
+    """
+    return "n/a" if value is None else f"{value:.2f}"
+
+
 def print_evaluation_result(result: dict[str, Any]) -> None:
     """Print an evaluation summary, including the A/B delta when present.
 
@@ -317,10 +333,8 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
         result: Result dictionary from ``VisionRAFTTrainer.evaluate_model()``.
     """
     metrics = result["metrics"]
-    text_score = metrics.get("text_examples_score")
-    vision_score = metrics.get("vision_examples_score")
-    text_str = "n/a" if text_score is None else f"{text_score:.2f}"
-    vision_str = "n/a" if vision_score is None else f"{vision_score:.2f}"
+    text_str = _format_score(metrics.get("text_examples_score"))
+    vision_str = _format_score(metrics.get("vision_examples_score"))
 
     logger.info("")
     logger.info("=" * 60)
@@ -352,9 +366,11 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
             f"Content F1:       {content_f1:.2f}  <- reference-aware quality "
             "(the meaningful signal when references exist)"
         )
+        # Precision is legitimately None when nothing was generated (0/0), while
+        # recall/F1 stay defined against a non-empty reference.
         logger.info(
-            f"  Precision:      {metrics.get('content_precision', 0.0):.2f}   "
-            f"Recall: {metrics.get('content_recall', 0.0):.2f}"
+            f"  Precision:      {_format_score(metrics.get('content_precision'))}   "
+            f"Recall: {_format_score(metrics.get('content_recall'))}"
         )
     if result["errors"]:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
