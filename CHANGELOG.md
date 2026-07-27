@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`ContentScore.matched_pairs`** — the `(generated_index, reference_index)`
+  pairs the scorer actually matched, sorted by generated index. Counting matched
+  pairs without identifying them left a scorer that pairs the right *number* of
+  wrong items indistinguishable from a correct one; the pairing is now
+  assertable, which is the prerequisite for re-evaluating any future scorer.
+- **Content-metric denominators** on the evaluation aggregate:
+  `content_reference_examples`, `content_scored_examples` and
+  `content_scoring_errors`, printed under the Content F1 block with a warning
+  when coverage is partial. Additive keys only — `_compute_delta` iterates a
+  fixed tuple, so counts stay out of the A/B delta.
+- **`VisionTrainingConfig.max_eval_total_bytes`** (default 2 GiB), an aggregate
+  bound on a held-out set's decoded image payload.
+- **A judge-retirement guard test** asserting the retired names stay absent from
+  the maintained surface, and a first test module for
+  `utilities/build_vision_dataset.py`'s summary.
+
+### Fixed
+
+- **The `--val-split-ratio` validation set is now valid evaluator input**
+  (review 2026-07-26, Critical 1). `save_split` serialized the intermediate RAFT
+  rows unchanged, so `val.jsonl` carried `question`/`oracle_context`/`answer`
+  instead of `messages` and `--evaluate` rejected it outright — the advertised
+  build → split → evaluate workflow could not run. The conversion moved into a
+  single static `_to_conversation` used by both `save_dataset` and `save_split`.
+- **A legitimate zero-quality evaluation prints instead of crashing**
+  (review 2026-07-26, Critical 2). Zero generated cases against a non-empty
+  reference scores `precision=None`; the content block ran because `f1` was
+  defined and then formatted `None` with `:.2f`. `dict.get(key, 0.0)` cannot
+  substitute a default for a key that exists holding `None`. All scores now go
+  through a None-safe `_format_score`.
+- **`content_f1` no longer changes when the model merely reorders its output**
+  (review 2026-07-26, Critical 3). Sequential-greedy matching scored the same two
+  cases 0.50 or 1.00 depending on their order; replaced with maximum-cardinality
+  bipartite matching (Kuhn's augmenting path, no new dependency). `_score_content`
+  now distinguishes an absent reference from an unusable one from a scorer fault,
+  and `_compare_paired` withholds the content delta when no pair scored content
+  on both sides.
+- **Successful model creation no longer reports failure** (review 2026-07-26,
+  Critical 4). `print_training_result` read `modelfile_path`, `text_examples` and
+  `avg_images_per_example`, but `train()` emits `modelfile`, `text_only_examples`
+  and `avg_images_per_vision_example`; the first stats read raised `KeyError`,
+  which `main()` swallowed into `return 1` after `ollama create` had already
+  succeeded. The shapes are now declared once as `TrainResult`/`DatasetStats`.
+- **Evaluation generates from the message the validator accepted** (review
+  2026-07-26, Recommended 5). The validator searched for the first `role == "user"`
+  while the evaluator indexed `messages[1]`, so a `[system, assistant, user]`
+  dataset was scored on a generation prompted with its own reference answer. Both
+  now call `_select_user_message`.
+- **The documented full test runner is green again** (review 2026-07-26,
+  Recommended 6). A live integration test still imported the deleted
+  `src.training.llm_judge_scorer`.
+- **Training docs state one contract** (review 2026-07-26, Optional 7). The
+  guide no longer claims no train/val split is produced, three links to the
+  nonexistent `docs/training/training_guideline.md` now point at
+  `docs/training/README.md`, and the "RAFT-informed prompt" and "validity, not
+  closeness to the reference" docstrings match what the code does.
+- **The dataset build summary reports real image counts** (review 2026-07-26,
+  Optional 8). It summed a nonexistent `images` key, so every build printed
+  `Total images: 0`; it now uses `metadata.image_count`, as `save_dataset`
+  already did.
+
 ### Removed
 
 - **The LLM-as-judge content scorer, retired on calibration evidence.** Deletes
