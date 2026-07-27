@@ -1,11 +1,11 @@
 ---
 name: cluster-1
-description: "Skill for the Cluster_1 area of AI_TC_Generator_v04_w_Trainer. 7 symbols across 2 files."
+description: "Skill for the Cluster_1 area of AI_TC_Generator_v04_w_Trainer. 9 symbols across 2 files."
 ---
 
 # Cluster_1
 
-7 symbols | 2 files | Cohesion: 75%
+9 symbols | 2 files | Cohesion: 80%
 
 ## When to Use
 
@@ -17,7 +17,7 @@ description: "Skill for the Cluster_1 area of AI_TC_Generator_v04_w_Trainer. 7 s
 
 | File | Symbols |
 |------|---------|
-| `src/config.py` | get_preset_config, apply_cli_overrides, update_if_not_overridden, _deep_merge_dict, show_effective_config |
+| `src/config.py` | get_preset_config, apply_cli_overrides, _apply_env_overrides, _apply_model_specific_defaults, update_if_not_overridden (+2) |
 | `main.py` | _apply_preset, set_nested |
 
 ## Entry Points
@@ -25,31 +25,33 @@ description: "Skill for the Cluster_1 area of AI_TC_Generator_v04_w_Trainer. 7 s
 Start here when exploring this area:
 
 - **`set_nested`** (Function) — `main.py:92`
-- **`update_if_not_overridden`** (Function) — `src/config.py:769`
+- **`update_if_not_overridden`** (Function) — `src/config.py:788`
 - **`get_preset_config`** (Method) — `src/config.py:614`
 - **`apply_cli_overrides`** (Method) — `src/config.py:634`
-- **`show_effective_config`** (Method) — `src/config.py:822`
+- **`show_effective_config`** (Method) — `src/config.py:812`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
 | `set_nested` | Function | `main.py` | 92 |
-| `update_if_not_overridden` | Function | `src/config.py` | 769 |
+| `update_if_not_overridden` | Function | `src/config.py` | 788 |
 | `get_preset_config` | Method | `src/config.py` | 614 |
 | `apply_cli_overrides` | Method | `src/config.py` | 634 |
-| `show_effective_config` | Method | `src/config.py` | 822 |
+| `show_effective_config` | Method | `src/config.py` | 812 |
 | `_apply_preset` | Function | `main.py` | 63 |
-| `_deep_merge_dict` | Method | `src/config.py` | 814 |
+| `_apply_env_overrides` | Method | `src/config.py` | 711 |
+| `_apply_model_specific_defaults` | Method | `src/config.py` | 765 |
+| `_deep_merge_dict` | Method | `src/config.py` | 804 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
+| `Main → _apply_env_overrides` | cross_community | 3 |
 | `Main → _deep_merge_dict` | cross_community | 3 |
-| `Main → Update_if_not_overridden` | cross_community | 3 |
+| `Show_effective_config → _apply_env_overrides` | intra_community | 3 |
 | `Show_effective_config → _deep_merge_dict` | intra_community | 3 |
-| `Show_effective_config → Update_if_not_overridden` | intra_community | 3 |
 
 ## How to Explore
 

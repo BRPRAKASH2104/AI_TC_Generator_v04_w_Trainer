@@ -30,7 +30,7 @@ description: "Skill for the Unit area of AI_TC_Generator_v04_w_Trainer. 50 symbo
 
 Start here when exploring this area:
 
-- **`template_schema_issues`** (Function) — `src/core/validators.py:64`
+- **`template_schema_issues`** (Function) — `src/core/validators.py:62`
 - **`get_test_prompt`** (Method) — `src/yaml_prompt_manager.py:154`
 - **`test_get_test_prompt_basic`** (Method) — `tests/unit/test_yaml_prompt_manager_fixed.py:44`
 - **`test_get_test_prompt_with_template_name`** (Method) — `tests/unit/test_yaml_prompt_manager_fixed.py:61`
@@ -40,7 +40,7 @@ Start here when exploring this area:
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `template_schema_issues` | Function | `src/core/validators.py` | 64 |
+| `template_schema_issues` | Function | `src/core/validators.py` | 62 |
 | `get_test_prompt` | Method | `src/yaml_prompt_manager.py` | 154 |
 | `test_get_test_prompt_basic` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 44 |
 | `test_get_test_prompt_with_template_name` | Method | `tests/unit/test_yaml_prompt_manager_fixed.py` | 61 |
@@ -50,8 +50,8 @@ Start here when exploring this area:
 | `test_production_preset_mode_and_flags_survive` | Method | `tests/unit/test_main_helpers.py` | 118 |
 | `test_production_preset_concurrency_not_clobbered_by_model_defaults` | Method | `tests/unit/test_main_helpers.py` | 125 |
 | `test_development_preset_verbose_survives_absent_cli_flag` | Method | `tests/unit/test_main_helpers.py` | 131 |
-| `test_training_section_is_loaded` | Method | `tests/unit/test_training_consent.py` | 43 |
-| `test_unknown_training_keys_are_ignored` | Method | `tests/unit/test_training_consent.py` | 60 |
+| `test_training_section_is_loaded` | Method | `tests/unit/test_training_consent.py` | 41 |
+| `test_unknown_training_keys_are_ignored` | Method | `tests/unit/test_training_consent.py` | 58 |
 | `test_all_files_succeeded` | Method | `tests/unit/test_main_helpers.py` | 12 |
 | `test_one_file_failed_means_partial_not_success` | Method | `tests/unit/test_main_helpers.py` | 25 |
 | `test_partial_file_propagates_partial` | Method | `tests/unit/test_main_helpers.py` | 37 |

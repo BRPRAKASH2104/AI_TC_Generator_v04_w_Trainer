@@ -27,25 +27,25 @@ description: "Skill for the Cluster_20 area of AI_TC_Generator_v04_w_Trainer. 9 
 
 Start here when exploring this area:
 
-- **`register`** (Function) — `src/core/image_extractor.py:669`
+- **`register`** (Function) — `src/core/image_extractor.py:671`
 - **`test_image_extractor_rejects_compression_bomb`** (Function) — `tests/core/test_archive_limits.py:121`
 - **`test_oversized_image_is_rejected_not_saved`** (Function) — `tests/core/test_archive_limits.py:129`
 - **`test_extract_images_without_saving`** (Function) — `tests/core/test_image_extractor.py:166`
-- **`test_multiple_embedded_images`** (Function) — `tests/core/test_image_extractor.py:306`
+- **`test_multiple_embedded_images`** (Function) — `tests/core/test_image_extractor.py:300`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `register` | Function | `src/core/image_extractor.py` | 669 |
+| `register` | Function | `src/core/image_extractor.py` | 671 |
 | `test_image_extractor_rejects_compression_bomb` | Function | `tests/core/test_archive_limits.py` | 121 |
 | `test_oversized_image_is_rejected_not_saved` | Function | `tests/core/test_archive_limits.py` | 129 |
 | `test_extract_images_without_saving` | Function | `tests/core/test_image_extractor.py` | 166 |
-| `test_multiple_embedded_images` | Function | `tests/core/test_image_extractor.py` | 306 |
-| `extract_images_from_reqifz` | Method | `src/core/image_extractor.py` | 101 |
-| `augment_artifacts_with_images` | Method | `src/core/image_extractor.py` | 643 |
-| `test_full_extraction_with_preprocessing` | Method | `tests/core/test_vision_fixes.py` | 639 |
-| `_extract_and_augment_images` | Method | `src/core/extractors.py` | 125 |
+| `test_multiple_embedded_images` | Function | `tests/core/test_image_extractor.py` | 300 |
+| `extract_images_from_reqifz` | Method | `src/core/image_extractor.py` | 103 |
+| `augment_artifacts_with_images` | Method | `src/core/image_extractor.py` | 645 |
+| `test_full_extraction_with_preprocessing` | Method | `tests/core/test_vision_fixes.py` | 625 |
+| `_extract_and_augment_images` | Method | `src/core/extractors.py` | 128 |
 
 ## Execution Flows
 

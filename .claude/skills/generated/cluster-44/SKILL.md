@@ -24,29 +24,29 @@ description: "Skill for the Cluster_44 area of AI_TC_Generator_v04_w_Trainer. 13
 
 Start here when exploring this area:
 
-- **`extract_tables_from_html`** (Method) — `src/core/parsers.py:144`
-- **`test_parse_simple_table`** (Method) — `tests/core/test_parsers.py:133`
-- **`test_parse_table_with_multiple_rows`** (Method) — `tests/core/test_parsers.py:154`
-- **`test_parse_empty_table`** (Method) — `tests/core/test_parsers.py:172`
-- **`test_parse_malformed_html`** (Method) — `tests/core/test_parsers.py:180`
+- **`extract_tables_from_html`** (Method) — `src/core/parsers.py:146`
+- **`test_parse_simple_table`** (Method) — `tests/core/test_parsers.py:132`
+- **`test_parse_table_with_multiple_rows`** (Method) — `tests/core/test_parsers.py:153`
+- **`test_parse_empty_table`** (Method) — `tests/core/test_parsers.py:171`
+- **`test_parse_malformed_html`** (Method) — `tests/core/test_parsers.py:179`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `extract_tables_from_html` | Method | `src/core/parsers.py` | 144 |
-| `test_parse_simple_table` | Method | `tests/core/test_parsers.py` | 133 |
-| `test_parse_table_with_multiple_rows` | Method | `tests/core/test_parsers.py` | 154 |
-| `test_parse_empty_table` | Method | `tests/core/test_parsers.py` | 172 |
-| `test_parse_malformed_html` | Method | `tests/core/test_parsers.py` | 180 |
-| `test_parse_table_with_nested_elements` | Method | `tests/core/test_parsers.py` | 189 |
-| `test_parse_table_with_colspan` | Method | `tests/core/test_parsers.py` | 210 |
-| `test_parse_table_with_rowspan` | Method | `tests/core/test_parsers.py` | 233 |
-| `test_parse_row_with_mixed_th_and_td_cells` | Method | `tests/core/test_parsers.py` | 261 |
-| `_clean_html_content` | Method | `src/core/parsers.py` | 174 |
-| `_row_cells` | Method | `src/core/parsers.py` | 191 |
-| `_parse_single_table` | Method | `src/core/parsers.py` | 200 |
-| `_fallback_table_parsing` | Method | `src/core/parsers.py` | 280 |
+| `extract_tables_from_html` | Method | `src/core/parsers.py` | 146 |
+| `test_parse_simple_table` | Method | `tests/core/test_parsers.py` | 132 |
+| `test_parse_table_with_multiple_rows` | Method | `tests/core/test_parsers.py` | 153 |
+| `test_parse_empty_table` | Method | `tests/core/test_parsers.py` | 171 |
+| `test_parse_malformed_html` | Method | `tests/core/test_parsers.py` | 179 |
+| `test_parse_table_with_nested_elements` | Method | `tests/core/test_parsers.py` | 188 |
+| `test_parse_table_with_colspan` | Method | `tests/core/test_parsers.py` | 209 |
+| `test_parse_table_with_rowspan` | Method | `tests/core/test_parsers.py` | 232 |
+| `test_parse_row_with_mixed_th_and_td_cells` | Method | `tests/core/test_parsers.py` | 260 |
+| `_clean_html_content` | Method | `src/core/parsers.py` | 177 |
+| `_row_cells` | Method | `src/core/parsers.py` | 194 |
+| `_parse_single_table` | Method | `src/core/parsers.py` | 203 |
+| `_fallback_table_parsing` | Method | `src/core/parsers.py` | 283 |
 
 ## Execution Flows
 

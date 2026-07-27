@@ -322,7 +322,7 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (6946 symbols, 9624 relationships, 159 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (7002 symbols, 9680 relationships, 159 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -361,6 +361,26 @@ This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (6946 s
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Work in the Training area (261 symbols) | `.claude/skills/generated/training/SKILL.md` |
+| Work in the Integration area (161 symbols) | `.claude/skills/generated/integration/SKILL.md` |
+| Work in the Tests area (56 symbols) | `.claude/skills/generated/tests/SKILL.md` |
+| Work in the Unit area (50 symbols) | `.claude/skills/generated/unit/SKILL.md` |
+| Work in the Utilities area (46 symbols) | `.claude/skills/generated/utilities/SKILL.md` |
+| Work in the Processors area (42 symbols) | `.claude/skills/generated/processors/SKILL.md` |
+| Work in the Cluster_12 area (21 symbols) | `.claude/skills/generated/cluster-12/SKILL.md` |
+| Work in the Tools area (15 symbols) | `.claude/skills/generated/tools/SKILL.md` |
+| Work in the Cluster_11 area (14 symbols) | `.claude/skills/generated/cluster-11/SKILL.md` |
+| Work in the Cluster_34 area (13 symbols) | `.claude/skills/generated/cluster-34/SKILL.md` |
+| Work in the Cluster_44 area (13 symbols) | `.claude/skills/generated/cluster-44/SKILL.md` |
+| Work in the Cluster_38 area (11 symbols) | `.claude/skills/generated/cluster-38/SKILL.md` |
+| Work in the Cluster_53 area (11 symbols) | `.claude/skills/generated/cluster-53/SKILL.md` |
+| Work in the Cluster_1 area (9 symbols) | `.claude/skills/generated/cluster-1/SKILL.md` |
+| Work in the Cluster_19 area (9 symbols) | `.claude/skills/generated/cluster-19/SKILL.md` |
+| Work in the Cluster_20 area (9 symbols) | `.claude/skills/generated/cluster-20/SKILL.md` |
+| Work in the Cluster_37 area (9 symbols) | `.claude/skills/generated/cluster-37/SKILL.md` |
+| Work in the Cluster_45 area (9 symbols) | `.claude/skills/generated/cluster-45/SKILL.md` |
+| Work in the Cluster_54 area (9 symbols) | `.claude/skills/generated/cluster-54/SKILL.md` |
+| Work in the Cluster_99 area (8 symbols) | `.claude/skills/generated/cluster-99/SKILL.md` |
 
 <!-- gitnexus:end -->
 
@@ -368,11 +388,8 @@ This project is indexed by GitNexus as **AI_TC_Generator_v04_w_Trainer** (6946 s
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-
 Rules:
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

@@ -31,9 +31,9 @@ description: "Skill for the Tests area of AI_TC_Generator_v04_w_Trainer. 56 symb
 
 Start here when exploring this area:
 
-- **`run_context_augmentation`** (Function) — `tests/performance/test_regression_benchmarks.py:155`
-- **`test_taskgroup_available`** (Function) — `tests/test_python314_ollama0125.py:91`
-- **`dummy_task`** (Function) — `tests/test_python314_ollama0125.py:95`
+- **`run_context_augmentation`** (Function) — `tests/performance/test_regression_benchmarks.py:165`
+- **`test_taskgroup_available`** (Function) — `tests/test_python314_ollama0125.py:90`
+- **`dummy_task`** (Function) — `tests/test_python314_ollama0125.py:94`
 - **`test_build_augmented_requirements_basic_flow`** (Method) — `tests/core/test_base_processor.py:167`
 - **`test_build_augmented_requirements_includes_design_information_in_context`** (Method) — `tests/core/test_base_processor.py:202`
 
@@ -41,24 +41,24 @@ Start here when exploring this area:
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `run_context_augmentation` | Function | `tests/performance/test_regression_benchmarks.py` | 155 |
-| `test_taskgroup_available` | Function | `tests/test_python314_ollama0125.py` | 91 |
-| `dummy_task` | Function | `tests/test_python314_ollama0125.py` | 95 |
+| `run_context_augmentation` | Function | `tests/performance/test_regression_benchmarks.py` | 165 |
+| `test_taskgroup_available` | Function | `tests/test_python314_ollama0125.py` | 90 |
+| `dummy_task` | Function | `tests/test_python314_ollama0125.py` | 94 |
 | `test_build_augmented_requirements_basic_flow` | Method | `tests/core/test_base_processor.py` | 167 |
 | `test_build_augmented_requirements_includes_design_information_in_context` | Method | `tests/core/test_base_processor.py` | 202 |
-| `test_build_augmented_requirements_resets_info_after_requirement` | Method | `tests/core/test_base_processor.py` | 235 |
-| `test_build_augmented_requirements_new_heading_resets_info` | Method | `tests/core/test_base_processor.py` | 262 |
-| `test_build_augmented_requirements_skips_empty_requirements` | Method | `tests/core/test_base_processor.py` | 283 |
-| `test_build_augmented_requirements_no_heading_uses_default` | Method | `tests/core/test_base_processor.py` | 304 |
-| `test_build_augmented_requirements_multiple_requirements_same_heading` | Method | `tests/core/test_base_processor.py` | 321 |
-| `test_build_augmented_requirements_no_system_requirements` | Method | `tests/core/test_base_processor.py` | 340 |
-| `test_base_processor_context_aware_logic_preserved` | Method | `tests/test_critical_improvements.py` | 329 |
-| `test_context_reset_after_each_requirement` | Method | `tests/test_critical_improvements.py` | 391 |
+| `test_build_augmented_requirements_resets_info_after_requirement` | Method | `tests/core/test_base_processor.py` | 233 |
+| `test_build_augmented_requirements_new_heading_resets_info` | Method | `tests/core/test_base_processor.py` | 260 |
+| `test_build_augmented_requirements_skips_empty_requirements` | Method | `tests/core/test_base_processor.py` | 281 |
+| `test_build_augmented_requirements_no_heading_uses_default` | Method | `tests/core/test_base_processor.py` | 302 |
+| `test_build_augmented_requirements_multiple_requirements_same_heading` | Method | `tests/core/test_base_processor.py` | 319 |
+| `test_build_augmented_requirements_no_system_requirements` | Method | `tests/core/test_base_processor.py` | 338 |
+| `test_base_processor_context_aware_logic_preserved` | Method | `tests/test_critical_improvements.py` | 328 |
+| `test_context_reset_after_each_requirement` | Method | `tests/test_critical_improvements.py` | 394 |
 | `test_build_augmented_requirements_with_context` | Method | `tests/test_refactoring.py` | 41 |
 | `test_build_augmented_requirements_no_requirements` | Method | `tests/test_refactoring.py` | 81 |
 | `test_build_augmented_requirements_no_heading` | Method | `tests/test_refactoring.py` | 98 |
-| `test_build_augmented_requirements_unchanged_with_raft` | Method | `tests/training/test_raft_integration.py` | 94 |
-| `test_context_reset_behavior_intact` | Method | `tests/training/test_raft_integration.py` | 128 |
+| `test_build_augmented_requirements_unchanged_with_raft` | Method | `tests/training/test_raft_integration.py` | 90 |
+| `test_context_reset_behavior_intact` | Method | `tests/training/test_raft_integration.py` | 131 |
 | `build_prompt` | Method | `src/core/prompt_builder.py` | 67 |
 | `test_image_context_rendered_for_requirement_with_images` | Method | `tests/core/test_prompt_builder.py` | 33 |
 

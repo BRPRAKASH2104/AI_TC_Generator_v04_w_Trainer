@@ -1,11 +1,11 @@
 ---
 name: integration
-description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 159 symbols across 26 files."
+description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 161 symbols across 26 files."
 ---
 
 # Integration
 
-159 symbols | 26 files | Cohesion: 83%
+161 symbols | 26 files | Cohesion: 82%
 
 ## When to Use
 
@@ -20,8 +20,8 @@ description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 1
 | `tests/integration/test_edge_cases.py` | test_nested_json_extraction, test_multiple_json_blocks, test_json_with_escaped_characters, test_memory_pressure_simulation, test_invalid_json_response (+13) |
 | `tests/integration/e2e_runner_script.py` | add_pass, add_fail, add_skip, summary, run_command (+12) |
 | `src/app_logger.py` | __init__, _generate_session_id, _start_performance_monitoring, debug, info (+11) |
+| `tests/integration/test_processors.py` | test_process_directory, test_process_directory_runs_files_sequentially, test_process_file_success, test_process_file_no_system_requirements, test_process_file_success (+9) |
 | `tests/core/test_parsers.py` | test_extract_direct_json, test_extract_json_from_markdown_block, test_extract_json_from_code_block_without_language, test_extract_json_with_curly_braces_fallback, test_invalid_json_returns_none (+9) |
-| `tests/integration/test_processors.py` | test_process_directory, test_process_directory_runs_files_sequentially, test_process_file_success, test_process_file_no_system_requirements, test_process_file_success (+8) |
 | `tests/integration/test_end_to_end.py` | test_directory_processing_workflow, test_logging_integration_workflow, test_standard_mode_complete_workflow, test_error_handling_workflow, test_malformed_reqifz_handling (+5) |
 | `tests/core/test_generators.py` | test_generate_test_cases_success, test_generate_test_cases_with_template, test_generate_test_cases_ai_failure, test_generate_test_cases_invalid_json_response, test_prompt_variable_substitution (+4) |
 | `tests/test_critical_improvements.py` | test_standard_processor_handles_connection_error, test_standard_processor_handles_model_not_found, test_hp_processor_processes_all_requirements_concurrently, test_connection_error_raises_ollama_connection_error, test_timeout_error_raises_ollama_timeout_error (+3) |
@@ -33,40 +33,42 @@ description: "Skill for the Integration area of AI_TC_Generator_v04_w_Trainer. 1
 Start here when exploring this area:
 
 - **`show_banner`** (Function) — `main.py:42`
-- **`main`** (Function) — `main.py:248`
+- **`main`** (Function) — `main.py:253`
 - **`get_app_logger`** (Function) — `src/app_logger.py:332`
 - **`shutdown_app_logger`** (Function) — `src/app_logger.py:363`
-- **`run_processing`** (Function) — `tests/performance/test_regression_benchmarks.py:80`
+- **`run_processing`** (Function) — `tests/performance/test_regression_benchmarks.py:66`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
 | `show_banner` | Function | `main.py` | 42 |
-| `main` | Function | `main.py` | 248 |
+| `main` | Function | `main.py` | 253 |
 | `get_app_logger` | Function | `src/app_logger.py` | 332 |
 | `shutdown_app_logger` | Function | `src/app_logger.py` | 363 |
-| `run_processing` | Function | `tests/performance/test_regression_benchmarks.py` | 80 |
+| `run_processing` | Function | `tests/performance/test_regression_benchmarks.py` | 66 |
 | `run_command` | Function | `tests/integration/e2e_runner_script.py` | 69 |
 | `check_ollama_service` | Function | `tests/integration/e2e_runner_script.py` | 82 |
-| `check_models_available` | Function | `tests/integration/e2e_runner_script.py` | 88 |
-| `get_reqifz_files` | Function | `tests/integration/e2e_runner_script.py` | 99 |
-| `test_positive_standard_mode` | Function | `tests/integration/e2e_runner_script.py` | 104 |
-| `test_positive_hp_mode` | Function | `tests/integration/e2e_runner_script.py` | 125 |
-| `test_negative_missing_file` | Function | `tests/integration/e2e_runner_script.py` | 146 |
-| `test_negative_invalid_file` | Function | `tests/integration/e2e_runner_script.py` | 160 |
-| `test_negative_missing_model` | Function | `tests/integration/e2e_runner_script.py` | 181 |
-| `test_output_validation` | Function | `tests/integration/e2e_runner_script.py` | 195 |
-| `test_template_validation` | Function | `tests/integration/e2e_runner_script.py` | 219 |
-| `test_batch_processing` | Function | `tests/integration/e2e_runner_script.py` | 232 |
-| `main` | Function | `tests/integration/e2e_runner_script.py` | 259 |
-| `test_generator_confidence_injection` | Function | `tests/core/test_ollama_logprobs.py` | 105 |
-| `test_ollama_client_sync_logprobs` | Function | `tests/core/test_ollama_logprobs.py` | 50 |
+| `check_models_available` | Function | `tests/integration/e2e_runner_script.py` | 90 |
+| `get_reqifz_files` | Function | `tests/integration/e2e_runner_script.py` | 103 |
+| `test_positive_standard_mode` | Function | `tests/integration/e2e_runner_script.py` | 108 |
+| `test_positive_hp_mode` | Function | `tests/integration/e2e_runner_script.py` | 129 |
+| `test_negative_missing_file` | Function | `tests/integration/e2e_runner_script.py` | 150 |
+| `test_negative_invalid_file` | Function | `tests/integration/e2e_runner_script.py` | 164 |
+| `test_negative_missing_model` | Function | `tests/integration/e2e_runner_script.py` | 187 |
+| `test_output_validation` | Function | `tests/integration/e2e_runner_script.py` | 201 |
+| `test_template_validation` | Function | `tests/integration/e2e_runner_script.py` | 225 |
+| `test_batch_processing` | Function | `tests/integration/e2e_runner_script.py` | 238 |
+| `main` | Function | `tests/integration/e2e_runner_script.py` | 265 |
+| `test_generator_confidence_injection` | Function | `tests/core/test_ollama_logprobs.py` | 102 |
+| `test_ollama_client_sync_logprobs` | Function | `tests/core/test_ollama_logprobs.py` | 51 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
+| `Run_evaluation → Extract_json_from_response` | cross_community | 6 |
+| `Run_evaluation → Is_canonical_test_case` | cross_community | 6 |
 | `_run_hp_mode → _log_with_extras` | intra_community | 6 |
 | `Main → _build_spec_type_mapping` | cross_community | 6 |
 | `Main → _build_foreign_id_mapping` | cross_community | 6 |
@@ -75,21 +77,19 @@ Start here when exploring this area:
 | `Verify_classification → _determine_image_format` | cross_community | 6 |
 | `Verify_augmentation → _map_reqif_type_to_artifact_type` | cross_community | 5 |
 | `Verify_augmentation → _extract_foreign_id` | cross_community | 5 |
-| `Verify_augmentation → _extract_xhtml_content` | cross_community | 5 |
-| `Verify_augmentation → _determine_artifact_type` | cross_community | 5 |
 
 ## Connected Areas
 
 | Area | Connections |
 |------|-------------|
-| Processors | 16 calls |
+| Processors | 14 calls |
 | Cluster_26 | 9 calls |
 | Unit | 7 calls |
 | Tests | 4 calls |
 | Cluster_1 | 3 calls |
 | Cluster_11 | 3 calls |
 | Cluster_35 | 2 calls |
-| Training | 2 calls |
+| Cluster_32 | 1 calls |
 
 ## How to Explore
 

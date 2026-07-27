@@ -1,86 +1,93 @@
 ---
 name: training
-description: "Skill for the Training area of AI_TC_Generator_v04_w_Trainer. 85 symbols across 12 files."
+description: "Skill for the Training area of AI_TC_Generator_v04_w_Trainer. 261 symbols across 22 files."
 ---
 
 # Training
 
-85 symbols | 12 files | Cohesion: 89%
+261 symbols | 22 files | Cohesion: 87%
 
 ## When to Use
 
-- Working with code in `src/`
-- Understanding how test_nonzero_returncode_is_failed_with_error, test_timeout_is_failed_with_error, test_command_not_found_is_failed_with_error work
+- Working with code in `tests/`
+- Understanding how trainer, test_result_shape, test_valid_output_scores_one work
 - Modifying training-related functionality
 
 ## Key Files
 
 | File | Symbols |
 |------|---------|
+| `tests/training/test_vision_raft_evaluate.py` | _write_jsonl, _text_example, _vision_example, trainer, test_result_shape (+42) |
+| `src/training/vision_raft_trainer.py` | evaluate_model, _collect_errors, _load_and_validate_examples, _validate_example_contract, _validate_images (+20) |
+| `tests/training/test_judge_calibration.py` | _case, test_all_bands_within_range_passes, test_breached_band_fails_the_report, test_none_metric_with_declared_band_is_a_breach_not_a_crash, test_scorer_returning_none_with_declared_band_is_a_breach (+19) |
+| `tests/training/test_raft_dataset_builder.py` | test_build_dataset_success, test_filter_by_quality, test_build_dataset_empty_directory, test_build_dataset_nonexistent_directory, test_skip_unannotated_examples (+13) |
 | `tests/training/test_raft_collector.py` | test_collect_example_success, test_collector_disabled_no_op, test_empty_requirement, test_missing_context_fields, test_special_characters_in_requirement_id (+9) |
+| `tests/training/test_train_vision_cli.py` | _write_example, test_run_evaluation_forwards_compare_base, test_run_evaluation_threads_base_model_into_config, test_run_evaluation_happy_path_returns_0, _failed_comparison_result (+8) |
+| `tests/training/test_progressive_trainer.py` | _rich_example, _simple_example, _poor_example, test_load_validated_examples_skips_corrupt, test_organize_examples_preserves_count_and_buckets_simple (+8) |
 | `src/training/progressive_trainer.py` | start_curriculum_training, _load_validated_examples, _organize_examples_by_phase, _train_phase, _simulate_phase_training (+7) |
-| `tests/training/test_raft_dataset_builder.py` | test_build_dataset_success, test_filter_by_quality, test_build_dataset_empty_directory, test_build_dataset_nonexistent_directory, test_skip_unannotated_examples (+7) |
 | `src/training/quality_scorer.py` | assess_example_quality, _calculate_relevance_score, _calculate_domain_relevance, _calculate_context_diversity, _calculate_context_quantity (+6) |
-| `src/training/raft_annotator.py` | annotate_examples, _annotate_single_example, _build_context_items_list, _display_context_table, _get_user_oracle_selection (+6) |
-| `src/training/raft_dataset_builder.py` | build_dataset, _build_raft_example, save_dataset, get_dataset_stats, validate_dataset |
-| `src/training/vision_raft_trainer.py` | train, _analyze_dataset, _prepare_modelfile, _train_with_ollama, _save_training_progress |
-| `tests/training/test_vision_raft_trainer.py` | _trainer, test_nonzero_returncode_is_failed_with_error, test_timeout_is_failed_with_error, test_command_not_found_is_failed_with_error, test_success_is_completed_without_errors |
-| `src/training/raft_collector.py` | collect_example, _extract_images_for_training, get_collection_stats, clear_collected_data |
-| `tests/training/test_raft_integration.py` | test_save_raft_example_no_op_when_disabled, test_save_raft_example_collects_when_enabled, test_raft_collection_minimal_overhead |
+| `tests/training/test_raft_annotator.py` | _example, test_build_context_items_list_reflects_context, test_is_annotated, test_get_unannotated_files_filters_annotated, test_get_unannotated_files_skips_corrupt (+6) |
 
 ## Entry Points
 
 Start here when exploring this area:
 
-- **`test_nonzero_returncode_is_failed_with_error`** (Function) — `tests/training/test_vision_raft_trainer.py:40`
-- **`test_timeout_is_failed_with_error`** (Function) — `tests/training/test_vision_raft_trainer.py:53`
-- **`test_command_not_found_is_failed_with_error`** (Function) — `tests/training/test_vision_raft_trainer.py:66`
-- **`test_success_is_completed_without_errors`** (Function) — `tests/training/test_vision_raft_trainer.py:79`
-- **`assess_example_quality`** (Method) — `src/training/quality_scorer.py:122`
+- **`trainer`** (Function) — `tests/training/test_vision_raft_evaluate.py:120`
+- **`test_result_shape`** (Function) — `tests/training/test_vision_raft_evaluate.py:138`
+- **`test_valid_output_scores_one`** (Function) — `tests/training/test_vision_raft_evaluate.py:157`
+- **`test_invalid_schema_output_scores_zero`** (Function) — `tests/training/test_vision_raft_evaluate.py:177`
+- **`test_unparseable_output_scores_zero`** (Function) — `tests/training/test_vision_raft_evaluate.py:190`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `test_nonzero_returncode_is_failed_with_error` | Function | `tests/training/test_vision_raft_trainer.py` | 40 |
-| `test_timeout_is_failed_with_error` | Function | `tests/training/test_vision_raft_trainer.py` | 53 |
-| `test_command_not_found_is_failed_with_error` | Function | `tests/training/test_vision_raft_trainer.py` | 66 |
-| `test_success_is_completed_without_errors` | Function | `tests/training/test_vision_raft_trainer.py` | 79 |
-| `assess_example_quality` | Method | `src/training/quality_scorer.py` | 122 |
-| `batch_assess_quality` | Method | `src/training/quality_scorer.py` | 563 |
-| `annotate_examples` | Method | `src/training/raft_annotator.py` | 53 |
-| `collect_example` | Method | `src/training/raft_collector.py` | 50 |
-| `test_collect_example_success` | Method | `tests/training/test_raft_collector.py` | 72 |
-| `test_collector_disabled_no_op` | Method | `tests/training/test_raft_collector.py` | 155 |
-| `test_empty_requirement` | Method | `tests/training/test_raft_collector.py` | 173 |
-| `test_missing_context_fields` | Method | `tests/training/test_raft_collector.py` | 199 |
-| `test_special_characters_in_requirement_id` | Method | `tests/training/test_raft_collector.py` | 256 |
-| `test_very_long_test_cases` | Method | `tests/training/test_raft_collector.py` | 281 |
-| `test_unicode_characters_in_context` | Method | `tests/training/test_raft_collector.py` | 306 |
-| `test_empty_info_and_interface_lists` | Method | `tests/training/test_raft_collector.py` | 338 |
-| `start_curriculum_training` | Method | `src/training/progressive_trainer.py` | 148 |
-| `get_training_recommendations` | Method | `src/training/progressive_trainer.py` | 403 |
-| `get_curriculum_status` | Method | `src/training/progressive_trainer.py` | 474 |
-| `build_dataset` | Method | `src/training/raft_dataset_builder.py` | 44 |
+| `trainer` | Function | `tests/training/test_vision_raft_evaluate.py` | 120 |
+| `test_result_shape` | Function | `tests/training/test_vision_raft_evaluate.py` | 138 |
+| `test_valid_output_scores_one` | Function | `tests/training/test_vision_raft_evaluate.py` | 157 |
+| `test_invalid_schema_output_scores_zero` | Function | `tests/training/test_vision_raft_evaluate.py` | 177 |
+| `test_unparseable_output_scores_zero` | Function | `tests/training/test_vision_raft_evaluate.py` | 190 |
+| `test_vision_score_is_none_without_vision_examples` | Function | `tests/training/test_vision_raft_evaluate.py` | 202 |
+| `test_routes_vision_examples_through_vision_method` | Function | `tests/training/test_vision_raft_evaluate.py` | 214 |
+| `test_forwards_canonical_schema_to_model` | Function | `tests/training/test_vision_raft_evaluate.py` | 228 |
+| `test_injected_client_never_shells_out` | Function | `tests/training/test_vision_raft_evaluate.py` | 240 |
+| `test_no_baseline_or_delta_by_default` | Function | `tests/training/test_vision_raft_evaluate.py` | 258 |
+| `test_compare_base_adds_baseline_and_delta` | Function | `tests/training/test_vision_raft_evaluate.py` | 268 |
+| `test_compare_base_runs_both_models` | Function | `tests/training/test_vision_raft_evaluate.py` | 282 |
+| `test_delta_reflects_customized_minus_base` | Function | `tests/training/test_vision_raft_evaluate.py` | 293 |
+| `test_delta_is_none_when_metric_absent_on_a_side` | Function | `tests/training/test_vision_raft_evaluate.py` | 311 |
+| `test_total_baseline_failure_withholds_delta` | Function | `tests/training/test_vision_raft_evaluate.py` | 329 |
+| `test_partial_baseline_failure_compares_paired_rows_only` | Function | `tests/training/test_vision_raft_evaluate.py` | 351 |
+| `test_customized_failures_also_excluded_from_pairing` | Function | `tests/training/test_vision_raft_evaluate.py` | 374 |
+| `test_full_success_comparison_is_complete` | Function | `tests/training/test_vision_raft_evaluate.py` | 394 |
+| `test_duplicate_heavy_output_does_not_inflate_unique_valid` | Function | `tests/training/test_vision_raft_evaluate.py` | 427 |
+| `test_invalid_bulk_output_has_zero_unique_valid` | Function | `tests/training/test_vision_raft_evaluate.py` | 449 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
-| `Annotate_examples → _show_annotation_help` | intra_community | 4 |
-| `Batch_assess_quality → _calculate_domain_relevance` | intra_community | 4 |
-| `Main → _analyze_dataset` | cross_community | 3 |
-| `Main → _prepare_modelfile` | cross_community | 3 |
-| `Main → _train_with_ollama` | cross_community | 3 |
-| `Main → _save_training_progress` | cross_community | 3 |
-| `Start_curriculum_training → _simulate_phase_training` | intra_community | 3 |
-| `Get_curriculum_status → _load_validated_examples` | intra_community | 3 |
-| `Get_curriculum_status → _organize_examples_by_phase` | intra_community | 3 |
-| `Main → _build_raft_example` | cross_community | 3 |
+| `Main → _within` | cross_community | 6 |
+| `Run_evaluation → _decoded_image_paths` | cross_community | 6 |
+| `Run_evaluation → Extract_json_from_response` | cross_community | 6 |
+| `Run_evaluation → Is_canonical_test_case` | cross_community | 6 |
+| `Run_evaluation → _reference_answer` | cross_community | 6 |
+| `Run_evaluation → Score` | cross_community | 6 |
+| `Main → Score` | cross_community | 5 |
+| `Main → _format_band` | cross_community | 5 |
+| `Run_evaluation → _validate_images` | cross_community | 5 |
+| `Run_evaluation → Mean_score` | cross_community | 5 |
+
+## Connected Areas
+
+| Area | Connections |
+|------|-------------|
+| Integration | 4 calls |
+| Cluster_14 | 2 calls |
 
 ## How to Explore
 
-1. `context({name: "test_nonzero_returncode_is_failed_with_error"})` — see callers and callees
+1. `context({name: "trainer"})` — see callers and callees
 2. `query({search_query: "training"})` — find related execution flows
 3. Read key files listed above for implementation details
 4. `explain({target: "<file or symbol>"})` — persisted taint findings (source→sink data flows), when indexed with `--pdg`

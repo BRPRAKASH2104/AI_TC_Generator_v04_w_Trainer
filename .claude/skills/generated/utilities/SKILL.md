@@ -1,11 +1,11 @@
 ---
 name: utilities
-description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 40 symbols across 9 files."
+description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 46 symbols across 10 files."
 ---
 
 # Utilities
 
-40 symbols | 9 files | Cohesion: 85%
+46 symbols | 10 files | Cohesion: 84%
 
 ## When to Use
 
@@ -17,13 +17,14 @@ description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 40 
 
 | File | Symbols |
 |------|---------|
+| `utilities/train_vision_model.py` | parse_args, validate_dataset, check_ollama_connection, check_base_model_exists, check_output_model_exists (+6) |
 | `utilities/version_check.py` | check_python_version, _print_upgrade_instructions, check_required_features, run_comprehensive_check, main (+4) |
-| `utilities/train_vision_model.py` | parse_args, validate_dataset, check_ollama_connection, check_base_model_exists, check_output_model_exists (+2) |
 | `utilities/verify_v03_compatibility.py` | verify_field_mapping, verify_all, verify_extraction, verify_classification, verify_prompt_generation (+2) |
 | `src/core/formatters.py` | _stringify_list, _prepare_test_cases_for_excel, _get_default_test_values, _generate_issue_id |
-| `utilities/annotate_raft.py` | annotate_example, batch_annotate, show_stats, main |
 | `utilities/build_vision_dataset.py` | parse_args, validate_paths, print_dataset_stats, main |
+| `utilities/annotate_raft.py` | annotate_example, batch_annotate, show_stats, main |
 | `tests/core/test_formatters_custom.py` | test_excel_description_includes_confidence, test_excel_description_handles_missing_confidence |
+| `src/training/raft_dataset_builder.py` | split_dataset, save_split |
 | `utilities/compare_v03_v04_output.py` | compare_outputs, main |
 | `src/training/vision_raft_trainer.py` | create_vision_training_pipeline |
 
@@ -31,57 +32,57 @@ description: "Skill for the Utilities area of AI_TC_Generator_v04_w_Trainer. 40 
 
 Start here when exploring this area:
 
-- **`create_vision_training_pipeline`** (Function) — `src/training/vision_raft_trainer.py:470`
-- **`parse_args`** (Function) — `utilities/train_vision_model.py:65`
-- **`validate_dataset`** (Function) — `utilities/train_vision_model.py:118`
-- **`check_ollama_connection`** (Function) — `utilities/train_vision_model.py:144`
-- **`check_base_model_exists`** (Function) — `utilities/train_vision_model.py:159`
+- **`create_vision_training_pipeline`** (Function) — `src/training/vision_raft_trainer.py:1198`
+- **`parse_args`** (Function) — `utilities/train_vision_model.py:71`
+- **`validate_dataset`** (Function) — `utilities/train_vision_model.py:172`
+- **`check_ollama_connection`** (Function) — `utilities/train_vision_model.py:198`
+- **`check_base_model_exists`** (Function) — `utilities/train_vision_model.py:213`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `create_vision_training_pipeline` | Function | `src/training/vision_raft_trainer.py` | 470 |
-| `parse_args` | Function | `utilities/train_vision_model.py` | 65 |
-| `validate_dataset` | Function | `utilities/train_vision_model.py` | 118 |
-| `check_ollama_connection` | Function | `utilities/train_vision_model.py` | 144 |
-| `check_base_model_exists` | Function | `utilities/train_vision_model.py` | 159 |
-| `check_output_model_exists` | Function | `utilities/train_vision_model.py` | 180 |
-| `print_training_result` | Function | `utilities/train_vision_model.py` | 201 |
-| `main` | Function | `utilities/train_vision_model.py` | 250 |
-| `test_excel_description_includes_confidence` | Function | `tests/core/test_formatters_custom.py` | 4 |
-| `test_excel_description_handles_missing_confidence` | Function | `tests/core/test_formatters_custom.py` | 22 |
+| `create_vision_training_pipeline` | Function | `src/training/vision_raft_trainer.py` | 1198 |
+| `parse_args` | Function | `utilities/train_vision_model.py` | 71 |
+| `validate_dataset` | Function | `utilities/train_vision_model.py` | 172 |
+| `check_ollama_connection` | Function | `utilities/train_vision_model.py` | 198 |
+| `check_base_model_exists` | Function | `utilities/train_vision_model.py` | 213 |
+| `check_output_model_exists` | Function | `utilities/train_vision_model.py` | 234 |
+| `print_training_result` | Function | `utilities/train_vision_model.py` | 255 |
+| `print_evaluation_result` | Function | `utilities/train_vision_model.py` | 309 |
+| `run_evaluation` | Function | `utilities/train_vision_model.py` | 418 |
+| `run_judge_calibration` | Function | `utilities/train_vision_model.py` | 471 |
+| `main` | Function | `utilities/train_vision_model.py` | 488 |
+| `test_excel_description_includes_confidence` | Function | `tests/core/test_formatters_custom.py` | 3 |
+| `test_excel_description_handles_missing_confidence` | Function | `tests/core/test_formatters_custom.py` | 24 |
+| `parse_args` | Function | `utilities/build_vision_dataset.py` | 62 |
+| `validate_paths` | Function | `utilities/build_vision_dataset.py` | 131 |
+| `print_dataset_stats` | Function | `utilities/build_vision_dataset.py` | 161 |
+| `main` | Function | `utilities/build_vision_dataset.py` | 194 |
 | `main` | Function | `utilities/verify_v03_compatibility.py` | 352 |
 | `main` | Function | `utilities/version_check.py` | 400 |
 | `annotate_example` | Function | `utilities/annotate_raft.py` | 15 |
-| `batch_annotate` | Function | `utilities/annotate_raft.py` | 179 |
-| `show_stats` | Function | `utilities/annotate_raft.py` | 224 |
-| `main` | Function | `utilities/annotate_raft.py` | 257 |
-| `parse_args` | Function | `utilities/build_vision_dataset.py` | 62 |
-| `validate_paths` | Function | `utilities/build_vision_dataset.py` | 113 |
-| `print_dataset_stats` | Function | `utilities/build_vision_dataset.py` | 143 |
-| `main` | Function | `utilities/build_vision_dataset.py` | 176 |
 
 ## Execution Flows
 
 | Flow | Type | Steps |
 |------|------|-------|
+| `Main → _within` | cross_community | 6 |
+| `Run_evaluation → _decoded_image_paths` | cross_community | 6 |
+| `Run_evaluation → Extract_json_from_response` | cross_community | 6 |
+| `Run_evaluation → Is_canonical_test_case` | cross_community | 6 |
+| `Run_evaluation → _reference_answer` | cross_community | 6 |
+| `Run_evaluation → Score` | cross_community | 6 |
 | `Main → _build_spec_type_mapping` | cross_community | 6 |
 | `Main → _build_foreign_id_mapping` | cross_community | 6 |
 | `Main → _build_attribute_definition_mapping` | cross_community | 6 |
 | `Verify_extraction → _determine_image_format` | cross_community | 6 |
-| `Verify_classification → _determine_image_format` | cross_community | 6 |
-| `Main → Version_tuple` | cross_community | 5 |
-| `Main → _clean_text_for_logging` | cross_community | 5 |
-| `Verify_extraction → _map_reqif_type_to_artifact_type` | cross_community | 5 |
-| `Verify_extraction → _extract_foreign_id` | cross_community | 5 |
-| `Verify_extraction → _extract_xhtml_content` | cross_community | 5 |
 
 ## Connected Areas
 
 | Area | Connections |
 |------|-------------|
-| Training | 3 calls |
+| Training | 6 calls |
 | Integration | 2 calls |
 | Processors | 1 calls |
 | Tests | 1 calls |

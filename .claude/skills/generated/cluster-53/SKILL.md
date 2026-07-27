@@ -27,8 +27,8 @@ Start here when exploring this area:
 - **`test_valid_test_case`** (Function) — `tests/core/test_validators.py:22`
 - **`test_invalid_signal_name`** (Function) — `tests/core/test_validators.py:45`
 - **`test_fuzzy_matching_suggestion`** (Function) — `tests/core/test_validators.py:69`
-- **`test_no_interface_list`** (Function) — `tests/core/test_validators.py:114`
-- **`test_empty_data_field`** (Function) — `tests/core/test_validators.py:132`
+- **`test_no_interface_list`** (Function) — `tests/core/test_validators.py:112`
+- **`test_empty_data_field`** (Function) — `tests/core/test_validators.py:130`
 
 ## Key Symbols
 
@@ -37,14 +37,14 @@ Start here when exploring this area:
 | `test_valid_test_case` | Function | `tests/core/test_validators.py` | 22 |
 | `test_invalid_signal_name` | Function | `tests/core/test_validators.py` | 45 |
 | `test_fuzzy_matching_suggestion` | Function | `tests/core/test_validators.py` | 69 |
-| `test_no_interface_list` | Function | `tests/core/test_validators.py` | 114 |
-| `test_empty_data_field` | Function | `tests/core/test_validators.py` | 132 |
-| `test_data_format_validation` | Function | `tests/core/test_validators.py` | 154 |
-| `test_multiple_invalid_signals` | Function | `tests/core/test_validators.py` | 178 |
-| `test_similarity_threshold_configuration` | Function | `tests/core/test_validators.py` | 203 |
-| `test_unknown_signal_in_test_steps_flagged_without_close_match` | Function | `tests/core/test_validators.py` | 225 |
-| `test_generic_words_in_test_steps_not_flagged` | Function | `tests/core/test_validators.py` | 250 |
-| `validate_test_case` | Method | `src/core/validators.py` | 141 |
+| `test_no_interface_list` | Function | `tests/core/test_validators.py` | 112 |
+| `test_empty_data_field` | Function | `tests/core/test_validators.py` | 130 |
+| `test_data_format_validation` | Function | `tests/core/test_validators.py` | 150 |
+| `test_multiple_invalid_signals` | Function | `tests/core/test_validators.py` | 174 |
+| `test_similarity_threshold_configuration` | Function | `tests/core/test_validators.py` | 199 |
+| `test_unknown_signal_in_test_steps_flagged_without_close_match` | Function | `tests/core/test_validators.py` | 219 |
+| `test_generic_words_in_test_steps_not_flagged` | Function | `tests/core/test_validators.py` | 242 |
+| `validate_test_case` | Method | `src/core/validators.py` | 139 |
 
 ## Execution Flows
 

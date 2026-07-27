@@ -26,24 +26,24 @@ description: "Skill for the Cluster_45 area of AI_TC_Generator_v04_w_Trainer. 9 
 Start here when exploring this area:
 
 - **`displayed_table_rows`** (Function) — `src/core/prompt_builder.py:25`
-- **`test_displayed_rows_helper`** (Method) — `tests/core/test_validators.py:329`
-- **`test_large_table_coverage_scoped_to_displayed_rows`** (Method) — `tests/core/test_validators.py:337`
-- **`test_large_table_analysis_reports_truncation`** (Method) — `tests/core/test_validators.py:347`
-- **`test_small_table_still_requires_full_coverage`** (Method) — `tests/core/test_validators.py:360`
+- **`test_displayed_rows_helper`** (Method) — `tests/core/test_validators.py:311`
+- **`test_large_table_coverage_scoped_to_displayed_rows`** (Method) — `tests/core/test_validators.py:319`
+- **`test_large_table_analysis_reports_truncation`** (Method) — `tests/core/test_validators.py:329`
+- **`test_small_table_still_requires_full_coverage`** (Method) — `tests/core/test_validators.py:342`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
 | `displayed_table_rows` | Function | `src/core/prompt_builder.py` | 25 |
-| `test_displayed_rows_helper` | Method | `tests/core/test_validators.py` | 329 |
-| `test_large_table_coverage_scoped_to_displayed_rows` | Method | `tests/core/test_validators.py` | 337 |
-| `test_large_table_analysis_reports_truncation` | Method | `tests/core/test_validators.py` | 347 |
-| `test_small_table_still_requires_full_coverage` | Method | `tests/core/test_validators.py` | 360 |
-| `test_small_table_analysis_not_truncated` | Method | `tests/core/test_validators.py` | 370 |
-| `_validate_table_coverage` | Method | `src/core/validators.py` | 363 |
-| `_analyze_table_coverage` | Method | `src/core/validators.py` | 448 |
-| `_cases` | Method | `tests/core/test_validators.py` | 320 |
+| `test_displayed_rows_helper` | Method | `tests/core/test_validators.py` | 311 |
+| `test_large_table_coverage_scoped_to_displayed_rows` | Method | `tests/core/test_validators.py` | 319 |
+| `test_large_table_analysis_reports_truncation` | Method | `tests/core/test_validators.py` | 329 |
+| `test_small_table_still_requires_full_coverage` | Method | `tests/core/test_validators.py` | 342 |
+| `test_small_table_analysis_not_truncated` | Method | `tests/core/test_validators.py` | 352 |
+| `_validate_table_coverage` | Method | `src/core/validators.py` | 361 |
+| `_analyze_table_coverage` | Method | `src/core/validators.py` | 446 |
+| `_cases` | Method | `tests/core/test_validators.py` | 306 |
 
 ## Execution Flows
 

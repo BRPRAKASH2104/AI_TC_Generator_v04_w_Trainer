@@ -25,24 +25,24 @@ description: "Skill for the Cluster_54 area of AI_TC_Generator_v04_w_Trainer. 9 
 Start here when exploring this area:
 
 - **`test_signal_name_extraction`** (Function) — `tests/core/test_validators.py:5`
-- **`test_batch_validation_report`** (Function) — `tests/core/test_validators.py:87`
-- **`test_signal_names_extracted_once_per_batch`** (Function) — `tests/core/test_validators.py:268`
-- **`test_signal_extraction_patterns`** (Function) — `tests/core/test_validators.py:290`
-- **`validate_batch`** (Method) — `src/core/validators.py:314`
+- **`test_batch_validation_report`** (Function) — `tests/core/test_validators.py:85`
+- **`test_signal_names_extracted_once_per_batch`** (Function) — `tests/core/test_validators.py:258`
+- **`test_signal_extraction_patterns`** (Function) — `tests/core/test_validators.py:276`
+- **`validate_batch`** (Method) — `src/core/validators.py:312`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
 | `test_signal_name_extraction` | Function | `tests/core/test_validators.py` | 5 |
-| `test_batch_validation_report` | Function | `tests/core/test_validators.py` | 87 |
-| `test_signal_names_extracted_once_per_batch` | Function | `tests/core/test_validators.py` | 268 |
-| `test_signal_extraction_patterns` | Function | `tests/core/test_validators.py` | 290 |
-| `validate_batch` | Method | `src/core/validators.py` | 314 |
-| `_validate_with_signals` | Method | `src/core/validators.py` | 165 |
-| `_extract_signal_names` | Method | `src/core/validators.py` | 194 |
-| `_validate_signals` | Method | `src/core/validators.py` | 221 |
-| `_validate_data_format` | Method | `src/core/validators.py` | 286 |
+| `test_batch_validation_report` | Function | `tests/core/test_validators.py` | 85 |
+| `test_signal_names_extracted_once_per_batch` | Function | `tests/core/test_validators.py` | 258 |
+| `test_signal_extraction_patterns` | Function | `tests/core/test_validators.py` | 276 |
+| `validate_batch` | Method | `src/core/validators.py` | 312 |
+| `_validate_with_signals` | Method | `src/core/validators.py` | 163 |
+| `_extract_signal_names` | Method | `src/core/validators.py` | 192 |
+| `_validate_signals` | Method | `src/core/validators.py` | 219 |
+| `_validate_data_format` | Method | `src/core/validators.py` | 284 |
 
 ## Execution Flows
 

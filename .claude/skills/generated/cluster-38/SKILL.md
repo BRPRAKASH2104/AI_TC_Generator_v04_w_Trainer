@@ -25,7 +25,7 @@ description: "Skill for the Cluster_38 area of AI_TC_Generator_v04_w_Trainer. 11
 
 Start here when exploring this area:
 
-- **`test_ollama_client_async_logprobs`** (Function) — `tests/core/test_ollama_logprobs.py:78`
+- **`test_ollama_client_async_logprobs`** (Function) — `tests/core/test_ollama_logprobs.py:77`
 - **`generate_response_with_vision`** (Method) — `src/core/ollama_client.py:196`
 - **`generate_completion`** (Method) — `src/core/ollama_client.py:348`
 - **`generate_response`** (Method) — `src/core/ollama_client.py:381`
@@ -35,15 +35,15 @@ Start here when exploring this area:
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
-| `test_ollama_client_async_logprobs` | Function | `tests/core/test_ollama_logprobs.py` | 78 |
+| `test_ollama_client_async_logprobs` | Function | `tests/core/test_ollama_logprobs.py` | 77 |
 | `generate_response_with_vision` | Method | `src/core/ollama_client.py` | 196 |
 | `generate_completion` | Method | `src/core/ollama_client.py` | 348 |
 | `generate_response` | Method | `src/core/ollama_client.py` | 381 |
 | `generate_response_with_vision` | Method | `src/core/ollama_client.py` | 400 |
-| `test_missing_image_file_logs_warning` | Method | `tests/core/test_vision_fixes.py` | 223 |
-| `test_permission_denied_logs_specific_error` | Method | `tests/core/test_vision_fixes.py` | 258 |
-| `test_failed_images_returns_count` | Method | `tests/core/test_vision_fixes.py` | 292 |
-| `test_vision_model_uses_vision_context_window` | Method | `tests/core/test_vision_fixes.py` | 383 |
+| `test_missing_image_file_logs_warning` | Method | `tests/core/test_vision_fixes.py` | 221 |
+| `test_permission_denied_logs_specific_error` | Method | `tests/core/test_vision_fixes.py` | 256 |
+| `test_failed_images_returns_count` | Method | `tests/core/test_vision_fixes.py` | 289 |
+| `test_vision_model_uses_vision_context_window` | Method | `tests/core/test_vision_fixes.py` | 377 |
 | `_build_generate_payload` | Function | `src/core/ollama_client.py` | 38 |
 | `_load_images_base64` | Function | `src/core/ollama_client.py` | 87 |
 

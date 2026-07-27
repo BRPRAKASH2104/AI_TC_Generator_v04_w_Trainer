@@ -1,11 +1,11 @@
 ---
 name: processors
-description: "Skill for the Processors area of AI_TC_Generator_v04_w_Trainer. 32 symbols across 8 files."
+description: "Skill for the Processors area of AI_TC_Generator_v04_w_Trainer. 42 symbols across 8 files."
 ---
 
 # Processors
 
-32 symbols | 8 files | Cohesion: 84%
+42 symbols | 8 files | Cohesion: 85%
 
 ## When to Use
 
@@ -17,12 +17,12 @@ description: "Skill for the Processors area of AI_TC_Generator_v04_w_Trainer. 32
 
 | File | Symbols |
 |------|---------|
-| `tests/core/test_base_processor.py` | test_initialize_logger_creates_logger, test_initialize_logger_updates_raft_collector, test_extract_artifacts_success, test_extract_artifacts_returns_none_when_empty, test_extract_artifacts_returns_none_when_none (+6) |
-| `src/processors/base_processor.py` | __init__, _initialize_logger, _extract_artifacts, _create_success_result, _create_error_result (+2) |
-| `tests/test_refactoring.py` | test_initialize_logger, test_base_processor_extract_artifacts_failure, test_create_success_result, test_create_error_result, test_create_metadata |
-| `src/processors/hp_processor.py` | __init__, _reset_metrics, HighPerformanceREQIFZFileProcessor |
-| `src/processors/standard_processor.py` | __init__, REQIFZFileProcessor |
-| `tests/training/test_raft_integration.py` | test_raft_does_not_change_success_result, test_raft_does_not_change_error_result |
+| `tests/core/test_base_processor.py` | test_save_raft_example_when_enabled, test_save_raft_example_when_disabled, test_create_error_result, test_create_error_result_default_time, test_initialize_logger_creates_logger (+8) |
+| `src/processors/base_processor.py` | _format_raft_test_cases, _save_raft_example, _create_error_result, __init__, _initialize_logger (+4) |
+| `tests/training/test_raft_integration.py` | test_save_raft_example_no_op_when_disabled, test_save_raft_example_collects_when_enabled, test_raft_collection_minimal_overhead, test_raft_does_not_change_error_result, test_raft_does_not_change_success_result |
+| `tests/test_refactoring.py` | test_create_error_result, test_initialize_logger, test_base_processor_extract_artifacts_failure, test_create_success_result, test_create_metadata |
+| `src/processors/hp_processor.py` | _collect_generation_results, __init__, _reset_metrics, HighPerformanceREQIFZFileProcessor |
+| `src/processors/standard_processor.py` | _run_generation_loop, _error_result_for_exception, __init__, REQIFZFileProcessor |
 | `tests/integration/test_processors.py` | test_metrics_reset_between_files |
 | `utilities/verify_v03_compatibility.py` | verify_augmentation |
 
@@ -33,8 +33,8 @@ Start here when exploring this area:
 - **`BaseProcessor`** (Class) — `src/processors/base_processor.py:53`
 - **`HighPerformanceREQIFZFileProcessor`** (Class) — `src/processors/hp_processor.py:35`
 - **`REQIFZFileProcessor`** (Class) — `src/processors/standard_processor.py:32`
-- **`test_metrics_reset_between_files`** (Method) — `tests/integration/test_processors.py:219`
-- **`test_initialize_logger_creates_logger`** (Method) — `tests/core/test_base_processor.py:78`
+- **`test_save_raft_example_when_enabled`** (Method) — `tests/core/test_base_processor.py:519`
+- **`test_save_raft_example_when_disabled`** (Method) — `tests/core/test_base_processor.py:540`
 
 ## Key Symbols
 
@@ -43,7 +43,16 @@ Start here when exploring this area:
 | `BaseProcessor` | Class | `src/processors/base_processor.py` | 53 |
 | `HighPerformanceREQIFZFileProcessor` | Class | `src/processors/hp_processor.py` | 35 |
 | `REQIFZFileProcessor` | Class | `src/processors/standard_processor.py` | 32 |
-| `test_metrics_reset_between_files` | Method | `tests/integration/test_processors.py` | 219 |
+| `test_save_raft_example_when_enabled` | Method | `tests/core/test_base_processor.py` | 519 |
+| `test_save_raft_example_when_disabled` | Method | `tests/core/test_base_processor.py` | 540 |
+| `test_save_raft_example_no_op_when_disabled` | Method | `tests/training/test_raft_integration.py` | 50 |
+| `test_save_raft_example_collects_when_enabled` | Method | `tests/training/test_raft_integration.py` | 63 |
+| `test_raft_collection_minimal_overhead` | Method | `tests/training/test_raft_integration.py` | 220 |
+| `test_create_error_result` | Method | `tests/core/test_base_processor.py` | 495 |
+| `test_create_error_result_default_time` | Method | `tests/core/test_base_processor.py` | 507 |
+| `test_create_error_result` | Method | `tests/test_refactoring.py` | 176 |
+| `test_raft_does_not_change_error_result` | Method | `tests/training/test_raft_integration.py` | 204 |
+| `test_metrics_reset_between_files` | Method | `tests/integration/test_processors.py` | 241 |
 | `test_initialize_logger_creates_logger` | Method | `tests/core/test_base_processor.py` | 78 |
 | `test_initialize_logger_updates_raft_collector` | Method | `tests/core/test_base_processor.py` | 91 |
 | `test_initialize_logger` | Method | `tests/test_refactoring.py` | 30 |
@@ -51,15 +60,6 @@ Start here when exploring this area:
 | `test_extract_artifacts_success` | Method | `tests/core/test_base_processor.py` | 115 |
 | `test_extract_artifacts_returns_none_when_empty` | Method | `tests/core/test_base_processor.py` | 134 |
 | `test_extract_artifacts_returns_none_when_none` | Method | `tests/core/test_base_processor.py` | 147 |
-| `test_base_processor_extract_artifacts_failure` | Method | `tests/test_refactoring.py` | 363 |
-| `test_create_success_result` | Method | `tests/core/test_base_processor.py` | 455 |
-| `test_create_success_result_auto_template` | Method | `tests/core/test_base_processor.py` | 480 |
-| `test_create_success_result` | Method | `tests/test_refactoring.py` | 157 |
-| `test_raft_does_not_change_success_result` | Method | `tests/training/test_raft_integration.py` | 161 |
-| `test_create_error_result` | Method | `tests/core/test_base_processor.py` | 497 |
-| `test_create_error_result_default_time` | Method | `tests/core/test_base_processor.py` | 509 |
-| `test_create_error_result` | Method | `tests/test_refactoring.py` | 176 |
-| `test_raft_does_not_change_error_result` | Method | `tests/training/test_raft_integration.py` | 191 |
 
 ## Execution Flows
 

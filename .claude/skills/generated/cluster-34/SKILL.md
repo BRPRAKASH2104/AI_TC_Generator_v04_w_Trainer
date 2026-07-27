@@ -25,26 +25,26 @@ description: "Skill for the Cluster_34 area of AI_TC_Generator_v04_w_Trainer. 13
 Start here when exploring this area:
 
 - **`test_determine_image_format`** (Function) — `tests/core/test_image_extractor.py:182`
-- **`test_compute_hash`** (Function) — `tests/core/test_image_extractor.py:205`
-- **`test_sanitize_filename`** (Function) — `tests/core/test_image_extractor.py:216`
+- **`test_compute_hash`** (Function) — `tests/core/test_image_extractor.py:199`
+- **`test_sanitize_filename`** (Function) — `tests/core/test_image_extractor.py:210`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
 | `test_determine_image_format` | Function | `tests/core/test_image_extractor.py` | 182 |
-| `test_compute_hash` | Function | `tests/core/test_image_extractor.py` | 205 |
-| `test_sanitize_filename` | Function | `tests/core/test_image_extractor.py` | 216 |
-| `_extract_external_images` | Method | `src/core/image_extractor.py` | 165 |
-| `_extract_embedded_images` | Method | `src/core/image_extractor.py` | 224 |
-| `_extract_base64_images` | Method | `src/core/image_extractor.py` | 252 |
-| `_extract_object_images` | Method | `src/core/image_extractor.py` | 324 |
-| `_determine_image_format` | Method | `src/core/image_extractor.py` | 365 |
-| `_validate_image` | Method | `src/core/image_extractor.py` | 387 |
-| `_save_image` | Method | `src/core/image_extractor.py` | 471 |
-| `_sanitize_filename` | Method | `src/core/image_extractor.py` | 513 |
-| `_compute_hash` | Method | `src/core/image_extractor.py` | 525 |
-| `_preprocess_image` | Method | `src/core/image_extractor.py` | 529 |
+| `test_compute_hash` | Function | `tests/core/test_image_extractor.py` | 199 |
+| `test_sanitize_filename` | Function | `tests/core/test_image_extractor.py` | 210 |
+| `_extract_external_images` | Method | `src/core/image_extractor.py` | 167 |
+| `_extract_embedded_images` | Method | `src/core/image_extractor.py` | 226 |
+| `_extract_base64_images` | Method | `src/core/image_extractor.py` | 254 |
+| `_extract_object_images` | Method | `src/core/image_extractor.py` | 326 |
+| `_determine_image_format` | Method | `src/core/image_extractor.py` | 367 |
+| `_validate_image` | Method | `src/core/image_extractor.py` | 389 |
+| `_save_image` | Method | `src/core/image_extractor.py` | 473 |
+| `_sanitize_filename` | Method | `src/core/image_extractor.py` | 515 |
+| `_compute_hash` | Method | `src/core/image_extractor.py` | 527 |
+| `_preprocess_image` | Method | `src/core/image_extractor.py` | 531 |
 
 ## Execution Flows
 
