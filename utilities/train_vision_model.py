@@ -2,8 +2,8 @@
 """Create a prompt-customized vision model using Ollama Modelfile.
 
 This script does not fine-tune model weights. It creates a named Ollama
-model with a RAFT-informed system prompt for automotive test case
-generation. It:
+model with a **fixed** system prompt for automotive test case generation — the
+prompt is not derived from the RAFT dataset. It:
 1. Loads vision RAFT dataset (JSONL format with base64 images)
 2. Creates Ollama Modelfile with optimized system prompt
 3. Registers custom model in Ollama

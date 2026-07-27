@@ -13,9 +13,11 @@ Vision Support (v2.2.0+): Modelfile creation for llama3.2-vision and other
 vision models using the hybrid vision/text strategy.
 
 Evaluation: `evaluate_model` runs the customized model over a held-out RAFT
-dataset and scores each generation by the canonical-schema pass rate (the same
-gate the production pipeline applies). It measures output validity, not
-closeness to the reference answer.
+dataset and reports two distinct signals. Output *validity* is the
+canonical-schema pass rate (the same gate the production pipeline applies).
+Output *content* is scored against the example's reference answer by a
+`ContentScorer`, yielding precision/recall/F1; `content_f1` is the meaningful
+decision metric wherever references exist.
 """
 
 import base64
