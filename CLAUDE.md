@@ -29,7 +29,7 @@ See @commit.md for Git and PR instructions.
 
 ## Project
 
-AI-powered test case generator for automotive REQIFZ requirements. Uses Ollama LLMs locally — no cloud API calls.
+AI-powered test case generator for automotive REQIFZ requirements. Uses Ollama LLMs locally — **no cloud API calls anywhere**, including the offline evaluation and training paths. This is a hard rule, not a default; it has already cancelled planned features. Do not propose a hosted model for any purpose.
 
 - **Python**: 3.14.6+ (no backward compatibility)
 - **Ollama**: v0.31.1+
@@ -80,6 +80,15 @@ ai-tc-generator input/file.reqifz --preset qwen_vision
 # Training (requires pip install -e .[training])
 ai-tc-generator input/ --hp              # normal run collects RAFT examples if enabled in config/cli_config.yaml
 # Enable in config/cli_config.yaml: training.enable_raft: true, training.collect_training_data: true
+
+# Evaluation & calibration (utilities/train_vision_model.py)
+python3 utilities/train_vision_model.py --evaluate val.jsonl --output-model my-model
+python3 utilities/train_vision_model.py --evaluate val.jsonl --output-model my-model --compare-base
+python3 utilities/train_vision_model.py --validate-judge     # calibrate the content scorer; no Ollama needed
+python3 utilities/build_vision_dataset.py --val-split-ratio 0.2 --split-seed 42
+
+# Opt-in live-Ollama tests (excluded from the default suite; self-skip without Ollama)
+python3 -m pytest tests/ -m integration -rs   # -rs shows WHY a test skipped
 ```
 
 ---
@@ -104,10 +113,17 @@ main.py (CLI)
 src/training/                          # RAFT fine-tuning pipeline
   -> RAFTDataCollector (raft_collector.py)       # collects examples during normal runs
   -> RAFTAnnotator (raft_annotator.py)           # expert annotation support
-  -> RAFTDatasetBuilder (raft_dataset_builder.py)
+  -> RAFTDatasetBuilder (raft_dataset_builder.py)     # also train/val split_dataset()
   -> ProgressiveRAFTTrainer (progressive_trainer.py)  # curriculum learning
-  -> VisionRAFTTrainer (vision_raft_trainer.py)
+  -> VisionRAFTTrainer (vision_raft_trainer.py)       # create model + evaluate_model()
   -> QualityScorer (quality_scorer.py)
+
+src/training/  (evaluation & calibration — see docs/training/README.md)
+  -> ContentScorer protocol + ReferenceOverlapScorer (content_scorer.py)
+       # scores generated vs reference test cases: precision/recall/F1
+  -> run_calibration / format_report (judge_calibration.py)
+  -> DEFAULT_CALIBRATION_CASES (judge_calibration_cases.py)
+       # 6 gold-by-construction fixtures that validate a ContentScorer itself
 ```
 
 **`__slots__`**: Core classes (generators, deduplicator, clients) declare `__slots__` — adding an instance attribute requires adding it to the slots tuple first, or you get `AttributeError` at runtime.
@@ -124,7 +140,7 @@ src/training/                          # RAFT fine-tuning pipeline
 
 ## Critical Architecture: Context-Aware Processing
 
-**DO NOT BREAK** — `BaseProcessor._build_augmented_requirements()` (`src/processors/base_processor.py:103`):
+**DO NOT BREAK** — `BaseProcessor._build_augmented_requirements()` (`src/processors/base_processor.py:140`):
 
 ```python
 # Interface text fields normalised once before the loop
@@ -169,7 +185,7 @@ Rules:
 
 ## Critical Architecture: Hybrid Vision Strategy
 
-Per-requirement model selection via `ConfigManager.get_model_for_requirement()` (`src/config.py:487`):
+Per-requirement model selection via `ConfigManager.get_model_for_requirement()` (`src/config.py:495`):
 - Requirement **has images** → `llama3.2-vision:11b` (`generate_response_with_vision()`)
 - Requirement **no images** → `llama3.1:8b` (`generate_completion()`)
 
@@ -181,15 +197,45 @@ Never hardcode model selection in processors. Change only in `ConfigManager`.
 
 The one true schema emitted by the active template and expected everywhere downstream: `summary_suffix`, `preconditions`, `test_steps`, `expected_result`, `test_type`.
 
-- `TestCaseDeduplicator` compares `DEFAULT_FIELDS_TO_COMPARE = ["test_steps", "expected_result", "preconditions"]` (`src/core/deduplicator.py:27`). **Never reintroduce `action`/`data` here** — comparing fields the template doesn't produce made every pair look ~identical and silently deleted legitimate test cases (2026-07-05 review §1.1).
-- `stamp_validation_results` (`src/core/generators.py:60`) stamps `validation_passed` on each test case **before** dedup runs. Keep this ordering — dedup's "best" keep-strategy reads the flag, and validating after dedup misaligns indices.
-- `ValidationConfig` / `DeduplicationConfig` (`src/config.py:159,176`) are wired into their components; change thresholds there, not with hardcoded values.
+- `TestCaseDeduplicator` compares `DEFAULT_FIELDS_TO_COMPARE = ["test_steps", "expected_result", "preconditions"]` (`src/core/deduplicator.py:30`). **Never reintroduce `action`/`data` here** — comparing fields the template doesn't produce made every pair look ~identical and silently deleted legitimate test cases (2026-07-05 review §1.1).
+- `stamp_validation_results` (`src/core/generators.py:72`) stamps `validation_passed` on each test case **before** dedup runs. Keep this ordering — dedup's "best" keep-strategy reads the flag, and validating after dedup misaligns indices.
+- `ValidationConfig` / `DeduplicationConfig` (`src/config.py:152,169`) are wired into their components; change thresholds there, not with hardcoded values.
+
+---
+
+## Critical Architecture: Content Scoring & Calibration
+
+`evaluate_model` scores a customized model on a held-out RAFT dataset. Content
+quality comes from a `ContentScorer` (`src/training/content_scorer.py`), whose
+only implementation is the deterministic `ReferenceOverlapScorer`.
+
+- **`--validate-judge` runs NO generation model.** It feeds fixed fixtures
+  straight into `ContentScorer.score()`, so it measures the *scorer* in
+  isolation rather than scorer-plus-model. Never "improve" it by having it
+  generate — that reintroduces the confound it exists to remove.
+- **Calibration bands are tolerances, not targets.** A breach means fix or
+  reconsider the scorer; widening the band to get a pass destroys the signal.
+  `paraphrase` is *expected* to score low on `overlap` — that is the documented
+  limit of string matching, not a bug.
+- **The metric counts matched *pairs*, never *which* pairs.** A scorer pairing
+  the right number of wrong items is indistinguishable from a correct one.
+  `mixed` catches over-claiming; closing the rest needs `ContentScore` to expose
+  the pairing. Assume this ceiling before trusting any new scorer.
+- **An LLM-as-judge scorer was retired 2026-07-26** after calibration showed it
+  returned a near-constant match list regardless of input (a larger local model
+  failed the same way). `--content-scorer`, `--judge-model`,
+  `ContentScore.quality` and `content_quality` are gone. Don't reinstate a judge
+  without first fixing the metric above — otherwise it cannot be validated. Full
+  evidence in `docs/training/README.md`.
+- Decision metric: `content_f1` when references exist, else
+  `unique_valid_test_cases_per_example`. Validity scores are grammar-saturated
+  and near-useless for A/B.
 
 ---
 
 ## Critical Architecture: Excel Formatter
 
-**Exactly 16 columns**, specific names required (header list at `src/core/formatters.py:300-330`):
+**Exactly 16 columns**, specific names required (header list at `src/core/formatters.py:315-335`):
 - Column 13: `"Feature Group"`
 - Column 16: `"LinkTest"` (not `"Tests"`)
 
@@ -199,7 +245,7 @@ If you change columns, update **both** `TestCaseFormatter` and `StreamingTestCas
 
 ## Critical Architecture: REQIF Attribute Mapping
 
-`REQIFArtifactExtractor` maps internal identifiers like `_json2reqif_XXX` to human-readable names like `"ReqIF.Text"` via `_build_attribute_definition_mapping()` (`src/core/extractors.py:223`, called at `:158`). Do not remove or bypass this.
+`REQIFArtifactExtractor` maps internal identifiers like `_json2reqif_XXX` to human-readable names like `"ReqIF.Text"` via `_build_attribute_definition_mapping()` (`src/core/extractors.py:244`, called at `:177`). Do not remove or bypass this.
 
 ---
 
@@ -231,15 +277,16 @@ See `tests/helpers/USAGE_EXAMPLES.md` for full examples.
 
 | File | Critical symbols | Why Critical |
 |------|------------------|--------------|
-| `src/processors/base_processor.py` | `_build_augmented_requirements` (line 103) | Context-aware processing core |
-| `src/core/extractors.py` | `_build_attribute_definition_mapping` (223), `_extract_spec_object` (271) | Attribute definition mapping |
-| `src/core/formatters.py` | header list (~300-330), `StreamingTestCaseFormatter` (282) | 16-column Excel structure |
-| `src/core/ollama_client.py` | `generate_response_with_vision` — sync (176), async (360); `AsyncOllamaClient.__init__` semaphore (275-285) | Vision support; `--max-concurrent` wiring |
-| `src/core/generators.py` | `extract_image_paths` (33), `stamp_validation_results` (60), `_GeneratorCore._postprocess_test_cases` (211) | Shared sync/async pipeline; vision path extraction; validate-before-dedup ordering |
-| `src/core/deduplicator.py` | `DEFAULT_FIELDS_TO_COMPARE` (27) | Canonical-schema dedup fields (see section above) |
-| `src/core/image_extractor.py` | `_validate_image` (366), `_preprocess_image` (508), `cleanup_extracted_images` (567) | Image preprocessing (applied on save) & cleanup |
-| `src/config.py` | `enable_vision` (95), `get_model_for_requirement` (487) | Vision config & hybrid selection |
+| `src/processors/base_processor.py` | `_build_augmented_requirements` (line 140) | Context-aware processing core |
+| `src/core/extractors.py` | `_build_attribute_definition_mapping` (244), `_extract_spec_object` (292) | Attribute definition mapping |
+| `src/core/formatters.py` | header list (~315-335), `StreamingTestCaseFormatter` (292) | 16-column Excel structure |
+| `src/core/ollama_client.py` | `generate_response_with_vision` — sync (197), async (401); `AsyncOllamaClient.__init__` semaphore (~315) | Vision support; `--max-concurrent` wiring |
+| `src/core/generators.py` | `extract_image_paths` (45), `stamp_validation_results` (72), `_GeneratorCore._postprocess_test_cases` (251) | Shared sync/async pipeline; vision path extraction; validate-before-dedup ordering |
+| `src/core/deduplicator.py` | `DEFAULT_FIELDS_TO_COMPARE` (30) | Canonical-schema dedup fields (see section above) |
+| `src/core/image_extractor.py` | `_validate_image` (390), `_preprocess_image` (532), `cleanup_extracted_images` (591) | Image preprocessing (applied on save) & cleanup |
+| `src/config.py` | `enable_vision` (88), `get_model_for_requirement` (495) | Vision config & hybrid selection |
 | `src/yaml_prompt_manager.py` | `load_all_prompts`, `_selection_rules` | Selection rules are cached at load time into `_selection_rules`; bypassing or resetting this cache causes repeated disk reads on every template selection call |
+| `src/training/content_scorer.py` | `ContentScorer` protocol, `ContentScore` | Scoring seam; changing the TypedDict breaks exact-dict assertions across the eval tests |
 
 Line numbers drift — treat the symbol name as authoritative and the number as a hint.
 
@@ -268,6 +315,9 @@ Tests are organized in `tests/core/` (unit), `tests/integration/`, `tests/traini
 | `generate_test_cases` AttributeError | Wrong generator class | `AsyncTestCaseGenerator` has this method |
 | `TypeError: expected str` in validators on `test_steps` | AI returns `test_steps` as a list, not a string | `validators.py` normalises with `"\n".join(raw_data) if isinstance(raw_data, list)` — do not change this pattern |
 | Unexpected `training_data/` files written during normal runs | RAFT collection was previously opt-out | Both `enable_raft` and `collect_training_data` default to `false` in `config/cli_config.yaml`; set both to `true` to opt in |
+| Live/integration test "passes" suspiciously fast | It self-skipped (no Ollama, or model not pulled) | Run with `-rs` to see the skip reason; a skipped live test proves nothing |
+| Exact-dict assertion on a `ContentScore` breaks | A key was added to or removed from the TypedDict | Tests compare the whole dict; update them together. This has broken twice, in both directions |
+| `--content-scorer` / `--judge-model` not recognised | Retired 2026-07-26 with the LLM judge | Only the deterministic `overlap` scorer exists; see the Content Scoring section |
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
