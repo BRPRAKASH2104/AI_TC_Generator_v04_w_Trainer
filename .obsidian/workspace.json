@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "ded1df976f3c4f98",
+        "id": "bf4261483e0f6ceb",
         "type": "tabs",
         "children": [
           {
-            "id": "1760ae6e0c07a895",
+            "id": "dbe866c84639575d",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "docs/configuration/CLI_CONFIG_EXAMPLE_SUMMARY.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "CLI_CONFIG_EXAMPLE_SUMMARY"
+              "title": "New tab"
             }
           }
         ]
@@ -41,7 +37,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -183,8 +181,9 @@
       "bases:Create new base": false
     }
   },
-  "active": "1760ae6e0c07a895",
+  "active": "dbe866c84639575d",
   "lastOpenFiles": [
+    "docs/configuration/CLI_CONFIG_EXAMPLE_SUMMARY.md",
     "src/processors/__pycache__/standard_processor.cpython-314.pyc",
     "src/core/__pycache__/exceptions.cpython-314.pyc",
     "src/core/__pycache__/ollama_client.cpython-314.pyc",
@@ -195,7 +194,6 @@
     "src/core/__pycache__/formatters.cpython-314.pyc",
     "src/core/__pycache__/formatters.cpython-314.pyc.4505208432",
     "src/core/__pycache__/image_extractor.cpython-314.pyc",
-    "src/core/__pycache__/relationship_parser.cpython-314.pyc",
     "docs/reviews/parts/audit_arch.md",
     "docs/reviews/parts/audit_code.md",
     "htmlcov/keybd_closed_cb_ce680311.png",
