@@ -724,7 +724,87 @@ def test_per_example_content_matches_reference(trainer, tmp_path):
     result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE))
 
     content = result["per_example"][0]["content"]
-    assert content == {"precision": 1.0, "recall": 1.0, "f1": 1.0}
+    # Per key, not whole-dict: ContentScore is a documented seam and exact-dict
+    # comparisons on it have broken twice as fields were added and removed.
+    assert content["precision"] == 1.0
+    assert content["recall"] == 1.0
+    assert content["f1"] == 1.0
+    assert content["matched_pairs"] == [(0, 0)]
+
+
+# --- Critical 3: the headline score must publish its own denominator ---------
+
+
+def test_content_denominators_expose_partial_reference_coverage(trainer, tmp_path):
+    # One parseable reference (perfect match) and one unparseable. The aggregate
+    # used to report content_f1 == 1.0 with nothing revealing that only half the
+    # examples contributed.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            _example_with_reference([VALID_TEST_CASE]),
+            _text_example(),  # assistant content is prose, not canonical JSON
+        ],
+    )
+
+    metrics = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE)
+    )["metrics"]
+
+    assert metrics["content_f1"] == 1.0
+    assert metrics["content_reference_examples"] == 2
+    assert metrics["content_scored_examples"] == 1
+    assert metrics["content_scoring_errors"] == 0
+
+
+def test_content_denominators_count_examples_without_a_reference(trainer, tmp_path):
+    test_set = tmp_path / "held.jsonl"
+    no_reference = _text_example()
+    no_reference["messages"] = no_reference["messages"][:2]  # drop the assistant turn
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE]), no_reference])
+
+    metrics = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE)
+    )["metrics"]
+
+    assert metrics["content_reference_examples"] == 1
+    assert metrics["content_scored_examples"] == 1
+
+
+def test_content_scoring_errors_are_counted_not_silently_none(trainer, tmp_path):
+    class _ExplodingScorer:
+        def score(self, generated_cases, reference_cases):
+            raise RuntimeError("scorer blew up")
+
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_example_with_reference([VALID_TEST_CASE])])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set,
+        client=FakeOllamaClient(VALID_RESPONSE),
+        content_scorer=_ExplodingScorer(),
+    )
+
+    # A scorer fault must not abort the run, but it must be visible.
+    assert result["metrics"]["content_scoring_errors"] == 1
+    assert result["metrics"]["content_reference_examples"] == 1
+    assert result["metrics"]["content_scored_examples"] == 0
+    assert result["per_example"][0]["content_status"] == "error"
+
+
+def test_content_delta_is_withheld_when_no_pair_scored_content(trainer, tmp_path):
+    # Neither side can score content (the reference is prose), so a content
+    # delta would compare two undefined populations.
+    test_set = tmp_path / "held.jsonl"
+    _write_jsonl(test_set, [_text_example()])
+
+    result = trainer.evaluate_model(
+        test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE), compare_base=True
+    )
+
+    assert result["comparison"]["content_status"] == "failed"
+    assert result["delta"]["content_f1"] is None
 
 
 def test_per_example_content_none_without_reference(trainer, tmp_path):
@@ -774,3 +854,134 @@ def test_content_f1_is_in_the_delta(trainer, tmp_path):
     )
 
     assert "content_f1" in result["delta"]
+
+
+# --- Recommended 5: the validated message must be the evaluated message -------
+
+
+def _reordered_example():
+    """A [system, assistant, user] example: the user turn is NOT at index 1."""
+    return {
+        "messages": [
+            {"role": "system", "content": "s"},
+            {"role": "assistant", "content": "THE REFERENCE ANSWER"},
+            {"role": "user", "content": "THE ACTUAL USER PROMPT"},
+        ]
+    }
+
+
+def test_reordered_roles_generate_from_the_user_turn(trainer, tmp_path):
+    # The validator accepted this by role search while the evaluator indexed
+    # messages[1], so the model was fed its own reference answer as the prompt.
+    test_set = tmp_path / "reordered.jsonl"
+    _write_jsonl(test_set, [_reordered_example()])
+    client = FakeOllamaClient(VALID_RESPONSE)
+
+    trainer.evaluate_model(test_dataset=test_set, client=client)
+
+    assert len(client.text_calls) == 1
+    prompt = client.text_calls[0]["prompt"]
+    assert "THE ACTUAL USER PROMPT" in prompt
+    assert "THE REFERENCE ANSWER" not in prompt
+
+
+def test_duplicate_user_turns_use_the_first(trainer, tmp_path):
+    test_set = tmp_path / "dupe.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "FIRST USER TURN"},
+                    {"role": "user", "content": "SECOND USER TURN"},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+    client = FakeOllamaClient(VALID_RESPONSE)
+
+    trainer.evaluate_model(test_dataset=test_set, client=client)
+
+    assert "FIRST USER TURN" in client.text_calls[0]["prompt"]
+
+
+def test_extra_roles_do_not_break_user_selection(trainer, tmp_path):
+    test_set = tmp_path / "extra.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "tool", "content": "tool output"},
+                    {"role": "user", "content": "REAL PROMPT"},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ],
+    )
+    client = FakeOllamaClient(VALID_RESPONSE)
+
+    trainer.evaluate_model(test_dataset=test_set, client=client)
+
+    assert "REAL PROMPT" in client.text_calls[0]["prompt"]
+
+
+def test_example_without_any_user_turn_is_rejected(trainer, tmp_path):
+    test_set = tmp_path / "nouser.jsonl"
+    _write_jsonl(
+        test_set,
+        [{"messages": [{"role": "system", "content": "s"}, ["not", "a", "dict"]]}],
+    )
+
+    with pytest.raises(ValueError, match="user message"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_aggregate_image_payload_over_the_limit_is_rejected(tmp_path):
+    # Each example is individually within max_image_bytes; together they are not.
+    # Without an aggregate bound the per-example limits permit ~800 GiB.
+    trainer = _make_trainer(tmp_path, max_image_bytes=1024, max_eval_total_bytes=64)
+    img = base64.b64encode(b"x" * 48).decode("ascii")  # ~48 decoded bytes each
+    test_set = tmp_path / "many.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": [img]},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ]
+        * 3,
+    )
+
+    with pytest.raises(ValueError, match="aggregate limit|max_eval_total_bytes"):
+        trainer.evaluate_model(test_dataset=test_set, client=_client_that_must_not_be_called())
+
+
+def test_aggregate_image_payload_within_the_limit_is_accepted(tmp_path):
+    trainer = _make_trainer(tmp_path, max_image_bytes=1024, max_eval_total_bytes=10_000)
+    img = base64.b64encode(FAKE_IMAGE_BYTES).decode("ascii")
+    test_set = tmp_path / "ok.jsonl"
+    _write_jsonl(
+        test_set,
+        [
+            {
+                "messages": [
+                    {"role": "system", "content": "s"},
+                    {"role": "user", "content": "u", "images": [img]},
+                    {"role": "assistant", "content": "a"},
+                ]
+            }
+        ]
+        * 3,
+    )
+
+    result = trainer.evaluate_model(test_dataset=test_set, client=FakeOllamaClient(VALID_RESPONSE))
+
+    assert result["metrics"]["total_examples"] == 3

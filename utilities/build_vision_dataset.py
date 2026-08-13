@@ -35,7 +35,7 @@ Example:
         --validated-dir /path/to/validated \
         --output-dir /path/to/output
 
-See docs/training/training_guideline.md for complete guide.
+See docs/training/README.md for complete guide.
 """
 
 import argparse
@@ -145,7 +145,7 @@ def validate_paths(validated_dir: str) -> None:
         raise FileNotFoundError(
             f"Validated directory not found: {validated_dir}\n"
             "Please annotate and move examples to training_data/validated/ first.\n"
-            "See docs/training/training_guideline.md for annotation guide."
+            "See docs/training/README.md for annotation guide."
         )
 
     # Check for JSON files
@@ -172,7 +172,11 @@ def print_dataset_stats(raft_examples: list[dict[str, Any]]) -> None:
     total = len(raft_examples)
     vision_examples = [ex for ex in raft_examples if ex.get("has_images", False)]
     text_examples = [ex for ex in raft_examples if not ex.get("has_images", False)]
-    total_images = sum(len(ex.get("images", [])) for ex in vision_examples)
+    # Builder examples store images under oracle_images/distractor_images and the
+    # count under metadata.image_count; there is no "images" key, so the old sum
+    # printed 0 for every build (2026-07-26 review, Optional 8). save_dataset
+    # already reads metadata.image_count for the same figure.
+    total_images = sum(ex.get("metadata", {}).get("image_count", 0) for ex in vision_examples)
 
     logger.info("")
     logger.info("=" * 60)
@@ -275,7 +279,7 @@ def main() -> int:
         logger.info("Next steps:")
         logger.info("  1. Review dataset statistics above")
         logger.info("  2. Train vision model with utilities/train_vision_model.py")
-        logger.info("  3. See docs/training/training_guideline.md for details")
+        logger.info("  3. See docs/training/README.md for details")
         logger.info("=" * 60)
 
         return 0

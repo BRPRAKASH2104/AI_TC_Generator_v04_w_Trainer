@@ -334,7 +334,25 @@ class TestRAFTDatasetBuilder:
 
 
 def _examples(n):
-    return [{"messages": [{"role": "user", "content": f"ex {i}"}]} for i in range(n)]
+    """Build n *intermediate* RAFT examples, the shape ``build_dataset`` returns.
+
+    ``save_split`` converts these to the evaluator's conversation contract on
+    write, so the fixture must match ``_build_raft_example``'s output rather than
+    the already-converted ``{"messages": [...]}`` shape.
+    """
+    return [
+        {
+            "question": f"Generate comprehensive test cases for requirement REQ_{i}",
+            "oracle_context": [f"oracle doc {i}"],
+            "distractor_context": [],
+            "oracle_images": [],
+            "distractor_images": [],
+            "has_images": False,
+            "answer": f"answer {i}",
+            "metadata": {"requirement_id": f"REQ_{i}", "image_count": 0},
+        }
+        for i in range(n)
+    ]
 
 
 def test_split_is_deterministic_for_a_seed():
@@ -372,3 +390,39 @@ def test_save_split_refuses_overwrite_without_force(tmp_path):
         builder.save_split(_examples(10), tmp_path)
     # force overwrites cleanly
     builder.save_split(_examples(10), tmp_path, force=True)
+
+
+def test_save_split_writes_the_evaluator_contract(tmp_path):
+    """Both halves must be conversation-shaped, not raw intermediate rows."""
+    builder = RAFTDatasetBuilder.__new__(RAFTDatasetBuilder)
+    train_path, val_path = builder.save_split(_examples(10), tmp_path, val_ratio=0.2, seed=7)
+
+    for path in (train_path, val_path):
+        for line in path.read_text(encoding="utf-8").strip().splitlines():
+            row = json.loads(line)
+            assert "question" not in row, "intermediate RAFT fields must not be written"
+            roles = [message["role"] for message in row["messages"]]
+            assert roles == ["system", "user", "assistant"]
+
+
+def test_split_val_file_loads_through_the_evaluator(tmp_path):
+    """The advertised build -> split -> evaluate workflow must actually run.
+
+    The prior split tests stopped at line counts, so nothing caught that
+    ``val.jsonl`` was rejected by the evaluator's own loader
+    (2026-07-26 review, Critical 1).
+    """
+    from training.vision_raft_trainer import VisionRAFTTrainer, VisionTrainingConfig
+
+    builder = RAFTDatasetBuilder.__new__(RAFTDatasetBuilder)
+    _, val_path = builder.save_split(_examples(10), tmp_path, val_ratio=0.2, seed=7)
+
+    trainer = VisionRAFTTrainer(
+        dataset_path=val_path,
+        config=VisionTrainingConfig(),
+        output_dir=tmp_path / "models",
+    )
+    loaded = trainer._load_and_validate_examples(val_path)
+
+    assert len(loaded) == 2
+    assert all(example["messages"][1]["role"] == "user" for example in loaded)

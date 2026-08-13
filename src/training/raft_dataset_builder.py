@@ -183,6 +183,72 @@ class RAFTDatasetBuilder:
             },
         }
 
+    @staticmethod
+    def _to_conversation(example: dict[str, Any]) -> dict[str, Any]:
+        """Convert one intermediate RAFT example into the evaluator's contract.
+
+        This is the single intermediate-to-conversation converter. Both
+        ``save_dataset`` and ``save_split`` go through it, so the full dataset and
+        the train/val split cannot drift into different shapes — the split used to
+        write raw ``question``/``oracle_context``/``answer`` rows, which
+        ``VisionRAFTTrainer._validate_example_contract`` rejects outright
+        (2026-07-26 review, Critical 1).
+
+        Static by design: the split tests construct the builder via
+        ``__new__`` without ``__init__``, so this must touch no instance state.
+
+        Args:
+            example: An intermediate RAFT example from ``_build_raft_example``.
+
+        Returns:
+            An ``{"messages": [system, user, assistant], "metadata": ...}`` dict.
+        """
+        # RAFT prompt: Include oracle + distractor context, model learns to use oracle
+        context_str = "Relevant Context:\n"
+        context_str += "\n".join(f"- {doc}" for doc in example["oracle_context"])
+
+        if example["distractor_context"]:
+            context_str += "\n\nAdditional Context (may not be relevant):\n"
+            context_str += "\n".join(f"- {doc}" for doc in example["distractor_context"])
+
+        # Vision Support: Add image context
+        has_images = example.get("has_images", False)
+        oracle_images = example.get("oracle_images", [])
+        distractor_images = example.get("distractor_images", [])
+
+        if has_images and oracle_images:
+            context_str += f"\n\nRelevant Diagrams: {len(oracle_images)} diagram(s) provided. "
+            context_str += "Analyze visual information to understand system behavior, "
+            context_str += "state transitions, signal flows, and test scenarios."
+
+        if has_images and distractor_images:
+            context_str += f"\n\nAdditional Diagrams (may not be relevant): {len(distractor_images)} diagram(s)."
+
+        # Build user message
+        user_message: dict[str, Any] = {
+            "role": "user",
+            "content": f"{context_str}\n\n{example['question']}",
+        }
+
+        # Add images to user message (Ollama vision format)
+        if has_images and oracle_images:
+            user_message["images"] = [img["base64"] for img in oracle_images if "base64" in img]
+
+        # Ollama conversation format
+        return {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert automotive test case generator with vision capabilities. "
+                    "Analyze both text context and diagrams to generate comprehensive test cases. "
+                    "Use only the relevant context and ignore irrelevant information.",
+                },
+                user_message,
+                {"role": "assistant", "content": example["answer"]},
+            ],
+            "metadata": example.get("metadata", {}),
+        }
+
     def save_dataset(
         self, raft_examples: list[RAFTTrainingExample], filename: str = "raft_training_dataset"
     ) -> tuple[Path, Path]:
@@ -200,55 +266,7 @@ class RAFTDatasetBuilder:
             raise ValueError("No RAFT examples to save")
 
         # Convert to conversation format for Ollama
-        training_data = []
-
-        for example in raft_examples:
-            # RAFT prompt: Include oracle + distractor context, model learns to use oracle
-            context_str = "Relevant Context:\n"
-            context_str += "\n".join(f"- {doc}" for doc in example["oracle_context"])
-
-            if example["distractor_context"]:
-                context_str += "\n\nAdditional Context (may not be relevant):\n"
-                context_str += "\n".join(f"- {doc}" for doc in example["distractor_context"])
-
-            # Vision Support: Add image context
-            has_images = example.get("has_images", False)
-            oracle_images = example.get("oracle_images", [])
-            distractor_images = example.get("distractor_images", [])
-
-            if has_images and oracle_images:
-                context_str += f"\n\nRelevant Diagrams: {len(oracle_images)} diagram(s) provided. "
-                context_str += "Analyze visual information to understand system behavior, "
-                context_str += "state transitions, signal flows, and test scenarios."
-
-            if has_images and distractor_images:
-                context_str += f"\n\nAdditional Diagrams (may not be relevant): {len(distractor_images)} diagram(s)."
-
-            # Build user message
-            user_message: dict[str, Any] = {
-                "role": "user",
-                "content": f"{context_str}\n\n{example['question']}",
-            }
-
-            # Add images to user message (Ollama vision format)
-            if has_images and oracle_images:
-                user_message["images"] = [img["base64"] for img in oracle_images if "base64" in img]
-
-            # Ollama conversation format
-            conversation = {
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are an expert automotive test case generator with vision capabilities. "
-                        "Analyze both text context and diagrams to generate comprehensive test cases. "
-                        "Use only the relevant context and ignore irrelevant information.",
-                    },
-                    user_message,
-                    {"role": "assistant", "content": example["answer"]},
-                ],
-                "metadata": example.get("metadata", {}),
-            }
-            training_data.append(conversation)
+        training_data = [self._to_conversation(example) for example in raft_examples]
 
         # Save as JSONL (Ollama fine-tuning format)
         jsonl_path = self.output_dir / f"{filename}.jsonl"
@@ -410,8 +428,13 @@ class RAFTDatasetBuilder:
     ) -> tuple[Path, Path]:
         """Write ``train.jsonl`` and ``val.jsonl`` to ``out_dir``.
 
+        Both files are written in the evaluator's conversation format, so
+        ``val.jsonl`` can be passed straight to ``--evaluate``.
+
         Args:
-            examples: The full example list.
+            examples: The full list of **intermediate** RAFT examples, as
+                returned by ``build_dataset``. They are converted on write by
+                ``_to_conversation``.
             out_dir: Directory to write the two files into.
             val_ratio: Validation fraction (see ``split_dataset``).
             seed: RNG seed (see ``split_dataset``).
@@ -432,7 +455,13 @@ class RAFTDatasetBuilder:
                 if path.exists():
                     raise FileExistsError(f"{path} exists; pass force=True to overwrite")
 
+        # Partition the intermediate examples first so split_dataset's seeded
+        # determinism is unchanged, then convert on write. Both halves must carry
+        # the evaluator's conversation contract, or --evaluate rejects val.jsonl.
         train, val = self.split_dataset(examples, val_ratio=val_ratio, seed=seed)
         for path, rows in ((train_path, train), (val_path, val)):
-            path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+            path.write_text(
+                "\n".join(json.dumps(self._to_conversation(row)) for row in rows) + "\n",
+                encoding="utf-8",
+            )
         return train_path, val_path

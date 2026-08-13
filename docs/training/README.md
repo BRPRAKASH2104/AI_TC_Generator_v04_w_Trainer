@@ -91,8 +91,8 @@ does not alter the prompt.** Implemented by `VisionRAFTTrainer`
 ### 5. Evaluate a customized model on held-out data (optional)
 
 Score an existing customized model on a held-out RAFT dataset (JSONL) instead of
-creating one. Requires an **explicit** held-out file — no train/val split is
-produced, so there is no honest default:
+creating one. Pass the held-out file explicitly — either the `val.jsonl` written
+by `--val-split-ratio` (step 3) or a set you curated yourself:
 
 ```bash
 # Score the customized model's output quality on a held-out set

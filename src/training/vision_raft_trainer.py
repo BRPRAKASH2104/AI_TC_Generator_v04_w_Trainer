@@ -13,9 +13,11 @@ Vision Support (v2.2.0+): Modelfile creation for llama3.2-vision and other
 vision models using the hybrid vision/text strategy.
 
 Evaluation: `evaluate_model` runs the customized model over a held-out RAFT
-dataset and scores each generation by the canonical-schema pass rate (the same
-gate the production pipeline applies). It measures output validity, not
-closeness to the reference answer.
+dataset and reports two distinct signals. Output *validity* is the
+canonical-schema pass rate (the same gate the production pipeline applies).
+Output *content* is scored against the example's reference answer by a
+`ContentScorer`, yielding precision/recall/F1; `content_f1` is the meaningful
+decision metric wherever references exist.
 """
 
 import base64
@@ -29,15 +31,51 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
     from logging import Logger
 
     from src.training.content_scorer import ContentScore, ContentScorer
 
 type TrainingResult = dict[str, Any]
+
+
+class DatasetStats(TypedDict):
+    """Statistics produced by ``_analyze_dataset``.
+
+    These key names are the contract the CLI's ``print_training_result`` reads.
+    Declaring them here is what stops the printer from drifting onto keys the
+    trainer never emits (2026-07-26 review, Critical 4).
+    """
+
+    total_examples: int
+    vision_examples: int
+    text_only_examples: int
+    total_images: int
+    avg_images_per_vision_example: float
+    avg_oracle_docs: float
+    avg_distractor_docs: float
+
+
+class TrainResult(TypedDict):
+    """Result envelope returned by ``VisionRAFTTrainer.train()``.
+
+    ``dataset_stats`` and ``modelfile`` are absent when ``train()`` fails before
+    the corresponding step, so both are ``NotRequired``.
+    """
+
+    model_name: str
+    base_model: str
+    training_started: str
+    training_completed: str | None
+    duration_seconds: float
+    success: bool
+    metrics: dict[str, Any]
+    errors: list[str]
+    dataset_stats: NotRequired[DatasetStats]
+    modelfile: NotRequired[str]
 
 
 @dataclass(slots=True)
@@ -65,6 +103,10 @@ class VisionTrainingConfig:
     max_eval_examples: int = 5000  # Reject held-out sets larger than this
     max_images_per_example: int = 16  # Reject examples carrying more images
     max_image_bytes: int = 10 * 1024 * 1024  # Reject a single decoded image above 10 MB
+    # Aggregate bound across the whole held-out file. The per-example limits
+    # above alone permit ~800 GiB of decoded payload (2026-07-26 review,
+    # Recommended 5).
+    max_eval_total_bytes: int = 2 * 1024**3  # Reject a dataset whose images exceed 2 GiB
 
     # Phase 3 content metric: minimum field similarity for a generated case to
     # count as covering a reference case (reuses the deduplicator's 0.85).
@@ -149,7 +191,7 @@ class VisionRAFTTrainer:
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def train(self) -> TrainingResult:
+    def train(self) -> TrainResult:
         """
         Create a prompt-customized Ollama model from the RAFT dataset.
 
@@ -161,7 +203,7 @@ class VisionRAFTTrainer:
             self.logger.info(f"   Base model: {self.config.base_model}")
             self.logger.info(f"   Dataset: {self.dataset_path}")
 
-        result: TrainingResult = {
+        result: TrainResult = {
             "model_name": self.config.output_model,
             "base_model": self.config.base_model,
             "training_started": datetime.now().isoformat(),
@@ -236,9 +278,13 @@ class VisionRAFTTrainer:
 
         return result
 
-    def _analyze_dataset(self) -> dict[str, Any]:
-        """Analyze training dataset for statistics"""
-        stats: dict[str, Any] = {
+    def _analyze_dataset(self) -> DatasetStats:
+        """Analyze training dataset for statistics.
+
+        Returns:
+            A ``DatasetStats`` whose keys are the contract the CLI printer reads.
+        """
+        stats: DatasetStats = {
             "total_examples": 0,
             "vision_examples": 0,
             "text_only_examples": 0,
@@ -441,7 +487,7 @@ Output test cases in structured JSON format as demonstrated in training examples
 
         return metrics
 
-    def _save_training_progress(self, result: TrainingResult) -> None:
+    def _save_training_progress(self, result: Mapping[str, Any]) -> None:
         """Save training progress and results"""
         progress_file = self.output_dir / f"{self.config.output_model}_training_log.json"
 
@@ -664,12 +710,36 @@ Output test cases in structured JSON format as demonstrated in training examples
                 self._aggregate_eval_metrics([base for _, base in paired]),
             )
 
+        # The content delta is only meaningful over pairs where BOTH sides
+        # produced a content score. Averaging across differing usable-reference
+        # subsets would compare two different populations, so withhold the
+        # content deltas outright when no pair qualifies — the same convention
+        # the overall delta already follows for a failed baseline.
+        content_paired = sum(
+            1
+            for custom, base in paired
+            if custom.get("content") is not None and base.get("content") is not None
+        )
+        if content_paired == 0:
+            # Also the no-pairs-at-all case: content_paired is 0 by construction.
+            content_status = "failed"
+        elif content_paired < len(paired):
+            content_status = "partial"
+        else:
+            content_status = "complete"
+
+        if delta is not None and content_status == "failed":
+            for key in ("content_precision", "content_recall", "content_f1"):
+                delta[key] = None
+
         comparison = {
             "status": status,
             "paired_examples": len(paired),
             "total_examples": len(custom_rows),
             "custom_failures": sum(1 for row in custom_rows if row["error"]),
             "baseline_failures": sum(1 for row in base_rows if row["error"]),
+            "content_status": content_status,
+            "content_paired_examples": content_paired,
         }
         return comparison, delta
 
@@ -766,6 +836,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 that violates the contract (the message names the 1-based line).
         """
         examples: list[dict[str, Any]] = []
+        total_image_bytes = 0
         with open(path, encoding="utf-8") as handle:
             for line_number, line in enumerate(handle, start=1):
                 stripped = line.strip()
@@ -780,19 +851,60 @@ Output test cases in structured JSON format as demonstrated in training examples
                     parsed = json.loads(stripped)
                 except json.JSONDecodeError as exc:
                     raise ValueError(f"line {line_number}: invalid JSON ({exc})") from exc
-                self._validate_example_contract(parsed, line_number)
+                # The per-example limits alone permit max_eval_examples x
+                # max_images_per_example x max_image_bytes (~800 GiB at the
+                # defaults), so bound the aggregate too (2026-07-26 review,
+                # Recommended 5).
+                total_image_bytes += self._validate_example_contract(parsed, line_number)
+                if total_image_bytes > self.config.max_eval_total_bytes:
+                    raise ValueError(
+                        f"line {line_number}: evaluation dataset image payload exceeds the "
+                        f"{self.config.max_eval_total_bytes}-byte aggregate limit "
+                        "(config.max_eval_total_bytes); split it or raise the limit."
+                    )
                 examples.append(parsed)
 
         if not examples:
             raise ValueError(f"Evaluation dataset is empty (no examples): {path}")
         return examples
 
-    def _validate_example_contract(self, example: Any, line_number: int) -> None:
+    @staticmethod
+    def _select_user_message(messages: list[Any]) -> dict[str, Any] | None:
+        """Pick the user turn to validate and to generate from.
+
+        The RAFT builder emits ``[system, user, assistant]``, so the user turn is
+        normally at index 1; an explicit role match is accepted too, in case of
+        reordering. Validation and evaluation MUST agree on this choice — they
+        used to disagree, so a ``[system, assistant, user]`` dataset validated the
+        real user turn but generated from the assistant's reference answer,
+        feeding the model its own answer (2026-07-26 review, Recommended 5).
+
+        Args:
+            messages: The example's ``messages`` list.
+
+        Returns:
+            The selected user message, or None when there is no usable one.
+        """
+        explicit = next(
+            (m for m in messages if isinstance(m, dict) and m.get("role") == "user"),
+            None,
+        )
+        if explicit is not None:
+            return explicit
+        if len(messages) > 1 and isinstance(messages[1], dict):
+            return messages[1]
+        return None
+
+    def _validate_example_contract(self, example: Any, line_number: int) -> int:
         """Validate one loaded example against the RAFT evaluation contract.
 
         Args:
             example: The parsed JSON value for a single dataset line.
             line_number: 1-based line number, used in error messages.
+
+        Returns:
+            The example's approximate decoded image payload in bytes, for the
+            caller's running aggregate total.
 
         Raises:
             ValueError: If the example is not a well-formed, size-bounded RAFT
@@ -811,12 +923,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 "system and a user message"
             )
 
-        # The RAFT builder emits [system, user, assistant]; the user turn is at
-        # index 1. Accept an explicit role match too, in case of reordering.
-        user_message = next(
-            (m for m in messages if isinstance(m, dict) and m.get("role") == "user"),
-            messages[1] if isinstance(messages[1], dict) else None,
-        )
+        user_message = self._select_user_message(messages)
         if user_message is None:
             raise ValueError(f"line {line_number}: no user message found in 'messages'")
 
@@ -828,15 +935,19 @@ Output test cases in structured JSON format as demonstrated in training examples
             )
 
         images = user_message.get("images")
-        if images is not None:
-            self._validate_images(images, line_number)
+        if images is None:
+            return 0
+        return self._validate_images(images, line_number)
 
-    def _validate_images(self, images: Any, line_number: int) -> None:
+    def _validate_images(self, images: Any, line_number: int) -> int:
         """Validate the user message's ``images`` field.
 
         Args:
             images: The raw ``images`` value from the user message.
             line_number: 1-based line number, used in error messages.
+
+        Returns:
+            The approximate decoded size of all images in bytes.
 
         Raises:
             ValueError: If ``images`` is not a list of valid, size-bounded
@@ -851,6 +962,7 @@ Output test cases in structured JSON format as demonstrated in training examples
                 f"line {line_number}: {len(images)} images exceeds the per-example limit of "
                 f"{self.config.max_images_per_example} (config.max_images_per_example)"
             )
+        total_bytes = 0
         for position, encoded in enumerate(images):
             if not isinstance(encoded, str):
                 raise ValueError(
@@ -872,6 +984,8 @@ Output test cases in structured JSON format as demonstrated in training examples
                 raise ValueError(
                     f"line {line_number}: image {position} is not valid base64 ({exc})"
                 ) from exc
+            total_bytes += approx_decoded_bytes
+        return total_bytes
 
     def _evaluate_example(
         self,
@@ -906,16 +1020,20 @@ Output test cases in structured JSON format as demonstrated in training examples
             "invalid_test_cases": 0,
             "duplicate_test_cases": 0,
             "content": None,
+            "content_status": "absent",
             "score": 0.0,
             "error": None,
         }
 
         messages = example.get("messages", [])
-        if len(messages) < 2:
+        # Must be the same turn _validate_example_contract checked; indexing
+        # messages[1] directly generated from the assistant reference whenever the
+        # roles were ordered [system, assistant, user].
+        user_message = self._select_user_message(messages)
+        if user_message is None:
             result["error"] = "example missing user message"
             return result
 
-        user_message = messages[1]
         images = user_message.get("images") or []
         result["has_images"] = bool(images)
 
@@ -931,7 +1049,9 @@ Output test cases in structured JSON format as demonstrated in training examples
             return result
 
         result.update(self._score_generation(raw_output))
-        result["content"] = self._score_content(raw_output, example, content_scorer)
+        result["content"], result["content_status"] = self._score_content(
+            raw_output, example, content_scorer
+        )
         return result
 
     def _generate_for_example(
@@ -1113,8 +1233,14 @@ Output test cases in structured JSON format as demonstrated in training examples
         raw_output: str | dict[str, Any],
         example: dict[str, Any],
         content_scorer: ContentScorer,
-    ) -> ContentScore | None:
+    ) -> tuple[ContentScore | None, str]:
         """Score one generation against the example's reference answer.
+
+        The three ways scoring can fail to produce a number used to collapse into
+        a single ``None``, so a run could not tell "this example carried no
+        reference" from "the reference was unparseable" from "the scorer raised"
+        (2026-07-26 review, Critical 3). The status is returned alongside the
+        score so the aggregate can count each case.
 
         Args:
             raw_output: The raw model response.
@@ -1122,18 +1248,23 @@ Output test cases in structured JSON format as demonstrated in training examples
             content_scorer: A ContentScorer implementation.
 
         Returns:
-            A ContentScore dict, or None when there is no usable reference or the
-            scorer raises (isolated like per-example generation errors).
+            ``(score, status)`` where status is one of ``"absent"`` (no reference
+            answer), ``"scored"``, ``"unusable_reference"`` (a reference existed
+            but yielded no canonical cases), or ``"error"`` (the scorer raised).
+            ``score`` is None for every status except ``"scored"``.
         """
         reference_raw = self._reference_answer(example)
         if reference_raw is None:
-            return None
+            return None, "absent"
         try:
             generated = self._canonical_unique_cases(raw_output)
             reference = self._canonical_unique_cases(reference_raw)
-            return content_scorer.score(generated, reference)
+            score = content_scorer.score(generated, reference)
         except Exception:  # noqa: BLE001 - a scorer fault must not abort the run
-            return None
+            return None, "error"
+        if score is None:
+            return None, "unusable_reference"
+        return score, "scored"
 
     @staticmethod
     def _aggregate_eval_metrics(per_example: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1161,6 +1292,15 @@ Output test cases in structured JSON format as demonstrated in training examples
 
         content_rows = [r for r in per_example if r.get("content") is not None]
 
+        # Reference coverage. Averaging only the scored rows without publishing
+        # the denominator let a run report content_f1 == 1.0 off a single usable
+        # example out of two, which is not comparable with a run that scored all
+        # of them (2026-07-26 review, Critical 3).
+        content_reference_examples = sum(
+            1 for r in per_example if r.get("content_status", "absent") != "absent"
+        )
+        content_scoring_errors = sum(1 for r in per_example if r.get("content_status") == "error")
+
         # Each aggregate below is a per-field macro-mean over only the examples
         # where that field is defined (`is not None`), not over `content_rows`
         # as a whole. By design (see `ReferenceOverlapScorer.score`), a
@@ -1168,7 +1308,10 @@ Output test cases in structured JSON format as demonstrated in training examples
         # recall=0.0/f1=0.0 (defined against a non-empty reference). So
         # `content_precision` may be averaged over fewer examples than
         # `content_recall`/`content_f1` — this asymmetry is intentional, not a
-        # bug.
+        # bug. `content_scored_examples` is the denominator for
+        # `content_recall`/`content_f1`; compare it with
+        # `content_reference_examples` to see how much of the reference set
+        # actually contributed.
         def mean_content(field: str) -> float | None:
             values = [
                 r["content"][field] for r in content_rows if r["content"].get(field) is not None
@@ -1193,6 +1336,12 @@ Output test cases in structured JSON format as demonstrated in training examples
             "content_precision": mean_content("precision"),
             "content_recall": mean_content("recall"),
             "content_f1": mean_content("f1"),
+            # Denominators for the three scores above. Additive keys only:
+            # _compute_delta iterates a fixed tuple of comparable metrics, so
+            # counts are correctly excluded from the A/B delta.
+            "content_reference_examples": content_reference_examples,
+            "content_scored_examples": len(content_rows),
+            "content_scoring_errors": content_scoring_errors,
         }
 
 

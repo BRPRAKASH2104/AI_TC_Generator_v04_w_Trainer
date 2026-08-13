@@ -2,8 +2,8 @@
 """Create a prompt-customized vision model using Ollama Modelfile.
 
 This script does not fine-tune model weights. It creates a named Ollama
-model with a RAFT-informed system prompt for automotive test case
-generation. It:
+model with a **fixed** system prompt for automotive test case generation — the
+prompt is not derived from the RAFT dataset. It:
 1. Loads vision RAFT dataset (JSONL format with base64 images)
 2. Creates Ollama Modelfile with optimized system prompt
 3. Registers custom model in Ollama
@@ -46,7 +46,10 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -253,11 +256,12 @@ def check_output_model_exists(output_model: str) -> bool:
         return False
 
 
-def print_training_result(result: dict[str, Any]) -> None:
+def print_training_result(result: Mapping[str, Any]) -> None:
     """Print model-creation result summary.
 
     Args:
-        result: Result dictionary from VisionRAFTTrainer.train()
+        result: Result mapping from VisionRAFTTrainer.train(). Typed as a Mapping
+            so the trainer's ``TrainResult`` TypedDict is accepted directly.
     """
     logger.info("")
     logger.info("=" * 60)
@@ -266,7 +270,10 @@ def print_training_result(result: dict[str, Any]) -> None:
         logger.info("=" * 60)
         logger.info(f"Model name:       {result['model_name']}")
         logger.info(f"Duration:         {result['duration_seconds']:.1f}s")
-        logger.info(f"Modelfile:        {result.get('modelfile_path', 'N/A')}")
+        # These key names must match VisionRAFTTrainer's TrainResult/DatasetStats
+        # exactly. Reading keys the trainer never emits turned a successful
+        # `ollama create` into a KeyError and exit 1 (2026-07-26 review, Critical 4).
+        logger.info(f"Modelfile:        {result.get('modelfile', 'N/A')}")
         logger.info("")
         logger.info("Dataset Statistics:")
         stats = result["dataset_stats"]
@@ -274,9 +281,9 @@ def print_training_result(result: dict[str, Any]) -> None:
         logger.info(
             f"  Vision examples:    {stats['vision_examples']} ({stats['total_images']} images)"
         )
-        logger.info(f"  Text-only examples: {stats['text_examples']}")
+        logger.info(f"  Text-only examples: {stats['text_only_examples']}")
         if stats["vision_examples"] > 0:
-            logger.info(f"  Avg images/example: {stats['avg_images_per_example']:.2f}")
+            logger.info(f"  Avg images/example: {stats['avg_images_per_vision_example']:.2f}")
         logger.info("")
         logger.info("Next steps:")
         logger.info(
@@ -307,6 +314,22 @@ def _format_delta(value: float | None) -> str:
     return "n/a" if value is None else f"{value:+.2f}"
 
 
+def _format_score(value: float | None) -> str:
+    """Format a score, or ``n/a`` when the metric is undefined.
+
+    A metric that is genuinely undefined arrives as ``None``, which
+    ``dict.get(key, 0.0)`` cannot replace — the key exists. Every score printed
+    here must go through this helper (2026-07-26 review, Critical 2).
+
+    Args:
+        value: The metric value, or None when it is undefined.
+
+    Returns:
+        The value to two decimal places, or ``"n/a"``.
+    """
+    return "n/a" if value is None else f"{value:.2f}"
+
+
 def print_evaluation_result(result: dict[str, Any]) -> None:
     """Print an evaluation summary, including the A/B delta when present.
 
@@ -314,10 +337,8 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
         result: Result dictionary from ``VisionRAFTTrainer.evaluate_model()``.
     """
     metrics = result["metrics"]
-    text_score = metrics.get("text_examples_score")
-    vision_score = metrics.get("vision_examples_score")
-    text_str = "n/a" if text_score is None else f"{text_score:.2f}"
-    vision_str = "n/a" if vision_score is None else f"{vision_score:.2f}"
+    text_str = _format_score(metrics.get("text_examples_score"))
+    vision_str = _format_score(metrics.get("vision_examples_score"))
 
     logger.info("")
     logger.info("=" * 60)
@@ -349,10 +370,26 @@ def print_evaluation_result(result: dict[str, Any]) -> None:
             f"Content F1:       {content_f1:.2f}  <- reference-aware quality "
             "(the meaningful signal when references exist)"
         )
+        # Precision is legitimately None when nothing was generated (0/0), while
+        # recall/F1 stay defined against a non-empty reference.
         logger.info(
-            f"  Precision:      {metrics.get('content_precision', 0.0):.2f}   "
-            f"Recall: {metrics.get('content_recall', 0.0):.2f}"
+            f"  Precision:      {_format_score(metrics.get('content_precision'))}   "
+            f"Recall: {_format_score(metrics.get('content_recall'))}"
         )
+        # Without the denominator, a run scoring one usable reference out of ten
+        # is indistinguishable from one that scored all ten.
+        scored = metrics.get("content_scored_examples", 0)
+        with_reference = metrics.get("content_reference_examples", 0)
+        scoring_errors = metrics.get("content_scoring_errors", 0)
+        logger.info(
+            f"  Scored on:      {scored}/{with_reference} example(s) with a reference"
+            + (f", {scoring_errors} scorer error(s)" if scoring_errors else "")
+        )
+        if with_reference and scored < with_reference:
+            logger.warning(
+                f"  Content F1 covers only {scored} of {with_reference} examples that "
+                "carried a reference; it is not comparable with a fully scored run."
+            )
     if result["errors"]:
         logger.warning(f"{len(result['errors'])} example(s) failed to generate:")
         for error in result["errors"]:

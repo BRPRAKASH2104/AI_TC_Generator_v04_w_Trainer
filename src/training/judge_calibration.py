@@ -5,9 +5,10 @@ construction and checks each declared metric against an inclusive tolerance
 band. No generation model runs here — fixtures feed the scorer directly, so the
 result measures the scorer in isolation rather than the scorer plus a model.
 
-Bands are keyed per scorer kind ("overlap" / "llm"), which lets a case encode a
-known limitation of one scorer as expected behaviour while holding another to a
-higher bar (see ``judge_calibration_cases.DEFAULT_CALIBRATION_CASES``).
+Bands are keyed by an arbitrary scorer-kind string — ``"overlap"`` is the only
+kind shipped today — which lets a case encode a known limitation of one scorer
+as expected behaviour while holding another to a higher bar (see
+``judge_calibration_cases.DEFAULT_CALIBRATION_CASES``).
 """
 
 from collections.abc import Sequence  # noqa: TC003 -- must resolve at runtime for get_type_hints()
